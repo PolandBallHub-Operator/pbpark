@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ page.title }}</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+
+  <script type="module" src="https://esm.run/@material/web/all.js"></script>
+
+  <style>
+    /* M3 カラーシステム設定 */
+    :root {
+      font-family: 'Roboto', sans-serif;
+      --md-sys-color-primary: #6750A4;
+      --md-sys-color-background: #FEF7FF;
+      --md-sys-color-on-background: #1D1B20;
+      --md-sys-color-surface: #F7F2FA;
+      --md-sys-color-surface-container: #F3EDF7;
+    }
+    :root.dark-mode {
+      --md-sys-color-primary: #D0BCFF;
+      --md-sys-color-background: #141218;
+      --md-sys-color-on-background: #E6E1E5;
+      --md-sys-color-surface: #211F26;
+      --md-sys-color-surface-container: #2B2930;
+    }
+
+    body {
+      background-color: var(--md-sys-color-background);
+      color: var(--md-sys-color-on-background);
+      margin: 0;
+      padding: 0;
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    /* 左上のハンバーガーボタン固定 */
+    .menu-trigger-button {
+      position: fixed;
+      top: 12px;
+      left: 12px;
+      z-index: 999;
+    }
+
+    /* メインコンテンツの表示位置調整（ボタンやメニューと被らないように余白を設定） */
+    main {
+      padding: 80px 24px 24px 24px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    /* ナビゲーションドロワーのカスタムスタイル */
+    md-navigation-drawer {
+      --md-navigation-drawer-container-color: var(--md-sys-color-surface);
+      position: fixed;
+      left: 0;
+      top: 0;
+      height: 100%;
+      z-index: 1000;
+    }
+
+    /* ドロワーヘッダー（画像とタイトル） */
+    .drawer-header {
+      padding: 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      border-bottom: 1px solid var(--md-sys-color-surface-container);
+    }
+    .drawer-logo {
+      width: 48px;
+      height: 48px;
+      object-fit: contain;
+    }
+    .drawer-title {
+      font-size: 22px;
+      font-weight: 700;
+      margin: 0;
+    }
+
+    /* ツール検査バー（検索ボックス）の配置 */
+    .search-box-container {
+      padding: 16px 24px;
+    }
+    .search-box-container md-outlined-text-field {
+      width: 100%;
+    }
+
+    /* メニュー内のリンク用スタイル */
+    .drawer-content a {
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="menu-trigger-button">
+    <md-icon-button id="menuButton" aria-label="メニューを開く">
+      <md-icon>menu</md-icon>
+    </md-icon-button>
+  </div>
+
+  <md-navigation-drawer id="navDrawer">
+    
+    <div class="drawer-header">
+      <img class="drawer-logo" src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/poland/normal.png" alt="PBHub Logo">
+      <h1 class="drawer-title">PBHub</h1>
+    </div>
+
+    <div class="drawer-content">
+      <div class="search-box-container">
+        <md-outlined-text-field id="toolSearch" label="ツール検査バー" placeholder="ツールを入力...">
+          <md-icon slot="leading-icon">search</md-icon>
+        </md-outlined-text-field>
+      </div>
+
+      <md-list>
+        <a href="{{ '/tools/' | relative_url }}">
+          <md-list-item interactive>
+            <md-icon slot="start">build</md-icon>
+            <div slot="headline">ツール一覧</div>
+          </md-list-item>
+        </a>
+
+        <md-divider style="margin: 8px 0;"></md-divider>
+
+        <md-list-item id="themeToggleItem" interactive>
+          <md-icon slot="start" id="themeIcon">dark_mode</md-icon>
+          <div slot="headline" id="themeText">ダークモード</div>
+        </md-list-item>
+      </md-list>
+    </div>
+
+  </md-navigation-drawer>
+
+  <main>
+    {{ content }}
+  </main>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const menuButton = document.getElementById('menuButton');
+      const navDrawer = document.getElementById('navDrawer');
+      const themeToggleItem = document.getElementById('themeToggleItem');
+      const themeIcon = document.getElementById('themeIcon');
+      const themeText = document.getElementById('themeText');
+      const toolSearch = document.getElementById('toolSearch');
+      const root = document.documentElement;
+
+      // ① ハンバーガーボタンでドロワーを開閉
+      menuButton.addEventListener('click', (e) => {
+        e.stopPropagation(); // ドロワー自体のクリック判定と競合するのを防ぐ
+        navDrawer.opened = !navDrawer.opened;
+      });
+
+      // メニューの外側をクリックしたら自動で閉じる処理
+      document.addEventListener('click', (e) => {
+        if (navDrawer.opened && !navDrawer.contains(e.target) && e.target !== menuButton) {
+          navDrawer.opened = false;
+        }
+      });
+
+      // ② ツール検査バー（エンターキーで検索などの処理用スタブ）
+      toolSearch.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          alert('検査を開始します: ' + toolSearch.value);
+          // ここに検索ページへの遷移処理などを後から追加できます
+        }
+      });
+
+      // ③ ダークモード管理
+      const updateThemeUI = (isDark) => {
+        if (isDark) {
+          root.classList.add('dark-mode');
+          themeIcon.textContent = 'light_mode';
+          themeText.textContent = 'ライトモード';
+        } else {
+          root.classList.remove('dark-mode');
+          themeIcon.textContent = 'dark_mode';
+          themeText.textContent = 'ダークモード';
+        }
+      };
+
+      // 初期テーマ判定 (ストレージ or OS設定)
+      const savedTheme = localStorage.getItem('theme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const isDarkMode = savedTheme === 'dark' || (!savedTheme && prefersDark);
+      updateThemeUI(isDarkMode);
+
+      // テーマ切り替えクリック時
+      themeToggleItem.addEventListener('click', () => {
+        const currentDark = root.classList.contains('dark-mode');
+        const nextDark = !currentDark;
+        updateThemeUI(nextDark);
+        localStorage.setItem('theme', nextDark ? 'dark' : 'light');
+      });
+    });
+  </script>
+
+</body>
+</html>
