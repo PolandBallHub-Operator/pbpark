@@ -15,7 +15,6 @@
       --md-sys-color-on-surface: #1D1B20;
       --md-sys-color-surface-variant: #E7E0EC;
       --md-sys-color-on-surface-variant: #49454F;
-      --md-sys-color-outline: #79747E;
       --md-sys-color-background: #FEF7FF;
       --md-sys-color-on-background: #1D1B20;
       
@@ -27,8 +26,8 @@
       transition: background-color 0.3s, color 0.3s;
     }
 
-    /* ダークモードのカラーパレット */
-    :root[data-theme="dark"] {
+    /* ダークモード用のカラーパレット */
+    :root.dark-mode {
       --md-sys-color-primary: #D0BCFF;
       --md-sys-color-on-primary: #381E72;
       --md-sys-color-primary-container: #4F378B;
@@ -37,7 +36,6 @@
       --md-sys-color-on-surface: #E6E1E5;
       --md-sys-color-surface-variant: #49454F;
       --md-sys-color-on-surface-variant: #CAC4D0;
-      --md-sys-color-outline: #938F99;
       --md-sys-color-background: #141218;
       --md-sys-color-on-background: #E6E1E5;
     }
@@ -49,7 +47,7 @@
       overflow-x: hidden;
     }
 
-    /* 左上固定のメニューボタン */
+    /* 左上固定のメニューボタン（ハンバーガーを文字で表現） */
     .floating-menu-button {
       position: fixed;
       top: 16px;
@@ -67,11 +65,10 @@
       font-size: 24px;
       font-weight: bold;
       box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.15), 0px 1px 3px rgba(0, 0, 0, 0.3);
-      z-index: 1000; /* 最前面に固定 */
-      transition: box-shadow 0.2s, background-color 0.2s;
+      z-index: 1000;
     }
 
-    /* ナビゲーションドロワー（位置計算のズレを修正） */
+    /* ナビゲーションドロワー */
     .nav-drawer {
       position: fixed;
       top: 0;
@@ -80,16 +77,14 @@
       height: 100%;
       background-color: var(--md-sys-color-surface) !important;
       box-shadow: 4px 0 16px rgba(0,0,0,0.2);
-      transform: translateX(-105%); /* 初期状態は完全に画面外へ隠す */
+      transform: translateX(-105%);
       transition: transform 0.3s ease-in-out;
-      z-index: 2000; /* スクリムより上に配置 */
+      z-index: 2000;
       display: flex;
       flex-direction: column;
       box-sizing: border-box;
       border-radius: 0 16px 16px 0;
     }
-    
-    /* オープン時の移動量指定を最適化 */
     .nav-drawer.open {
       transform: translateX(0) !important;
     }
@@ -123,7 +118,7 @@
       flex-grow: 1;
     }
 
-    /* ナビゲーションボタン（文字色の同化対策に強制指定を追加） */
+    /* ナビゲーションボタン（文字のみ） */
     .drawer-item {
       display: flex;
       align-items: center;
@@ -132,7 +127,7 @@
       border-radius: 28px;
       text-decoration: none;
       color: var(--md-sys-color-on-surface-variant) !important;
-      font-weight: 600; /* 文字の視認性をあげるため太めに */
+      font-weight: bold;
       font-size: 16px;
       border: none;
       background: transparent !important;
@@ -146,25 +141,22 @@
       color: var(--md-sys-color-on-surface) !important;
     }
 
-    /* オーバーレイ */
+    /* オーバーレイ（背景マスク） */
     .scrim {
       position: fixed;
       top: 0;
       left: 0;
       width: 100vw;
       height: 100vh;
-      background-color: rgba(0, 0, 0, 0.5);
-      z-index: 1500; /* ドロワーのすぐ後ろ */
+      background-color: rgba(0, 0, 0, 0.4);
+      z-index: 1500;
       display: none;
-      opacity: 0;
-      transition: opacity 0.3s ease;
     }
     .scrim.show {
       display: block !important;
-      opacity: 1 !important;
     }
 
-    /* メインコンテンツエリア */
+    /* メインコンテンツエリアのレイアウト調整 */
     .main-content {
       padding: 88px 24px 24px 24px;
       flex-grow: 1;
@@ -174,7 +166,7 @@
       box-sizing: border-box;
     }
 
-    /* 検索バーとサイト一覧スタイル */
+    /* 検索バーとサイト一覧の文字だけシンプルスタイル */
     .search-container {
       margin-bottom: 24px;
       width: 100%;
@@ -196,6 +188,7 @@
       background-color: var(--md-sys-color-surface);
       box-shadow: 0 0 0 2px var(--md-sys-color-primary);
     }
+
     .site-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
@@ -233,7 +226,6 @@
 <body>
 
   <button class="floating-menu-button" id="menuBtn" aria-label="メニューを開く">☰</button>
-
   <div class="scrim" id="scrim"></div>
 
   <aside class="nav-drawer" id="navDrawer">
@@ -243,8 +235,9 @@
     </div>
     
     <nav class="drawer-content">
-      <a href="/inspector/" class="drawer-item link-item">ツール検査バー</a>
-      <a href="/tools/" class="drawer-item link-item">ツール一覧</a>
+      <a href="{{ '/' | relative_url }}" class="drawer-item link-item">ホーム</a>
+      <a href="{{ '/blog/' | relative_url }}" class="drawer-item link-item">ブログ</a>
+      <a href="{{ '/about/' | relative_url }}" class="drawer-item link-item">アバウト</a>
 
       <hr style="border: none; border-top: 1px solid var(--md-sys-color-surface-variant); margin: 8px 0;">
 
@@ -272,78 +265,80 @@
   </main>
 
   <script>
-    const menuBtn = document.getElementById('menuBtn');
-    const navDrawer = document.getElementById('navDrawer');
-    const scrim = document.getElementById('scrim');
-    const themeToggleBtn = document.getElementById('themeToggleBtn');
+    document.addEventListener('DOMContentLoaded', () => {
+      const menuBtn = document.getElementById('menuBtn');
+      const navDrawer = document.getElementById('navDrawer');
+      const scrim = document.getElementById('scrim');
+      const themeToggleBtn = document.getElementById('themeToggleBtn');
+      const root = document.documentElement;
 
-    // --- ドロワー制御 ---
-    function openDrawer() {
-      navDrawer.classList.add('open');
-      scrim.classList.add('show');
-    }
+      // 1. ドロワーメニュー制御
+      function openDrawer() {
+        navDrawer.classList.add('open');
+        scrim.classList.add('show');
+      }
 
-    function closeDrawer() {
-      navDrawer.classList.remove('open');
-      scrim.classList.remove('show');
-    }
+      function closeDrawer() {
+        navDrawer.classList.remove('open');
+        scrim.classList.remove('show');
+      }
 
-    menuBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      openDrawer();
-    });
+      menuBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openDrawer();
+      });
 
-    scrim.addEventListener('click', closeDrawer);
+      scrim.addEventListener('click', closeDrawer);
 
-    // 通常のリンクのみドロワーを閉じる
-    const linkItems = document.querySelectorAll('.link-item');
-    linkItems.forEach(item => {
-      item.addEventListener('click', closeDrawer);
-    });
+      const linkItems = document.querySelectorAll('.link-item');
+      linkItems.forEach(item => {
+        item.addEventListener('click', closeDrawer);
+      });
 
-    // --- ダークモード切り替えロジック ---
-    const savedTheme = localStorage.getItem('theme');
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    
-    if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
-      document.documentElement.setAttribute('data-theme', 'dark');
-      themeToggleBtn.textContent = "ライトモードにする";
-    } else {
-      document.documentElement.setAttribute('data-theme', 'light');
-      themeToggleBtn.textContent = "ダークモードにする";
-    }
+      // 2. ダークモードロジック（文字表示対応）
+      const updateThemeUI = (isDark) => {
+        if (isDark) {
+          root.classList.add('dark-mode');
+          themeToggleBtn.textContent = "ライトモードにする";
+        } else {
+          root.classList.remove('dark-mode');
+          themeToggleBtn.textContent = "ダークモードにする";
+        }
+      };
 
-    themeToggleBtn.addEventListener('click', (e) => {
-      e.stopPropagation(); 
-      const currentTheme = document.documentElement.getAttribute('data-theme');
-      if (currentTheme === 'dark') {
-        document.documentElement.setAttribute('data-theme', 'light');
-        localStorage.setItem('theme', 'light');
-        themeToggleBtn.textContent = "ダークモードにする";
-      } else {
-        document.documentElement.setAttribute('data-theme', 'dark');
-        localStorage.setItem('theme', 'dark');
-        themeToggleBtn.textContent = "ライトモードにする";
+      const savedTheme = localStorage.getItem('theme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const isDarkMode = savedTheme === 'dark' || (!savedTheme && prefersDark);
+      
+      updateThemeUI(isDarkMode);
+
+      themeToggleBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const currentDark = root.classList.contains('dark-mode');
+        const nextDark = !currentDark;
+        
+        updateThemeUI(nextDark);
+        localStorage.setItem('theme', nextDark ? 'dark' : 'light');
+      });
+
+      // 3. リアルタイム検索
+      const siteSearch = document.getElementById('siteSearch');
+      const siteCards = document.querySelectorAll('.site-card');
+
+      if (siteSearch) {
+        siteSearch.addEventListener('input', (e) => {
+          const keyword = e.target.value.toLowerCase();
+          siteCards.forEach(card => {
+            const siteName = card.getAttribute('data-name').toLowerCase();
+            if (siteName.includes(keyword)) {
+              card.style.display = 'flex';
+            } else {
+              card.style.display = 'none';
+            }
+          });
+        });
       }
     });
-
-    // --- サイト一覧のリアルタイム検索ロジック ---
-    const siteSearch = document.getElementById('siteSearch');
-    const siteCards = document.querySelectorAll('.site-card');
-
-    if (siteSearch) {
-      siteSearch.addEventListener('input', (e) => {
-        const keyword = e.target.value.toLowerCase();
-        siteCards.forEach(card => {
-          const siteName = card.getAttribute('data-name').toLowerCase();
-          if (siteName.includes(keyword)) {
-            card.style.display = 'flex';
-          } else {
-            card.style.display = 'none';
-          }
-        });
-      });
-    }
   </script>
 </body>
 </html>
