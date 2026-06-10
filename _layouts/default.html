@@ -3,7 +3,38 @@
 <head>
   <meta charset="UTF-8">
   <title>{{ page.title }}</title>
-  {% include head.html %}
+
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+
+  <script type="module" src="https://esm.run/@material/web/all.js"></script>
+
+  <style>
+    /* M3のライトモード・ダークモード共通トークン */
+    :root {
+      --md-sys-color-primary: #6750A4;
+      --md-sys-color-surface: #FEF7FF;
+      --md-sys-color-on-surface: #1D1B20;
+    }
+    :root.dark-mode {
+      --md-sys-color-primary: #D0BCFF;
+      --md-sys-color-surface: #141218;
+      --md-sys-color-on-surface: #E6E1E5;
+    }
+
+    /* メニューを右下に固定するためのコンテナ */
+    .nav-menu-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 1000;
+      display: inline-block;
+    }
+
+    /* メニュー内のアイコン用スタイル */
+    md-menu-item md-icon {
+      margin-right: 8px;
+    }
+  </style>
 </head>
 <body>
 
@@ -11,8 +42,80 @@
     {{ content }}
   </main>
 
-  {% include fab-nav.html %}
+  <div class="nav-menu-container">
+    <md-filled-button id="menuAnchor" aria-haspopup="true" aria-controls="dropdownMenu">
+      <md-icon slot="icon">menu</md-icon>
+      メニュー
+    </md-filled-button>
 
-  {% include fab-script.html %}
+    <md-menu id="dropdownMenu" anchor="menuAnchor" quick="true" y-offset="-8">
+      
+      <a href="{{ '/' | relative_url }}" style="text-decoration: none;">
+        <md-menu-item>
+          <md-icon slot="start">home</md-icon>
+          <div slot="headline">ホーム</div>
+        </md-menu-item>
+      </a>
+
+      <a href="{{ '/blog/' | relative_url }}" style="text-decoration: none;">
+        <md-menu-item>
+          <md-icon slot="start">article</md-icon>
+          <div slot="headline">ブログ</div>
+        </md-menu-item>
+      </a>
+
+      <md-divider></md-divider>
+
+      <md-menu-item id="themeToggleItem" keep-open>
+        <md-icon slot="start" id="themeIcon">dark_mode</md-icon>
+        <div slot="headline" id="themeText">ダークモードに変更</div>
+      </md-menu-item>
+
+    </md-menu>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const menuAnchor = document.getElementById('menuAnchor');
+      const dropdownMenu = document.getElementById('dropdownMenu');
+      const themeToggleItem = document.getElementById('themeToggleItem');
+      const themeIcon = document.getElementById('themeIcon');
+      const themeText = document.getElementById('themeText');
+      const root = document.documentElement;
+
+      // 1. ボタンクリックでドロップダウンメニューを開閉
+      menuAnchor.addEventListener('click', () => {
+        dropdownMenu.open = !dropdownMenu.open;
+      });
+
+      // 2. ダークモード管理ロジック
+      const updateThemeUI = (isDark) => {
+        if (isDark) {
+          root.classList.add('dark-mode');
+          themeIcon.textContent = 'light_mode';
+          themeText.textContent = 'ライトモードに変更';
+        } else {
+          root.classList.remove('dark-mode');
+          themeIcon.textContent = 'dark_mode';
+          themeText.textContent = 'ダークモードに変更';
+        }
+      };
+
+      // 初期テーマ判定 (ローカルストレージ or OS設定)
+      const savedTheme = localStorage.getItem('theme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const isDarkMode = savedTheme === 'dark' || (!savedTheme && prefersDark);
+      updateThemeUI(isDarkMode);
+
+      // メニュー内のテーマ切り替えをクリックしたとき
+      themeToggleItem.addEventListener('click', () => {
+        const currentDark = root.classList.contains('dark-mode');
+        const nextDark = !currentDark;
+        updateThemeUI(nextDark);
+        localStorage.setItem('theme', nextDark ? 'dark' : 'light');
+      });
+    });
+  </script>
+
 </body>
 </html>
