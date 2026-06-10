@@ -5,13 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{ page.title }} - PBHub</title>
 
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
-
-  <script src="https://unpkg.com/@material/material-color-utilities/dist/index.min.js"></script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
 
   <style>
     :root {
-      /* デフォルトのフォールバックカラー */
       --md-sys-color-primary: #6750A4;
       --md-sys-color-on-primary: #FFFFFF;
       --md-sys-color-primary-container: #EADDFF;
@@ -32,6 +29,21 @@
       transition: background-color 0.3s, color 0.3s;
     }
 
+    /* ダークモードのカラーパレット */
+    :root[data-theme="dark"] {
+      --md-sys-color-primary: #D0BCFF;
+      --md-sys-color-on-primary: #381E72;
+      --md-sys-color-primary-container: #4F378B;
+      --md-sys-color-on-primary-container: #EADDFF;
+      --md-sys-color-surface: #141218;
+      --md-sys-color-on-surface: #E6E1E5;
+      --md-sys-color-surface-variant: #49454F;
+      --md-sys-color-on-surface-variant: #CAC4D0;
+      --md-sys-color-outline: #938F99;
+      --md-sys-color-background: #141218;
+      --md-sys-color-on-background: #E6E1E5;
+    }
+
     body {
       display: flex;
       flex-direction: column;
@@ -39,14 +51,14 @@
       overflow-x: hidden;
     }
 
-    /* 左上固定のフローティングメニューボタン (FAB) */
+    /* M3仕様 左上固定のフローティングメニューボタン (FAB) */
     .floating-menu-button {
       position: fixed;
       top: 16px;
       left: 16px;
       width: 56px;
       height: 56px;
-      border-radius: 16px;
+      border-radius: 16px; /* M3のFABは丸みを帯びた四角形 */
       background-color: var(--md-sys-color-primary-container);
       color: var(--md-sys-color-on-primary-container);
       border: none;
@@ -55,12 +67,15 @@
       align-items: center;
       justify-content: center;
       box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.15), 0px 1px 3px rgba(0, 0, 0, 0.3);
-      z-index: 80;
+      z-index: 80; /* ドロワー(100)やスクリム(90)より下に配置 */
       transition: box-shadow 0.2s, background-color 0.2s;
     }
     .floating-menu-button:hover {
       background-color: var(--md-sys-color-surface-variant);
       box-shadow: 0px 6px 10px rgba(0, 0, 0, 0.15), 0px 2px 4px rgba(0, 0, 0, 0.3);
+    }
+    .floating-menu-button .material-symbols-outlined {
+      font-size: 24px;
     }
 
     /* ナビゲーションドロワー */
@@ -108,9 +123,8 @@
       padding: 12px;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 12px;
       flex-grow: 1;
-      overflow-y: auto;
     }
 
     /* M3 スタイルのナビゲーションボタン */
@@ -135,68 +149,11 @@
       background-color: var(--md-sys-color-surface-variant);
       color: var(--md-sys-color-on-surface);
     }
-
-    /* カラーピッカー用アイテムのカスタムスタイル */
-    .color-picker-wrapper {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .color-input {
-      border: none;
-      background: none;
-      width: 40px;
-      height: 40px;
-      cursor: pointer;
+    .drawer-item .material-symbols-outlined {
+      font-size: 24px;
     }
 
-    /* 検索バー (修正点) */
-    .search-box {
-      display: flex;
-      align-items: center;
-      background-color: var(--md-sys-color-surface-variant);
-      border-radius: 28px;
-      padding: 0 16px;
-      margin: 8px 4px;
-      height: 48px;
-    }
-    .search-box input {
-      border: none;
-      background: none;
-      color: var(--md-sys-color-on-surface);
-      width: 100%;
-      height: 100%;
-      margin-left: 8px;
-      outline: none;
-      font-size: 14px;
-    }
-
-    /* サイト一覧リストエリア (修正点) */
-    .site-list {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      max-height: 200px;
-      overflow-y: auto;
-      border-top: 1px solid var(--md-sys-color-surface-variant);
-      padding-top: 8px;
-    }
-    .site-list-item {
-      padding: 8px 16px;
-      border-radius: 16px;
-      font-size: 13px;
-      text-decoration: none;
-      color: var(--md-sys-color-on-surface-variant);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .site-list-item:hover {
-      background-color: var(--md-sys-color-surface-variant);
-      color: var(--md-sys-color-on-surface);
-    }
-
-    /* オーバーレイ */
+    /* オーバーレイ（背景クリックで閉じる用） */
     .scrim {
       position: fixed;
       top: 0;
@@ -214,7 +171,7 @@
       opacity: 1;
     }
 
-    /* メインコンテンツエリア */
+    /* メインコンテンツエリア（FABと被らないように上部・左側に少し余白を確保） */
     .main-content {
       padding: 88px 24px 24px 24px;
       flex-grow: 1;
@@ -228,7 +185,7 @@
 <body>
 
   <button class="floating-menu-button" id="menuBtn" aria-label="メニューを開く">
-    <span class="material-symbols-outlines">menu</span>
+    <span class="material-symbols-outlined">menu</span>
   </button>
 
   <div class="scrim" id="scrim"></div>
@@ -239,50 +196,24 @@
       <h2 class="drawer-title">PBHub</h2>
     </div>
     
-    <div class="drawer-content">
-      <a href="/inspector/" class="drawer-item">
-        <span class="material-symbols-outlined">page_view</span>
-        <span>ツール検査バー</span>
+    <nav class="drawer-content">
+      <a href="/sites/" class="drawer-item">
+        <span class="material-symbols-outlined">list_alt</span>
+        <span>サイト一覧</span>
       </a>
 
-      <a href="/tools/" class="drawer-item">
-        <span class="material-symbols-outlined">construction</span>
-        <span>ツール一覧</span>
+      <a href="/search/" class="drawer-item">
+        <span class="material-symbols-outlined">search</span>
+        <span>サイト検索</span>
       </a>
 
-      <div class="drawer-item color-picker-wrapper">
-        <div style="display: flex; align-items: center; gap: 12px;">
-          <span class="material-symbols-outlined">palette</span>
-          <span>テーマカラー変更</span>
-        </div>
-        <input type="color" id="m3ColorPicker" class="color-input" value="#6750A4">
-      </div>
+      <hr style="border: none; border-top: 1px solid var(--md-sys-color-surface-variant); margin: 8px 0;">
 
       <button class="drawer-item" id="themeToggleBtn">
         <span class="material-symbols-outlined" id="themeIcon">dark_mode</span>
         <span id="themeText">ダークモードにする</span>
       </button>
-
-      <hr style="border: none; border-top: 1px solid var(--md-sys-color-surface-variant); margin: 8px 0;">
-
-      <div class="search-box">
-        <span class="material-symbols-outlined">search</span>
-        <input type="text" id="siteSearchInput" placeholder="サイト内を検索...">
-      </div>
-
-      <div class="site-list" id="siteList">
-        {% for p in site.pages %}
-          {% if p.title %}
-            <a href="{{ p.url | relative_url }}" class="site-list-item" data-title="{{ p.title | downcase }}">{{ p.title }}</a>
-          {% endif %}
-        {% endfor %}
-        {% for doc in site.documents %}
-          {% if doc.title %}
-            <a href="{{ doc.url | relative_url }}" class="site-list-item" data-title="{{ doc.title | downcase }}">{{ doc.title }}</a>
-          {% endif %}
-        {% endfor %}
-      </div>
-    </div>
+    </nav>
   </aside>
 
   <main class="main-content">
@@ -296,9 +227,6 @@
     const themeToggleBtn = document.getElementById('themeToggleBtn');
     const themeIcon = document.getElementById('themeIcon');
     const themeText = document.getElementById('themeText');
-    const m3ColorPicker = document.getElementById('m3ColorPicker');
-    const siteSearchInput = document.getElementById('siteSearchInput');
-    const siteList = document.getElementById('siteList');
 
     // --- ドロワー（ハンバーガーメニュー）制御 ---
     function openDrawer() {
@@ -318,115 +246,44 @@
 
     scrim.addEventListener('click', closeDrawer);
 
-    // 検索窓やカラーピッカー、ドロワー自体をクリックした時は閉じないように制御
-    navDrawer.addEventListener('click', (e) => e.stopPropagation());
+    // ページ遷移を伴うリンク（aタグ）をクリックした時のみドロワーを閉じる
+    const drawerLinks = document.querySelectorAll('.drawer-content a.drawer-item');
+    drawerLinks.forEach(link => {
+      link.addEventListener('click', closeDrawer);
+    });
 
-
-    // --- IndexedDB & material-color-utilities によるM3カラー動的書き換え (修正点) ---
-    const DB_NAME = 'PBHubThemeDB';
-    const STORE_NAME = 'settings';
-    let db;
-
-    // IndexedDBの初期化
-    const request = indexedDB.open(DB_NAME, 1);
-    request.onupgradeneeded = (e) => {
-      db = e.target.result;
-      db.createObjectStore(STORE_NAME);
-    };
-    request.onsuccess = (e) => {
-      db = e.target.result;
-      loadSavedThemeSettings();
-    };
-
-    function saveSetting(key, value) {
-      if (!db) return;
-      const tx = db.transaction(STORE_NAME, 'readwrite');
-      tx.objectStore(STORE_NAME).put(value, key);
+    // --- ダークモード切り替えロジック ---
+    const savedTheme = localStorage.getItem('theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    
+    if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+      updateThemeUI(true);
+    } else {
+      document.documentElement.setAttribute('data-theme', 'light');
+      updateThemeUI(false);
     }
 
-    function loadSavedThemeSettings() {
-      const tx = db.transaction(STORE_NAME, 'readonly');
-      const store = tx.objectStore(STORE_NAME);
-      
-      const getColor = store.get('themeColor');
-      const getDarkMode = store.get('darkMode');
-
-      tx.oncomplete = () => {
-        const savedColor = getColor.result || '#6750A4';
-        const isDark = getDarkMode.result === undefined ? window.matchMedia('(prefers-color-scheme: dark)').matches : getDarkMode.result;
-        
-        m3ColorPicker.value = savedColor;
-        applyM3Theme(savedColor, isDark);
-      };
-    }
-
-    // Material Color Utilitiesを使ったカラーパレット生成とCSS変数適用
-    function applyM3Theme(hexColor, isDark) {
-      if (!window.materialColorUtilities) return;
-
-      // 16進数カラーコードをARGBに変換
-      const argb = materialColorUtilities.argbFromHex(hexColor);
-      // テーマ（パレット）を生成
-      const theme = materialColorUtilities.themeFromSourceColor(argb);
-      
-      // ライト/ダークに応じてスキームを選択
-      const scheme = isDark ? theme.schemes.dark : theme.schemes.light;
-
-      // 主要なM3カラー変数をドキュメントにセット
-      const root = document.documentElement;
-      root.style.setProperty('--md-sys-color-primary', materialColorUtilities.hexFromArgb(scheme.primary));
-      root.style.setProperty('--md-sys-color-on-primary', materialColorUtilities.hexFromArgb(scheme.onPrimary));
-      root.style.setProperty('--md-sys-color-primary-container', materialColorUtilities.hexFromArgb(scheme.primaryContainer));
-      root.style.setProperty('--md-sys-color-on-primary-container', materialColorUtilities.hexFromArgb(scheme.onPrimaryContainer));
-      root.style.setProperty('--md-sys-color-surface', materialColorUtilities.hexFromArgb(scheme.surface));
-      root.style.setProperty('--md-sys-color-on-surface', materialColorUtilities.hexFromArgb(scheme.onSurface));
-      root.style.setProperty('--md-sys-color-surface-variant', materialColorUtilities.hexFromArgb(scheme.surfaceVariant));
-      root.style.setProperty('--md-sys-color-on-surface-variant', materialColorUtilities.hexFromArgb(scheme.onSurfaceVariant));
-      root.style.setProperty('--md-sys-color-outline', materialColorUtilities.hexFromArgb(scheme.outline));
-      root.style.setProperty('--md-sys-color-background', materialColorUtilities.hexFromArgb(scheme.background));
-      root.style.setProperty('--md-sys-color-on-background', materialColorUtilities.hexFromArgb(scheme.onBackground));
-
-      // UI表示の更新
+    function updateThemeUI(isDark) {
       if (isDark) {
-        root.setAttribute('data-theme', 'dark');
-        themeIcon.textContent = 'light_mode';
+        themeIcon.textContent = "light_mode";
         themeText.textContent = "ライトモードにする";
       } else {
-        root.setAttribute('data-theme', 'light');
-        themeIcon.textContent = 'dark_mode';
+        themeIcon.textContent = "dark_mode";
         themeText.textContent = "ダークモードにする";
       }
     }
 
-    // カラーピッカー変更イベント
-    m3ColorPicker.addEventListener('input', (e) => {
-      const newColor = e.target.value;
-      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-      applyM3Theme(newColor, isDark);
-      saveSetting('themeColor', newColor);
-    });
-
-    // ダークモード切り替えイベント
     themeToggleBtn.addEventListener('click', () => {
       const currentTheme = document.documentElement.getAttribute('data-theme');
-      const nextIsDark = currentTheme !== 'dark';
-      applyM3Theme(m3ColorPicker.value, nextIsDark);
-      saveSetting('darkMode', nextIsDark);
-    });
-
-
-    // --- サイト検索・フィルタリングロジック (修正点) ---
-    siteSearchInput.addEventListener('input', (e) => {
-      const query = e.target.value.toLowerCase().trim();
-      const items = siteList.getElementsByClassName('site-list-item');
-
-      for (let item of items) {
-        const title = item.getAttribute('data-title');
-        if (title.includes(query)) {
-          item.style.display = 'block';
-        } else {
-          item.style.display = 'none';
-        }
+      if (currentTheme === 'dark') {
+        document.documentElement.setAttribute('data-theme', 'light');
+        localStorage.setItem('theme', 'light');
+        updateThemeUI(false);
+      } else {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        localStorage.setItem('theme', 'dark');
+        updateThemeUI(true);
       }
     });
   </script>
