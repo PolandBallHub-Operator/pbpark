@@ -1,57 +1,48 @@
-<script>
+<script type="module">
   document.addEventListener('DOMContentLoaded', () => {
     const menuBtn = document.getElementById('menuBtn');
     const navDrawer = document.getElementById('navDrawer');
     const scrim = document.getElementById('scrim');
     const themeToggleBtn = document.getElementById('themeToggleBtn');
-    const drawerThemeIcon = document.getElementById('drawerThemeIcon');
-    const drawerThemeText = document.getElementById('drawerThemeText');
+    const themeIcon = document.getElementById('themeIcon');
     const root = document.documentElement;
 
     // 1. ドロワーメニュー制御
-    function openDrawer() {
-      navDrawer.classList.add('open');
-      scrim.classList.add('show');
-      document.body.style.overflow = 'hidden'; // 背後のスクロールを止める
-    }
-
-    function closeDrawer() {
-      navDrawer.classList.remove('open');
-      scrim.classList.remove('show');
-      document.body.style.overflow = '';
-    }
-
-    if (menuBtn) {
+    if (menuBtn && navDrawer && scrim) {
       menuBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        openDrawer();
+        navDrawer.opened = true;
+        scrim.classList.add('show');
+      });
+
+      scrim.addEventListener('click', () => {
+        navDrawer.opened = false;
+        scrim.classList.remove('show');
+      });
+
+      const linkItems = document.querySelectorAll('.link-item');
+      linkItems.forEach(item => {
+        item.addEventListener('click', () => {
+          navDrawer.opened = false;
+          scrim.classList.remove('show');
+        });
       });
     }
-
-    if (scrim) {
-      scrim.addEventListener('click', closeDrawer);
-    }
-
-    // リンククリック時に閉じる
-    const linkItems = document.querySelectorAll('.link-item, .drawer-site-item');
-    linkItems.forEach(item => {
-      item.addEventListener('click', closeDrawer);
-    });
 
     // 2. ダークモード管理
     const updateThemeUI = (isDark) => {
       if (isDark) {
         root.classList.add('dark-mode');
-        if (drawerThemeIcon) drawerThemeIcon.textContent = "light_mode";
-        if (drawerThemeText) drawerThemeText.textContent = "ライトモードにする";
+        if (themeToggleBtn) themeToggleBtn.label = "ライトモードにする";
+        if (themeIcon) themeIcon.textContent = "light_mode";
       } else {
         root.classList.remove('dark-mode');
-        if (drawerThemeIcon) drawerThemeIcon.textContent = "dark_mode";
-        if (drawerThemeText) drawerThemeText.textContent = "ダークモードにする";
+        if (themeToggleBtn) themeToggleBtn.label = "ダークモードにする";
+        if (themeIcon) themeIcon.textContent = "dark_mode";
       }
     };
 
-    const savedTheme = localStorage.getItem('theme');
+    const savedTheme = localStorage.getItem('pbhub-theme');
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     const isDarkMode = savedTheme === 'dark' || (!savedTheme && prefersDark);
     
@@ -59,26 +50,10 @@
 
     if (themeToggleBtn) {
       themeToggleBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const currentDark = root.classList.contains('dark-mode');
-        const nextDark = !currentDark;
-        
+        e.preventDefault();
+        const nextDark = !root.classList.contains('dark-mode');
         updateThemeUI(nextDark);
-        localStorage.setItem('theme', nextDark ? 'dark' : 'light');
-      });
-    }
-
-    // 3. リアルタイム検索
-    const siteSearch = document.getElementById('siteSearch');
-    const siteItems = document.querySelectorAll('.drawer-site-item');
-
-    if (siteSearch) {
-      siteSearch.addEventListener('input', (e) => {
-        const keyword = e.target.value.toLowerCase();
-        siteItems.forEach(item => {
-          const siteName = item.getAttribute('data-name').toLowerCase();
-          item.style.display = siteName.includes(keyword) ? 'block' : 'none';
-        });
+        localStorage.setItem('pbhub-theme', nextDark ? 'dark' : 'light');
       });
     }
   });
