@@ -49,7 +49,7 @@
       overflow-x: hidden;
     }
 
-    /* 左上固定のメニューボタン（ハンバーガーを文字で表現） */
+    /* 左上固定のメニューボタン */
     .floating-menu-button {
       position: fixed;
       top: 16px;
@@ -57,42 +57,41 @@
       width: 56px;
       height: 56px;
       border-radius: 16px;
-      background-color: var(--md-sys-color-primary-container);
-      color: var(--md-sys-color-on-primary-container);
+      background-color: var(--md-sys-color-primary-container) !important;
+      color: var(--md-sys-color-on-primary-container) !important;
       border: none;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 20px;
+      font-size: 24px;
       font-weight: bold;
       box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.15), 0px 1px 3px rgba(0, 0, 0, 0.3);
-      z-index: 80;
+      z-index: 1000; /* 最前面に固定 */
       transition: box-shadow 0.2s, background-color 0.2s;
     }
-    .floating-menu-button:hover {
-      background-color: var(--md-sys-color-surface-variant);
-      box-shadow: 0px 6px 10px rgba(0, 0, 0, 0.15), 0px 2px 4px rgba(0, 0, 0, 0.3);
-    }
 
-    /* ナビゲーションドロワー */
+    /* ナビゲーションドロワー（位置計算のズレを修正） */
     .nav-drawer {
       position: fixed;
       top: 0;
-      left: -360px;
+      left: 0;
       width: 320px;
       height: 100%;
-      background-color: var(--md-sys-color-surface);
-      box-shadow: 2px 0 12px rgba(0,0,0,0.2);
-      transition: transform 0.3s ease;
-      z-index: 100;
+      background-color: var(--md-sys-color-surface) !important;
+      box-shadow: 4px 0 16px rgba(0,0,0,0.2);
+      transform: translateX(-105%); /* 初期状態は完全に画面外へ隠す */
+      transition: transform 0.3s ease-in-out;
+      z-index: 2000; /* スクリムより上に配置 */
       display: flex;
       flex-direction: column;
       box-sizing: border-box;
       border-radius: 0 16px 16px 0;
     }
+    
+    /* オープン時の移動量指定を最適化 */
     .nav-drawer.open {
-      transform: translateX(360px);
+      transform: translateX(0) !important;
     }
 
     /* ドロワーヘッダー */
@@ -112,7 +111,7 @@
       font-size: 24px;
       font-weight: 500;
       margin: 0;
-      color: var(--md-sys-color-on-surface);
+      color: var(--md-sys-color-on-surface) !important;
     }
 
     /* ドロワーコンテンツ・ボタン一覧 */
@@ -120,11 +119,11 @@
       padding: 12px;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 8px;
       flex-grow: 1;
     }
 
-    /* ナビゲーションボタン（文字のみ） */
+    /* ナビゲーションボタン（文字色の同化対策に強制指定を追加） */
     .drawer-item {
       display: flex;
       align-items: center;
@@ -132,18 +131,19 @@
       height: 56px;
       border-radius: 28px;
       text-decoration: none;
-      color: var(--md-sys-color-on-surface-variant);
-      font-weight: 500;
-      font-size: 15px;
+      color: var(--md-sys-color-on-surface-variant) !important;
+      font-weight: 600; /* 文字の視認性をあげるため太めに */
+      font-size: 16px;
       border: none;
-      background: none;
+      background: transparent !important;
       text-align: left;
       cursor: pointer;
+      box-sizing: border-box;
       transition: background-color 0.2s, color 0.2s;
     }
     .drawer-item:hover {
-      background-color: var(--md-sys-color-surface-variant);
-      color: var(--md-sys-color-on-surface);
+      background-color: var(--md-sys-color-surface-variant) !important;
+      color: var(--md-sys-color-on-surface) !important;
     }
 
     /* オーバーレイ */
@@ -153,15 +153,15 @@
       left: 0;
       width: 100vw;
       height: 100vh;
-      background-color: rgba(0, 0, 0, 0.4);
-      z-index: 90;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 1500; /* ドロワーのすぐ後ろ */
       display: none;
       opacity: 0;
       transition: opacity 0.3s ease;
     }
     .scrim.show {
-      display: block;
-      opacity: 1;
+      display: block !important;
+      opacity: 1 !important;
     }
 
     /* メインコンテンツエリア */
@@ -295,7 +295,7 @@
 
     scrim.addEventListener('click', closeDrawer);
 
-    // .link-item がついた通常のリンククリック時のみドロワーを閉じる
+    // 通常のリンクのみドロワーを閉じる
     const linkItems = document.querySelectorAll('.link-item');
     linkItems.forEach(item => {
       item.addEventListener('click', closeDrawer);
@@ -314,7 +314,7 @@
     }
 
     themeToggleBtn.addEventListener('click', (e) => {
-      e.stopPropagation(); // ドロワーが閉じるのを防ぐ
+      e.stopPropagation(); 
       const currentTheme = document.documentElement.getAttribute('data-theme');
       if (currentTheme === 'dark') {
         document.documentElement.setAttribute('data-theme', 'light');
@@ -331,17 +331,19 @@
     const siteSearch = document.getElementById('siteSearch');
     const siteCards = document.querySelectorAll('.site-card');
 
-    siteSearch.addEventListener('input', (e) => {
-      const keyword = e.target.value.toLowerCase();
-      siteCards.forEach(card => {
-        const siteName = card.getAttribute('data-name').toLowerCase();
-        if (siteName.includes(keyword)) {
-          card.style.display = 'flex';
-        } else {
-          card.style.display = 'none';
-        }
+    if (siteSearch) {
+      siteSearch.addEventListener('input', (e) => {
+        const keyword = e.target.value.toLowerCase();
+        siteCards.forEach(card => {
+          const siteName = card.getAttribute('data-name').toLowerCase();
+          if (siteName.includes(keyword)) {
+            card.style.display = 'flex';
+          } else {
+            card.style.display = 'none';
+          }
+        });
       });
-    });
+    }
   </script>
 </body>
 </html>
