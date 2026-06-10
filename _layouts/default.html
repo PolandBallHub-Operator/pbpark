@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{ page.title }} - PBHub</title>
 
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
 
   <style>
     :root {
@@ -180,6 +180,73 @@
       margin: 0 auto;
       box-sizing: border-box;
     }
+
+    /* --- 追加・修整: 検索バーとサイト一覧のM3スタイル --- */
+    .search-container {
+      position: relative;
+      margin-bottom: 24px;
+      width: 100%;
+    }
+    .search-bar {
+      width: 100%;
+      height: 56px;
+      padding: 0 16px 0 56px;
+      border-radius: 28px;
+      background-color: var(--md-sys-color-surface-variant);
+      color: var(--md-sys-color-on-surface-variant);
+      border: none;
+      font-size: 16px;
+      box-sizing: border-box;
+      outline: none;
+      transition: background-color 0.2s;
+    }
+    .search-bar:focus {
+      background-color: var(--md-sys-color-surface);
+      box-shadow: 0 0 0 2px var(--md-sys-color-primary);
+      color: var(--md-sys-color-on-surface);
+    }
+    .search-icon {
+      position: absolute;
+      left: 16px;
+      top: 16px;
+      color: var(--md-sys-color-on-surface-variant);
+      pointer-events: none;
+    }
+    .site-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }
+    .site-card {
+      background-color: var(--md-sys-color-surface);
+      border: 1px solid var(--md-sys-color-surface-variant);
+      border-radius: 12px;
+      padding: 16px;
+      text-decoration: none;
+      color: var(--md-sys-color-on-surface);
+      transition: box-shadow 0.2s, background-color 0.2s;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .site-card:hover {
+      background-color: var(--md-sys-color-surface-variant);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .site-card-title {
+      font-size: 18px;
+      font-weight: 500;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .site-card-desc {
+      font-size: 14px;
+      color: var(--md-sys-color-on-surface-variant);
+      margin: 0;
+    }
   </style>
 </head>
 <body>
@@ -197,14 +264,14 @@
     </div>
     
     <nav class="drawer-content">
-      <a href="/sites/" class="drawer-item">
-        <span class="material-symbols-outlined">list_alt</span>
-        <span>サイト一覧</span>
+      <a href="/inspector/" class="drawer-item">
+        <span class="material-symbols-outlined">analytics</span>
+        <span>ツール検査バー</span>
       </a>
 
-      <a href="/search/" class="drawer-item">
-        <span class="material-symbols-outlined">search</span>
-        <span>サイト検索</span>
+      <a href="/tools/" class="drawer-item">
+        <span class="material-symbols-outlined">construction</span>
+        <span>ツール一覧</span>
       </a>
 
       <hr style="border: none; border-top: 1px solid var(--md-sys-color-surface-variant); margin: 8px 0;">
@@ -218,6 +285,22 @@
 
   <main class="main-content">
     {{ content }}
+
+    <div class="search-container">
+      <span class="material-symbols-outlined search-icon">search</span>
+      <input type="text" id="siteSearch" class="search-bar" placeholder="サイトを検索...">
+    </div>
+
+    <div class="site-grid" id="siteGrid">
+      <a href="/inspector/" class="site-card" data-name="ツール検査バー">
+        <h3 class="site-card-title"><span class="material-symbols-outlined">analytics</span>ツール検査バー</h3>
+        <p class="site-card-desc">各種ツールのステータスや動作確認を行うことができます。</p>
+      </a>
+      <a href="/tools/" class="site-card" data-name="ツール一覧">
+        <h3 class="site-card-title"><span class="material-symbols-outlined">construction</span>ツール一覧</h3>
+        <p class="site-card-desc">PBHubで利用可能なすべての便利ツールへアクセスします。</p>
+      </a>
+    </div>
   </main>
 
   <script>
@@ -246,10 +329,10 @@
 
     scrim.addEventListener('click', closeDrawer);
 
-    // ページ遷移を伴うリンク（aタグ）をクリックした時のみドロワーを閉じる
-    const drawerLinks = document.querySelectorAll('.drawer-content a.drawer-item');
-    drawerLinks.forEach(link => {
-      link.addEventListener('click', closeDrawer);
+    // ダークモードボタン以外の drawer-item クリック時にドロワーを閉じる
+    const drawerItems = document.querySelectorAll('.drawer-item:not(#themeToggleBtn)');
+    drawerItems.forEach(item => {
+      item.addEventListener('click', closeDrawer);
     });
 
     // --- ダークモード切り替えロジック ---
@@ -274,7 +357,8 @@
       }
     }
 
-    themeToggleBtn.addEventListener('click', () => {
+    themeToggleBtn.addEventListener('click', (e) => {
+      e.stopPropagation(); // ドロワーの強制終了を防止
       const currentTheme = document.documentElement.getAttribute('data-theme');
       if (currentTheme === 'dark') {
         document.documentElement.setAttribute('data-theme', 'light');
@@ -285,6 +369,22 @@
         localStorage.setItem('theme', 'dark');
         updateThemeUI(true);
       }
+    });
+
+    // --- リアルタイムサイト検索ロジック ---
+    const siteSearch = document.getElementById('siteSearch');
+    const siteCards = document.querySelectorAll('.site-card');
+
+    siteSearch.addEventListener('input', (e) => {
+      const keyword = e.target.value.toLowerCase();
+      siteCards.forEach(card => {
+        const siteName = card.getAttribute('data-name').toLowerCase();
+        if (siteName.includes(keyword)) {
+          card.style.display = 'flex';
+        } else {
+          card.style.display = 'none';
+        }
+      });
     });
   </script>
 </body>
