@@ -1,23 +1,52 @@
+<!-- ハンバーガーメニューボタン -->
+<md-fab class="floating-menu-button" id="menuBtn" size="medium" variant="secondary" aria-label="メニューを開く">
+  <md-icon slot="icon">menu</md-icon>
+</md-fab>
+
+<!-- スクリム（背景オーバーレイ） -->
+<div class="scrim" id="scrim"></div>
+
+<!-- ナビゲーションドロワー -->
+<md-navigation-drawer id="navDrawer">
+  <!-- ドロワーヘッダー -->
+  <div class="drawer-header" slot="header">
+    <img src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/poland/normal.png" alt="PBHub Logo" class="drawer-logo">
+    <h2 class="drawer-title">PBHub</h2>
+  </div>
+
+  <!-- ナビゲーションアイテム -->
+  <md-navigation-drawer-item label="ホーム" href="{{ '/' | relative_url }}" class="link-item">
+    <md-icon slot="icon">home</md-icon>
+  </md-navigation-drawer-item>
+
+  <md-navigation-drawer-item label="ブログ" href="{{ '/blog/' | relative_url }}" class="link-item">
+    <md-icon slot="icon">rss_feed</md-icon>
+  </md-navigation-drawer-item>
+
+  <md-navigation-drawer-item label="アバウト" href="{{ '/about/' | relative_url }}" class="link-item">
+    <md-icon slot="icon">info</md-icon>
+  </md-navigation-drawer-item>
+
+  <!-- セパレータ -->
+  <div style="height: 1px; background-color: var(--md-sys-color-outline-variant); margin: 8px 16px;"></div>
+
+  <!-- テーマ切り替えボタン -->
+  <md-navigation-drawer-item id="themeToggleBtn" label="ダークモードにする">
+    <md-icon slot="icon" id="themeIcon">dark_mode</md-icon>
+  </md-navigation-drawer-item>
+</md-navigation-drawer>
+
 <style>
-  .nav-drawer {
+  .floating-menu-button {
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 320px;
-    height: 100%;
-    background-color: var(--md-sys-color-surface) !important;
-    box-shadow: 4px 0 16px rgba(0,0,0,0.2);
-    transform: translateX(-105%);
-    transition: transform 0.3s cubic-bezier(0.2, 0, 0, 1);
-    z-index: 2000;
-    display: flex;
-    flex-direction: column;
-    box-sizing: border-box;
-    border-radius: 0 16px 16px 0;
-    overflow-y: auto;
+    top: 16px;
+    left: 16px;
+    z-index: 1000;
   }
-  .nav-drawer.open {
-    transform: translateX(0) !important;
+
+  md-navigation-drawer {
+    --md-navigation-drawer-container-color: var(--md-sys-color-surface);
+    --md-navigation-drawer-container-shape: 0 16px 16px 0;
   }
 
   .drawer-header {
@@ -25,143 +54,58 @@
     display: flex;
     align-items: center;
     gap: 16px;
-    border-bottom: 1px solid var(--md-sys-color-surface-variant);
-    flex-shrink: 0;
+    border-bottom: 1px solid var(--md-sys-color-outline-variant);
+    background-color: var(--md-sys-color-surface);
   }
+
   .drawer-logo {
     width: 40px;
     height: 40px;
     object-fit: contain;
   }
+
   .drawer-title {
     font-size: 24px;
     font-weight: 500;
     margin: 0;
-    color: var(--md-sys-color-on-surface) !important;
-  }
-
-  .drawer-content {
-    padding: 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    flex-grow: 1;
-  }
-
-  .drawer-item {
-    display: flex;
-    align-items: center;
-    padding: 0 24px;
-    height: 56px;
-    border-radius: 28px;
-    text-decoration: none;
-    color: var(--md-sys-color-on-surface-variant) !important;
-    font-weight: 500;
-    font-size: 14px;
-    border: none;
-    background: transparent !important;
-    text-align: left;
-    cursor: pointer;
-    box-sizing: border-box;
-    transition: background-color 0.2s;
-  }
-  .drawer-item:hover {
-    background-color: var(--md-sys-color-surface-variant) !important;
-  }
-  .drawer-item .material-symbols-outlined {
-    margin-right: 12px;
-  }
-
-  /* 検索バー */
-  .drawer-search-container {
-    padding: 12px 16px;
-  }
-  .drawer-search-bar {
-    width: 100%;
-    height: 48px;
-    padding: 0 16px;
-    border-radius: 24px;
-    background-color: var(--md-sys-color-surface-variant);
+    font-family: var(--md-ref-typeface-brand);
     color: var(--md-sys-color-on-surface);
-    border: none;
-    font-size: 14px;
-    box-sizing: border-box;
-    outline: none;
   }
 
-  /* ツールリスト */
-  .drawer-site-list {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    padding: 8px 0;
+  .scrim {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.4);
+    z-index: 1500;
+    display: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
   }
-  .drawer-site-item {
-    padding: 12px 24px;
-    text-decoration: none;
+
+  .scrim.show {
+    display: block;
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  md-navigation-drawer-item {
+    --md-navigation-drawer-item-container-shape: 0 28px 28px 0;
+  }
+
+  :root.dark-mode md-navigation-drawer {
+    --md-navigation-drawer-container-color: var(--md-sys-color-surface);
+  }
+
+  :root.dark-mode .drawer-header {
+    border-bottom-color: var(--md-sys-color-outline-variant);
+    background-color: var(--md-sys-color-surface);
+  }
+
+  :root.dark-mode .drawer-title {
     color: var(--md-sys-color-on-surface);
-    border-radius: 12px;
-    margin: 0 8px;
-    transition: background-color 0.2s;
-  }
-  .drawer-site-item:hover {
-    background-color: var(--md-sys-color-surface-variant);
-  }
-  .drawer-site-title {
-    font-weight: bold;
-    font-size: 14px;
-    margin: 0;
-  }
-  .drawer-site-desc {
-    font-size: 12px;
-    opacity: 0.7;
-    margin: 2px 0 0 0;
   }
 </style>
-
-<aside class="nav-drawer" id="navDrawer">
-  <div class="drawer-header">
-    <img src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/poland/normal.png" alt="PBHub Logo" class="drawer-logo">
-    <h2 class="drawer-title">PBHub</h2>
-  </div>
-  
-  <div class="drawer-content">
-    <nav>
-      <a href="{{ '/' | relative_url }}" class="drawer-item link-item">
-        <span class="material-symbols-outlined">home</span>ホーム
-      </a>
-      <a href="{{ '/blog/' | relative_url }}" class="drawer-item link-item">
-        <span class="material-symbols-outlined">edit_note</span>ブログ
-      </a>
-      <a href="{{ '/about/' | relative_url }}" class="drawer-item link-item">
-        <span class="material-symbols-outlined">info</span>アバウト
-      </a>
-
-      <hr style="border: none; border-top: 1px solid var(--md-sys-color-surface-variant); margin: 8px 0;">
-      
-      <p style="padding: 0 24px; font-size: 11px; font-weight: bold; opacity: 0.6; margin: 8px 0;">TOOLS</p>
-      
-      <div class="drawer-search-container">
-        <input type="text" id="siteSearch" class="drawer-search-bar" placeholder="サイトを検索...">
-      </div>
-
-      <div class="drawer-site-list" id="siteGrid">
-        <a href="/inspector/" class="drawer-site-item" data-name="ツール検査バー">
-          <p class="drawer-site-title">ツール検査バー</p>
-          <p class="drawer-site-desc">動作確認・ステータス</p>
-        </a>
-        <a href="/tools/" class="drawer-site-item" data-name="ツール一覧">
-          <p class="drawer-site-title">ツール一覧</p>
-          <p class="drawer-site-desc">すべての便利ツール</p>
-        </a>
-      </div>
-
-      <hr style="border: none; border-top: 1px solid var(--md-sys-color-surface-variant); margin: 8px 0;">
-
-      <button class="drawer-item" id="themeToggleBtn">
-        <span class="material-symbols-outlined" id="drawerThemeIcon">dark_mode</span>
-        <span id="drawerThemeText">ダークモードにする</span>
-      </button>
-    </nav>
-  </div>
-</aside>
