@@ -4,58 +4,82 @@
     const navDrawer = document.getElementById('navDrawer');
     const scrim = document.getElementById('scrim');
     const themeToggleBtn = document.getElementById('themeToggleBtn');
+    const drawerThemeIcon = document.getElementById('drawerThemeIcon');
+    const drawerThemeText = document.getElementById('drawerThemeText');
     const root = document.documentElement;
 
-    // 1. ドロワーメニュー開閉ロジック
+    // 1. ドロワーメニュー制御
     function openDrawer() {
       navDrawer.classList.add('open');
       scrim.classList.add('show');
+      document.body.style.overflow = 'hidden'; // 背後のスクロールを止める
     }
 
     function closeDrawer() {
       navDrawer.classList.remove('open');
       scrim.classList.remove('show');
+      document.body.style.overflow = '';
     }
 
-    menuBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      openDrawer();
-    });
+    if (menuBtn) {
+      menuBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openDrawer();
+      });
+    }
 
-    scrim.addEventListener('click', closeDrawer);
+    if (scrim) {
+      scrim.addEventListener('click', closeDrawer);
+    }
 
-    // ページリンクを踏んだらドロワーを閉じる
-    const linkItems = document.querySelectorAll('.link-item');
+    // リンククリック時に閉じる
+    const linkItems = document.querySelectorAll('.link-item, .drawer-site-item');
     linkItems.forEach(item => {
       item.addEventListener('click', closeDrawer);
     });
 
-    // 2. ダークモード管理ロジック
+    // 2. ダークモード管理
     const updateThemeUI = (isDark) => {
       if (isDark) {
         root.classList.add('dark-mode');
-        themeToggleBtn.textContent = "ライトモードにする";
+        if (drawerThemeIcon) drawerThemeIcon.textContent = "light_mode";
+        if (drawerThemeText) drawerThemeText.textContent = "ライトモードにする";
       } else {
         root.classList.remove('dark-mode');
-        themeToggleBtn.textContent = "ダークモードにする";
+        if (drawerThemeIcon) drawerThemeIcon.textContent = "dark_mode";
+        if (drawerThemeText) drawerThemeText.textContent = "ダークモードにする";
       }
     };
 
-    // 初期テーマの判定 (既存のローカルストレージ or OS設定を引き継ぎ)
     const savedTheme = localStorage.getItem('theme');
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     const isDarkMode = savedTheme === 'dark' || (!savedTheme && prefersDark);
     
     updateThemeUI(isDarkMode);
 
-    // テーマ切り替えボタンのイベント
-    themeToggleBtn.addEventListener('click', (e) => {
-      e.stopPropagation(); // メニューが閉じるのを防止
-      const currentDark = root.classList.contains('dark-mode');
-      const nextDark = !currentDark;
-      
-      updateThemeUI(nextDark);
-      localStorage.setItem('theme', nextDark ? 'dark' : 'light');
-    });
+    if (themeToggleBtn) {
+      themeToggleBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const currentDark = root.classList.contains('dark-mode');
+        const nextDark = !currentDark;
+        
+        updateThemeUI(nextDark);
+        localStorage.setItem('theme', nextDark ? 'dark' : 'light');
+      });
+    }
+
+    // 3. リアルタイム検索
+    const siteSearch = document.getElementById('siteSearch');
+    const siteItems = document.querySelectorAll('.drawer-site-item');
+
+    if (siteSearch) {
+      siteSearch.addEventListener('input', (e) => {
+        const keyword = e.target.value.toLowerCase();
+        siteItems.forEach(item => {
+          const siteName = item.getAttribute('data-name').toLowerCase();
+          item.style.display = siteName.includes(keyword) ? 'block' : 'none';
+        });
+      });
+    }
   });
 </script>
