@@ -1,10 +1,7 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ page.title }} - PBHub</title>
-
+  {% include head.html %}
   <style>
     :root {
       --md-sys-color-primary: #6750A4;
@@ -19,14 +16,10 @@
       --md-sys-color-on-background: #1D1B20;
       
       font-family: Roboto, system-ui, -apple-system, sans-serif;
-      background-color: var(--md-sys-color-background);
-      color: var(--md-sys-color-on-background);
       margin: 0;
       padding: 0;
-      transition: background-color 0.3s, color 0.3s;
     }
 
-    /* ダークモード用のカラーパレット */
     :root.dark-mode {
       --md-sys-color-primary: #D0BCFF;
       --md-sys-color-on-primary: #381E72;
@@ -41,13 +34,18 @@
     }
 
     body {
+      background-color: var(--md-sys-color-background);
+      color: var(--md-sys-color-on-background);
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
       display: flex;
       flex-direction: column;
       min-height: 100vh;
-      overflow-x: hidden;
+      transition: background-color 0.3s, color 0.3s;
     }
 
-    /* 左上固定のメニューボタン（ハンバーガーを文字で表現） */
+    /* 左上固定のメニューボタン */
     .floating-menu-button {
       position: fixed;
       top: 16px;
@@ -63,85 +61,19 @@
       align-items: center;
       justify-content: center;
       font-size: 24px;
-      font-weight: bold;
-      box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.15), 0px 1px 3px rgba(0, 0, 0, 0.3);
+      box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.15);
       z-index: 1000;
     }
 
-    /* ナビゲーションドロワー */
-    .nav-drawer {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 320px;
-      height: 100%;
-      background-color: var(--md-sys-color-surface) !important;
-      box-shadow: 4px 0 16px rgba(0,0,0,0.2);
-      transform: translateX(-105%);
-      transition: transform 0.3s ease-in-out;
-      z-index: 2000;
-      display: flex;
-      flex-direction: column;
-      box-sizing: border-box;
-      border-radius: 0 16px 16px 0;
-    }
-    .nav-drawer.open {
-      transform: translateX(0) !important;
-    }
-
-    /* ドロワーヘッダー */
-    .drawer-header {
-      padding: 24px;
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      border-bottom: 1px solid var(--md-sys-color-surface-variant);
-    }
-    .drawer-logo {
-      width: 40px;
-      height: 40px;
-      object-fit: contain;
-    }
-    .drawer-title {
-      font-size: 24px;
-      font-weight: 500;
-      margin: 0;
-      color: var(--md-sys-color-on-surface) !important;
-    }
-
-    /* ドロワーコンテンツ・ボタン一覧 */
-    .drawer-content {
-      padding: 12px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
+    /* メインコンテンツエリア */
+    .main-content {
       flex-grow: 1;
-    }
-
-    /* ナビゲーションボタン（文字のみ） */
-    .drawer-item {
-      display: flex;
-      align-items: center;
-      padding: 0 24px;
-      height: 56px;
-      border-radius: 28px;
-      text-decoration: none;
-      color: var(--md-sys-color-on-surface-variant) !important;
-      font-weight: bold;
-      font-size: 16px;
-      border: none;
-      background: transparent !important;
-      text-align: left;
-      cursor: pointer;
+      width: 100%;
       box-sizing: border-box;
-      transition: background-color 0.2s, color 0.2s;
-    }
-    .drawer-item:hover {
-      background-color: var(--md-sys-color-surface-variant) !important;
-      color: var(--md-sys-color-on-surface) !important;
+      position: relative;
     }
 
-    /* オーバーレイ（背景マスク） */
+    /* スクリム（背景マスク） */
     .scrim {
       position: fixed;
       top: 0;
@@ -151,75 +83,12 @@
       background-color: rgba(0, 0, 0, 0.4);
       z-index: 1500;
       display: none;
+      opacity: 0;
+      transition: opacity 0.3s;
     }
     .scrim.show {
-      display: block !important;
-    }
-
-    /* メインコンテンツエリアのレイアウト調整 */
-    .main-content {
-      padding: 88px 24px 24px 24px;
-      flex-grow: 1;
-      max-width: 800px;
-      width: 100%;
-      margin: 0 auto;
-      box-sizing: border-box;
-    }
-
-    /* 検索バーとサイト一覧の文字だけシンプルスタイル */
-    .search-container {
-      margin-bottom: 24px;
-      width: 100%;
-    }
-    .search-bar {
-      width: 100%;
-      height: 56px;
-      padding: 0 24px;
-      border-radius: 28px;
-      background-color: var(--md-sys-color-surface-variant);
-      color: var(--md-sys-color-on-surface);
-      border: none;
-      font-size: 16px;
-      box-sizing: border-box;
-      outline: none;
-      transition: background-color 0.2s;
-    }
-    .search-bar:focus {
-      background-color: var(--md-sys-color-surface);
-      box-shadow: 0 0 0 2px var(--md-sys-color-primary);
-    }
-
-    .site-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-      gap: 16px;
-      margin-top: 16px;
-    }
-    .site-card {
-      background-color: var(--md-sys-color-surface);
-      border: 1px solid var(--md-sys-color-surface-variant);
-      border-radius: 12px;
-      padding: 16px;
-      text-decoration: none;
-      color: var(--md-sys-color-on-surface);
-      transition: box-shadow 0.2s, background-color 0.2s;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-    .site-card:hover {
-      background-color: var(--md-sys-color-surface-variant);
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    }
-    .site-card-title {
-      font-size: 18px;
-      font-weight: 500;
-      margin: 0;
-    }
-    .site-card-desc {
-      font-size: 14px;
-      color: var(--md-sys-color-on-surface-variant);
-      margin: 0;
+      display: block;
+      opacity: 1;
     }
   </style>
 </head>
@@ -228,117 +97,13 @@
   <button class="floating-menu-button" id="menuBtn" aria-label="メニューを開く">☰</button>
   <div class="scrim" id="scrim"></div>
 
-  <aside class="nav-drawer" id="navDrawer">
-    <div class="drawer-header">
-      <img src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/poland/normal.png" alt="PBHub Logo" class="drawer-logo">
-      <h2 class="drawer-title">PBHub</h2>
-    </div>
-    
-    <nav class="drawer-content">
-      <a href="{{ '/' | relative_url }}" class="drawer-item link-item">ホーム</a>
-      <a href="{{ '/blog/' | relative_url }}" class="drawer-item link-item">ブログ</a>
-      <a href="{{ '/about/' | relative_url }}" class="drawer-item link-item">アバウト</a>
-
-      <hr style="border: none; border-top: 1px solid var(--md-sys-color-surface-variant); margin: 8px 0;">
-
-      <button class="drawer-item" id="themeToggleBtn">ダークモードにする</button>
-    </nav>
-  </aside>
+  {% include fab-nav.html %}
 
   <main class="main-content">
     {{ content }}
-
-    <div class="search-container">
-      <input type="text" id="siteSearch" class="search-bar" placeholder="サイトを検索...">
-    </div>
-
-    <div class="site-grid" id="siteGrid">
-      <a href="/inspector/" class="site-card" data-name="ツール検査バー">
-        <h3 class="site-card-title">ツール検査バー</h3>
-        <p class="site-card-desc">各種ツールのステータスや動作確認を行うことができます。</p>
-      </a>
-      <a href="/tools/" class="site-card" data-name="ツール一覧">
-        <h3 class="site-card-title">ツール一覧</h3>
-        <p class="site-card-desc">PBHubで利用可能なすべての便利ツールへアクセスします。</p>
-      </a>
-    </div>
   </main>
 
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      const menuBtn = document.getElementById('menuBtn');
-      const navDrawer = document.getElementById('navDrawer');
-      const scrim = document.getElementById('scrim');
-      const themeToggleBtn = document.getElementById('themeToggleBtn');
-      const root = document.documentElement;
+  {% include fab-script.html %}
 
-      // 1. ドロワーメニュー制御
-      function openDrawer() {
-        navDrawer.classList.add('open');
-        scrim.classList.add('show');
-      }
-
-      function closeDrawer() {
-        navDrawer.classList.remove('open');
-        scrim.classList.remove('show');
-      }
-
-      menuBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        openDrawer();
-      });
-
-      scrim.addEventListener('click', closeDrawer);
-
-      const linkItems = document.querySelectorAll('.link-item');
-      linkItems.forEach(item => {
-        item.addEventListener('click', closeDrawer);
-      });
-
-      // 2. ダークモードロジック（文字表示対応）
-      const updateThemeUI = (isDark) => {
-        if (isDark) {
-          root.classList.add('dark-mode');
-          themeToggleBtn.textContent = "ライトモードにする";
-        } else {
-          root.classList.remove('dark-mode');
-          themeToggleBtn.textContent = "ダークモードにする";
-        }
-      };
-
-      const savedTheme = localStorage.getItem('theme');
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      const isDarkMode = savedTheme === 'dark' || (!savedTheme && prefersDark);
-      
-      updateThemeUI(isDarkMode);
-
-      themeToggleBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const currentDark = root.classList.contains('dark-mode');
-        const nextDark = !currentDark;
-        
-        updateThemeUI(nextDark);
-        localStorage.setItem('theme', nextDark ? 'dark' : 'light');
-      });
-
-      // 3. リアルタイム検索
-      const siteSearch = document.getElementById('siteSearch');
-      const siteCards = document.querySelectorAll('.site-card');
-
-      if (siteSearch) {
-        siteSearch.addEventListener('input', (e) => {
-          const keyword = e.target.value.toLowerCase();
-          siteCards.forEach(card => {
-            const siteName = card.getAttribute('data-name').toLowerCase();
-            if (siteName.includes(keyword)) {
-              card.style.display = 'flex';
-            } else {
-              card.style.display = 'none';
-            }
-          });
-        });
-      }
-    });
-  </script>
 </body>
 </html>
