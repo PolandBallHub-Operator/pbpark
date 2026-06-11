@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>背景透明化</title>
+
+    <!-- Google Fonts & Material Symbols -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Google+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+
+    <script type="importmap">
+    {
+        "imports": {
+            "@material/web/": "https://esm.run/@material/web/"
+        }
+    }
+    </script>
+
+    <style>
+        :root {
+            --md-sys-color-primary: #6750a4;
+            --md-sys-color-on-primary: #ffffff;
+            --md-sys-color-primary-container: #eaddff;
+            --md-sys-color-on-primary-container: #21005d;
+            --md-sys-color-secondary: #4285f4;
+            --md-sys-color-surface: #fef7ff;
+            --md-sys-color-on-surface: #1d1b20;
+            --md-sys-color-surface-variant: #e7e0ec;
+            --md-sys-color-outline: #79747e;
+            
+            --glass-bg: rgba(255, 255, 255, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.4);
+            --glass-blur: 20px;
+
+            --m3-easing: cubic-bezier(0.2, 0, 0, 1);
+            --m3-easing-emphasized: cubic-bezier(0.3, 0, 0, 1);
+            --transition-slow: 0.6s;
+            --transition-medium: 0.4s;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root:not(.light-mode) {
+                --md-sys-color-primary: #d0bcff;
+                --md-sys-color-on-primary: #381e72;
+                --md-sys-color-primary-container: #4f378b;
+                --md-sys-color-on-primary-container: #eaddff;
+                --md-sys-color-surface: #141218;
+                --md-sys-color-on-surface: #e6e1e5;
+                --md-sys-color-surface-variant: #49454f;
+                --md-sys-color-outline: #938f99;
+                --glass-bg: rgba(30, 26, 36, 0.7);
+                --glass-border: rgba(255, 255, 255, 0.1);
+            }
+        }
+
+        .dark-mode {
+            --md-sys-color-primary: #d0bcff;
+            --md-sys-color-on-primary: #381e72;
+            --md-sys-color-primary-container: #4f378b;
+            --md-sys-color-on-primary-container: #eaddff;
+            --md-sys-color-surface: #141218;
+            --md-sys-color-on-surface: #e6e1e5;
+            --md-sys-color-surface-variant: #49454f;
+            --md-sys-color-outline: #938f99;
+            --glass-bg: rgba(30, 26, 36, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            margin: 0; padding: 0;
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--md-sys-color-surface);
+            color: var(--md-sys-color-on-surface);
+            transition: background-color var(--transition-medium) var(--m3-easing);
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* Fluid Background */
+        .bg-container {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -1; overflow: hidden; filter: blur(60px); opacity: 0.6;
+        }
+        .blob {
+            position: absolute;
+            background: linear-gradient(135deg, var(--md-sys-color-primary), var(--md-sys-color-secondary, #4285f4));
+            animation: blobMove 10s infinite alternate, float 15s infinite ease-in-out;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(2deg); }
+            100% { transform: translateY(0px) rotate(0deg); }
+        }
+        @keyframes blobMove {
+            0% { border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%; }
+            50% { border-radius: 70% 30% 50% 50% / 30% 30% 70% 70%; }
+            100% { border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%; }
+        }
+
+        header {
+            position: sticky; top: 0; z-index: 50;
+            height: 64px; padding: 0 24px;
+            display: flex; align-items: center; justify-content: space-between;
+            background: var(--glass-bg);
+            backdrop-filter: blur(var(--glass-blur));
+            border-bottom: 1px solid var(--glass-border);
+        }
+        .logo-area { display: flex; align-items: center; gap: 12px; }
+        .logo-img { width: 32px; height: 32px; border-radius: 50%; }
+        .logo-text {
+            font-family: 'Google Sans', sans-serif;
+            font-weight: 700; font-size: 18px;
+            background: linear-gradient(90deg, var(--md-sys-color-primary), #4285f4);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+
+        main {
+            padding: 24px 24px 120px;
+            max-width: 1000px; margin: 0 auto;
+            animation: slideUp 0.8s var(--m3-easing-emphasized);
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .section-view { display: none; }
+        .section-view.active { display: block; animation: fadeIn 0.4s var(--m3-easing); }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(var(--glass-blur));
+            border: 1px solid var(--glass-border);
+            border-radius: 28px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        /* Canvas Styles */
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            min-height: 300px;
+            background-image: 
+                linear-gradient(45deg, #ccc 25%, transparent 25%),
+                linear-gradient(-45deg, #ccc 25%, transparent 25%),
+                linear-gradient(45deg, transparent 75%, #ccc 75%),
+                linear-gradient(-45deg, transparent 75%, #ccc 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+            border-radius: 16px;
+            overflow: auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 2px dashed var(--md-sys-color-outline);
+        }
+        canvas {
+            max-width: 100%;
+            height: auto;
+            cursor: crosshair;
+            transition: transform 0.2s ease;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        .tool-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .nav-container {
+            position: fixed; bottom: 32px; left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+        }
+        .nav-rail {
+            display: flex; align-items: center; gap: 8px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(var(--glass-blur));
+            padding: 8px 12px;
+            border-radius: 40px;
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        }
+        .nav-item {
+            position: relative; width: 64px; height: 64px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            cursor: pointer; border-radius: 32px;
+            transition: all 0.5s var(--m3-easing-emphasized);
+            color: var(--md-sys-color-on-surface);
+        }
+        .nav-item.active {
+            width: 80px;
+            background: var(--md-sys-color-primary-container);
+            color: var(--md-sys-color-on-primary-container);
+            transform: translateY(-8px);
+        }
+        .nav-item.active .material-symbols-outlined { font-variation-settings: 'FILL' 1; transform: scale(1.2); }
+        .nav-label {
+            position: absolute; bottom: -20px; font-size: 10px; font-weight: 500;
+            opacity: 0; transform: translateY(5px); transition: 0.3s;
+        }
+        .nav-item.active .nav-label { opacity: 1; transform: translateY(0); }
+
+        .loading-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.3); display: none; justify-content: center;
+            align-items: center; z-index: 10; border-radius: 16px;
+        }
+
+        input[type="file"] { display: none; }
+    </style>
+</head>
+<body>
+
+    <div class="bg-container">
+        <div class="blob" style="width: 400px; height: 400px; left: -100px; top: -100px;"></div>
+        <div class="blob" style="width: 500px; height: 500px; right: -150px; bottom: -150px; animation-delay: -2s;"></div>
+    </div>
+
+    <header>
+        <div class="logo-area">
+            <img src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/germany/normal.png" class="logo-img" alt="Intelligence Ball">
+            <div class="logo-text">背景透明化</div>
+        </div>
+        <md-icon-button id="theme-btn">
+            <span class="material-symbols-outlined">light_mode</span>
+        </md-icon-button>
+    </header>
+
+    <main>
+        <!-- EDITOR SECTION -->
+        <section id="view-editor" class="section-view active">
+            <div class="glass-card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <h2 style="margin:0;">Sticker Editor</h2>
+                    <md-filled-button onclick="document.getElementById('file-input').click()">
+                        <span slot="icon" class="material-symbols-outlined">upload</span>
+                        画像を選択
+                    </md-filled-button>
+                    <input type="file" id="file-input" accept="image/*">
+                </div>
+
+                <div class="canvas-container" id="drop-zone">
+                    <div id="placeholder-text" style="text-align: center; color: var(--md-sys-color-outline);">
+                        <span class="material-symbols-outlined" style="font-size: 48px;">image</span>
+                        <p>画像をアップロード、またはドラッグ＆ドロップ</p>
+                    </div>
+                    <canvas id="main-canvas"></canvas>
+                    <div class="loading-overlay" id="loader">
+                        <md-circular-progress indeterminate></md-circular-progress>
+                    </div>
+                </div>
+
+                <div class="controls">
+                    <div class="tool-row">
+                        <span class="material-symbols-outlined">tune</span>
+                        <label style="font-weight: 500; min-width: 80px;">透過強度:</label>
+                        <input type="range" id="tolerance" min="0" max="100" value="15" style="flex-grow: 1; accent-color: var(--md-sys-color-primary);">
+                        <span id="tolerance-val">15</span>
+                    </div>
+                    
+                    <div class="tool-row" style="background: var(--md-sys-color-surface-variant); padding: 12px; border-radius: 12px;">
+                        <span class="material-symbols-outlined">help_outline</span>
+                        <small>使い方: 背景の消したい色をクリックしてください。隣接する似た色が自動で透過されます。強さを上げると、少し色が違う背景も一緒に消えます。</small>
+                    </div>
+
+                    <div class="tool-row" style="justify-content: flex-end;">
+                        <md-outlined-button id="undo-btn" disabled>
+                            <span slot="icon" class="material-symbols-outlined">undo</span>
+                            元に戻す
+                        </md-outlined-button>
+                        <md-filled-button id="download-btn" disabled>
+                            <span slot="icon" class="material-symbols-outlined">download</span>
+                            PNGで保存
+                        </md-filled-button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- INFO SECTION -->
+        <section id="view-info" class="section-view">
+            <div class="glass-card">
+                <div style="text-align: center; padding: 20px;">
+                    <img src="https://raw.githubusercontent.com/PolandBallHub-Operator/PBscreenshot/refs/heads/main/countryball_aiball.png" style="width: 120px; filter: drop-shadow(0 10px 20px rgba(0,0,0,0.2));" alt="Logo">
+                    <h2>PB-Intelligence Analysis</h2>
+                    <p>このツールは、非AI(NoAI)の画像解析アルゴリズム「Flood Fill」を使用しています。プライバシーを損なうことなく、あなたのブラウザ内だけで高速に背景を削除します。</p>
+                </div>
+            </div>
+            
+            <div class="glass-card">
+                <h3>技術仕様</h3>
+                <md-list style="background:transparent;">
+                    <md-list-item>
+                        <div slot="headline">アルゴリズム</div>
+                        <div slot="supporting-text">Queue-based Flood Fill (隣接色探索)</div>
+                    </md-list-item>
+                    <md-list-item>
+                        <div slot="headline">色空間</div>
+                        <div slot="supporting-text">RGBA 32bit 演算による精密な透過処理</div>
+                    </md-list-item>
+                    <md-list-item>
+                        <div slot="headline">プライバシー</div>
+                        <div slot="supporting-text">サーバーへの画像アップロードなし (Local Only)</div>
+                    </md-list-item>
+                </md-list>
+            </div>
+        </section>
+    </main>
+
+    <!-- Floating Nav -->
+    <div class="nav-container">
+        <nav class="nav-rail">
+            <div class="nav-item active" data-target="editor">
+                <span class="material-symbols-outlined">photo_filter</span>
+                <span class="nav-label">Editor</span>
+            </div>
+            <div class="nav-item" data-target="info">
+                <span class="material-symbols-outlined">psychology</span>
+                <span class="nav-label">About</span>
+            </div>
+        </nav>
+    </div>
+
+    <script type="module">
+        import '@material/web/all.js';
+
+        const canvas = document.getElementById('main-canvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        const fileInput = document.getElementById('file-input');
+        const toleranceInput = document.getElementById('tolerance');
+        const toleranceVal = document.getElementById('tolerance-val');
+        const downloadBtn = document.getElementById('download-btn');
+        const undoBtn = document.getElementById('undo-btn');
+        const loader = document.getElementById('loader');
+        const placeholder = document.getElementById('placeholder-text');
+
+        let originalImage = null;
+        let history = [];
+
+        // --- Theme Logic ---
+        const themeBtn = document.getElementById('theme-btn');
+        const themeIcon = themeBtn.querySelector('span');
+        themeBtn.addEventListener('click', () => {
+            const isDark = document.body.classList.toggle('dark-mode');
+            themeIcon.textContent = isDark ? 'dark_mode' : 'light_mode';
+        });
+
+        // --- Navigation ---
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const target = item.getAttribute('data-target');
+                document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+                item.classList.add('active');
+                document.querySelectorAll('.section-view').forEach(s => s.classList.remove('active'));
+                document.getElementById(`view-${target}`).classList.add('active');
+            });
+        });
+
+        // --- File Handling ---
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) loadImage(file);
+        });
+
+        const dropZone = document.getElementById('drop-zone');
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.style.borderColor = 'var(--md-sys-color-primary)'; });
+        dropZone.addEventListener('dragleave', () => { dropZone.style.borderColor = 'var(--md-sys-color-outline)'; });
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.style.borderColor = 'var(--md-sys-color-outline)';
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) loadImage(file);
+        });
+
+        function loadImage(file) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const img = new Image();
+                img.onload = () => {
+                    placeholder.style.display = 'none';
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0);
+                    originalImage = img;
+                    history = [ctx.getImageData(0, 0, canvas.width, canvas.height)];
+                    updateButtons();
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        toleranceInput.addEventListener('input', () => {
+            toleranceVal.textContent = toleranceInput.value;
+        });
+
+        // --- Core Logic: Flood Fill Algorithm ---
+        canvas.addEventListener('click', (e) => {
+            if (!originalImage) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const x = Math.floor((e.clientX - rect.left) * scaleX);
+            const y = Math.floor((e.clientY - rect.top) * scaleY);
+
+            processTransparency(x, y);
+        });
+
+        function processTransparency(startX, startY) {
+            loader.style.display = 'flex';
+            
+            // 使用するsetTimeoutでUIスレッドをブロックしないようにする
+            setTimeout(() => {
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const data = imageData.data;
+                const width = imageData.width;
+                const height = imageData.height;
+
+                const startPos = (startY * width + startX) * 4;
+                const startR = data[startPos];
+                const startG = data[startPos + 1];
+                const startB = data[startPos + 2];
+                const startA = data[startPos + 3];
+
+                // 既に透明な場所なら何もしない
+                if (startA === 0) {
+                    loader.style.display = 'none';
+                    return;
+                }
+
+                const tolerance = parseInt(toleranceInput.value);
+                const visited = new Uint8Array(width * height);
+                const queue = [[startX, startY]];
+                visited[startY * width + startX] = 1;
+
+                while (queue.length > 0) {
+                    const [x, y] = queue.shift();
+                    const pos = (y * width + x) * 4;
+
+                    // 色の差を計算 (Euclidean distance approximation)
+                    const r = data[pos];
+                    const g = data[pos + 1];
+                    const b = data[pos + 2];
+                    const a = data[pos + 3];
+
+                    const diff = Math.sqrt(
+                        Math.pow(r - startR, 2) + 
+                        Math.pow(g - startG, 2) + 
+                        Math.pow(b - startB, 2)
+                    );
+
+                    // 許容範囲内なら透明にする
+                    if (diff <= (tolerance * 2.55)) {
+                        data[pos + 3] = 0; // Alphaを0に
+
+                        // 近傍4方向をチェック
+                        const neighbors = [[x+1, y], [x-1, y], [x, y+1], [x, y-1]];
+                        for (const [nx, ny] of neighbors) {
+                            if (nx >= 0 && nx < width && ny >= 0 && ny < height && !visited[ny * width + nx]) {
+                                visited[ny * width + nx] = 1;
+                                queue.push([nx, ny]);
+                            }
+                        }
+                    }
+                }
+
+                ctx.putImageData(imageData, 0, 0);
+                history.push(imageData);
+                updateButtons();
+                loader.style.display = 'none';
+            }, 50);
+        }
+
+        function updateButtons() {
+            downloadBtn.disabled = !originalImage;
+            undoBtn.disabled = history.length <= 1;
+        }
+
+        undoBtn.addEventListener('click', () => {
+            if (history.length > 1) {
+                history.pop();
+                ctx.putImageData(history[history.length - 1], 0, 0);
+                updateButtons();
+            }
+        });
+
+        downloadBtn.addEventListener('click', () => {
+            const link = document.createElement('a');
+            link.download = 'pb_sticker.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        });
+
+        // Parallax Effect
+        window.addEventListener('mousemove', (e) => {
+            const x = (e.clientX / window.innerWidth - 0.5) * 20;
+            const y = (e.clientY / window.innerHeight - 0.5) * 20;
+            document.querySelectorAll('.blob').forEach((blob, i) => {
+                const factor = (i + 1) * 0.4;
+                blob.style.transform = `translate(${x * factor}px, ${y * factor}px)`;
+            });
+        });
+    </script>
+</body>
+</html>
