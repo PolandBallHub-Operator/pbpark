@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PBhub2 - Tool Launcher</title>
+
+    <!-- Google Fonts & Material Symbols -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Google+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+
+    <!-- Import Map for Material Web & Color Utilities -->
+    <script type="importmap">
+    {
+        "imports": {
+            "@material/web/": "https://esm.run/@material/web/",
+            "@material/material-color-utilities": "https://esm.run/@material/material-color-utilities"
+        }
+    }
+    </script>
+
+    <style>
+        /* * CSS Setup (ベースコードを維持)
+         */
+        :root {
+            /* Base Colors (Will be overridden by JS) */
+            --md-sys-color-primary: #6750a4;
+            --md-sys-color-on-primary: #ffffff;
+            --md-sys-color-primary-container: #eaddff;
+            --md-sys-color-on-primary-container: #21005d;
+            --md-sys-color-secondary: #625b71;
+            --md-sys-color-on-secondary: #ffffff;
+            --md-sys-color-secondary-container: #e8def8;
+            --md-sys-color-on-secondary-container: #1d192b;
+            --md-sys-color-tertiary: #7d5260;
+            --md-sys-color-on-tertiary: #ffffff;
+            --md-sys-color-tertiary-container: #ffd8e4;
+            --md-sys-color-on-tertiary-container: #31111d;
+            --md-sys-color-error: #b3261e;
+            --md-sys-color-on-error: #ffffff;
+            --md-sys-color-error-container: #f9dedc;
+            --md-sys-color-on-error-container: #410e0b;
+            --md-sys-color-background: #fffbfe;
+            --md-sys-color-on-background: #1c1b1f;
+            --md-sys-color-surface: #fffbfe;
+            --md-sys-color-on-surface: #1c1b1f;
+            --md-sys-color-surface-variant: #e7e0ec;
+            --md-sys-color-on-surface-variant: #49454f;
+            --md-sys-color-outline: #79747e;
+            --md-sys-color-outline-variant: #c4c7c5;
+            
+            /* Typography */
+            --md-ref-typeface-brand: 'Google Sans', sans-serif;
+            --md-ref-typeface-plain: 'Roboto', sans-serif;
+
+            /* Transitions */
+            --transition-duration: 0.3s;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: var(--md-ref-typeface-plain);
+            background-color: var(--md-sys-color-background);
+            color: var(--md-sys-color-on-background);
+            transition: background-color var(--transition-duration), color var(--transition-duration), margin-left 0.3s;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Layout */
+        header {
+            background-color: var(--md-sys-color-surface);
+            color: var(--md-sys-color-on-surface);
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        header h1 {
+            margin: 0;
+            font-family: var(--md-ref-typeface-brand);
+            font-size: 22px;
+            font-weight: 500;
+        }
+
+        /* Poland Character Styling in Header */
+        .header-avatar {
+            width: 36px;
+            height: 36px;
+            object-fit: contain;
+            border-radius: 50%;
+            background-color: var(--md-sys-color-surface-variant);
+            border: 2px solid var(--md-sys-color-outline-variant);
+        }
+
+        main {
+            flex: 1;
+            padding: 16px;
+            max-width: 800px;
+            margin: 0 auto;
+            width: 100%;
+            box-sizing: border-box;
+            padding-bottom: 120px; /* モバイル時のボトムナビ・FABのスペース */
+            transition: padding-bottom 0.3s;
+        }
+
+        /* View Management */
+        .view-section {
+            display: none;
+            animation: fadeScale 0.25s cubic-bezier(0.2, 0, 0, 1) forwards;
+        }
+        .view-section.active {
+            display: block;
+        }
+
+        @keyframes fadeScale {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Card-like sections */
+        .section-card {
+            background-color: var(--md-sys-color-surface);
+            border-radius: 24px;
+            padding: 24px;
+            margin-bottom: 24px;
+            border: 1px solid var(--md-sys-color-outline-variant);
+            position: relative;
+        }
+
+        .section-title {
+            font-family: var(--md-ref-typeface-brand);
+            font-size: 1.25rem;
+            font-weight: 500;
+            margin-bottom: 16px;
+            color: var(--md-sys-color-primary);
+        }
+
+        /* Color Picker Styles */
+        .color-picker-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 16px;
+            padding: 16px;
+            border-radius: 16px;
+            background-color: var(--md-sys-color-surface-variant);
+            color: var(--md-sys-color-on-surface-variant);
+        }
+
+        input[type="color"] {
+            -webkit-appearance: none;
+            border: none;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            cursor: pointer;
+            padding: 0;
+            overflow: hidden;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        input[type="color"]::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+        input[type="color"]::-webkit-color-swatch {
+            border: none;
+        }
+
+        /* Custom Cards for M3 */
+        .m3-card {
+            border-radius: 12px;
+            background-color: var(--md-sys-color-surface);
+            color: var(--md-sys-color-on-surface);
+            margin-bottom: 16px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid var(--md-sys-color-outline-variant);
+            transition: box-shadow 0.2s, background-color 0.2s;
+            text-decoration: none; /* ランチャー用カードは全体リンクにできるように対応 */
+        }
+        
+        .m3-card.elevated {
+            border: none;
+            background-color: var(--md-sys-color-surface-variant);
+            box-shadow: 0px 1px 2px 0px rgba(0,0,0,0.3), 0px 1px 3px 1px rgba(0,0,0,0.15);
+        }
+
+        /* Hover effect for cards as launchers */
+        .m3-card:hover {
+            box-shadow: 0px 4px 8px 0px rgba(0,0,0,0.15);
+            background-color: var(--md-sys-color-primary-container);
+            color: var(--md-sys-color-on-primary-container);
+        }
+
+        .m3-card:hover .url-indicator {
+            color: var(--md-sys-color-primary);
+        }
+
+        .m3-card-content {
+            padding: 16px;
+        }
+        
+        .m3-card-actions {
+            display: flex;
+            justify-content: flex-end;
+            padding: 8px;
+            gap: 8px;
+        }
+
+        .url-indicator {
+            font-size: 0.825rem;
+            opacity: 0.7;
+            font-family: monospace;
+            word-break: break-all;
+            margin-top: 4px;
+            color: var(--md-sys-color-on-surface-variant);
+        }
+
+        /* Floating Action Button */
+        .fab-container {
+            position: fixed;
+            bottom: 100px; /* モバイル: ボトムナビの上 */
+            right: 24px;
+            z-index: 6;
+            transition: bottom 0.3s, right 0.3s;
+        }
+
+        /* =========================================
+           Custom Material 3 Navigation Bar (AI 実装維持)
+           ========================================= */
+        .custom-nav {
+            position: fixed;
+            background-color: var(--md-sys-color-surface);
+            display: flex;
+            align-items: center;
+            z-index: 100;
+            transition: all 0.3s ease;
+        }
+
+        .custom-nav::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: var(--md-sys-color-primary);
+            opacity: 0.05;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        /* モバイル向け（ボトムナビゲーション） デフォルト */
+        .custom-nav {
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 80px;
+            justify-content: space-evenly;
+            padding-bottom: env(safe-area-inset-bottom);
+            box-shadow: 0 -1px 3px 0 rgba(0,0,0,0.1), 0 -2px 6px 2px rgba(0,0,0,0.05);
+            flex-direction: row;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+            height: 100%;
+            cursor: pointer;
+            text-decoration: none;
+            color: var(--md-sys-color-on-surface-variant);
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+
+        .nav-icon-container {
+            width: 64px;
+            height: 32px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 16px;
+            margin-bottom: 4px;
+            transition: background-color 0.2s cubic-bezier(0.2, 0, 0, 1), 
+                        color 0.2s cubic-bezier(0.2, 0, 0, 1);
+        }
+
+        .nav-item .material-symbols-outlined {
+            font-size: 24px;
+            font-variation-settings: 'FILL' 0;
+            transition: font-variation-settings 0.2s cubic-bezier(0.2, 0, 0, 1);
+        }
+
+        .nav-label {
+            font-size: 12px;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            transition: color 0.2s cubic-bezier(0.2, 0, 0, 1);
+        }
+
+        /* Active State */
+        .nav-item.active {
+            color: var(--md-sys-color-on-surface);
+        }
+
+        .nav-item.active .nav-icon-container {
+            background-color: var(--md-sys-color-secondary-container);
+            color: var(--md-sys-color-on-secondary-container);
+        }
+
+        .nav-item.active .material-symbols-outlined {
+            font-variation-settings: 'FILL' 1;
+        }
+
+        /* =========================================
+           Responsive: PC, Tablet, Landscape -> Navigation Rail
+           ========================================= */
+        @media (min-width: 600px) and (orientation: landscape), (min-width: 800px) {
+            body {
+                margin-left: 80px; 
+            }
+            
+            main {
+                padding-bottom: 32px; 
+            }
+
+            .custom-nav {
+                top: 0;
+                bottom: 0;
+                left: 0;
+                right: auto;
+                width: 80px;
+                height: 100%;
+                flex-direction: column;
+                justify-content: flex-start;
+                padding-top: 32px; 
+                padding-bottom: 0;
+                box-shadow: 1px 0 3px 0 rgba(0,0,0,0.1);
+                overflow-y: auto; 
+            }
+
+            .nav-item {
+                flex: none;
+                height: 72px;
+                width: 100%;
+                margin-bottom: 12px;
+            }
+
+            .fab-container {
+                bottom: 32px;
+                right: 32px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Top App Bar -->
+    <header>
+        <div style="display:flex; align-items:center; gap:12px;">
+            <img src="https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/poland/normal.png" class="header-avatar" alt="Polandball">
+            <h1>PBhub2</h1>
+        </div>
+        <div style="display:flex; align-items:center;">
+            <md-icon-button onclick="window.toggleDarkMode()">
+                <span class="material-symbols-outlined" id="theme-icon">dark_mode</span>
+            </md-icon-button>
+            <md-icon-button onclick="window.openSettingsDialog()">
+                <span class="material-symbols-outlined">palette</span>
+            </md-icon-button>
+        </div>
+    </header>
+
+    <main>
+        
+        <!-- ==========================================
+             VIEW 1: すべてのツール (All Tools)
+             ========================================== -->
+        <section id="view-home" class="view-section active">
+            
+            <!-- Welcome Info -->
+            <div class="section-card" style="border-color: var(--md-sys-color-primary);">
+                <div class="section-title">PBhub2</div>
+                <p style="margin-top:0; color: var(--md-sys-color-on-surface-variant); line-height: 1.6;">
+                    世界を、丸い視点から。
+                </p>
+                <p style="margin: 0; font-size: 0.85rem; color: var(--md-sys-color-primary); font-weight: 500;">
+                    Polandballhub apps
+                    <p>
+            </div>
+
+            <!-- カテゴリ：開発・便利ツール -->
+            <div style="margin-bottom: 24px;">
+                <h2 style="font-family: var(--md-ref-typeface-brand); font-size: 1.25rem; font-weight: 500; margin-left: 8px; margin-bottom: 12px; display:flex; align-items:center; gap:8px; color: var(--md-sys-color-primary);">
+                    <span class="material-symbols-outlined">build</span> 開発・便利ツール
+                </h2>
+                
+                <!-- JSON フォーマッター -->
+                <a class="m3-card" href="https://pbhub.io/tools/json-formatter" target="_blank">
+                    <md-ripple></md-ripple>
+                    <div class="m3-card-content">
+                        <h3 style="margin: 0 0 4px 0; font-family: var(--md-ref-typeface-brand); font-size: 1.1rem; font-weight: 500;">JSON Formatter</h3>
+                        <p style="margin: 0; color: var(--md-sys-color-on-surface-variant); font-size: 0.9rem; line-height: 1.4;">
+                            生データのJSON文字列を美しく構造化し、バリデーションと階層構造の確認を行います。
+                        </p>
+                        <div class="url-indicator">https://pbhub.io/tools/json-formatter</div>
+                    </div>
+                </a>
+
+                <!-- Base64 エンコーダー -->
+                <a class="m3-card" href="https://pbhub.io/tools/base64" target="_blank">
+                    <md-ripple></md-ripple>
+                    <div class="m3-card-content">
+                        <h3 style="margin: 0 0 4px 0; font-family: var(--md-ref-typeface-brand); font-size: 1.1rem; font-weight: 500;">Base64 Encoder / Decoder</h3>
+                        <p style="margin: 0; color: var(--md-sys-color-on-surface-variant); font-size: 0.9rem; line-height: 1.4;">
+                            文字列や画像ファイルを相互にBase64文字列へと変換・デコード処理を行います。
+                        </p>
+                        <div class="url-indicator">https://pbhub.io/tools/base64</div>
+                    </div>
+                </a>
+            </div>
+
+            <!-- カテゴリ：デザインツール -->
+            <div style="margin-bottom: 24px;">
+                <h2 style="font-family: var(--md-ref-typeface-brand); font-size: 1.25rem; font-weight: 500; margin-left: 8px; margin-bottom: 12px; display:flex; align-items:center; gap:8px; color: var(--md-sys-color-primary);">
+                    <span class="material-symbols-outlined">palette</span> デザイン・パレット
+                </h2>
+
+                <!-- Material Palette Generator -->
+                <a class="m3-card" href="https://pbhub.io/tools/m3-palette" target="_blank">
+                    <md-ripple></md-ripple>
+                    <div class="m3-card-content">
+                        <h3 style="margin: 0 0 4px 0; font-family: var(--md-ref-typeface-brand); font-size: 1.1rem; font-weight: 500;">Material Theme Creator</h3>
+                        <p style="margin: 0; color: var(--md-sys-color-on-surface-variant); font-size: 0.9rem; line-height: 1.4;">
+                            単一の基準色から、Material Design 3に完全適合したカラーシステムパレットを生成します。
+                        </p>
+                        <div class="url-indicator">https://pbhub.io/tools/m3-palette</div>
+                    </div>
+                </a>
+
+                <!-- SVG最適化・クリーナー -->
+                <a class="m3-card" href="https://pbhub.io/tools/svg-optimizer" target="_blank">
+                    <md-ripple></md-ripple>
+                    <div class="m3-card-content">
+                        <h3 style="margin: 0 0 4px 0; font-family: var(--md-ref-typeface-brand); font-size: 1.1rem; font-weight: 500;">SVG Optimizer</h3>
+                        <p style="margin: 0; color: var(--md-sys-color-on-surface-variant); font-size: 0.9rem; line-height: 1.4;">
+                            SVGコードから不要なタグやメタデータを削ぎ落とし、ウェブ用に高度に軽量化します。
+                        </p>
+                        <div class="url-indicator">https://pbhub.io/tools/svg-optimizer</div>
+                    </div>
+                </a>
+            </div>
+
+            <!-- カテゴリ：テキスト編集ツール -->
+            <div style="margin-bottom: 24px;">
+                <h2 style="font-family: var(--md-ref-typeface-brand); font-size: 1.25rem; font-weight: 500; margin-left: 8px; margin-bottom: 12px; display:flex; align-items:center; gap:8px; color: var(--md-sys-color-primary);">
+                    <span class="material-symbols-outlined">edit_document</span> テキスト・マークダウン
+                </h2>
+
+                <!-- Markdown Live Editor -->
+                <a class="m3-card" href="https://pbhub.io/tools/markdown-editor" target="_blank">
+                    <md-ripple></md-ripple>
+                    <div class="m3-card-content">
+                        <h3 style="margin: 0 0 4px 0; font-family: var(--md-ref-typeface-brand); font-size: 1.1rem; font-weight: 500;">Markdown Editor</h3>
+                        <p style="margin: 0; color: var(--md-sys-color-on-surface-variant); font-size: 0.9rem; line-height: 1.4;">
+                            リアルタイムでプレビューを確認しながら文章作成ができる、軽快なMarkdown記法エディタです。
+                        </p>
+                        <div class="url-indicator">https://pbhub.io/tools/markdown-editor</div>
+                    </div>
+                </a>
+            </div>
+
+        </section>
+
+        <!-- ==========================================
+             VIEW 2: 開発・便利ツール専用ビュー (Dev Tools Category)
+             ========================================== -->
+        <section id="view-controls" class="view-section">
+            <h2 style="font-family: var(--md-ref-typeface-brand); font-size: 1.4rem; font-weight: 500; margin-bottom: 16px; color: var(--md-sys-color-primary);">
+                開発・便利ツール ランチャー
+            </h2>
+
+            <a class="m3-card" href="https://pbhub.io/tools/json-formatter" target="_blank">
+                <md-ripple></md-ripple>
+                <div class="m3-card-content">
+                    <h3 style="margin: 0 0 4px 0; font-family: var(--md-ref-typeface-brand); font-size: 1.1rem; font-weight: 500;">JSON Formatter</h3>
+                    <p style="margin: 0; color: var(--md-sys-color-on-surface-variant); font-size: 0.9rem; line-height: 1.4;">
+                        生データのJSON文字列を美しく構造化し、バリデーションと階層構造の確認を行います。
+                    </p>
+                    <div class="url-indicator">https://pbhub.io/tools/json-formatter</div>
+                </div>
+            </a>
+
+            <a class="m3-card" href="https://pbhub.io/tools/base64" target="_blank">
+                <md-ripple></md-ripple>
+                <div class="m3-card-content">
+                    <h3 style="margin: 0 0 4px 0; font-family: var(--md-ref-typeface-brand); font-size: 1.1rem; font-weight: 500;">Base64 Encoder / Decoder</h3>
+                    <p style="margin: 0; color: var(--md-sys-color-on-surface-variant); font-size: 0.9rem; line-height: 1.4;">
+                        文字列や画像ファイルを相互にBase64文字列へと変換・デコード処理を行います。
+                    </p>
+                    <div class="url-indicator">https://pbhub.io/tools/base64</div>
+                </div>
+            </a>
+        </section>
+
+        <!-- ==========================================
+             VIEW 3: デザイン・パレット専用ビュー (Design Tools Category)
+             ========================================== -->
+        <section id="view-inputs" class="view-section">
+            <h2 style="font-family: var(--md-ref-typeface-brand); font-size: 1.4rem; font-weight: 500; margin-bottom: 16px; color: var(--md-sys-color-primary);">
+                デザイン・パレット ランチャー
+            </h2>
+
+            <a class="m3-card" href="https://pbhub.io/tools/m3-palette" target="_blank">
+                <md-ripple></md-ripple>
+                <div class="m3-card-content">
+                    <h3 style="margin: 0 0 4px 0; font-family: var(--md-ref-typeface-brand); font-size: 1.1rem; font-weight: 500;">Material Theme Creator</h3>
+                    <p style="margin: 0; color: var(--md-sys-color-on-surface-variant); font-size: 0.9rem; line-height: 1.4;">
+                        単一の基準色から、Material Design 3に完全適合したカラーシステムパレットを生成します。
+                    </p>
+                    <div class="url-indicator">https://pbhub.io/tools/m3-palette</div>
+                </div>
+            </a>
+
+            <a class="m3-card" href="https://pbhub.io/tools/svg-optimizer" target="_blank">
+                <md-ripple></md-ripple>
+                <div class="m3-card-content">
+                    <h3 style="margin: 0 0 4px 0; font-family: var(--md-ref-typeface-brand); font-size: 1.1rem; font-weight: 500;">SVG Optimizer</h3>
+                    <p style="margin: 0; color: var(--md-sys-color-on-surface-variant); font-size: 0.9rem; line-height: 1.4;">
+                        SVGコードから不要なタグやメタデータを削ぎ落とし、ウェブ用に高度に軽量化します。
+                    </p>
+                    <div class="url-indicator">https://pbhub.io/tools/svg-optimizer</div>
+                </div>
+            </a>
+        </section>
+
+        <!-- ==========================================
+             VIEW 4: テキスト・マークダウン専用ビュー (Text Tools Category)
+             ========================================== -->
+        <section id="view-lists" class="view-section">
+            <h2 style="font-family: var(--md-ref-typeface-brand); font-size: 1.4rem; font-weight: 500; margin-bottom: 16px; color: var(--md-sys-color-primary);">
+                テキスト・マークダウン ランチャー
+            </h2>
+
+            <a class="m3-card" href="https://pbhub.io/tools/markdown-editor" target="_blank">
+                <md-ripple></md-ripple>
+                <div class="m3-card-content">
+                    <h3 style="margin: 0 0 4px 0; font-family: var(--md-ref-typeface-brand); font-size: 1.1rem; font-weight: 500;">Markdown Editor</h3>
+                    <p style="margin: 0; color: var(--md-sys-color-on-surface-variant); font-size: 0.9rem; line-height: 1.4;">
+                        リアルタイムでプレビューを確認しながら文章作成ができる、軽快なMarkdown記法エディタです。
+                    </p>
+                    <div class="url-indicator">https://pbhub.io/tools/markdown-editor</div>
+                </div>
+            </a>
+        </section>
+
+    </main>
+
+    <!-- FAB (Floating Action Button): テーマ設定を呼び出し -->
+    <div class="fab-container">
+        <md-fab variant="primary" onclick="window.openSettingsDialog()" aria-label="テーマ設定">
+            <md-icon slot="icon"><span class="material-symbols-outlined">palette</span></md-icon>
+        </md-fab>
+    </div>
+
+    <!-- ==========================================
+         Custom Navigation Bar (ベースコードの構造を維持・タブをPBhub用に命名変更)
+         ========================================== -->
+    <nav class="custom-nav">
+        <div class="nav-item active" id="nav-home" onclick="window.switchTab('home')">
+            <div class="nav-icon-container">
+                <span class="material-symbols-outlined">home</span>
+            </div>
+            <span class="nav-label">すべて</span>
+        </div>
+        <div class="nav-item" id="nav-controls" onclick="window.switchTab('controls')">
+            <div class="nav-icon-container">
+                <span class="material-symbols-outlined">build</span>
+            </div>
+            <span class="nav-label">開発ツール</span>
+        </div>
+        <div class="nav-item" id="nav-inputs" onclick="window.switchTab('inputs')">
+            <div class="nav-icon-container">
+                <span class="material-symbols-outlined">palette</span>
+            </div>
+            <span class="nav-label">デザイン</span>
+        </div>
+        <div class="nav-item" id="nav-lists" onclick="window.switchTab('lists')">
+            <div class="nav-icon-container">
+                <span class="material-symbols-outlined">edit_document</span>
+            </div>
+            <span class="nav-label">テキスト</span>
+        </div>
+    </nav>
+
+    <!-- Dialog: ダイナミックカラー設定 (ベースコード設計思想準拠) -->
+    <md-dialog id="settings-dialog">
+        <div slot="headline">PBhub2 テーマカスタマイズ</div>
+        <form slot="content" id="form-theme" method="dialog" style="display:flex; flex-direction:column; gap:16px;">
+            <p style="margin:0; color: var(--md-sys-color-on-surface-variant); line-height: 1.5;">
+                ポーランドボールテーマの基本カラーをカスタマイズできます。Monetアルゴリズムが自動的に美しいマテリアルカラーパレットを抽出し、すべての要素に反映させます。
+            </p>
+            <div class="color-picker-wrapper">
+                <input type="color" id="source-color" value="#e2001a" oninput="window.updateTheme(this.value)">
+                <div style="display:flex; flex-direction:column;">
+                    <span style="font-weight:500; font-family: var(--md-ref-typeface-brand);">ベース基準カラー</span>
+                    <span id="color-value" style="font-size:0.9em; opacity:0.8; font-family: monospace;">#e2001a</span>
+                </div>
+            </div>
+        </form>
+        <div slot="actions">
+            <md-filled-button form="form-theme" value="close">閉じる</md-filled-button>
+        </div>
+    </md-dialog>
+
+    <!-- JavaScript Implementation -->
+    <script type="module">
+        // Import Material Web Components
+        import '@material/web/all.js';
+        
+        // Import Material Color Utilities
+        import { 
+            argbFromHex, 
+            themeFromSourceColor, 
+            applyTheme 
+        } from "@material/material-color-utilities";
+
+        // ==========================================
+        // --- Monet Color Engine Implementation (ベースコード完全維持) ---
+        // ==========================================
+        
+        let isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        // 初期ベース色をポーランドボール（赤・白）由来の鮮やかな赤色に変更
+        let currentSourceColor = '#e2001a';
+
+        window.updateTheme = function(hexColor) {
+            currentSourceColor = hexColor;
+            const colorValueEl = document.getElementById('color-value');
+            if(colorValueEl) colorValueEl.textContent = hexColor;
+
+            // 1. Convert Hex to ARGB
+            const argb = argbFromHex(hexColor);
+
+            // 2. Generate Theme (Tonal Palettes)
+            const theme = themeFromSourceColor(argb);
+
+            // 3. Extract the correct scheme (light or dark)
+            const scheme = isDarkMode ? theme.schemes.dark : theme.schemes.light;
+
+            // 4. Map to CSS Variables (Design Tokens)
+            const root = document.documentElement;
+            
+            // System Colors Mapping
+            const tokenMap = {
+                'primary': scheme.primary,
+                'on-primary': scheme.onPrimary,
+                'primary-container': scheme.primaryContainer,
+                'on-primary-container': scheme.onPrimaryContainer,
+                'secondary': scheme.secondary,
+                'on-secondary': scheme.onSecondary,
+                'secondary-container': scheme.secondaryContainer,
+                'on-secondary-container': scheme.onSecondaryContainer,
+                'tertiary': scheme.tertiary,
+                'on-tertiary': scheme.onTertiary,
+                'tertiary-container': scheme.tertiaryContainer,
+                'on-tertiary-container': scheme.onTertiaryContainer,
+                'error': scheme.error,
+                'on-error': scheme.onError,
+                'error-container': scheme.errorContainer,
+                'on-error-container': scheme.onErrorContainer,
+                'background': scheme.background,
+                'on-background': scheme.onBackground,
+                'surface': scheme.surface,
+                'on-surface': scheme.onSurface,
+                'surface-variant': scheme.surfaceVariant,
+                'on-surface-variant': scheme.onSurfaceVariant,
+                'outline': scheme.outline,
+                'outline-variant': scheme.outlineVariant,
+                'shadow': scheme.shadow,
+                'scrim': scheme.scrim,
+                'inverse-surface': scheme.inverseSurface,
+                'inverse-on-surface': scheme.inverseOnSurface,
+                'inverse-primary': scheme.inversePrimary,
+            };
+
+            for (const [key, value] of Object.entries(tokenMap)) {
+                // Convert integer ARGB back to Hex for CSS
+                const hex = hexFromArgb(value);
+                root.style.setProperty(`--md-sys-color-${key}`, hex);
+            }
+        };
+
+        // Utility: Convert ARGB Number to Hex String for CSS
+        function hexFromArgb(argb) {
+            const r = (argb >> 16) & 0xff;
+            const g = (argb >> 8) & 0xff;
+            const b = argb & 0xff;
+            return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+        }
+
+        // --- Dark Mode Logic ---
+        
+        window.toggleDarkMode = function() {
+            isDarkMode = !isDarkMode;
+            
+            // Update Icon
+            const icon = document.getElementById('theme-icon');
+            if(icon) icon.textContent = isDarkMode ? 'light_mode' : 'dark_mode';
+            
+            // Re-apply theme with new mode
+            window.updateTheme(currentSourceColor);
+        };
+
+        // --- Dialog Logic (ランチャー内用、名称のみ変更して機能は完全に同一) ---
+        
+        window.openSettingsDialog = function() {
+            const dialog = document.getElementById('settings-dialog');
+            if(dialog) dialog.show();
+        };
+
+        // ==========================================
+        // --- Custom Navigation Logic (ベースコード完全維持) ---
+        // ==========================================
+        
+        window.switchTab = function(tabId) {
+            // Hide all views
+            document.querySelectorAll('.view-section').forEach(el => {
+                el.classList.remove('active');
+            });
+            
+            // Unset active on all nav items
+            document.querySelectorAll('.nav-item').forEach(el => {
+                el.classList.remove('active');
+            });
+
+            // Show target view
+            const targetView = document.getElementById('view-' + tabId);
+            if(targetView) targetView.classList.add('active');
+
+            // Set active on clicked nav item
+            const targetNav = document.getElementById('nav-' + tabId);
+            if(targetNav) targetNav.classList.add('active');
+            
+            // Scroll to top smoothly
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        };
+
+        // --- Initialization ---
+        
+        // Initial Theme Apply
+        window.updateTheme(currentSourceColor);
+        
+        // Setup Icon based on initial state
+        const initialIcon = document.getElementById('theme-icon');
+        if(initialIcon) initialIcon.textContent = isDarkMode ? 'light_mode' : 'dark_mode';
+
+    </script>
+</body>
+</html>
