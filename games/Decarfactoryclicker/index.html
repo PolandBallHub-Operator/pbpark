@@ -1,0 +1,1671 @@
+---
+layout: default
+title: 車工場クリッカー
+---
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>De Ballの車工場クリッカー</title>
+  <style>
+    /* シックで歴史を感じさせる重厚なUI（スチームパンク＆アンティークドイツスタイル） */
+    :root {
+      --bg-dark: #121212;
+      --bg-panel: #201a15;
+      --bg-card: #2d241e;
+      --border-color: #5c4a3c;
+      --gold: #d4af37;
+      --iron: #8b939c;
+      --accent-red: #9e2a2b;
+      --text-light: #f5f2eb;
+      --text-muted: #b0a496;
+      --font-family: 'Georgia', 'Times New Roman', serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: var(--font-family);
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-light);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+
+    /* 縦画面スマホ前提（最大480px幅でセンタリング） */
+    #app-container {
+      width: 100%;
+      max-width: 480px;
+      height: 100vh;
+      background-color: var(--bg-panel);
+      border-left: 3px solid var(--border-color);
+      border-right: 3px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+    }
+
+    /* ヘッダー：資産・ステータス */
+    header {
+      background-color: #171310;
+      border-bottom: 2px solid var(--border-color);
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      z-index: 10;
+    }
+
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .title-logo {
+      font-size: 1.1rem;
+      font-weight: bold;
+      color: var(--gold);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+    }
+
+    .save-load-btn {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--gold);
+      padding: 4px 8px;
+      font-size: 0.75rem;
+      cursor: pointer;
+      border-radius: 3px;
+      transition: all 0.2s;
+    }
+    .save-load-btn:active {
+      background: var(--gold);
+      color: #000;
+    }
+
+    .money-display {
+      font-size: 1.6rem;
+      font-weight: bold;
+      color: #4caf50;
+      text-align: center;
+      text-shadow: 1px 1px 4px rgba(0,0,0,0.9);
+      background: rgba(0, 0, 0, 0.4);
+      padding: 6px;
+      border-radius: 4px;
+      border: 1px dashed var(--border-color);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .debt-alert {
+      color: var(--accent-red);
+      font-size: 0.85rem;
+      animation: blink 1s infinite alternate;
+      text-align: center;
+    }
+
+    @keyframes blink {
+      0% { opacity: 0.4; }
+      100% { opacity: 1; }
+    }
+
+    /* 為替・市場状況 */
+    .market-bar {
+      background: rgba(212, 175, 55, 0.08);
+      border: 1px solid rgba(212, 175, 55, 0.2);
+      border-radius: 4px;
+      padding: 6px;
+      font-size: 0.78rem;
+      display: flex;
+      justify-content: space-between;
+      color: var(--text-muted);
+    }
+    .market-val {
+      color: var(--gold);
+      font-weight: bold;
+    }
+
+    /* メインエリア：タブ切り替え対応 */
+    main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding-bottom: 80px; /* タブバー用の余白 */
+    }
+
+    .tab-content {
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+      animation: fadeIn 0.3s ease-in-out;
+    }
+
+    .tab-content.active {
+      display: flex;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* カード・パネル共通 */
+    .panel {
+      background-color: var(--bg-card);
+      border: 2px solid var(--border-color);
+      border-radius: 6px;
+      padding: 12px;
+      box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+    }
+
+    .panel-title {
+      font-size: 0.95rem;
+      color: var(--gold);
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 6px;
+      margin-bottom: 10px;
+      font-weight: bold;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* 生産タブ固有：ドイツボールのPNG車工場 */
+    .factory-hero {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      position: relative;
+      background: radial-gradient(circle, rgba(139,147,156,0.15) 0%, rgba(18,18,18,0) 70%);
+      padding: 15px 0;
+    }
+
+    /* PBアート規定に則り、SVGや円ツールを排してPNG画像のみで描写。サイズも歪まないよう管理。 */
+    .pb-ball-container {
+      width: 140px;
+      height: 140px;
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .pb-ball-img {
+      width: 130px;
+      height: 130px;
+      object-fit: contain;
+      filter: drop-shadow(0 8px 12px rgba(0,0,0,0.7));
+      transition: transform 0.1s ease;
+    }
+
+    /* タップ時の工場アニメーション */
+    .pb-ball-img:active {
+      transform: scale(0.92) rotate(-5deg);
+    }
+
+    .factory-decor-left, .factory-decor-right {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 2rem;
+      opacity: 0.15;
+    }
+    .factory-decor-left { left: 15px; }
+    .factory-decor-right { right: 15px; }
+
+    /* 製造進行状況 */
+    .production-status-container {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .prod-info-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.82rem;
+    }
+    .progress-bar-bg {
+      width: 100%;
+      height: 12px;
+      background-color: #171310;
+      border: 1.5px solid var(--border-color);
+      border-radius: 6px;
+      overflow: hidden;
+      position: relative;
+    }
+    .progress-bar-fill {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, var(--gold), #f39c12);
+      transition: width 0.1s linear;
+    }
+
+    /* 素材購入グリッド */
+    .material-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .material-btn {
+      background-color: #241c17;
+      border: 1.5px solid var(--border-color);
+      border-radius: 4px;
+      padding: 10px 8px;
+      color: var(--text-light);
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      position: relative;
+    }
+    .material-btn:active {
+      background-color: #3b2e25;
+      border-color: var(--gold);
+    }
+    .material-title {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+    .material-emoji {
+      font-size: 1.5rem;
+    }
+    .material-count {
+      font-size: 1rem;
+      font-weight: bold;
+      color: var(--gold);
+    }
+    .material-price {
+      font-size: 0.75rem;
+      color: #4caf50;
+    }
+
+    /* 貿易・輸出タブ */
+    .export-header {
+      text-align: center;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .buyer-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .buyer-card {
+      background-color: rgba(0,0,0,0.2);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      transition: border-color 0.2s;
+    }
+
+    .buyer-card.selected {
+      border-color: var(--gold);
+      background-color: rgba(214, 175, 55, 0.05);
+    }
+
+    .buyer-pb-img {
+      width: 50px;
+      height: 50px;
+      object-fit: contain;
+    }
+
+    .buyer-info {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .buyer-name {
+      font-weight: bold;
+      font-size: 0.85rem;
+      color: var(--text-light);
+    }
+
+    .buyer-rate-badge {
+      font-size: 0.75rem;
+      padding: 2px 6px;
+      background-color: rgba(76, 175, 80, 0.15);
+      color: #4caf50;
+      border-radius: 4px;
+      width: fit-content;
+      font-weight: bold;
+    }
+    .buyer-rate-badge.low {
+      background-color: rgba(231, 76, 60, 0.15);
+      color: #e74c3c;
+    }
+
+    .sell-btn {
+      background-color: var(--gold);
+      color: #000;
+      border: none;
+      border-radius: 4px;
+      padding: 8px 12px;
+      font-weight: bold;
+      font-size: 0.82rem;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    .sell-btn:disabled {
+      background-color: #555;
+      color: #888;
+      cursor: not-allowed;
+    }
+
+    /* 設備＆アップグレードタブ */
+    .upgrade-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .upgrade-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(0,0,0,0.25);
+      padding: 10px;
+      border-radius: 4px;
+      border: 1px solid var(--border-color);
+    }
+
+    .upgrade-details {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      max-width: 65%;
+    }
+
+    .upgrade-name {
+      font-weight: bold;
+      font-size: 0.85rem;
+      color: var(--text-light);
+    }
+
+    .upgrade-desc {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+
+    .upgrade-btn {
+      background-color: #2e3d30;
+      border: 1px solid #4caf50;
+      color: #4caf50;
+      padding: 8px;
+      font-size: 0.8rem;
+      font-weight: bold;
+      border-radius: 4px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+    .upgrade-btn:active:not(:disabled) {
+      background-color: #4caf50;
+      color: #000;
+    }
+    .upgrade-btn:disabled {
+      border-color: #444;
+      color: #777;
+      background-color: #222;
+      cursor: not-allowed;
+    }
+
+    /* フッター：タブバー */
+    nav.tab-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 64px;
+      background-color: #120f0c;
+      border-top: 2px solid var(--border-color);
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      z-index: 20;
+    }
+
+    .tab-btn {
+      flex: 1;
+      height: 100%;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 0.7rem;
+    }
+
+    .tab-btn.active {
+      color: var(--gold);
+      background-color: rgba(212, 175, 55, 0.05);
+    }
+
+    .tab-btn-icon {
+      font-size: 1.3rem;
+    }
+
+    /* モーダル：ダイアログ */
+    .modal-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.85);
+      z-index: 100;
+      display: none;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .modal-content {
+      background-color: var(--bg-card);
+      border: 3px solid var(--gold);
+      border-radius: 8px;
+      width: 100%;
+      max-width: 380px;
+      padding: 20px;
+      box-shadow: 0 5px 25px rgba(0,0,0,0.8);
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .modal-title {
+      font-size: 1.1rem;
+      color: var(--gold);
+      font-weight: bold;
+      text-align: center;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 8px;
+    }
+
+    .modal-body {
+      font-size: 0.85rem;
+      color: var(--text-light);
+      line-height: 1.5;
+    }
+
+    .modal-buttons {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+
+    .modal-btn {
+      background-color: var(--gold);
+      color: #000;
+      border: none;
+      border-radius: 4px;
+      padding: 8px 16px;
+      font-weight: bold;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+
+    .modal-btn.danger {
+      background-color: var(--accent-red);
+      color: var(--text-light);
+    }
+
+    /* 汎用テキストエリア等 */
+    textarea.code-area {
+      width: 100%;
+      height: 80px;
+      background-color: #111;
+      border: 1px solid var(--border-color);
+      color: #4caf50;
+      font-family: monospace;
+      font-size: 0.75rem;
+      padding: 6px;
+      resize: none;
+    }
+
+    /* ローン破産モーダル */
+    #bankruptcy-modal {
+      border-color: var(--accent-red);
+    }
+
+    /* ヘルプガイド */
+    .help-icon {
+      font-size: 0.75rem;
+      background-color: rgba(212, 175, 55, 0.2);
+      border-radius: 50%;
+      width: 16px;
+      height: 16px;
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      color: var(--gold);
+    }
+  </style>
+</head>
+<body>
+
+  <div id="app-container">
+    <!-- ヘッダー -->
+    <header>
+      <div class="top-bar">
+        <span class="title-logo">🏭 DE-Ball Motor Co.</span>
+        <button class="save-load-btn" onclick="openSaveLoadModal()">💾 データ保存/復元</button>
+      </div>
+
+      <div class="money-display">
+        <span>€</span><span id="cash-val">10,000,000</span>
+      </div>
+
+      <div class="market-bar">
+        <div>為替変動: <span id="fx-status">安定(1.00)</span></div>
+        <div>現在の国債金利: <span id="loan-interest-val">12%</span></div>
+      </div>
+    </header>
+
+    <!-- メインコンテンツ -->
+    <main>
+
+      <!-- TAB 1: 工場生産（メイン） -->
+      <div id="tab-factory" class="tab-content active">
+        
+        <div class="panel">
+          <div class="panel-title">
+            <span>🏭 ドイツ製鋼工場本部</span>
+            <span class="help-icon" onclick="showHelp('factory')">?</span>
+          </div>
+
+          <div class="factory-hero">
+            <span class="factory-decor-left">⚙️</span>
+            <!-- PBルール準拠：手描きドイツボール画像。絶対CSSや円を描かない。 -->
+            <div class="pb-ball-container" id="germany-clicker">
+              <img src="https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/germany/normal.png" 
+                   alt="Germanyball" 
+                   class="pb-ball-img" 
+                   id="germany-img" 
+                   onclick="handleGermanyClick()">
+            </div>
+            <span class="factory-decor-right">🛞</span>
+          </div>
+
+          <!-- 生産ライン -->
+          <div class="production-status-container">
+            <div class="prod-info-row">
+              <span id="prod-lines-status">生産ライン: 0 / 1 稼働中</span>
+              <span id="prod-time-status">製造時間: 10.0秒 / 台</span>
+            </div>
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill" id="production-progress"></div>
+            </div>
+            <div class="prod-info-row" style="margin-top: 4px; font-size: 0.75rem; color: var(--text-muted);">
+              <span>必要素材：⚙️x1, 🛞x4, 🟦x6, 💺x4</span>
+              <span>完成在庫：<strong style="color: var(--gold);" id="stock-count">0</strong> 台</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 買い付けセクション -->
+        <div class="panel">
+          <div class="panel-title">
+            <span>📦 資材の輸入・調達</span>
+            <span class="help-icon" onclick="showHelp('materials')">?</span>
+          </div>
+          <p style="font-size: 0.72rem; color: var(--text-muted); margin-bottom: 8px;">
+            ※為替変動や貿易状況により、素材の価格がリアルタイムに変動します。
+          </p>
+          <div class="material-grid">
+            <!-- モーター -->
+            <button class="material-btn" onclick="buyMaterial('motor')">
+              <span class="material-title">モーター</span>
+              <span class="material-emoji">⚙️</span>
+              <span class="material-count" id="count-motor">0</span>
+              <span class="material-price">単価 €<span id="price-motor">5,000</span></span>
+            </button>
+            <!-- タイヤ -->
+            <button class="material-btn" onclick="buyMaterial('tire')">
+              <span class="material-title">タイヤ</span>
+              <span class="material-emoji">🛞</span>
+              <span class="material-count" id="count-tire">0</span>
+              <span class="material-price">単価 €<span id="price-tire">1,200</span></span>
+            </button>
+            <!-- ガラス -->
+            <button class="material-btn" onclick="buyMaterial('glass')">
+              <span class="material-title">ガラス</span>
+              <span class="material-emoji">🟦</span>
+              <span class="material-count" id="count-glass">0</span>
+              <span class="material-price">単価 €<span id="price-glass">600</span></span>
+            </button>
+            <!-- シート -->
+            <button class="material-btn" onclick="buyMaterial('seat')">
+              <span class="material-title">シート</span>
+              <span class="material-emoji">💺</span>
+              <span class="material-count" id="count-seat">0</span>
+              <span class="material-price">単価 €<span id="price-seat">1,500</span></span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: 国際貿易・輸出 -->
+      <div id="tab-trade" class="tab-content">
+        <div class="panel">
+          <div class="panel-title">
+            <span>🌐 国際マーケットへの輸出</span>
+            <span class="help-icon" onclick="showHelp('trade')">?</span>
+          </div>
+          <div class="export-header">
+            各国のニーズ・為替によって実質売却額が激しく上下します。<br>
+            ※日本ボールは高値維持傾向、アメリカボールは為替に敏感等。
+          </div>
+
+          <div class="buyer-list" id="buyer-list-container">
+            <!-- 動的に生成されます -->
+          </div>
+        </div>
+
+        <!-- 経済ニュース -->
+        <div class="panel">
+          <div class="panel-title">📰 経済・為替ニュース速報</div>
+          <div id="economy-news" style="font-size: 0.8rem; color: #4caf50; line-height: 1.4; min-height: 40px; background: #121212; padding: 8px; border-radius: 4px; border: 1px solid var(--border-color);">
+            ドイツボール自動車、日本への輸出体制を強化中。ユーロ安定。
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 3: 経営・投資・開発 -->
+      <div id="tab-upgrades" class="tab-content">
+        <div class="panel">
+          <div class="panel-title">
+            <span>📈 経営改革・開発への投資</span>
+            <span class="help-icon" onclick="showHelp('upgrades')">?</span>
+          </div>
+          <div class="upgrade-list">
+            <!-- 開発部門 -->
+            <div class="upgrade-item">
+              <div class="upgrade-details">
+                <span class="upgrade-name">🛠️ 開発部門の拡充 (Lv.<span id="lv-dev">0</span>)</span>
+                <span class="upgrade-desc">車の品質を上げ、販売基本価格をアップします。</span>
+              </div>
+              <button class="upgrade-btn" id="btn-up-dev" onclick="buyUpgrade('dev')">アップグレード<br>€<span id="cost-dev">100,000</span></button>
+            </div>
+
+            <!-- 自動ディーラー -->
+            <div class="upgrade-item">
+              <div class="upgrade-details">
+                <span class="upgrade-name">👔 ディーラー契約 (Lv.<span id="lv-dealer">0</span>)</span>
+                <span class="upgrade-desc">10秒毎に現在選択中の国へ完成車を自動売却します。</span>
+              </div>
+              <button class="upgrade-btn" id="btn-up-dealer" onclick="buyUpgrade('dealer')">契約締結<br>€<span id="cost-dealer">250,000</span></button>
+            </div>
+
+            <!-- 🧑‍🔧 エンジニア雇用 -->
+            <div class="upgrade-item">
+              <div class="upgrade-details">
+                <span class="upgrade-name">🧑‍🔧 熟練エンジニアの雇用 (<span id="lv-engineer">1</span>人)</span>
+                <span class="upgrade-desc">生産ラインの製造時間が速くなります(上限あり)。維持費発生。</span>
+              </div>
+              <button class="upgrade-btn" id="btn-up-engineer" onclick="buyUpgrade('engineer')">雇用する<br>€<span id="cost-engineer">50,000</span></button>
+            </div>
+
+            <!-- トラック会社契約 -->
+            <div class="upgrade-item">
+              <div class="upgrade-details">
+                <span class="upgrade-name">🚛 運送トラック会社との提携 (Lv.<span id="lv-truck">1</span>)</span>
+                <span class="upgrade-desc">素材1クリックでの調達量を増やします（まとめて仕入れ）。</span>
+              </div>
+              <button class="upgrade-btn" id="btn-up-truck" onclick="buyUpgrade('truck')">提携する<br>€<span id="cost-truck">120,000</span></button>
+            </div>
+
+            <!-- 工場長雇用 -->
+            <div class="upgrade-item">
+              <div class="upgrade-details">
+                <span class="upgrade-name">🎩 有能な工場長の雇用 (<span id="lv-manager">未雇用</span>)</span>
+                <span class="upgrade-desc">工場が稼働中、ドイツボールを自動で毎秒2回タップ(生産支援)します。</span>
+              </div>
+              <button class="upgrade-btn" id="btn-up-manager" onclick="buyUpgrade('manager')">雇用する<br>€<span id="cost-manager">1,000,000</span></button>
+            </div>
+
+            <!-- 生産ラインの拡張 -->
+            <div class="upgrade-item">
+              <div class="upgrade-details">
+                <span class="upgrade-name">⚙️ 生産ライン(工場規模)の増加 (<span id="max-lines-display">1</span>ライン)</span>
+                <span class="upgrade-desc">同時に製造できる自動車の数を増やします。費用は大幅に高額です。</span>
+              </div>
+              <button class="upgrade-btn" id="btn-up-lines" onclick="buyUpgrade('lines')">拡張する<br>€<span id="cost-lines">3,000,000</span></button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 経営状況報告パネル -->
+        <div class="panel">
+          <div class="panel-title">📊 財務報告書</div>
+          <div style="font-size: 0.78rem; line-height: 1.5; color: var(--text-muted);">
+            <div>毎秒のエンジニア維持費: <span style="color:var(--accent-red)">-€<span id="engineer-salary-display">0</span></span></div>
+            <div>自動タップ間隔: <span id="autoclick-rate">なし</span></div>
+            <div>為替利益ボーナス: <span id="fx-bonus-rate">±0%</span></div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- フッターナビゲーション -->
+    <nav class="tab-bar">
+      <button class="tab-btn active" onclick="switchTab('factory')">
+        <span class="tab-btn-icon">🏭</span>
+        <span>工場生産</span>
+      </button>
+      <button class="tab-btn" onclick="switchTab('trade')">
+        <span class="tab-btn-icon">🌐</span>
+        <span>貿易・市場</span>
+      </button>
+      <button class="tab-btn" onclick="switchTab('upgrades')">
+        <span class="tab-btn-icon">📈</span>
+        <span>経営・開発</span>
+      </button>
+    </nav>
+
+    <!-- 通常モーダル -->
+    <div class="modal-overlay" id="common-modal">
+      <div class="modal-content">
+        <div class="modal-title" id="modal-title">お知らせ</div>
+        <div class="modal-body" id="modal-body">ここに内容が入ります。</div>
+        <div class="modal-buttons">
+          <button class="modal-btn" onclick="closeCommonModal()">了解</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 危機モーダル（ローン/破産） -->
+    <div class="modal-overlay" id="bankruptcy-modal">
+      <div class="modal-content">
+        <div class="modal-title" style="color: var(--accent-red);">🚨 資金が枯渇しました！ 🚨</div>
+        <div class="modal-body">
+          現在、資金が0を下回りました。<br>
+          人件費や素材費の負担、為替の急変に耐えられなかったようです。<br><br>
+          IMFまたは謎のポーランド銀行から<strong>「復興緊急融資：€5,000,000」</strong>を借り入れるか、すべての自動車工場設備を差し押さえられて<strong>「破産申請」</strong>を行うか選択してください。<br>
+          ※融資を受けると利息が発生し、利益から自動天引きされます。
+        </div>
+        <div class="modal-buttons" style="flex-direction: column; width: 100%;">
+          <button class="modal-btn" style="background-color: var(--gold); color:#000; width: 100%; margin-bottom: 8px;" onclick="takeEmergencyLoan()">緊急融資を借りる（€5,000,000）</button>
+          <button class="modal-btn danger" style="width: 100%;" onclick="declareBankruptcy()">破産申請を行う（ゲームリセット）</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 保存と復元モーダル -->
+    <div class="modal-overlay" id="saveload-modal">
+      <div class="modal-content">
+        <div class="modal-title">💾 データのセーブとロード</div>
+        <div class="modal-body">
+          <p style="margin-bottom: 8px;">セーブコードをコピーして保存するか、コードを貼り付けてゲームを復元します。</p>
+          <textarea class="code-area" id="save-code-box" readonly onclick="this.select()"></textarea>
+          <p style="margin-top: 10px; margin-bottom: 4px;">ロードする場合は、以下にコードを貼り付けてください：</p>
+          <textarea class="code-area" id="load-code-box" style="color:#fff;" placeholder="ここにコードを貼り付け"></textarea>
+        </div>
+        <div class="modal-buttons">
+          <button class="modal-btn" style="background: #4caf50; color:#fff;" onclick="loadGameFromCode()">復元実行</button>
+          <button class="modal-btn danger" onclick="closeSaveLoadModal()">閉じる</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- ゲーム状態管理 ---
+    const STATE = {
+      cash: 10000000, // 最初は1000万ユーロ
+      debt: 0,        // 借金
+      debtInterest: 0.12, // 12%
+      materials: {
+        motor: 0,
+        tire: 0,
+        glass: 0,
+        seat: 0
+      },
+      stock: 0,       // 車の完成在庫
+      upgrades: {
+        dev: 0,       // 開発部門
+        dealer: 0,    // 自動ディーラーレベル
+        engineer: 1,  // エンジニア数
+        truck: 1,     // トラック会社
+        manager: false, // 工場長
+        lines: 1      // 最大同時生産ライン数
+      },
+      currentBuyer: "japan", // デフォルトの販売対象
+      fxRate: 1.0,     // 為替レート影響(1.0が通常)
+      marketCycle: 0,
+    };
+
+    // --- 各素材の基本価格（市場為替変動ベース） ---
+    const MATERIAL_BASE_PRICES = {
+      motor: 5000,
+      tire: 1200,
+      glass: 600,
+      seat: 1500
+    };
+
+    // --- 生産設定 ---
+    const CAR_REQUIREMENTS = {
+      motor: 1,
+      tire: 4,
+      glass: 6,
+      seat: 4
+    };
+
+    // 現在各生産ラインがどれだけ進んでいるか管理する配列
+    // line: { progress: 0, active: false }
+    let activeLines = [];
+
+    // --- 貿易相手国(ポーランドボール公式リポジトリ対応) ---
+    // ※イギリスのみフォルダ・ファイル命名が「england472x600」となる
+    const BUYERS = {
+      japan: {
+        name: "日本ボール 🇯🇵",
+        folder: "japan",
+        baseDemand: 1.4, // 高値傾向
+        volatility: 0.15,
+        desc: "ドイツ車をこよなく愛する。為替影響が穏やか。"
+      },
+      usa: {
+        name: "アメリカボール 🇺🇸",
+        folder: "usa",
+        baseDemand: 0.9, // 安め
+        volatility: 0.3,
+        desc: "常に価格交渉をしてくる。為替にきわめて敏感。"
+      },
+      china: {
+        name: "中国ボール 🇨🇳",
+        folder: "china",
+        baseDemand: 1.1,
+        volatility: 0.25,
+        desc: "市場規模が大きいが、突然関税を上げることがある。"
+      },
+      russia: {
+        name: "ロシアボール 🇷🇺",
+        folder: "russia",
+        baseDemand: 0.8,
+        volatility: 0.4,
+        desc: "極寒地。タイヤ等に特別なこだわりを見せる。"
+      },
+      poland: {
+        name: "ポーランドボール 🇵🇱",
+        folder: "poland",
+        baseDemand: 0.7,
+        volatility: 0.1,
+        desc: "お金があまりないが、宇宙に行けない代わりに自動車を欲しがっている。"
+      },
+      england: {
+        name: "イギリスボール 🇬🇧",
+        folder: "england472x600", // イギリスのみ472x600でサイズ規定
+        baseDemand: 1.25,
+        volatility: 0.2,
+        desc: "シルクハットが上品。伝統ある車なら高価格で取引する。"
+      }
+    };
+
+    // 国ごとの現在のダイナミックな需要倍率
+    let buyerRates = {};
+    for (let b in BUYERS) {
+      buyerRates[b] = BUYERS[b].baseDemand;
+    }
+
+    // --- サウンドシステム (Web Audio API) ---
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    
+    function playSound(type) {
+      try {
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        if (type === 'click') {
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 0.08);
+          gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
+          osc.start();
+          osc.stop(audioCtx.currentTime + 0.08);
+        } else if (type === 'buy') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+          osc.frequency.setValueAtTime(800, audioCtx.currentTime + 0.05);
+          gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.12);
+          osc.start();
+          osc.stop(audioCtx.currentTime + 0.12);
+        } else if (type === 'sell') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(1000, audioCtx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(400, audioCtx.currentTime + 0.25);
+          gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
+          osc.start();
+          osc.stop(audioCtx.currentTime + 0.25);
+        } else if (type === 'success') {
+          // ファンファーレ風
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
+          osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.08); // E5
+          osc.frequency.setValueAtTime(783.99, audioCtx.currentTime + 0.16); // G5
+          gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+          osc.start();
+          osc.stop(audioCtx.currentTime + 0.3);
+        } else if (type === 'upgrade') {
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.2);
+          gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+          osc.start();
+          osc.stop(audioCtx.currentTime + 0.2);
+        } else if (type === 'warn') {
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(180, audioCtx.currentTime);
+          osc.frequency.setValueAtTime(120, audioCtx.currentTime + 0.15);
+          gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+          osc.start();
+          osc.stop(audioCtx.currentTime + 0.3);
+        }
+      } catch (e) {
+        console.warn("Sound play failed", e);
+      }
+    }
+
+    // --- タブの切り替え ---
+    function switchTab(tabId) {
+      playSound('click');
+      document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.remove('active');
+      });
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+
+      document.getElementById('tab-' + tabId).classList.add('active');
+      // ボタンのアクティブ化
+      const btns = document.querySelectorAll('.tab-btn');
+      if (tabId === 'factory') btns[0].classList.add('active');
+      if (tabId === 'trade') btns[1].classList.add('active');
+      if (tabId === 'upgrades') btns[2].classList.add('active');
+    }
+
+    // --- 工場・クリック処理（生産を能動的に進める） ---
+    function handleGermanyClick() {
+      // 生産を1クリックあたり5%手動で進行させる
+      progressActiveLines(5);
+      
+      // 画像を少しブレさせることで「怒りのドイツボール仕事」らしさを演出
+      const img = document.getElementById('germany-img');
+      img.src = "https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/germany/anger.png";
+      
+      playSound('click');
+
+      setTimeout(() => {
+        img.src = "https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/germany/normal.png";
+      }, 150);
+    }
+
+    // --- 自動車生産コアシステム（自動生産） ---
+    function initProductionLines() {
+      activeLines = [];
+      for (let i = 0; i < STATE.upgrades.lines; i++) {
+        activeLines.push({ progress: 0, active: false });
+      }
+    }
+
+    // 生産速度計算（人数の増加に伴う逓減関数：対数等でゆっくり早くなる）
+    function getProductionTime() {
+      const engineers = STATE.upgrades.engineer;
+      // 1人だと10秒。人が増えれば増えるほど早くなるが、逓減する。
+      const time = 10 / (1 + Math.log(engineers) * 0.8);
+      return Math.max(0.5, time); // 最速でも0.5秒/台
+    }
+
+    // 毎秒発生する維持費
+    function getEngineerSalary() {
+      // 1人につき毎秒€50の維持費（経営圧迫用）
+      return STATE.upgrades.engineer * 50;
+    }
+
+    function checkAndStartProduction() {
+      // 資材が十分にあるかチェックし、空いている生産ラインがあれば開始する
+      for (let i = 0; i < activeLines.length; i++) {
+        if (!activeLines[i].active) {
+          if (hasEnoughMaterials()) {
+            consumeMaterials();
+            activeLines[i].active = true;
+            activeLines[i].progress = 0;
+            updateMaterialsUI();
+          }
+        }
+      }
+    }
+
+    function hasEnoughMaterials() {
+      return STATE.materials.motor >= CAR_REQUIREMENTS.motor &&
+             STATE.materials.tire >= CAR_REQUIREMENTS.tire &&
+             STATE.materials.glass >= CAR_REQUIREMENTS.glass &&
+             STATE.materials.seat >= CAR_REQUIREMENTS.seat;
+    }
+
+    function consumeMaterials() {
+      STATE.materials.motor -= CAR_REQUIREMENTS.motor;
+      STATE.materials.tire -= CAR_REQUIREMENTS.tire;
+      STATE.materials.glass -= CAR_REQUIREMENTS.glass;
+      STATE.materials.seat -= CAR_REQUIREMENTS.seat;
+    }
+
+    // 生産進行 (tickProgress)
+    function progressActiveLines(amountPercent) {
+      let completedCars = 0;
+      let activeCount = 0;
+
+      for (let i = 0; i < activeLines.length; i++) {
+        if (activeLines[i].active) {
+          activeLines[i].progress += amountPercent;
+          activeCount++;
+          if (activeLines[i].progress >= 100) {
+            activeLines[i].progress = 0;
+            activeLines[i].active = false; // 一旦終了
+            completedCars++;
+          }
+        }
+      }
+
+      if (completedCars > 0) {
+        STATE.stock += completedCars;
+        playSound('success');
+        updateBasicUI();
+      }
+
+      // UIプログレスバーの更新（最も進んでいるラインを代表して表示）
+      let maxProgress = 0;
+      for (let i = 0; i < activeLines.length; i++) {
+        if (activeLines[i].active && activeLines[i].progress > maxProgress) {
+          maxProgress = activeLines[i].progress;
+        }
+      }
+      document.getElementById('production-progress').style.width = maxProgress + "%";
+      document.getElementById('prod-lines-status').innerText = `生産ライン: ${activeCount} / ${activeLines.length} 稼働中`;
+    }
+
+    // --- 資材売買（経済・為替が絡む） ---
+    function getMaterialPrice(type) {
+      // 為替レート（ユーロの強さ）により、輸入価格が変動
+      // ユーロ安(fxRateが低い)だと輸入素材は「高く」なる
+      const fxModifier = 1 / STATE.fxRate; 
+      const basePrice = MATERIAL_BASE_PRICES[type];
+      return Math.round(basePrice * fxModifier);
+    }
+
+    function buyMaterial(type) {
+      const singlePrice = getMaterialPrice(type);
+      // トラック提携レベルにより、1クリックでの購入数が増加
+      const buyCount = STATE.upgrades.truck; 
+      const totalPrice = singlePrice * buyCount;
+
+      if (STATE.cash < totalPrice) {
+        playSound('warn');
+        // お金が足りないが強制購入するとマイナスになり破産フラグ
+        showConfirmModal("資金不足", `資金が不足しています。€${totalPrice} を支払って資材を強制輸入しますか？資金がマイナスになると破産宣告を受けるリスクがあります。`, () => {
+          executeMaterialPurchase(type, buyCount, totalPrice);
+        });
+      } else {
+        executeMaterialPurchase(type, buyCount, totalPrice);
+      }
+    }
+
+    function executeMaterialPurchase(type, count, cost) {
+      STATE.cash -= cost;
+      STATE.materials[type] += count;
+      playSound('buy');
+      updateMaterialsUI();
+      updateBasicUI();
+      checkBankruptcy();
+    }
+
+    // --- 為替＆市場システムのアップデート（12秒ごと） ---
+    function updateMarket() {
+      STATE.marketCycle++;
+      
+      // 為替レートのランダムな揺らぎ (0.7 - 1.5)
+      const prevRate = STATE.fxRate;
+      STATE.fxRate = (0.8 + Math.random() * 0.6).toFixed(2);
+      
+      // 各国のニーズの揺らぎ
+      for (let b in BUYERS) {
+        const buyer = BUYERS[b];
+        const change = (Math.random() - 0.5) * buyer.volatility * 2;
+        buyerRates[b] = Math.max(0.4, Math.min(2.5, buyerRates[b] + change));
+      }
+
+      // 経済ニュースの生成
+      generateEconomyNews(prevRate, STATE.fxRate);
+      
+      // UI更新
+      updateMarketUI();
+      updateBuyerListUI();
+    }
+
+    function generateEconomyNews(oldRate, newRate) {
+      const newsBox = document.getElementById('economy-news');
+      let text = "";
+
+      if (newRate > 1.2) {
+        text = "🇪🇺 ユーロ急騰！輸出に有利な展開ですが、原材料の輸入価格は驚くほど安くなっています！仕入れの絶好の機会です。";
+      } else if (newRate < 0.9) {
+        text = "🚨 ユーロ暴落！輸出車は海外で安く買われますが、資材の輸入コストが超高騰！工場のランニングコストに注意！";
+      } else {
+        const rand = Math.random();
+        if (rand < 0.2) {
+          text = "🇯🇵 日本ボール、高級志向。ドイツ車への関心がさらに高まり、ニーズ増加中！";
+        } else if (rand < 0.4) {
+          text = "🇺🇸 アメリカ、急な関税調整を発表。対米輸出の価格変動リスクが増大。";
+        } else if (rand < 0.6) {
+          text = "🇵🇱 ポーランドボール「車さえあれば、宇宙は無理でもドライブはできる！」と購買力微増。";
+        } else if (rand < 0.8) {
+          text = "⚙️ 世界的な半導体およびモーター原材料不足の懸念。調達価格が一時不安定に。";
+        } else {
+          text = "🇩🇪 ドイツ品質は不滅。ディーラー達は常に新しい製造モデルを待っています。";
+        }
+      }
+
+      newsBox.innerText = text;
+    }
+
+    // --- 国際貿易・輸出（販売） ---
+    function getCarBasePrice() {
+      // 開発部門のレベルにより基本価格が上昇
+      return 15000 * (1 + STATE.upgrades.dev * 0.15);
+    }
+
+    function getCarExportPrice(buyerId) {
+      const base = getCarBasePrice();
+      const demand = buyerRates[buyerId];
+      // 為替レート影響：ユーロ安(fxRateが低い)の時は海外でユーロ建ての輸出車がよく売れる（売却時有利）
+      const fxFactor = 2 - STATE.fxRate; 
+      
+      return Math.round(base * demand * fxFactor);
+    }
+
+    function selectBuyer(buyerId) {
+      STATE.currentBuyer = buyerId;
+      playSound('click');
+      updateBuyerListUI();
+    }
+
+    function sellCar(buyerId) {
+      if (STATE.stock <= 0) {
+        playSound('warn');
+        showCommonModal("完成車がありません", "車を売却するには、まず工場で自動車を製造完了させてください。");
+        return;
+      }
+
+      const price = getCarExportPrice(buyerId);
+      STATE.stock--;
+      STATE.cash += price;
+
+      playSound('sell');
+      updateBasicUI();
+      updateBuyerListUI();
+    }
+
+    // 全て売却
+    function sellAllCars(buyerId) {
+      if (STATE.stock <= 0) return;
+      const count = STATE.stock;
+      const pricePerCar = getCarExportPrice(buyerId);
+      const totalEarned = pricePerCar * count;
+
+      STATE.stock = 0;
+      STATE.cash += totalEarned;
+
+      playSound('sell');
+      updateBasicUI();
+      updateBuyerListUI();
+    }
+
+    // --- 経営投資（アップグレード） ---
+    function getUpgradeCost(type) {
+      const lv = STATE.upgrades[type];
+      if (type === 'dev') {
+        return Math.round(100000 * Math.pow(1.6, lv));
+      }
+      if (type === 'dealer') {
+        return Math.round(250000 * Math.pow(1.8, lv));
+      }
+      if (type === 'engineer') {
+        // 人数が増えるほど雇用費は倍加
+        return Math.round(50000 * Math.pow(1.4, lv - 1));
+      }
+      if (type === 'truck') {
+        return Math.round(120000 * Math.pow(1.5, lv - 1));
+      }
+      if (type === 'manager') {
+        return 1000000; // 工場長は買い切り
+      }
+      if (type === 'lines') {
+        // ライン増加は最高クラスに高価
+        return Math.round(3000000 * Math.pow(2.8, lv - 1));
+      }
+      return 99999999;
+    }
+
+    function buyUpgrade(type) {
+      const cost = getUpgradeCost(type);
+      if (STATE.cash < cost) {
+        playSound('warn');
+        showCommonModal("資金不足", `アップグレードには €${cost.toLocaleString()} 必要です。`);
+        return;
+      }
+
+      STATE.cash -= cost;
+      
+      if (type === 'manager') {
+        STATE.upgrades.manager = true;
+      } else {
+        STATE.upgrades[type]++;
+      }
+
+      if (type === 'lines') {
+        initProductionLines();
+      }
+
+      playSound('upgrade');
+      updateUpgradesUI();
+      updateBasicUI();
+      checkBankruptcy();
+    }
+
+    // --- UIアップデート関数群 ---
+    function formatMoney(val) {
+      return val.toLocaleString('ja-JP', { maximumFractionDigits: 0 });
+    }
+
+    function updateBasicUI() {
+      document.getElementById('cash-val').innerText = formatMoney(STATE.cash);
+      document.getElementById('stock-count').innerText = STATE.stock;
+      document.getElementById('prod-time-status').innerText = `製造時間: ${getProductionTime().toFixed(1)}秒 / 台`;
+      
+      // 借金の警告表示
+      const existingAlert = document.getElementById('debt-alert-msg');
+      if (STATE.debt > 0) {
+        if (!existingAlert) {
+          const alertDiv = document.createElement('div');
+          alertDiv.id = 'debt-alert-msg';
+          alertDiv.className = 'debt-alert';
+          alertDiv.innerText = `⚠️ 緊急融資返済中: 残高 €${formatMoney(STATE.debt)} (毎期自動天引き)`;
+          document.querySelector('header').appendChild(alertDiv);
+        } else {
+          existingAlert.innerText = `⚠️ 緊急融資返済中: 残高 €${formatMoney(STATE.debt)} (毎期自動天引き)`;
+        }
+      } else if (existingAlert) {
+        existingAlert.remove();
+      }
+    }
+
+    function updateMaterialsUI() {
+      // 在庫数の表示
+      document.getElementById('count-motor').innerText = STATE.materials.motor;
+      document.getElementById('count-tire').innerText = STATE.materials.tire;
+      document.getElementById('count-glass').innerText = STATE.materials.glass;
+      document.getElementById('count-seat').innerText = STATE.materials.seat;
+
+      // 現在の為替レートによる調達価格の表示
+      document.getElementById('price-motor').innerText = formatMoney(getMaterialPrice('motor'));
+      document.getElementById('price-tire').innerText = formatMoney(getMaterialPrice('tire'));
+      document.getElementById('price-glass').innerText = formatMoney(getMaterialPrice('glass'));
+      document.getElementById('price-seat').innerText = formatMoney(getMaterialPrice('seat'));
+    }
+
+    function updateMarketUI() {
+      const fxStatus = document.getElementById('fx-status');
+      const rate = STATE.fxRate;
+      let statusStr = `普通 (${rate})`;
+      if (rate > 1.2) statusStr = `🇪🇺強ユーロ (${rate}) [輸入が安い]`;
+      else if (rate < 0.9) statusStr = `📉弱ユーロ (${rate}) [輸出が高く売れる]`;
+      
+      fxStatus.innerText = statusStr;
+      
+      // ついでに材料単価も更新
+      updateMaterialsUI();
+    }
+
+    function updateBuyerListUI() {
+      const container = document.getElementById('buyer-list-container');
+      container.innerHTML = "";
+
+      for (let b in BUYERS) {
+        const buyer = BUYERS[b];
+        const currentPrice = getCarExportPrice(b);
+        const rateFactor = buyerRates[b].toFixed(2);
+        const isSelected = STATE.currentBuyer === b;
+
+        // PBアート規定：イギリスボールと一般ボールのサイズ調整
+        const imgSizeStyle = (b === 'england') ? 'width: 50px; height: 63px;' : 'width: 50px; height: 50px;';
+
+        const card = document.createElement('div');
+        card.className = `buyer-card ${isSelected ? 'selected' : ''}`;
+        card.onclick = () => selectBuyer(b);
+
+        // 表情はランダムで状況に合わせて変化させる
+        let expression = "normal.png";
+        if (buyerRates[b] > 1.4) expression = "happy.png";
+        else if (buyerRates[b] < 0.8) expression = "dissatisfaction.png";
+
+        card.innerHTML = `
+          <img src="https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/${buyer.folder}/${expression}" 
+               alt="${buyer.name}" 
+               style="${imgSizeStyle}; object-fit: contain;">
+          
+          <div class="buyer-info">
+            <span class="buyer-name">${buyer.name}</span>
+            <span style="font-size:0.7rem; color:var(--text-muted);">${buyer.desc}</span>
+            <div style="display:flex; gap:6px; align-items:center; margin-top:2px;">
+              <span class="buyer-rate-badge ${buyerRates[b] < 0.9 ? 'low' : ''}">需要: x${rateFactor}</span>
+              <strong style="color:var(--gold); font-size:0.85rem;">価格: €${formatMoney(currentPrice)}</strong>
+            </div>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:4px;">
+            <button class="sell-btn" ${STATE.stock <= 0 ? 'disabled' : ''} onclick="event.stopPropagation(); sellCar('${b}')">1台輸出</button>
+            <button class="sell-btn" style="background:#8b939c;" ${STATE.stock <= 0 ? 'disabled' : ''} onclick="event.stopPropagation(); sellAllCars('${b}')">全車輸出</button>
+          </div>
+        `;
+
+        container.appendChild(card);
+      }
+    }
+
+    function updateUpgradesUI() {
+      // 開発
+      document.getElementById('lv-dev').innerText = STATE.upgrades.dev;
+      document.getElementById('cost-dev').innerText = formatMoney(getUpgradeCost('dev'));
+      // ディーラー
+      document.getElementById('lv-dealer').innerText = STATE.upgrades.dealer;
+      document.getElementById('cost-dealer').innerText = formatMoney(getUpgradeCost('dealer'));
+      // エンジニア
+      document.getElementById('lv-engineer').innerText = STATE.upgrades.engineer;
+      document.getElementById('cost-engineer').innerText = formatMoney(getUpgradeCost('engineer'));
+      // トラック
+      document.getElementById('lv-truck').innerText = STATE.upgrades.truck;
+      document.getElementById('cost-truck').innerText = formatMoney(getUpgradeCost('truck'));
+      // 工場長
+      document.getElementById('lv-manager').innerText = STATE.upgrades.manager ? "雇用中" : "未雇用";
+      document.getElementById('cost-manager').innerText = STATE.upgrades.manager ? "済" : formatMoney(getUpgradeCost('manager'));
+      document.getElementById('btn-up-manager').disabled = STATE.upgrades.manager;
+      // 生産ライン
+      document.getElementById('max-lines-display').innerText = STATE.upgrades.lines;
+      document.getElementById('cost-lines').innerText = formatMoney(getUpgradeCost('lines'));
+
+      // 財務報告
+      document.getElementById('engineer-salary-display').innerText = getEngineerSalary();
+      document.getElementById('autoclick-rate').innerText = STATE.upgrades.manager ? "毎秒 2.0 タップ" : "なし";
+      
+      const fxBonus = ((2 - STATE.fxRate - 1) * 100).toFixed(0);
+      document.getElementById('fx-bonus-rate').innerText = `${fxBonus >= 0 ? '+' : ''}${fxBonus}% (輸出ボーナス)`;
+    }
+
+    // --- ゲームの破産・ローンシステム ---
+    function checkBankruptcy() {
+      if (STATE.cash < 0) {
+        playSound('warn');
+        document.getElementById('bankruptcy-modal').style.display = 'flex';
+      }
+    }
+
+    function takeEmergencyLoan() {
+      // €5,000,000を借りる。代わりに借金が€5,000,000増え、金利分が定期的に取られる。
+      STATE.cash += 5000000;
+      STATE.debt += 5000000;
+      document.getElementById('bankruptcy-modal').style.display = 'none';
+      playSound('success');
+      showCommonModal("融資承認", "IMF/ポーランド銀行から€5,000,000の融資が実行されました。売上や為替更新のたびに金利・元金が引き落とされます。ここから立て直してください！");
+      updateBasicUI();
+    }
+
+    function declareBankruptcy() {
+      // 破産：完全初期化
+      STATE.cash = 10000000;
+      STATE.debt = 0;
+      STATE.materials = { motor: 0, tire: 0, glass: 0, seat: 0 };
+      STATE.stock = 0;
+      STATE.upgrades = { dev: 0, dealer: 0, engineer: 1, truck: 1, manager: false, lines: 1 };
+      STATE.currentBuyer = "japan";
+      STATE.fxRate = 1.0;
+
+      initProductionLines();
+      document.getElementById('bankruptcy-modal').style.display = 'none';
+      playSound('warn');
+      showCommonModal("自己破産申請", "全ての工場と特許、資産が債権者に差し押さえられました。国営自動車企業として、再び€10,000,000の初期資金から再スタートします。");
+      
+      updateBasicUI();
+      updateMaterialsUI();
+      updateUpgradesUI();
+      updateBuyerListUI();
+    }
+
+    // --- ヘルプモーダル ---
+    function showHelp(section) {
+      playSound('click');
+      let title = "";
+      let body = "";
+
+      if (section === 'factory') {
+        title = "🏭 ドイツ自動車工場へようこそ";
+        body = "中央のドイツボールをクリックすると、手動で車組立ラインを進めることができます。資材（モーターx1、タイヤx4、ガラスx6、シートx4）が倉庫にあれば、工場は自動でラインを埋めて稼働します。組立が100%になると、車が1台完成して貿易在庫に入ります。";
+      } else if (section === 'materials') {
+        title = "📦 資材の輸入と為替ルール";
+        body = "自動車の製造には4つの資材が必要です。為替レート（€ユーロの価値）は常に動いており、ユーロ高（1.2以上）のときは輸入資材が非常に安く買えます。逆にユーロ安のときは高くつきます。トラック運送会社をアップグレードすると、1回の購入量が増え、大量仕入れが可能になります。";
+      } else if (section === 'trade') {
+        title = "🌐 貿易と各国市場のニーズ";
+        body = "完成した自動車を他国のポーランドボール達に輸出してお金を稼ぎましょう。買い手国は為替や情勢に敏感です。特にユーロ安（1.0未満）のときは、海外に安く輸出できるため貿易価格が跳ね上がります！ 日本ボールは安定して高価格で買ってくれますが、他国は状況によって様々に変化します。";
+      } else if (section === 'upgrades') {
+        title = "📈 経営投資＆アップグレード";
+        body = "・開発部門：車の品質を向上させ、基本売却額を恒久的に引き上げます。<br>・ディーラー：あなたが作業していなくても、10秒ごとに「現在選んでいる国」へ自動車を自動で輸出します。<br>・エンジニア：雇うほど自動車製造速度は上昇しますが、毎秒の人件費（€50/人）がかかるため、調達資金がないとたちまち赤字になります。<br>・工場長：雇用すると毎秒2回、ドイツボールを自動タップ（生産支援）します。<br>・生産ライン：ライン（同時生産数）を拡張し大量生産します。非常に高価な投資です。";
+      }
+
+      showCommonModal(title, body);
+    }
+
+    // --- 汎用モーダル表示 ---
+    function showCommonModal(title, body) {
+      document.getElementById('modal-title').innerText = title;
+      document.getElementById('modal-body').innerHTML = body;
+      document.getElementById('common-modal').style.display = 'flex';
+    }
+
+    function closeCommonModal() {
+      document.getElementById('common-modal').style.display = 'none';
+    }
+
+    // --- セーブ＆ロードシステム ---
+    function openSaveLoadModal() {
+      playSound('click');
+      // 現在のデータをJSON文字列にしてBase64暗号化（簡易暗号コード化）
+      const dataStr = JSON.stringify(STATE);
+      const code = btoa(encodeURIComponent(dataStr));
+      document.getElementById('save-code-box').value = code;
+      document.getElementById('load-code-box').value = "";
+      document.getElementById('saveload-modal').style.display = 'flex';
+    }
+
+    function closeSaveLoadModal() {
+      document.getElementById('saveload-modal').style.display = 'none';
+    }
+
+    function loadGameFromCode() {
+      const code = document.getElementById('load-code-box').value.trim();
+      if (!code) {
+        showCommonModal("ロード失敗", "セーブコードが空欄です。");
+        return;
+      }
+
+      try {
+        const decoded = decodeURIComponent(atob(code));
+        const loadedState = JSON.parse(decoded);
+
+        // 各パラメータの復元とバリデーション
+        if (typeof loadedState.cash === 'number') STATE.cash = loadedState.cash;
+        if (typeof loadedState.debt === 'number') STATE.debt = loadedState.debt;
+        if (loadedState.materials) {
+          STATE.materials = { ...STATE.materials, ...loadedState.materials };
+        }
+        if (typeof loadedState.stock === 'number') STATE.stock = loadedState.stock;
+        if (loadedState.upgrades) {
+          STATE.upgrades = { ...STATE.upgrades, ...loadedState.upgrades };
+        }
+        if (loadedState.currentBuyer) STATE.currentBuyer = loadedState.currentBuyer;
+
+        // 再初期化処理
+        initProductionLines();
+        updateBasicUI();
+        updateMaterialsUI();
+        updateUpgradesUI();
+        updateBuyerListUI();
+        closeSaveLoadModal();
+        playSound('success');
+        showCommonModal("ロード成功", "セーブデータからドイツボールの車工場を復元しました！");
+      } catch (e) {
+        playSound('warn');
+        showCommonModal("ロード失敗", "セーブコードが正しくありません。コピーしたコードを正確に貼り付けてください。");
+      }
+    }
+
+    // --- 確認用（ダイアログの代替） ---
+    let confirmCallback = null;
+    function showConfirmModal(title, text, onConfirm) {
+      confirmCallback = onConfirm;
+      document.getElementById('modal-title').innerText = title;
+      document.getElementById('modal-body').innerHTML = `
+        <p>${text}</p>
+        <div style="margin-top:15px; display:flex; gap:10px; justify-content:flex-end;">
+          <button class="modal-btn" style="background:#e74c3c; color:#fff;" id="btn-confirm-yes">はい</button>
+          <button class="modal-btn" style="background:#999; color:#fff;" onclick="closeCommonModal()">いいえ</button>
+        </div>
+      `;
+      document.getElementById('common-modal').style.display = 'flex';
+      
+      document.getElementById('btn-confirm-yes').onclick = () => {
+        closeCommonModal();
+        if (confirmCallback) confirmCallback();
+      };
+    }
+
+
+    // --- メインループ・タイマー処理 ---
+
+    window.onload = function() {
+      // 初期ライン構築
+      initProductionLines();
+
+      // 各UIの初期読み込み
+      updateBasicUI();
+      updateMaterialsUI();
+      updateUpgradesUI();
+      updateBuyerListUI();
+
+      // 高速タイマーループ (20FPS: 50msごとに進行)
+      setInterval(() => {
+        // 資材自動調達＆生産チェック
+        checkAndStartProduction();
+
+        // アクティブな製造ラインを進行
+        // 製造時間 getProductionTime() に対して 0.05秒(50ms)の進捗 = (0.05 / time) * 100
+        const progressPerTick = (0.05 / getProductionTime()) * 100;
+        progressActiveLines(progressPerTick);
+
+        // 工場長(Manager)がいる場合、1秒に2タップに相当する進行（50msごと＝2.5%自動追加＝秒間50%＝1クリック相当）
+        if (STATE.upgrades.manager) {
+          progressActiveLines(progressPerTick * 0.1); // 微妙なアシスト効果
+        }
+      }, 50);
+
+      // 毎秒発生する処理（エンジニア給与の自動天引き、ディーラー売却）
+      let oneSecCounter = 0;
+      setInterval(() => {
+        oneSecCounter++;
+
+        // 1. 維持費（人件費）天引き
+        const salary = getEngineerSalary();
+        STATE.cash -= salary;
+
+        // 2. 借金返済（もしあれば）
+        if (STATE.debt > 0) {
+          // 毎秒、借金の金利（年利12%を秒換算した超微小額＋元本1万ユーロ）を天引き返済
+          const interestPay = Math.round(STATE.debt * (STATE.debtInterest / 365));
+          const principalPay = Math.min(STATE.debt, 5000); // 毎秒最大€5,000の返済
+          const totalPay = interestPay + principalPay;
+
+          STATE.debt -= principalPay;
+          STATE.cash -= totalPay;
+        }
+
+        // 3. 自動ディーラー売却処理
+        // ディーラーLvに応じて自動売却（Lv1なら10秒に1台、Lv2なら5秒に1台など）
+        if (STATE.upgrades.dealer > 0 && STATE.stock > 0) {
+          const sellInterval = Math.max(1, Math.round(10 / STATE.upgrades.dealer));
+          if (oneSecCounter % sellInterval === 0) {
+            sellCar(STATE.currentBuyer);
+          }
+        }
+
+        updateBasicUI();
+        checkBankruptcy();
+      }, 1000);
+
+      // 12秒ごとの為替市場の変動
+      setInterval(() => {
+        updateMarket();
+      }, 12000);
+
+      // 初回市場変動
+      updateMarket();
+    };
+  </script>
+</body>
+</html>
