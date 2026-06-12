@@ -1,0 +1,543 @@
+---
+layout: default
+title: PBlast!
+---
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>POLARIST - Polandball Block puzzle</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --bg-color: #1e1e2e; /* ダークでプレミアムな配色に変更 */
+            --grid-size: 9;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: #cdd6f4;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            touch-action: none; /* 防止 scrolling during drag */
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            padding: 12px;
+        }
+
+        /* 盤面の設定 */
+        #game-container {
+            width: 100%;
+            max-width: 440px;
+            aspect-ratio: 1 / 1;
+            background: #313244;
+            padding: 8px;
+            border-radius: 16px;
+            display: grid;
+            grid-template-columns: repeat(9, 1fr);
+            grid-template-rows: repeat(9, 1fr);
+            gap: 4px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            position: relative;
+        }
+
+        .cell {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: background-color 0.15s ease;
+        }
+
+        .cell.highlight {
+            background: rgba(255, 255, 255, 0.2);
+            box-shadow: inset 0 0 8px rgba(255, 255, 255, 0.2);
+        }
+
+        /* ピース置き場 */
+        #piece-dock {
+            width: 100%;
+            max-width: 440px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            height: 120px;
+            margin-top: 16px;
+            background: rgba(49, 50, 68, 0.5);
+            border-radius: 16px;
+            padding: 10px;
+        }
+
+        .draggable-piece {
+            display: grid;
+            cursor: grab;
+            transition: opacity 0.2s, transform 0.1s;
+            position: relative;
+            z-index: 10;
+        }
+
+        .draggable-piece:active {
+            cursor: grabbing;
+        }
+
+        /* ドラッグ中のクローン */
+        .dragging {
+            position: fixed;
+            pointer-events: none;
+            z-index: 1000;
+            opacity: 0.9;
+            transform: scale(1.1);
+            filter: drop-shadow(0 10px 15px rgba(0,0,0,0.5));
+        }
+
+        /* ポーランドボール画像スタイル */
+        .pb-image {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            user-select: none;
+            -webkit-user-drag: none;
+            pointer-events: none;
+            animation: spawn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes spawn {
+            0% { transform: scale(0); }
+            100% { transform: scale(1); }
+        }
+
+        .combo-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #f38ba8;
+            font-size: 2.5rem;
+            font-weight: 900;
+            pointer-events: none;
+            animation: popOut 1s ease-out forwards;
+            z-index: 2000;
+            text-shadow: 0 4px 10px rgba(0, 0, 0, 0.5), 0 0 2px #fff;
+            white-space: nowrap;
+        }
+
+        @keyframes popOut {
+            0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+            30% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+            100% { transform: translate(-50%, -100%) scale(1.4); opacity: 0; }
+        }
+
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+    <!-- ヘッダーエリア -->
+    <div class="flex flex-col items-center mb-4">
+        <h1 class="text-xl font-bold tracking-wider text-[#cba6f7] mb-1">POLARIST</h1>
+        <div class="flex items-center gap-2">
+            <span class="text-sm uppercase tracking-widest text-[#a6adc8]">Score</span>
+            <div id="score-board" class="text-3xl font-extrabold text-[#89b4fa] transition-all duration-300">0</div>
+        </div>
+    </div>
+
+    <!-- メインゲーム盤面 -->
+    <div id="game-container">
+        <!-- 9x9のセルはJSで生成 -->
+    </div>
+
+    <!-- ピースストックヤード -->
+    <div id="piece-dock">
+        <!-- ピースはJSで生成 -->
+    </div>
+
+    <!-- ゲームオーバー画面 -->
+    <div id="game-over" class="hidden fixed inset-0 bg-black/85 flex flex-col items-center justify-center z-[3000] text-white p-6 backdrop-blur-sm animate-fade-in">
+        <div class="bg-[#1e1e2e] border border-[#f38ba8]/30 rounded-2xl p-8 max-w-xs w-full text-center shadow-2xl">
+            <h1 class="text-3xl font-black text-[#f38ba8] mb-2 tracking-wider">GAME OVER</h1>
+            <p class="text-sm text-[#a6adc8] mb-6">ピースを置けなくなりました</p>
+            <div class="bg-[#313244] py-4 px-6 rounded-xl mb-8">
+                <span class="text-xs uppercase text-[#89b4fa] block mb-1 font-bold">Final Score</span>
+                <span id="final-score" class="text-3xl font-black text-[#cdd6f4]">0</span>
+            </div>
+            <button onclick="resetGame()" class="w-full py-3 bg-[#a6e3a1] hover:bg-[#94e2d5] text-[#11111b] font-bold text-lg rounded-xl transition duration-200 active:scale-95 shadow-md shadow-[#a6e3a1]/20">RETRY</button>
+        </div>
+    </div>
+
+    <script>
+        const GRID_SIZE = 9;
+        const container = document.getElementById('game-container');
+        const dock = document.getElementById('piece-dock');
+        const scoreBoard = document.getElementById('score-board');
+        const gameOverScreen = document.getElementById('game-over');
+        const finalScoreText = document.getElementById('final-score');
+
+        let grid = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(null));
+        let score = 0;
+        let activePiece = null;
+        let activePieceEl = null;
+        let currentPieceData = [];
+
+        // 使用可能な国名リスト
+        const countries = [
+            { id: 'germany', name: 'germany' },
+            { id: 'japan', name: 'japan' },
+            { id: 'china', name: 'china' },
+            { id: 'italy', name: 'italy' },
+            { id: 'sierraleone', name: 'sierraleone' },
+            { id: 'russia', name: 'russia' },
+            { id: 'france', name: 'france' },
+            { id: 'poland', name: 'poland' }
+        ];
+
+        // 使用可能な表情リスト
+        const expressions = [
+            'anger.png',
+            'dissatisfaction.png',
+            'happy.png',
+            'itome.png',
+            'lol.png',
+            'normal.png',
+            'plot.png',
+            'smile.png',
+            'surprise.png'
+        ];
+
+        // 形状データ (y, x)
+        const shapes = [
+            [[0,0]], // 1x1
+            [[0,0], [0,1]], // 1x2
+            [[0,0], [1,0]], // 2x1
+            [[0,0], [0,1], [0,2]], // 1x3
+            [[0,0], [1,0], [2,0]], // 3x1
+            [[0,0], [0,1], [1,0], [1,1]], // 2x2
+            [[0,0], [0,1], [0,2], [0,3], [0,4]], // 1x5
+            [[0,0], [1,0], [2,0], [3,0], [4,0]], // 5x1
+            [[0,0], [0,1], [0,2], [1,0], [2,0]], // L
+            [[0,0], [0,1], [0,2], [1,2], [2,2]], // J
+            [[0,0], [0,1], [1,1], [1,2]], // Z
+            [[0,1], [0,2], [1,0], [1,1]], // S
+            [[0,1], [1,0], [1,1], [1,2]], // T
+            [[0,0], [0,1], [0,2], [1,0], [1,1], [1,2], [2,0], [2,1], [2,2]], // 3x3
+        ];
+
+        // 各ボールの画像URLを作成する関数
+        function getBallImageUrl(countryName, expression) {
+            return `https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/${countryName}/${expression}`;
+        }
+
+        // 指定した国のボールの画像ロードエラー時にフォールバック処理を行う
+        function createBallImg(country) {
+            const img = document.createElement('img');
+            img.className = 'pb-image';
+            
+            // ランダムに表情を選ぶ
+            const randomExpr = expressions[Math.floor(Math.random() * expressions.length)];
+            const primaryUrl = getBallImageUrl(country.name, randomExpr);
+            
+            img.src = primaryUrl;
+            
+            // もし何らかのエラー（ネットワーク、404等）があれば、必ず存在するはずの 'normal.png' に切り替える
+            img.onerror = () => {
+                if (img.src !== getBallImageUrl(country.name, 'normal.png')) {
+                    img.src = getBallImageUrl(country.name, 'normal.png');
+                }
+            };
+            return img;
+        }
+
+        function initGrid() {
+            container.innerHTML = '';
+            for (let y = 0; y < GRID_SIZE; y++) {
+                for (let x = 0; x < GRID_SIZE; x++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.dataset.y = y;
+                    cell.dataset.x = x;
+                    container.appendChild(cell);
+                }
+            }
+        }
+
+        function generateNewPieces() {
+            dock.innerHTML = '';
+            currentPieceData = [];
+            for (let i = 0; i < 3; i++) {
+                const shape = shapes[Math.floor(Math.random() * shapes.length)];
+                const country = countries[Math.floor(Math.random() * countries.length)];
+                const pieceObj = { shape, country, id: i };
+                currentPieceData.push(pieceObj);
+                
+                const pieceEl = document.createElement('div');
+                pieceEl.className = 'draggable-piece';
+                pieceEl.dataset.index = i;
+                
+                // 形状に合わせてグリッド作成
+                const maxY = Math.max(...shape.map(s => s[0]));
+                const maxX = Math.max(...shape.map(s => s[1]));
+                pieceEl.style.gridTemplateRows = `repeat(${maxY + 1}, 1fr)`;
+                pieceEl.style.gridTemplateColumns = `repeat(${maxX + 1}, 1fr)`;
+                
+                // ドック用プレビューサイズ調整（はみ出し防止）
+                const maxDim = Math.max(maxY + 1, maxX + 1);
+                const scaleUnit = maxDim > 3 ? 20 : 25; // 大きいブロックは小さめに表示してはみ出さないようにする
+                pieceEl.style.width = `${(maxX + 1) * scaleUnit}px`;
+                pieceEl.style.height = `${(maxY + 1) * scaleUnit}px`;
+
+                // 各セルにボールを配置
+                shape.forEach(([y, x]) => {
+                    const block = document.createElement('div');
+                    block.style.gridRowStart = y + 1;
+                    block.style.gridColumnStart = x + 1;
+                    block.style.width = '100%';
+                    block.style.height = '100%';
+                    block.style.display = 'flex';
+                    block.style.justifyContent = 'center';
+                    block.style.alignItems = 'center';
+                    
+                    block.appendChild(createBallImg(country));
+                    pieceEl.appendChild(block);
+                });
+
+                pieceEl.addEventListener('mousedown', startDrag);
+                pieceEl.addEventListener('touchstart', startDrag, { passive: false });
+                dock.appendChild(pieceEl);
+            }
+        }
+
+        function startDrag(e) {
+            if (e.type === 'touchstart') e.preventDefault();
+            const touch = e.type === 'touchstart' ? e.touches[0] : e;
+            const pieceIdx = this.dataset.index;
+            const pieceData = currentPieceData[pieceIdx];
+            
+            activePiece = pieceData;
+            activePieceEl = this.cloneNode(true);
+            activePieceEl.classList.add('dragging');
+            activePieceEl.dataset.originalIndex = pieceIdx;
+            
+            // ドラッグ中のサイズを実際のグリッドセルサイズに合わせる
+            const cellSize = document.querySelector('.cell').offsetWidth;
+            const maxY = Math.max(...activePiece.shape.map(s => s[0]));
+            const maxX = Math.max(...activePiece.shape.map(s => s[1]));
+            activePieceEl.style.width = `${(maxX + 1) * cellSize}px`;
+            activePieceEl.style.height = `${(maxY + 1) * cellSize}px`;
+
+            document.body.appendChild(activePieceEl);
+            updateDragPosition(touch.clientX, touch.clientY);
+
+            window.addEventListener('mousemove', drag);
+            window.addEventListener('touchmove', drag, { passive: false });
+            window.addEventListener('mouseup', endDrag);
+            window.addEventListener('touchend', endDrag);
+            
+            this.style.opacity = '0.3';
+            this.style.pointerEvents = 'none';
+        }
+
+        function drag(e) {
+            const touch = e.type === 'touchmove' ? e.touches[0] : e;
+            updateDragPosition(touch.clientX, touch.clientY);
+            highlightPossibleDrop(touch.clientX, touch.clientY);
+        }
+
+        function updateDragPosition(x, y) {
+            // モバイル操作時にピースが指の下に隠れるのを防ぐため、少し上にオフセット
+            activePieceEl.style.left = `${x - activePieceEl.offsetWidth / 2}px`;
+            activePieceEl.style.top = `${y - activePieceEl.offsetHeight - 25}px`;
+        }
+
+        function highlightPossibleDrop(clientX, clientY) {
+            clearHighlights();
+            const dropTarget = getDropTarget(clientX, clientY);
+            if (dropTarget) {
+                const { y, x } = dropTarget;
+                if (canPlace(activePiece.shape, y, x)) {
+                    activePiece.shape.forEach(([dy, dx]) => {
+                        const cell = document.querySelector(`.cell[data-y="${y + dy}"][data-x="${x + dx}"]`);
+                        if (cell) cell.classList.add('highlight');
+                    });
+                }
+            }
+        }
+
+        function clearHighlights() {
+            document.querySelectorAll('.cell.highlight').forEach(c => c.classList.remove('highlight'));
+        }
+
+        function getDropTarget(clientX, clientY) {
+            const rect = activePieceEl.getBoundingClientRect();
+            // ドラッグ中ピースの左端・上端位置に最も近いグリッドセルを探す
+            const cells = document.elementsFromPoint(rect.left + 5, rect.top + 5);
+            const cell = cells.find(el => el.classList.contains('cell'));
+            if (cell) {
+                return { y: parseInt(cell.dataset.y), x: parseInt(cell.dataset.x) };
+            }
+            return null;
+        }
+
+        function canPlace(shape, startY, startX) {
+            return shape.every(([dy, dx]) => {
+                const ny = startY + dy;
+                const nx = startX + dx;
+                return ny >= 0 && ny < GRID_SIZE && nx >= 0 && nx < GRID_SIZE && grid[ny][nx] === null;
+            });
+        }
+
+        function endDrag(e) {
+            window.removeEventListener('mousemove', drag);
+            window.removeEventListener('touchmove', drag);
+            window.removeEventListener('mouseup', endDrag);
+            window.removeEventListener('touchend', endDrag);
+
+            const touch = e.type === 'touchend' ? e.changedTouches[0] : e;
+            const dropTarget = getDropTarget(touch.clientX, touch.clientY);
+            const originalPiece = document.querySelector(`.draggable-piece[data-index="${activePieceEl.dataset.originalIndex}"]`);
+
+            if (dropTarget && canPlace(activePiece.shape, dropTarget.y, dropTarget.x)) {
+                placePiece(activePiece, dropTarget.y, dropTarget.x);
+                originalPiece.remove();
+                checkLines();
+                
+                if (dock.children.length === 0) {
+                    generateNewPieces();
+                }
+                
+                checkGameOver();
+            } else {
+                originalPiece.style.opacity = '1';
+                originalPiece.style.pointerEvents = 'auto';
+            }
+
+            activePieceEl.remove();
+            activePiece = null;
+            activePieceEl = null;
+            clearHighlights();
+        }
+
+        function placePiece(piece, startY, startX) {
+            piece.shape.forEach(([dy, dx]) => {
+                const y = startY + dy;
+                const x = startX + dx;
+                grid[y][x] = piece.country.id;
+                const cell = document.querySelector(`.cell[data-y="${y}"][data-x="${x}"]`);
+                cell.innerHTML = '';
+                cell.appendChild(createBallImg(piece.country));
+            });
+            score += piece.shape.length;
+            updateScore();
+        }
+
+        function checkLines() {
+            let linesY = [];
+            let linesX = [];
+
+            // 横列の検知
+            for (let y = 0; y < GRID_SIZE; y++) {
+                if (grid[y].every(cell => cell !== null)) linesY.push(y);
+            }
+            // 縦列の検知
+            for (let x = 0; x < GRID_SIZE; x++) {
+                let full = true;
+                for (let y = 0; y < GRID_SIZE; y++) {
+                    if (grid[y][x] === null) { full = false; break; }
+                }
+                if (full) linesX.push(x);
+            }
+
+            if (linesY.length > 0 || linesX.length > 0) {
+                const totalLines = linesY.length + linesX.length;
+                score += totalLines * 100 * totalLines; // コンボボーナス
+                
+                linesY.forEach(y => {
+                    for (let x = 0; x < GRID_SIZE; x++) grid[y][x] = null;
+                });
+                linesX.forEach(x => {
+                    for (let y = 0; y < GRID_SIZE; y++) grid[y][x] = null;
+                });
+
+                // 少しの時間差を持たせて消去エフェクトを強調
+                setTimeout(() => {
+                    updateGridUI();
+                }, 120);
+
+                if (totalLines >= 2) showCombo(totalLines);
+            }
+            updateScore();
+        }
+
+        function updateGridUI() {
+            for (let y = 0; y < GRID_SIZE; y++) {
+                for (let x = 0; x < GRID_SIZE; x++) {
+                    const cell = document.querySelector(`.cell[data-y="${y}"][data-x="${x}"]`);
+                    if (grid[y][x] === null) {
+                        cell.innerHTML = '';
+                    }
+                }
+            }
+        }
+
+        function showCombo(count) {
+            const el = document.createElement('div');
+            el.className = 'combo-text';
+            el.innerText = `${count} LINE COMBO!`;
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 1000);
+        }
+
+        function updateScore() {
+            scoreBoard.innerText = score;
+            scoreBoard.classList.add('scale-110', 'text-[#a6e3a1]');
+            setTimeout(() => {
+                scoreBoard.classList.remove('scale-110', 'text-[#a6e3a1]');
+            }, 200);
+        }
+
+        function checkGameOver() {
+            const remainingPieces = Array.from(dock.children).map(el => {
+                return currentPieceData[el.dataset.index];
+            });
+
+            const canPlaceAny = remainingPieces.some(piece => {
+                for (let y = 0; y < GRID_SIZE; y++) {
+                    for (let x = 0; x < GRID_SIZE; x++) {
+                        if (canPlace(piece.shape, y, x)) return true;
+                    }
+                }
+                return false;
+            });
+
+            if (!canPlaceAny && remainingPieces.length > 0) {
+                setTimeout(() => {
+                    gameOverScreen.classList.remove('hidden');
+                    finalScoreText.innerText = score;
+                }, 600);
+            }
+        }
+
+        function resetGame() {
+            score = 0;
+            updateScore();
+            grid = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(null));
+            initGrid();
+            generateNewPieces();
+            gameOverScreen.classList.add('hidden');
+        }
+
+        // 初期化
+        window.onload = () => {
+            initGrid();
+            generateNewPieces();
+        };
+    </script>
+</body>
+</html>
