@@ -1,0 +1,716 @@
+---
+layout: default
+title: タングルのWebZip
+---
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Kompress - 圧縮&解凍</title>
+
+    <!-- Google Fonts & Material Symbols -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+
+    <!-- JSZip for handling zip files -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "@material/web/": "https://esm.run/@material/web/"
+        }
+    }
+    </script>
+
+    <style>
+        :root {
+            /* Light Mode Tokens - Google Blue */
+            --md-sys-color-primary: #0b57d0;
+            --md-sys-color-on-primary: #ffffff;
+            --md-sys-color-primary-container: #d3e3fd;
+            --md-sys-color-on-primary-container: #041e49;
+            --md-sys-color-secondary: #006391;
+            --md-sys-color-on-secondary: #ffffff;
+            --md-sys-color-secondary-container: #c2e7ff;
+            --md-sys-color-on-secondary-container: #001d35;
+            --md-sys-color-tertiary: #0b57d0;
+            --md-sys-color-on-tertiary: #ffffff;
+            --md-sys-color-background: #f8f9fa;
+            --md-sys-color-on-background: #1f1f1f;
+            --md-sys-color-surface: #ffffff;
+            --md-sys-color-on-surface: #1f1f1f;
+            --md-sys-color-surface-variant: #e1e3e1;
+            --md-sys-color-on-surface-variant: #444746;
+            --md-sys-color-outline: #747775;
+            --md-sys-color-outline-variant: #c4c7c5;
+            --md-sys-color-error: #b3261e;
+            --md-sys-color-on-error: #ffffff;
+            
+            --md-ref-typeface-brand: 'Google Sans', sans-serif;
+            --md-ref-typeface-plain: 'Roboto', sans-serif;
+            --transition-duration: 0.3s;
+        }
+
+        [data-theme="dark"] {
+            --md-sys-color-primary: #a8c7fa;
+            --md-sys-color-on-primary: #062e6f;
+            --md-sys-color-primary-container: #0842a0;
+            --md-sys-color-on-primary-container: #d3e3fd;
+            --md-sys-color-secondary: #7fcfff;
+            --md-sys-color-on-secondary: #00334d;
+            --md-sys-color-secondary-container: #004a6e;
+            --md-sys-color-on-secondary-container: #c2e7ff;
+            --md-sys-color-background: #1b1b1b;
+            --md-sys-color-on-background: #e3e3e3;
+            --md-sys-color-surface: #1b1b1b;
+            --md-sys-color-on-surface: #e3e3e3;
+            --md-sys-color-surface-variant: #444746;
+            --md-sys-color-on-surface-variant: #c4c7c5;
+            --md-sys-color-outline: #8e918f;
+            --md-sys-color-outline-variant: #444746;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: var(--md-ref-typeface-plain);
+            background-color: var(--md-sys-color-background);
+            color: var(--md-sys-color-on-background);
+            transition: background-color var(--transition-duration), color var(--transition-duration), margin-left 0.3s;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        header {
+            background-color: var(--md-sys-color-surface);
+            color: var(--md-sys-color-on-surface);
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        header h1 {
+            margin: 0;
+            font-family: var(--md-ref-typeface-brand);
+            font-size: 22px;
+            font-weight: 400;
+        }
+
+        main {
+            flex: 1;
+            padding: 16px;
+            max-width: 900px;
+            margin: 0 auto;
+            width: 100%;
+            box-sizing: border-box;
+            padding-bottom: 120px;
+        }
+
+        .view-section {
+            display: none;
+            animation: fadeScale 0.25s cubic-bezier(0.2, 0, 0, 1) forwards;
+        }
+        .view-section.active {
+            display: block;
+        }
+
+        @keyframes fadeScale {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+
+.center-container {
+  display: flex;
+  justify-content: center; /* 水平方向の中央揃え */
+  align-items: center;     /* 垂直方向の中央揃え（必要に応じて） */
+}
+
+        /* --- File Explorer UI --- */
+        .explorer-container {
+            background-color: var(--md-sys-color-surface);
+            border-radius: 28px;
+            border: 1px solid var(--md-sys-color-outline-variant);
+            overflow: hidden;
+        }
+
+        .breadcrumb {
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background-color: var(--md-sys-color-surface-variant);
+            font-family: var(--md-ref-typeface-brand);
+            overflow-x: auto;
+        }
+
+        .breadcrumb-item {
+            cursor: pointer;
+            color: var(--md-sys-color-primary);
+            white-space: nowrap;
+        }
+
+        .breadcrumb-item:hover { text-decoration: underline; }
+        .breadcrumb-item:last-child { color: var(--md-sys-color-on-surface); cursor: default; }
+        .breadcrumb-item:last-child:hover { text-decoration: none; }
+
+        .explorer-toolbar {
+            padding: 8px 16px;
+            display: flex;
+            gap: 8px;
+            border-bottom: 1px solid var(--md-sys-color-outline-variant);
+            flex-wrap: wrap;
+        }
+
+        .file-list {
+            min-height: 300px;
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 48px;
+            color: var(--md-sys-color-on-surface-variant);
+        }
+
+        /* --- Custom Nav --- */
+        .custom-nav {
+            position: fixed;
+            background-color: var(--md-sys-color-surface);
+            display: flex;
+            align-items: center;
+            z-index: 100;
+            transition: all 0.3s ease;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 80px;
+            justify-content: space-evenly;
+            padding-bottom: env(safe-area-inset-bottom);
+            box-shadow: 0 -1px 3px 0 rgba(0,0,0,0.1);
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+            height: 100%;
+            cursor: pointer;
+            color: var(--md-sys-color-on-surface-variant);
+            user-select: none;
+        }
+
+        .nav-icon-container {
+            width: 64px;
+            height: 32px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 16px;
+            margin-bottom: 4px;
+            transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
+        }
+
+        .nav-item.active .nav-icon-container {
+            background-color: var(--md-sys-color-secondary-container);
+            color: var(--md-sys-color-on-secondary-container);
+        }
+
+        .nav-item.active .material-symbols-outlined { font-variation-settings: 'FILL' 1; }
+        .nav-label { font-size: 12px; font-weight: 500; }
+
+        @media (min-width: 600px) {
+            body { margin-left: 80px; }
+            .custom-nav {
+                top: 0; bottom: 0; left: 0; right: auto;
+                width: 80px; height: 100%; flex-direction: column;
+                justify-content: flex-start; padding-top: 32px;
+            }
+            .nav-item { flex: none; height: 72px; width: 100%; margin-bottom: 12px; }
+        }
+
+        /* FAB */
+        .fab-container {
+            position: fixed;
+            bottom: 100px;
+            right: 24px;
+            z-index: 6;
+        }
+        @media (min-width: 600px) { .fab-container { bottom: 32px; right: 32px; } }
+
+        /* Misc */
+        .hidden-input { display: none; }
+        .drop-zone { border: 2px dashed var(--md-sys-color-outline); border-radius: 16px; margin-top: 16px; padding: 20px; text-align: center; cursor: pointer; transition: background 0.2s; }
+        .drop-zone:hover { background: var(--md-sys-color-secondary-container); opacity: 0.8; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div style="display:flex; align-items:center; gap:12px;">
+            <md-icon-button><span class="material-symbols-outlined">archive</span></md-icon-button>
+            <h1>Kompress</h1>
+        </div>
+        <div style="display:flex; align-items:center;">
+            <md-icon-button onclick="window.toggleDarkMode()">
+                <span class="material-symbols-outlined" id="theme-icon">dark_mode</span>
+            </md-icon-button>
+            <md-icon-button id="usage-anchor"><span class="material-symbols-outlined">help</span></md-icon-button>
+            <md-menu anchor="usage-anchor" id="usage-menu">
+                <md-menu-item onclick="window.showAbout()"><div slot="headline">アプリについて</div></md-menu-item>
+            </md-menu>
+        </div>
+    </header>
+
+    <main>
+        <!-- EXPLORER VIEW -->
+        <section id="view-explorer" class="view-section active">
+            <div class="explorer-container">
+                <div class="breadcrumb" id="breadcrumb-list">
+                    <!-- Dynamic breadcrumbs -->
+                </div>
+
+                <div class="explorer-toolbar">
+                    <md-filled-button onclick="document.getElementById('file-upload').click()">
+                        <md-icon slot="icon"><span class="material-symbols-outlined">upload_file</span></md-icon>
+                        アップロード
+                    </md-filled-button>
+                    <md-outlined-button onclick="window.promptNewFolder()">
+                        <md-icon slot="icon"><span class="material-symbols-outlined">create_new_folder</span></md-icon>
+                        フォルダ作成
+                    </md-outlined-button>
+                    <div style="flex:1"></div>
+                    <md-filled-tonal-button id="btn-compress" onclick="window.compressCurrentFolder()">
+                        <md-icon slot="icon"><span class="material-symbols-outlined">compress</span></md-icon>
+                        この階層をZIP
+                    </md-filled-tonal-button>
+                </div>
+
+                <div class="file-list" id="file-list-items">
+                    <!-- Files will be rendered here -->
+                </div>
+            </div>
+<div class="center-container">
+<img src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/ltangle/Pickel.png" alt="ライフキャンドル">
+</div>
+            <p style="text-align:center; font-size:0.9rem; color:var(--md-sys-color-on-surface-variant);" id="status-text">
+                ファイル管理を開始しましょう
+            </p>
+        </section>
+
+        <!-- ZIP TOOLS VIEW -->
+        <section id="view-tools" class="view-section">
+            <div style="background-color: var(--md-sys-color-surface); border-radius: 28px; padding: 24px; border: 1px solid var(--md-sys-color-outline-variant);">
+                <h2 style="font-family: var(--md-ref-typeface-brand); margin-top:0;">ZIPクイック解凍</h2>
+                <p>既存のZIPファイルを読み込み、仮想ファイルシステムに展開します。</p>
+                <div class="drop-zone" onclick="document.getElementById('zip-upload').click()">
+                    <span class="material-symbols-outlined" style="font-size:48px;">unarchive</span>
+                    <p>ZIPファイルをここにドロップ または クリックして選択</p>
+                </div>
+                <input type="file" id="zip-upload" class="hidden-input" accept=".zip" onchange="window.handleZipUpload(event)">
+            </div>
+
+            <div style="margin-top:24px; background-color: var(--md-sys-color-surface); border-radius: 28px; padding: 24px; border: 1px solid var(--md-sys-color-outline-variant);">
+                <h2 style="font-family: var(--md-ref-typeface-brand); margin-top:0;">現在のシステム統計</h2>
+                <md-list id="stats-list">
+                    <!-- Dynamic stats -->
+                </md-list>
+            </div>
+        </section>
+    </main>
+
+    <!-- Hidden Input -->
+    <input type="file" id="file-upload" class="hidden-input" multiple onchange="window.handleFileUpload(event)">
+
+    <!-- Navigation -->
+    <nav class="custom-nav">
+        <div class="nav-item active" id="nav-explorer" onclick="window.switchTab('explorer')">
+            <div class="nav-icon-container"><span class="material-symbols-outlined">folder</span></div>
+            <span class="nav-label">Explorer</span>
+        </div>
+        <div class="nav-item" id="nav-tools" onclick="window.switchTab('tools')">
+            <div class="nav-icon-container"><span class="material-symbols-outlined">architecture</span></div>
+            <span class="nav-label">Archive</span>
+        </div>
+    </nav>
+
+    <!-- Dialogs -->
+    <md-dialog id="name-dialog">
+        <div slot="headline" id="name-dialog-title">フォルダ名を入力</div>
+        <div slot="content">
+            <md-outlined-text-field id="name-input" label="Name" autofocus style="width:100%"></md-outlined-text-field>
+        </div>
+        <div slot="actions">
+            <md-text-button onclick="document.getElementById('name-dialog').close()">キャンセル</md-text-button>
+            <md-filled-button id="name-dialog-ok">作成</md-filled-button>
+        </div>
+    </md-dialog>
+
+    <md-dialog id="about-dialog">
+        <div slot="headline">Kompress について</div>
+        <div slot="content">
+            <p>ブラウザ上で完結する、Material 3ベースのセキュアな圧縮・解凍ツールです。</p>
+            <p>サーバーにファイルを送信することなく、クライアントサイドでZIP処理を行います。</p>
+        </div>
+        <div slot="actions">
+            <md-text-button onclick="document.getElementById('about-dialog').close()">了解</md-text-button>
+        </div>
+    </md-dialog>
+
+    <script type="module">
+        import '@material/web/all.js';
+
+        // --- State Management ---
+        const fs = {
+            name: "root",
+            type: "dir",
+            children: []
+        };
+        let currentPath = []; // Array of directory objects
+
+        const getDirectoryByPath = (path) => {
+            let current = fs;
+            for (const segment of path) {
+                const found = current.children.find(child => child.name === segment && child.type === "dir");
+                if (found) current = found;
+                else return null;
+            }
+            return current;
+        };
+
+        // --- UI Rendering ---
+        window.renderExplorer = function() {
+            const listEl = document.getElementById('file-list-items');
+            const breadEl = document.getElementById('breadcrumb-list');
+            const dir = getDirectoryByPath(currentPath);
+
+            // Breadcrumbs
+            breadEl.innerHTML = `<span class="breadcrumb-item" onclick="window.navigatePath([])">Home</span>`;
+            let tempPath = [];
+            currentPath.forEach((segment, i) => {
+                tempPath.push(segment);
+                const p = [...tempPath];
+                breadEl.innerHTML += `<span class="material-symbols-outlined">chevron_right</span>`;
+                breadEl.innerHTML += `<span class="breadcrumb-item" onclick="window.navigatePath(${JSON.stringify(p)})">${segment}</span>`;
+            });
+
+            // List
+            listEl.innerHTML = '';
+            if (dir.children.length === 0) {
+                listEl.innerHTML = `
+                    <div class="empty-state">
+                        <span class="material-symbols-outlined" style="font-size:64px;">folder_open</span>
+                        <p>このフォルダは空です</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Sort: Dirs first, then files
+            const sorted = [...dir.children].sort((a, b) => {
+                if (a.type === b.type) return a.name.localeCompare(b.name);
+                return a.type === "dir" ? -1 : 1;
+            });
+
+            const listComp = document.createElement('md-list');
+            sorted.forEach(item => {
+                const listItem = document.createElement('md-list-item');
+                listItem.type = "button";
+                
+                const icon = document.createElement('md-icon');
+                icon.slot = "start";
+                const iconSpan = document.createElement('span');
+                iconSpan.className = "material-symbols-outlined";
+                iconSpan.textContent = item.type === "dir" ? "folder" : "description";
+                icon.appendChild(iconSpan);
+                listItem.appendChild(icon);
+
+                const headline = document.createElement('div');
+                headline.slot = "headline";
+                headline.textContent = item.name;
+                listItem.appendChild(headline);
+
+                if (item.type === "file") {
+                    const support = document.createElement('div');
+                    support.slot = "supporting-text";
+                    support.textContent = `${(item.size / 1024).toFixed(1)} KB`;
+                    listItem.appendChild(support);
+
+                    const dlBtn = document.createElement('md-icon-button');
+                    dlBtn.slot = "end";
+                    dlBtn.innerHTML = `<span class="material-symbols-outlined">download</span>`;
+                    dlBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        window.downloadFile(item);
+                    };
+                    listItem.appendChild(dlBtn);
+                } else {
+                    const nextIcon = document.createElement('md-icon');
+                    nextIcon.slot = "end";
+                    nextIcon.innerHTML = `<span class="material-symbols-outlined">chevron_right</span>`;
+                    listItem.appendChild(nextIcon);
+                    
+                    listItem.onclick = () => {
+                        currentPath.push(item.name);
+                        window.renderExplorer();
+                    };
+                }
+
+                // Delete Button
+                const delBtn = document.createElement('md-icon-button');
+                delBtn.slot = "end";
+                delBtn.innerHTML = `<span class="material-symbols-outlined">delete</span>`;
+                delBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    window.deleteItem(item.name);
+                };
+                listItem.appendChild(delBtn);
+
+                listComp.appendChild(listItem);
+                if (item !== sorted[sorted.length - 1]) {
+                    listComp.appendChild(document.createElement('md-divider'));
+                }
+            });
+            listEl.appendChild(listComp);
+            window.updateStats();
+        };
+
+        // --- Actions ---
+        window.navigatePath = (path) => {
+            currentPath = path;
+            window.renderExplorer();
+        };
+
+        window.promptNewFolder = () => {
+            const dialog = document.getElementById('name-dialog');
+            const input = document.getElementById('name-input');
+            const okBtn = document.getElementById('name-dialog-ok');
+            document.getElementById('name-dialog-title').textContent = "新しいフォルダ";
+            input.value = "新規フォルダ";
+            
+            okBtn.onclick = () => {
+                const name = input.value.trim();
+                if (name) {
+                    const dir = getDirectoryByPath(currentPath);
+                    if (!dir.children.some(c => c.name === name)) {
+                        dir.children.push({ name, type: "dir", children: [] });
+                        window.renderExplorer();
+                        window.setBallStatus('happy', 'フォルダを作成しました！');
+                    }
+                }
+                dialog.close();
+            };
+            dialog.show();
+        };
+
+        window.handleFileUpload = (e) => {
+            const files = Array.from(e.target.files);
+            const dir = getDirectoryByPath(currentPath);
+            
+            files.forEach(file => {
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    if (!dir.children.some(c => c.name === file.name)) {
+                        dir.children.push({
+                            name: file.name,
+                            type: "file",
+                            size: file.size,
+                            content: ev.target.result,
+                            mime: file.type
+                        });
+                        window.renderExplorer();
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            });
+            window.setBallStatus('happy', `${files.length}個のファイルを読込中...`);
+        };
+
+        window.downloadFile = (item) => {
+            const blob = new Blob([item.content], { type: item.mime });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = item.name;
+            a.click();
+            URL.revokeObjectURL(url);
+            window.setBallStatus('happy', 'ダウンロードを開始しました');
+        };
+
+        window.deleteItem = (name) => {
+            const dir = getDirectoryByPath(currentPath);
+            dir.children = dir.children.filter(c => c.name !== name);
+            window.renderExplorer();
+            window.setBallStatus('angry', 'アイテムを削除しました');
+        };
+
+        // --- ZIP Logic ---
+        window.compressCurrentFolder = async () => {
+            const dir = getDirectoryByPath(currentPath);
+            if (dir.children.length === 0) return;
+
+            window.setBallStatus('happy', '圧縮中...');
+            const zip = new JSZip();
+            
+            const addToZip = (zipObj, folder) => {
+                folder.children.forEach(item => {
+                    if (item.type === "file") {
+                        zipObj.file(item.name, item.content);
+                    } else {
+                        const sub = zipObj.folder(item.name);
+                        addToZip(sub, item);
+                    }
+                });
+            };
+
+            addToZip(zip, dir);
+            const content = await zip.generateAsync({ type: "blob" });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(content);
+            a.download = (currentPath[currentPath.length - 1] || "root") + ".zip";
+            a.click();
+            window.setBallStatus('happy', 'ZIPファイルを出力しました！');
+        };
+
+        window.handleZipUpload = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            window.setBallStatus('happy', 'ZIPを解凍中...');
+            const zip = await JSZip.loadAsync(file);
+            const dir = getDirectoryByPath(currentPath);
+
+            // Process Zip entries
+            for (const [path, entry] of Object.entries(zip.files)) {
+                if (entry.dir) {
+                    // Create folders
+                    const segments = path.split('/').filter(s => s);
+                    let current = dir;
+                    segments.forEach(seg => {
+                        let found = current.children.find(c => c.name === seg && c.type === "dir");
+                        if (!found) {
+                            found = { name: seg, type: "dir", children: [] };
+                            current.children.push(found);
+                        }
+                        current = found;
+                    });
+                } else {
+                    // Create files
+                    const segments = path.split('/');
+                    const fileName = segments.pop();
+                    let current = dir;
+                    segments.filter(s => s).forEach(seg => {
+                        let found = current.children.find(c => c.name === seg && c.type === "dir");
+                        if (!found) {
+                            found = { name: seg, type: "dir", children: [] };
+                            current.children.push(found);
+                        }
+                        current = found;
+                    });
+                    
+                    const content = await entry.async("arraybuffer");
+                    if (!current.children.some(c => c.name === fileName)) {
+                        current.children.push({
+                            name: fileName,
+                            type: "file",
+                            size: content.byteLength,
+                            content: content,
+                            mime: "application/octet-stream"
+                        });
+                    }
+                }
+            }
+            window.renderExplorer();
+            window.setBallStatus('happy', '解凍が完了しました！');
+        };
+
+        // --- Theme & Navigation ---
+        let isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        window.toggleDarkMode = function() {
+            isDarkMode = !isDarkMode;
+            document.body.setAttribute('data-theme', isDarkMode ? 'dark' : 'light');
+            const icon = document.getElementById('theme-icon');
+            if(icon) icon.textContent = isDarkMode ? 'light_mode' : 'dark_mode';
+        };
+        if(isDarkMode) document.body.setAttribute('data-theme', 'dark');
+
+        window.switchTab = function(tabId) {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            document.getElementById('view-' + tabId).classList.add('active');
+            document.getElementById('nav-' + tabId).classList.add('active');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+
+        window.showAbout = () => document.getElementById('about-dialog').show();
+
+        // --- Visual Polish ---
+        window.setBallStatus = (mood, text) => {
+            const eyeL = document.getElementById('eye-l');
+            const eyeR = document.getElementById('eye-r');
+            const statusText = document.getElementById('status-text');
+            
+            eyeL.className = 'pb-eye';
+            eyeR.className = 'pb-eye';
+            if (mood === 'happy') {
+                eyeL.classList.add('happy');
+                eyeR.classList.add('happy');
+            } else if (mood === 'angry') {
+                eyeL.classList.add('angry');
+                eyeR.classList.add('angry');
+            }
+            statusText.textContent = text;
+
+            // Reset after 3 seconds
+            setTimeout(() => {
+                eyeL.className = 'pb-eye';
+                eyeR.className = 'pb-eye';
+            }, 3000);
+        };
+
+        window.updateStats = () => {
+            const list = document.getElementById('stats-list');
+            const countFiles = (folder) => {
+                let total = 0;
+                folder.children.forEach(c => {
+                    if (c.type === "file") total += 1;
+                    else total += countFiles(c);
+                });
+                return total;
+            };
+            const totalFiles = countFiles(fs);
+            list.innerHTML = `
+                <md-list-item>
+                    <div slot="headline">総ファイル数</div>
+                    <div slot="trailing-supporting-text">${totalFiles} Items</div>
+                </md-list-item>
+                <md-list-item>
+                    <div slot="headline">現在の階層</div>
+                    <div slot="trailing-supporting-text">/${currentPath.join('/')}</div>
+                </md-list-item>
+            `;
+        };
+
+        // Initialize
+        window.renderExplorer();
+        const menu = document.getElementById('usage-menu');
+        const anchor = document.getElementById('usage-anchor');
+        anchor.addEventListener('click', () => menu.open = !menu.open);
+
+    </script>
+</body>
+</html>
