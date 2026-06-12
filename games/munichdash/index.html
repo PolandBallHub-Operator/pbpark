@@ -6,1236 +6,1675 @@ title: ミュンヘンダッシュ
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MunichDash PB - PBhub</title>
-    <!-- Importing historic chic Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Cormorant+Garamond:ital,wght@0,500;0,700;1,400&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+    <title>PB Build Dash - Munich</title>
+
+    <!-- Google Fonts & Material Symbols -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
     
+    <!-- PeerJS for Multiplay -->
+    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+
     <style>
-        /* Base Page Setup */
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            -webkit-tap-highlight-color: transparent;
+        :root {
+            --bg-base: #f2f2f7;
+            --card-bg: #ffffff;
+            --text-main: #1c1c1e;
+            --text-sub: #8e8e93;
+            --ios-green: #34c759;
+            --ios-blue: #007aff;
+            --ios-orange: #ff9500;
+            --ios-red: #ff3b30;
+            --border-color: #e5e5ea;
+        }
+
+        body.dark-mode {
+            --bg-base: #1c1c1e;
+            --card-bg: #2c2c2e;
+            --text-main: #f2f2f7;
+            --text-sub: #8e8e93;
+            --border-color: #38383a;
         }
 
         body {
-            background-color: #0c0806;
-            background-image: radial-gradient(circle, #221510 0%, #0c0806 100%);
-            color: #f2e8cf;
-            font-family: 'Cormorant Garamond', Georgia, serif;
-            width: 100vw;
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            font-family: 'Plus Jakarta Sans', 'Noto Sans JP', sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            transition: background-color 0.3s, color 0.3s;
             overflow: hidden;
             user-select: none;
+            -webkit-user-select: none;
         }
 
-        /* 16:9 Aspect Ratio Game Container (9:16 vertical representation) */
-        #game-wrapper {
+        /* アニメーション＆ゲーム固有スタイル */
+        .game-canvas-container {
             position: relative;
             width: 100%;
-            height: 100%;
-            max-width: min(480px, calc(100vh * 9 / 16 - 20px));
-            max-height: min(853px, calc(100vw * 16 / 9 - 20px));
-            aspect-ratio: 9 / 16;
-            border: 8px ridge #b8860b;
-            border-radius: 12px;
-            box-shadow: 
-                0 25px 50px -12px rgba(0, 0, 0, 0.9),
-                0 0 40px rgba(184, 134, 11, 0.2),
-                inset 0 0 50px rgba(0, 0, 0, 0.9);
-            background: #19110b;
+            height: 100vh;
             overflow: hidden;
+            background: linear-gradient(180deg, #1a2a6c, #b21f1f, #fdbb2d);
+            transition: filter 0.5s ease;
         }
 
-        /* Beautiful vintage decorative overlays */
-        .corner-decoration {
-            position: absolute;
-            width: 32px;
-            height: 32px;
-            border: 2px solid #d4af37;
-            pointer-events: none;
-            z-index: 50;
-            opacity: 0.85;
+        /* ドイツミュンヘンの夕焼け/夜空風 */
+        .sky-sunset {
+            background: linear-gradient(180deg, #0f2027, #203a43, #2c5364);
         }
-        .top-left { top: 8px; left: 8px; border-right: none; border-bottom: none; }
-        .top-right { top: 8px; right: 8px; border-left: none; border-bottom: none; }
-        .bottom-left { bottom: 8px; left: 8px; border-right: none; border-top: none; }
-        .bottom-right { bottom: 8px; right: 8px; border-left: none; border-top: none; }
-
-        /* UI Screens Container */
-        .screen {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            align-items: center;
-            padding: 40px 24px;
-            z-index: 10;
-            background: rgba(16, 11, 8, 0.85);
-            transition: opacity 0.4s ease, transform 0.4s ease;
+        .sky-day {
+            background: linear-gradient(180deg, #2193b0, #6dd5ed);
+        }
+        .sky-midnight {
+            background: linear-gradient(180deg, #050508, #111122, #1d1d35);
         }
 
-        .screen.hidden {
-            opacity: 0;
-            pointer-events: none;
-            transform: scale(0.95);
+        /* トグルスイッチ用 */
+        .ios-toggle:checked ~ .ios-toggle-bg {
+            background-color: var(--ios-green);
+        }
+        .ios-toggle:checked ~ .ios-toggle-dot {
+            transform: translateX(1.25rem);
         }
 
-        /* Typography Styles */
-        h1 {
-            font-family: 'Cinzel', serif;
-            font-size: 2.3rem;
-            font-weight: 900;
-            text-align: center;
-            color: #e5c158;
-            text-shadow: 0 4px 8px rgba(0, 0, 0, 0.8), 0 0 12px rgba(212, 175, 55, 0.3);
-            letter-spacing: 2px;
-            margin-top: 10px;
+        /* タブセグメント用 */
+        .segment-active {
+            background-color: var(--card-bg);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+            color: var(--text-main);
         }
 
-        h2 {
-            font-family: 'Cinzel', serif;
-            font-size: 1.5rem;
-            color: #d4af37;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.6);
-            margin-bottom: 12px;
-        }
-
-        .subtitle {
-            font-size: 1.1rem;
-            color: #a89f91;
-            font-style: italic;
-            margin-top: -5px;
-            text-align: center;
-        }
-
-        /* Elegant Antique Buttons */
-        .btn-antique {
-            display: inline-block;
-            font-family: 'Cinzel', serif;
-            font-size: 1rem;
-            font-weight: 700;
-            letter-spacing: 1px;
-            color: #19110b;
-            background: linear-gradient(135deg, #e5c158 0%, #b8860b 100%);
-            border: 2px solid #8b6508;
-            border-radius: 4px;
-            padding: 12px 28px;
-            cursor: pointer;
-            box-shadow: 0 6px 12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.4);
-            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            text-align: center;
-            text-transform: uppercase;
-            width: 80%;
-            max-width: 260px;
-        }
-
-        .btn-antique:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 16px rgba(0,0,0,0.6), 0 0 15px rgba(229, 193, 88, 0.4);
-            filter: brightness(1.1);
-        }
-
-        .btn-antique:active {
-            transform: translateY(1px);
-            box-shadow: 0 3px 6px rgba(0,0,0,0.4);
-        }
-
-        /* Character Select Styling */
-        .selector-box {
-            background: rgba(44, 30, 20, 0.6);
-            border: 1px solid #5a4230;
-            border-radius: 8px;
-            padding: 16px;
-            width: 100%;
-            text-align: center;
-            box-shadow: inset 0 0 20px rgba(0,0,0,0.6);
-        }
-
-        .select-label {
-            font-family: 'Cinzel', serif;
-            font-size: 0.9rem;
-            color: #d4af37;
-            margin-bottom: 8px;
-            letter-spacing: 1px;
-        }
-
-        .carousel-container {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 16px;
-        }
-
-        .carousel-btn {
-            background: none;
-            border: 1px solid #d4af37;
-            color: #d4af37;
-            font-size: 1.5rem;
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .carousel-btn:hover {
-            background: #d4af37;
-            color: #19110b;
-        }
-
-        .carousel-value {
-            font-size: 1.2rem;
-            font-weight: 700;
-            color: #f2e8cf;
-            text-transform: capitalize;
-            min-width: 140px;
-        }
-
-        .preview-ball-container {
-            width: 84px;
-            height: 84px;
-            margin: 12px auto;
-            border-radius: 50%;
-            background: radial-gradient(circle, rgba(90,66,48,0.6) 0%, rgba(30,20,15,0.8) 100%);
-            border: 2px dashed #b8860b;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            position: relative;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-        }
-
-        .preview-ball-img {
-            width: 68px;
-            height: 68px;
-            object-fit: contain;
-            filter: drop-shadow(0 4px 4px rgba(0,0,0,0.6));
-        }
-
-        /* Game Over Layout */
-        .game-over-stats {
-            width: 100%;
-            background: #251a12;
-            border: 2px double #b8860b;
-            border-radius: 6px;
-            padding: 20px;
-            text-align: center;
-            box-shadow: 0 8px 16px rgba(0,0,0,0.6);
-        }
-
-        .stat-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 6px 0;
-            border-bottom: 1px solid #4a3627;
-        }
-        .stat-row:last-child { border: none; }
-        .stat-label { color: #a89f91; font-size: 1.1rem; }
-        .stat-val { color: #e5c158; font-weight: 700; font-size: 1.3rem; font-family: 'Cinzel', serif; }
-
-        /* HUD Styling */
-        #hud-container {
-            position: absolute;
-            top: 15px;
-            left: 15px;
-            right: 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            z-index: 5;
-            pointer-events: none;
-        }
-
-        .hud-panel {
-            background: rgba(28, 18, 12, 0.85);
-            border: 1.5px solid #d4af37;
-            border-radius: 6px;
-            padding: 6px 14px;
-            color: #e5c158;
-            font-family: 'Cinzel', serif;
-            font-weight: 700;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-            pointer-events: auto;
-        }
-
-        .hud-score {
-            font-size: 1.05rem;
-            letter-spacing: 1px;
-        }
-
-        #audio-toggle {
-            cursor: pointer;
-            transition: transform 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.1rem;
-        }
-        #audio-toggle:hover {
-            transform: scale(1.1);
-        }
-
-        /* Mobile Action / Jump Hint Button Overlay */
-        #mobile-jump-hint {
-            position: absolute;
-            bottom: 40px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(28, 18, 12, 0.65);
-            border: 1px solid rgba(212,175,55,0.4);
-            border-radius: 20px;
-            padding: 8px 16px;
-            font-size: 0.9rem;
-            letter-spacing: 1.5px;
-            color: rgba(242, 232, 207, 0.7);
-            pointer-events: none;
-            text-transform: uppercase;
-            font-family: 'Cinzel', serif;
-            z-index: 4;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0% { opacity: 0.4; }
-            50% { opacity: 0.85; }
-            100% { opacity: 0.4; }
-        }
-
-        /* Game Canvas Element styling */
-        canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: block;
-            background: #100a07;
+        /* スクロールバー非表示 */
+        ::-webkit-scrollbar {
+            display: none;
         }
     </style>
 </head>
-<body>
+<body class="w-full h-screen relative select-none">
 
-    <div id="game-wrapper">
-        <!-- Filigree Frame Corners -->
-        <div class="corner-decoration top-left"></div>
-        <div class="corner-decoration top-right"></div>
-        <div class="corner-decoration bottom-left"></div>
-        <div class="corner-decoration bottom-right"></div>
+    <!-- ================= GAME PLAY SCREEN ================= -->
+    <div id="game-screen" class="absolute inset-0 w-full h-full flex flex-col z-0">
+        <!-- ゲーム描画用キャンバス -->
+        <div id="game-container" class="game-canvas-container sky-sunset w-full h-full relative">
+            <canvas id="gameCanvas" class="absolute inset-0 w-full h-full block"></canvas>
 
-        <!-- HUD (Always overlaid on top of gameplay) -->
-        <div id="hud-container">
-            <div id="hud-score-panel" class="hud-panel hud-score">
-                SCORE: <span id="current-score-text">0</span>
-            </div>
-            <div id="audio-toggle" class="hud-panel">
-                🔊 SOUND
-            </div>
-        </div>
-
-        <!-- Mobile interaction prompt -->
-        <div id="mobile-jump-hint">画面タップ or SPACE でジャンプ</div>
-
-        <!-- Main Gameplay Canvas -->
-        <canvas id="gameCanvas"></canvas>
-
-        <!-- ================= TITLE / START SCREEN ================= -->
-        <div id="screen-title" class="screen">
-            <div>
-                <h1>MunichDash PB</h1>
-                <div class="subtitle">Historic Polandball Build-Dash</div>
-            </div>
-
-            <!-- Pre-styled selection summary in main menu -->
-            <div class="selector-box" style="margin-top: -10px;">
-                <div class="select-label" style="font-size:1.1rem;">現在のボール</div>
-                <div class="preview-ball-container" style="width: 100px; height: 100px;">
-                    <img id="menu-ball-preview" class="preview-ball-img" style="width: 80px; height: 80px;" src="" alt="Ball">
-                </div>
-                <div id="menu-ball-name" style="font-weight: 700; color: #e5c158; text-transform: uppercase; letter-spacing: 1px;">Germany (Happy)</div>
-            </div>
-
-            <div style="width: 100%; display: flex; flex-direction: column; gap: 12px; align-items: center;">
-                <button id="btn-start" class="btn-antique">DASH START</button>
-                <button id="btn-choose-char" class="btn-antique" style="background: transparent; color: #d4af37; border-color: #d4af37;">ボール選択</button>
-            </div>
-            
-            <div style="font-size: 0.8rem; color: #8a7e71; text-align: center; line-height: 1.3;">
-                ビルからビルへ、優雅に跳び渡れ！<br>
-                2段ジャンプが可能。穴に落ちないように！
-            </div>
-        </div>
-
-        <!-- ================= CHARACTER SELECT SCREEN ================= -->
-        <div id="screen-character" class="screen hidden">
-            <div>
-                <h2>ボール選択</h2>
-                <div class="subtitle">国と表情を決定しよう</div>
-            </div>
-
-            <!-- Country Switcher -->
-            <div class="selector-box">
-                <div class="select-label">国名 / COUNTRY</div>
-                <div class="carousel-container">
-                    <button class="carousel-btn" id="country-prev"></button>
-                    <div class="carousel-value" id="country-label">Germany</div>
-                    <button class="carousel-btn" id="country-next"></button>
+            <!-- ゲーム内リアルタイムHUD -->
+            <div class="absolute top-4 left-4 right-4 flex justify-between items-start pointer-events-none z-10">
+                <!-- ライフ＆スコア (iOSステータスカード風) -->
+                <div class="flex flex-col gap-1.5 pointer-events-auto">
+                    <div class="bg-black/40 backdrop-blur-md text-white px-3.5 py-1.5 rounded-full flex items-center gap-2 text-sm font-semibold shadow-lg">
+                        <span class="material-symbols-outward text-red-500 fill-current animate-pulse">favorite</span>
+                        <div id="hud-lives" class="flex gap-0.5">
+                            <!-- ライフアイコンが動的に追加されます -->
+                        </div>
+                    </div>
+                    <div class="bg-black/40 backdrop-blur-md text-white px-3.5 py-1.5 rounded-full flex items-center gap-2 text-sm font-semibold shadow-lg">
+                        <span class="material-symbols-outlined text-yellow-400">monetization_on</span>
+                        <span id="hud-coins">0</span>
+                    </div>
                 </div>
 
-                <!-- Expression Switcher -->
-                <div class="select-label">表情 / EXPRESSION</div>
-                <div class="carousel-container">
-                    <button class="carousel-btn" id="expr-prev"></button>
-                    <div class="carousel-value" id="expr-label">Happy</div>
-                    <button class="carousel-btn" id="expr-next"></button>
+                <!-- スコアとハイスコア、長押しメーター -->
+                <div class="flex flex-col items-center pointer-events-none">
+                    <div class="bg-black/40 backdrop-blur-md text-white px-5 py-2 rounded-2xl flex flex-col items-center shadow-lg min-w-[100px]">
+                        <span class="text-[10px] uppercase tracking-wider text-gray-300 font-bold">SCORE</span>
+                        <span id="hud-score" class="text-2xl font-bold tracking-tight">0</span>
+                    </div>
+                    <!-- 特殊アクション：ぐるぐる(浮遊)メーター -->
+                    <div id="float-indicator" class="mt-2 w-24 bg-black/50 h-2 rounded-full overflow-hidden border border-white/20 opacity-0 transition-opacity duration-200">
+                        <div id="float-bar" class="h-full bg-cyan-400 w-full transition-all duration-75"></div>
+                    </div>
                 </div>
 
-                <!-- Preview Area -->
-                <div class="select-label">PREVIEW</div>
-                <div class="preview-ball-container">
-                    <img id="selector-ball-preview" class="preview-ball-img" src="" alt="Selected Ball">
+                <!-- 右側操作系ボタン（設定・ポーズ） -->
+                <div class="flex gap-2 pointer-events-auto">
+                    <!-- 2人プレイ接続状態表示 -->
+                    <div id="peer-status-tag" class="hidden bg-emerald-500/90 text-white text-xs font-bold px-2.5 py-1 rounded-full items-center gap-1 shadow-lg animate-bounce">
+                        <span class="material-symbols-outlined text-sm">group</span>
+                        <span>MULTI</span>
+                    </div>
+                    
+                    <button id="btn-pause" class="w-10 h-10 bg-black/40 hover:bg-black/60 backdrop-blur-md text-white rounded-full flex items-center justify-center shadow-lg transition-all active:scale-90">
+                        <span class="material-symbols-outlined">pause</span>
+                    </button>
+                    <button id="btn-settings-trigger" class="w-10 h-10 bg-black/40 hover:bg-black/60 backdrop-blur-md text-white rounded-full flex items-center justify-center shadow-lg transition-all active:scale-90">
+                        <span class="material-symbols-outlined">settings</span>
+                    </button>
                 </div>
             </div>
 
-            <button id="btn-char-confirm" class="btn-antique">決定して戻る</button>
-        </div>
-
-        <!-- ================= GAME OVER SCREEN ================= -->
-        <div id="screen-gameover" class="screen hidden">
-            <div>
-                <h1 style="color: #cd5c5c; text-shadow: 0 4px 8px rgba(0,0,0,0.9);">GAME OVER</h1>
-                <div class="subtitle" id="gameover-quote">ミュンヘンの屋上から落下しました</div>
-            </div>
-
-            <!-- Score Display -->
-            <div class="game-over-stats">
-                <div class="stat-row">
-                    <span class="stat-label">今回のスコア</span>
-                    <span class="stat-val" id="final-score-val">0000</span>
-                </div>
-                <div class="stat-row">
-                    <span class="stat-label">自己ベスト</span>
-                    <span class="stat-val" id="best-score-val">0000</span>
-                </div>
-                <div class="stat-row">
-                    <span class="stat-label">飛び越えたビル</span>
-                    <span class="stat-val" id="cleared-buildings-val">0</span>
+            <!-- 開始時のチュートリアル/タッチ誘導オーバーレイ -->
+            <div id="tap-to-start-overlay" class="absolute inset-0 bg-black/30 flex flex-col justify-center items-center text-white text-center pointer-events-auto z-20 transition-opacity duration-300">
+                <div class="p-6 bg-black/50 backdrop-blur-lg rounded-3xl max-w-xs mx-4 border border-white/10 shadow-2xl">
+                    <h2 class="text-2xl font-bold mb-2">Munich Dash</h2>
+                    <p class="text-xs text-gray-300 mb-4">ミュンヘンのビルを飛び回れ！</p>
+                    <div class="flex justify-center mb-4 text-orange-400">
+                        <span class="material-symbols-outlined text-4xl animate-bounce">double_arrow</span>
+                    </div>
+                    <div class="text-left text-xs space-y-2 text-gray-200 bg-white/10 p-3 rounded-xl mb-4">
+                        <p>💡 <b>1タップ</b>: ジャンプ (2回で2段ジャンプ)</p>
+                        <p>🌀 <b>長押し</b>: ぐるぐる低速落下 (速度1/6)</p>
+                        <p>🧲 <b>アイテム</b>: 磁石、ライフ、コインを回収</p>
+                    </div>
+                    <button id="btn-start-game" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-2xl active:scale-95 transition-all text-sm">
+                        スタート
+                    </button>
+                    <!-- タイトル画面から直接設定を開くボタンを追加 -->
+                    <button id="btn-title-settings" class="w-full mt-2 bg-white/10 hover:bg-white/20 text-white font-semibold py-2.5 px-6 rounded-2xl active:scale-95 transition-all text-xs flex items-center justify-center gap-1.5 border border-white/10">
+                        <span class="material-symbols-outlined text-sm">tune</span>
+                        スキン・マルチ設定
+                    </button>
                 </div>
             </div>
 
-            <div style="width: 100%; display: flex; flex-direction: column; gap: 12px; align-items: center;">
-                <button id="btn-retry" class="btn-antique">RETRY</button>
-                <button id="btn-main-menu" class="btn-antique" style="background: transparent; color: #d4af37; border-color: #d4af37;">メニューへ</button>
-            </div>
-
-            <div style="font-size: 0.8rem; color: #8a7e71; text-align: center;">
-                MunichDash PB — Antique Collection
+            <!-- タッチ・長押し時のインジケータ (画面下部操作ガイド) -->
+            <div class="absolute bottom-6 left-1/2 transform -translate-x-1/2 text-white/50 text-xs text-center pointer-events-none">
+                画面タップ：ジャンプ / 長押し：空中ぐるぐる(低速落下)
             </div>
         </div>
     </div>
 
-    <script>
-        // --- AUDIO ENGINE (Self-Contained Web Audio API) ---
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        let soundEnabled = true;
 
-        function playSynthSound(type) {
-            if (!soundEnabled) return;
-            try {
-                // Resume Audio Context if state is suspended
-                if (audioCtx.state === 'suspended') {
-                    audioCtx.resume();
-                }
-
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-
-                const now = audioCtx.currentTime;
-
-                if (type === 'jump') {
-                    // Quick pitch slide upwards
-                    osc.type = 'triangle';
-                    osc.frequency.setValueAtTime(180, now);
-                    osc.frequency.exponentialRampToValueAtTime(500, now + 0.15);
-                    gain.gain.setValueAtTime(0.15, now);
-                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
-                    osc.start(now);
-                    osc.stop(now + 0.15);
-                } else if (type === 'coin') {
-                    // Vintage bell sound (high frequency pair)
-                    osc.type = 'sine';
-                    osc.frequency.setValueAtTime(987.77, now); // B5
-                    osc.frequency.setValueAtTime(1318.51, now + 0.08); // E6
-                    gain.gain.setValueAtTime(0.12, now);
-                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
-                    osc.start(now);
-                    osc.stop(now + 0.35);
-                } else if (type === 'death') {
-                    // Retro dramatic pitch drop
-                    osc.type = 'sawtooth';
-                    osc.frequency.setValueAtTime(261.63, now); // C4
-                    osc.frequency.linearRampToValueAtTime(60, now + 0.55);
-                    gain.gain.setValueAtTime(0.2, now);
-                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
-                    osc.start(now);
-                    osc.stop(now + 0.6);
-                }
-            } catch (err) {
-                console.warn("Audio Context blocked or unsupported:", err);
-            }
-        }
-
-        // Toggle Audio Display and State
-        const audioBtn = document.getElementById('audio-toggle');
-        audioBtn.addEventListener('click', () => {
-            soundEnabled = !soundEnabled;
-            audioBtn.textContent = soundEnabled ? ' SOUND' : ' MUTED';
-            if (soundEnabled && audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
-        });
-    </script>
-
-    <script>
-        // --- POLANDBALL ASSET CONFIGURATION ---
-        // Supported Assets:
-        // Countries: germany, japan, china, italy, sierraleone
-        // Expressions: anger, dissatisfaction, happy, itome, lol, normal, plot, smile
-
-        const countries = [
-            { id: 'germany', display: 'ドイツ / Germany' },
-            { id: 'japan', display: '日本 / Japan' },
-            { id: 'china', display: '中国 / China' },
-            { id: 'italy', display: 'イタリア / Italy' },
-            { id: 'sierraleone', display: 'シエラレオネ / Sierra Leone' }
-        ];
-
-        const expressions = [
-            { id: 'happy', display: 'ハッピー / Happy' },
-            { id: 'smile', display: 'スマイル / Smile' },
-            { id: 'normal', display: 'ノーマル / Normal' },
-            { id: 'lol', display: '爆笑 / LOL' },
-            { id: 'itome', display: '糸目 / Itome' },
-            { id: 'plot', display: '企み / Plot' },
-            { id: 'dissatisfaction', display: '不満 / Dissatisfied' },
-            { id: 'anger', display: '怒り / Anger' }
-        ];
-
-        // Selections Indexes
-        let selectedCountryIdx = 0; // default: germany
-        let selectedExprIdx = 0;    // default: happy
-
-        // Construct Image URL dynamically
-        function getBallUrl(countryId, exprId) {
-            return `https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/${countryId}/${exprId}.png`;
-        }
-
-        // Image cache & loader
-        const ballImage = new Image();
-        let ballImageLoaded = false;
-        ballImage.onload = () => { ballImageLoaded = true; };
-        ballImage.onerror = () => {
-            // Safe fallback drawing if image loads slow/fails
-            ballImageLoaded = false;
-        };
-
-        // UI Previews Update
-        function updatePreviews() {
-            const countryObj = countries[selectedCountryIdx];
-            const exprObj = expressions[selectedExprIdx];
-            const targetUrl = getBallUrl(countryObj.id, exprObj.id);
-
-            // Update selectors elements
-            document.getElementById('country-label').textContent = countryObj.display;
-            document.getElementById('expr-label').textContent = exprObj.display;
+    <!-- ================= OS SETTINGS MODAL ================= -->
+    <!-- OS 16 設定アプリ風デザイン -->
+    <div id="settings-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 hidden flex justify-center items-end md:items-center transition-all duration-300">
+        <div class="w-full md:max-w-md bg-[var(--bg-base)] rounded-t-[2.5rem] md:rounded-[2.5rem] max-h-[85vh] md:max-h-[90vh] flex flex-col overflow-hidden shadow-2xl transform translate-y-full md:translate-y-0 transition-transform duration-300">
             
-            // Set image sources
-            document.getElementById('selector-ball-preview').src = targetUrl;
-            document.getElementById('menu-ball-preview').src = targetUrl;
-            document.getElementById('menu-ball-name').textContent = `${countryObj.display.split(' / ')[0]} (${exprObj.display.split(' / ')[0]})`;
+            <!-- Modal Header -->
+            <div class="px-6 pt-5 pb-3 flex justify-between items-center bg-[var(--card-bg)] border-b border-[var(--border-color)]">
+                <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-blue-500 text-2xl font-bold">tune</span>
+                    <h3 class="text-lg font-bold text-[var(--text-main)]">iOS Settings & Custom</h3>
+                </div>
+                <button id="btn-settings-close" class="text-blue-500 font-semibold text-sm hover:opacity-75 active:scale-95 transition-all">
+                    完了
+                </button>
+            </div>
 
-            // Load into active game image
-            ballImageLoaded = false;
-            ballImage.src = targetUrl;
-        }
+            <!-- Modal Content (Scrollable iOS Rows) -->
+            <div class="flex-1 overflow-y-auto px-4 py-4 space-y-5">
+                
+                <!-- SECTION: キャラクター選択スキン -->
+                <div class="space-y-1.5">
+                    <span class="text-xs font-semibold text-[var(--text-sub)] uppercase tracking-wider px-3">ボール（キャラクター）選択</span>
+                    <div class="bg-[var(--card-bg)] rounded-2xl overflow-hidden shadow-sm p-4">
+                        <div class="grid grid-cols-5 gap-2" id="character-selector">
+                            <!-- JSでキャラクターボタンが生成されます -->
+                        </div>
+                        <div id="character-description" class="mt-3 text-xs text-[var(--text-sub)] text-center font-medium bg-[var(--bg-base)] p-2 rounded-xl">
+                            ドイツボール：初期ライフが多い！
+                        </div>
+                    </div>
+                </div>
 
-        // Character Select Button Interactions
-        document.getElementById('country-prev').addEventListener('click', () => {
-            selectedCountryIdx = (selectedCountryIdx - 1 + countries.length) % countries.length;
-            updatePreviews();
-        });
-        document.getElementById('country-next').addEventListener('click', () => {
-            selectedCountryIdx = (selectedCountryIdx + 1) % countries.length;
-            updatePreviews();
-        });
-        document.getElementById('expr-prev').addEventListener('click', () => {
-            selectedExprIdx = (selectedExprIdx - 1 + expressions.length) % expressions.length;
-            updatePreviews();
-        });
-        document.getElementById('expr-next').addEventListener('click', () => {
-            selectedExprIdx = (selectedExprIdx + 1) % expressions.length;
-            updatePreviews();
-        });
-    </script>
+                <!-- SECTION: マルチプレイ (2人協力・対戦) -->
+                <div class="space-y-1.5">
+                    <span class="text-xs font-semibold text-[var(--text-sub)] uppercase tracking-wider px-3">2人プレイ（PeerJS 通信）</span>
+                    <div class="bg-[var(--card-bg)] rounded-2xl overflow-hidden shadow-sm divide-y divide-[var(--border-color)]">
+                        <!-- My Peer ID Row -->
+                        <div class="p-3.5 flex justify-between items-center">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-lg bg-indigo-500 flex items-center justify-center text-white">
+                                    <span class="material-symbols-outlined text-sm">tag</span>
+                                </div>
+                                <div class="flex flex-col">
+                                    <span class="text-sm font-semibold text-[var(--text-main)]">あなたのID</span>
+                                    <span id="my-peer-id" class="text-xs text-[var(--text-sub)] font-mono">生成中...</span>
+                                </div>
+                            </div>
+                            <button id="btn-copy-id" class="text-xs bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-400 font-bold px-3 py-1.5 rounded-full active:scale-95 transition-all">
+                                コピー
+                            </button>
+                        </div>
+                        <!-- Connect Peer ID Row -->
+                        <div class="p-3.5 flex flex-col gap-2.5">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center text-white">
+                                    <span class="material-symbols-outlined text-sm">link</span>
+                                </div>
+                                <span class="text-sm font-semibold text-[var(--text-main)]">相手と繋がる</span>
+                            </div>
+                            <div class="flex gap-2">
+                                <input id="opponent-id-input" type="text" placeholder="相手のIDを入力..." class="flex-1 bg-[var(--bg-base)] text-[var(--text-main)] rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 border border-[var(--border-color)]">
+                                <button id="btn-connect-peer" class="bg-blue-500 text-white font-bold text-xs px-4 py-2 rounded-xl active:scale-95 transition-all">
+                                    接続
+                                </button>
+                            </div>
+                            <div id="connection-status" class="text-center text-[10px] text-orange-500 font-semibold">
+                                未接続 (ソロプレイ中)
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
+                <!-- SECTION: システム＆難易度調整 -->
+                <div class="space-y-1.5">
+                    <span class="text-xs font-semibold text-[var(--text-sub)] uppercase tracking-wider px-3">ゲームシステム設定</span>
+                    <div class="bg-[var(--card-bg)] rounded-2xl overflow-hidden shadow-sm divide-y divide-[var(--border-color)]">
+                        <!-- スピード難易度トグル -->
+                        <div class="p-3.5 flex justify-between items-center">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center text-white">
+                                    <span class="material-symbols-outlined text-sm">speed</span>
+                                </div>
+                                <div class="flex flex-col">
+                                    <span class="text-sm font-semibold text-[var(--text-main)]">高速スクロール</span>
+                                    <span class="text-[10px] text-[var(--text-sub)]">難易度が大幅に向上します</span>
+                                </div>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="toggle-hard-mode" class="sr-only ios-toggle">
+                                <div class="w-9 h-5 bg-gray-200 dark:bg-neutral-700 rounded-full transition-colors duration-200 ios-toggle-bg"></div>
+                                <div class="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full transition-transform duration-200 ios-toggle-dot shadow-sm"></div>
+                            </label>
+                        </div>
+
+                        <!-- 昼夜・背景選択 -->
+                        <div class="p-3.5 flex flex-col gap-2">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-lg bg-sky-500 flex items-center justify-center text-white">
+                                    <span class="material-symbols-outlined text-sm">wb_twilight</span>
+                                </div>
+                                <div class="flex flex-col">
+                                    <span class="text-sm font-semibold text-[var(--text-main)]">ミュンヘンの空模様</span>
+                                    <span class="text-[10px] text-[var(--text-sub)]">背景のグラデーションを変更します</span>
+                                </div>
+                            </div>
+                            <!-- OS Segment Control -->
+                            <div class="flex bg-[var(--bg-base)] p-1 rounded-xl">
+                                <button data-bg="sunset" class="segment-btn flex-1 py-1.5 text-xs font-semibold text-[var(--text-sub)] rounded-lg transition-all segment-active">夕焼け</button>
+                                <button data-bg="day" class="segment-btn flex-1 py-1.5 text-xs font-semibold text-[var(--text-sub)] rounded-lg transition-all">昼間</button>
+                                <button data-bg="midnight" class="segment-btn flex-1 py-1.5 text-xs font-semibold text-[var(--text-sub)] rounded-lg transition-all">深夜</button>
+                            </div>
+                        </div>
+
+                        <!-- 振動フィードバック(設定) -->
+                        <div class="p-3.5 flex justify-between items-center">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-lg bg-pink-500 flex items-center justify-center text-white">
+                                    <span class="material-symbols-outlined text-sm">vibration</span>
+                                </div>
+                                <div class="flex flex-col">
+                                    <span class="text-sm font-semibold text-[var(--text-main)]">ハプティクス（振動効果）</span>
+                                    <span class="text-[10px] text-[var(--text-sub)]">タップやダメージ時に振動</span>
+                                </div>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="toggle-haptics" checked class="sr-only ios-toggle">
+                                <div class="w-9 h-5 bg-gray-200 dark:bg-neutral-700 rounded-full transition-colors duration-200 ios-toggle-bg"></div>
+                                <div class="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full transition-transform duration-200 ios-toggle-dot shadow-sm"></div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECTION: 音量、ダークモード -->
+                <div class="space-y-1.5">
+                    <span class="text-xs font-semibold text-[var(--text-sub)] uppercase tracking-wider px-3">システム外観・サウンド</span>
+                    <div class="bg-[var(--card-bg)] rounded-2xl overflow-hidden shadow-sm divide-y divide-[var(--border-color)]">
+                        <!-- 音量スライダー -->
+                        <div class="p-3.5 flex flex-col gap-2">
+                            <div class="flex justify-between items-center">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-lg bg-teal-500 flex items-center justify-center text-white">
+                                        <span class="material-symbols-outlined text-sm">volume_up</span>
+                                    </div>
+                                    <span class="text-sm font-semibold text-[var(--text-main)]">効果音音量</span>
+                                </div>
+                                <span id="volume-val" class="text-xs font-bold text-[var(--text-sub)]">80%</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="material-symbols-outlined text-xs text-[var(--text-sub)]">volume_mute</span>
+                                <input id="slider-volume" type="range" min="0" max="100" value="80" class="flex-1 accent-blue-500 h-1 bg-[var(--bg-base)] rounded-lg appearance-none cursor-pointer">
+                                <span class="material-symbols-outlined text-xs text-[var(--text-sub)]">volume_up</span>
+                            </div>
+                        </div>
+
+                        <!-- ダークモード -->
+                        <div class="p-3.5 flex justify-between items-center">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-lg bg-neutral-600 flex items-center justify-center text-white">
+                                    <span class="material-symbols-outlined text-sm">dark_mode</span>
+                                </div>
+                                <div class="flex flex-col">
+                                    <span class="text-sm font-semibold text-[var(--text-main)]">ダークモード</span>
+                                    <span class="text-[10px] text-[var(--text-sub)]">UIスキンをダークカラーに変更</span>
+                                </div>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="toggle-dark-mode" class="sr-only ios-toggle">
+                                <div class="w-9 h-5 bg-gray-200 dark:bg-neutral-700 rounded-full transition-colors duration-200 ios-toggle-bg"></div>
+                                <div class="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full transition-transform duration-200 ios-toggle-dot shadow-sm"></div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- フッター -->
+                <div class="text-center py-2">
+                    <span class="text-[10px] text-[var(--text-sub)] font-semibold uppercase tracking-wider">Munich Dash v2.0 - Designed for iOS Style</span>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ================= PAUSE & RESUME SCREEN ================= -->
+    <div id="pause-modal" class="fixed inset-0 bg-black/70 backdrop-blur-md z-30 hidden flex justify-center items-center">
+        <div class="w-full max-w-xs bg-[var(--card-bg)] text-[var(--text-main)] p-6 rounded-[2.5rem] shadow-2xl text-center space-y-4 border border-[var(--border-color)]">
+            <div class="w-16 h-16 bg-blue-100 dark:bg-blue-950/50 text-blue-500 rounded-full flex items-center justify-center mx-auto">
+                <span class="material-symbols-outlined text-3xl">pause</span>
+            </div>
+            <div>
+                <h3 class="text-xl font-bold">一時停止中</h3>
+                <p class="text-xs text-[var(--text-sub)] mt-1">ミュンヘンの夕日があなたを待っています</p>
+            </div>
+            <div class="space-y-2">
+                <button id="btn-resume" class="w-full bg-blue-500 text-white font-bold py-3 px-6 rounded-2xl active:scale-95 transition-all text-sm">
+                    ゲームに戻る
+                </button>
+                <button id="btn-restart" class="w-full bg-[var(--bg-base)] text-[var(--text-main)] font-semibold py-3 px-6 rounded-2xl active:scale-95 transition-all text-sm">
+                    最初からやり直す
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ================= GAME OVER MODAL ================= -->
+    <div id="gameover-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden flex justify-center items-center">
+        <div class="w-full max-w-xs bg-[var(--card-bg)] text-[var(--text-main)] p-6 rounded-[2.5rem] shadow-2xl text-center space-y-5 border border-[var(--border-color)]">
+            <div class="w-16 h-16 bg-red-100 dark:bg-red-950/50 text-red-500 rounded-full flex items-center justify-center mx-auto">
+                <span class="material-symbols-outlined text-3xl">sentiment_very_dissatisfied</span>
+            </div>
+            <div>
+                <h3 class="text-2xl font-bold">GAME OVER</h3>
+                <p id="gameover-reason" class="text-xs text-[var(--text-sub)] mt-1">ビルから落下してしまいました！</p>
+            </div>
+            
+            <div class="bg-[var(--bg-base)] p-4 rounded-2xl divide-y divide-[var(--border-color)] text-sm">
+                <div class="pb-2.5 flex justify-between">
+                    <span class="text-[var(--text-sub)]">最終スコア</span>
+                    <span id="final-score" class="font-bold text-[var(--text-main)]">0</span>
+                </div>
+                <div class="py-2.5 flex justify-between">
+                    <span class="text-[var(--text-sub)]">獲得コイン</span>
+                    <span id="final-coins" class="font-bold text-[var(--text-main)]">0</span>
+                </div>
+                <div class="pt-2.5 flex justify-between">
+                    <span class="text-[var(--text-sub)]">ハイスコア</span>
+                    <span id="high-score" class="font-bold text-orange-500">0</span>
+                </div>
+            </div>
+
+            <div class="space-y-2">
+                <button id="btn-retry" class="w-full bg-blue-500 text-white font-bold py-3 px-6 rounded-2xl active:scale-95 transition-all text-sm">
+                    もう一度挑戦する
+                </button>
+                <button id="btn-gameover-settings" class="w-full bg-[var(--bg-base)] text-[var(--text-main)] font-semibold py-3 px-6 rounded-2xl active:scale-95 transition-all text-sm">
+                    スキン・マルチ設定変更
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ================= GLOBAL OS NOTIFICATION (Toasts) ================= -->
+    <div id="toast" class="fixed top-6 left-4 right-4 bg-black/85 backdrop-blur-md text-white rounded-2xl px-4 py-3.5 shadow-2xl flex items-center gap-3 transform -translate-y-32 transition-transform duration-300 pointer-events-none z-50">
+        <div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white" id="toast-icon-container">
+            <span class="material-symbols-outlined text-sm" id="toast-icon">notifications</span>
+        </div>
+        <div class="flex-1">
+            <h4 class="text-xs font-bold" id="toast-title">通知</h4>
+            <p class="text-[10px] text-gray-300 mt-0.5" id="toast-message">メッセージ内容</p>
+        </div>
+    </div>
+
+
+    <!-- ================= GAME LOGIC IMPLEMENTATION ================= -->
     <script>
-        // --- GAME SYSTEM CONSTANTS & SETUP ---
+        // --- 1. GAME CONSTANTS & CHARACTERS SKIN DATA ---
+        // キャラクター画像 (ドイツ、ポーランドはご指定URL、他はパブリックPBイメージまたは分かりやすい絵)
+        const CHARACTERS = [
+            {
+                id: 'germany',
+                name: 'ドイツ',
+                img: 'https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/germany/lol.png',
+                desc: '初期ライフが「3」になり、安定感抜群。',
+                baseLives: 3,
+                jumpPower: 11.5,
+                gravityFactor: 1.0
+            },
+            {
+                id: 'poland',
+                name: 'ポーランド',
+                img: 'https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/poland/lol.png',
+                desc: '空中ぐるぐる(低速落下)時に、コイン吸い寄せ範囲が自動で2倍になる！',
+                baseLives: 2,
+                jumpPower: 11.5,
+                gravityFactor: 1.0
+            },
+            {
+                id: 'japan',
+                name: '日本',
+                img: 'https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/japan/lol.png',
+                desc: '跳躍力が高い！高いビルに飛び移りやすい。',
+                baseLives: 2,
+                jumpPower: 12.5,
+                gravityFactor: 0.95
+            },
+            {
+                id: 'france',
+                name: 'フランス',
+                img: 'https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/france/lol.png',
+                desc: '磁石アイテムの効果時間が1.5倍長持ち。',
+                baseLives: 2,
+                jumpPower: 11.5,
+                gravityFactor: 1.0
+            },
+            {
+                id: 'italy',
+                name: 'イタリア',
+                img: 'https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/italy/lol.png',
+                desc: '獲得コイン時のスコアボーナスが2倍。',
+                baseLives: 2,
+                jumpPower: 11.2,
+                gravityFactor: 1.0
+            }
+        ];
+
+        // --- 2. GAME ENGINE STATE ---
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
-        // Dynamic resizing matching the 16:9 vertical wrapper exactly
-        function resizeCanvas() {
-            const rect = canvas.getBoundingClientRect();
-            // High DPI resolution support
-            canvas.width = rect.width * window.devicePixelRatio;
-            canvas.height = rect.height * window.devicePixelRatio;
-            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-        }
-        
-        // Initialize Resizing
-        window.addEventListener('resize', resizeCanvas);
-        window.addEventListener('load', () => {
-            resizeCanvas();
-            updatePreviews();
-            // Run background image loader
-            bgImg.src = bgSrc;
-        });
-
-        // Background Image Configuration
-        const bgImg = new Image();
-        const bgSrc = "https://publicdomainq.net/images/202209/10s/publicdomainq-0066362rue.jpg";
-        let bgImgLoaded = false;
-        bgImg.onload = () => { bgImgLoaded = true; };
-
-        // Game State Variables
-        let isPlaying = false;
-        let score = 0;
-        let bestScore = parseInt(localStorage.getItem('munichdash_best') || '0');
-        let clearedBuildings = 0;
-        let speedMultiplier = 1.0;
-
-        // Player physics variables
-        const player = {
-            x: 80,
-            y: 200,
-            radius: 20,
-            vy: 0,
-            gravity: 0.55,
-            jumpForce: -10,
-            jumpCount: 0,
-            rotation: 0,
-            targetRotation: 0
+        let gameState = {
+            running: false,
+            paused: false,
+            score: 0,
+            coins: 0,
+            highScore: parseInt(localStorage.getItem('pb_high_score') || '0'),
+            lives: 2,
+            maxLives: 3,
+            hardMode: false,
+            volume: 0.8,
+            haptics: true,
+            selectedChar: 'germany',
+            cameraX: 0,
+            bgTheme: 'sunset'
         };
 
-        // Game Objects Containers
+        // プレイヤーオブジェクト (自機)
+        let player = {
+            x: 150,
+            y: 200,
+            radius: 28,
+            vy: 0,
+            gravity: 0.42,
+            jumpPower: 11.5,
+            isGrounded: false,
+            jumpCount: 0,
+            maxJumps: 2,
+            isSpinning: false,     // 長押し「ぐるぐる」状態
+            spinAngle: 0,          // ぐるぐる回転角度
+            magnetTimer: 0,        // 磁石持続フレーム
+            hasSkinImage: false,
+            imgElement: null
+        };
+
+        // オンライン対戦用の「相手プレイヤー」
+        let peerPlayer = {
+            active: false,
+            x: 150,
+            y: 200,
+            radius: 28,
+            vy: 0,
+            isSpinning: false,
+            spinAngle: 0,
+            charId: 'poland',
+            lives: 2,
+            imgElement: null
+        };
+
+        // ゲーム内の動的オブジェクト
         let buildings = [];
         let items = [];
         let particles = [];
-        let clouds = [];
+        let cloudAssets = [];
 
-        // Distant Skyline Silhouettes (Drawn procedural for Munich charm)
-        const skylineSpires = [
-            { x: 50, w: 25, h: 160, type: 'church' },
-            { x: 180, w: 35, h: 220, type: ' Frauenkirche' }, // twin towers look
-            { x: 320, w: 15, h: 180, type: 'spire' },
-            { x: 440, w: 30, h: 150, type: 'gable' }
-        ];
+        // 操作受付用状態
+        let isPressing = false;
+        let pressStartTime = 0;
 
-        // Parallax background offset
-        let bgScrollX = 0;
+        // --- 3. PEERJS MULTIPLAY SYSTEM ---
+        let peer = null;
+        let conn = null;
+        let myPeerIdStr = "";
 
-        // Clean slate generator for Game Loop
-        function initGame() {
-            score = 0;
-            clearedBuildings = 0;
-            speedMultiplier = 1.0;
-            document.getElementById('current-score-text').textContent = '0';
+        function initPeer() {
+            // ランダムなIDでPeer生成
+            peer = new Peer({
+                debug: 1
+            });
 
-            // Reset player values
-            player.x = 80;
-            player.y = 150;
-            player.vy = 0;
-            player.jumpCount = 0;
-            player.rotation = 0;
-            player.targetRotation = 0;
+            peer.on('open', (id) => {
+                myPeerIdStr = id;
+                document.getElementById('my-peer-id').textContent = id;
+                showToast("PeerJS準備完了", "オンライン接続が可能です。", "cloud");
+            });
 
-            // Generate first starting platform building
-            const canvasW = canvas.width / window.devicePixelRatio || 360;
-            const canvasH = canvas.height / window.devicePixelRatio || 640;
+            peer.on('connection', (connection) => {
+                conn = connection;
+                setupConnectionListeners();
+                showToast("接続を検知しました", "別のプレイヤーがあなたのセッションに接続しました！", "group_add");
+            });
 
+            peer.on('error', (err) => {
+                console.error(err);
+                showToast("エラー", "通信の接続に失敗しました。", "error");
+            });
+        }
+
+        function setupConnectionListeners() {
+            peerPlayer.active = true;
+            document.getElementById('peer-status-tag').classList.remove('hidden');
+            document.getElementById('peer-status-tag').classList.add('flex');
+            document.getElementById('connection-status').textContent = "接続中: アクティブマルチプレイヤー";
+            document.getElementById('connection-status').className = "text-center text-[10px] text-emerald-500 font-bold";
+
+            // 相手用の画像をあらかじめロード
+            updatePeerCharacterImage(peerPlayer.charId);
+
+            conn.on('data', (data) => {
+                // リアルタイム同期
+                if (data.type === 'sync') {
+                    peerPlayer.x = data.x;
+                    peerPlayer.y = data.y;
+                    peerPlayer.isSpinning = data.isSpinning;
+                    peerPlayer.spinAngle = data.spinAngle;
+                    peerPlayer.lives = data.lives;
+                    if (peerPlayer.charId !== data.charId) {
+                        peerPlayer.charId = data.charId;
+                        updatePeerCharacterImage(data.charId);
+                    }
+                } else if (data.type === 'gameover') {
+                    peerPlayer.active = false;
+                    showToast("相手がダウン", "相手のボールが脱落しました！", "sentiment_very_dissatisfied");
+                } else if (data.type === 'item_collected') {
+                    // 同期アイテムの削除
+                    items = items.filter(item => item.id !== data.itemId);
+                }
+            });
+
+            conn.on('close', () => {
+                peerPlayer.active = false;
+                document.getElementById('peer-status-tag').classList.add('hidden');
+                document.getElementById('connection-status').textContent = "接続が切断されました";
+                document.getElementById('connection-status').className = "text-center text-[10px] text-red-500 font-semibold";
+                showToast("切断", "相手の接続が切断されました。", "link_off");
+            });
+        }
+
+        // 相手プレイヤーの画像を読み込む
+        function updatePeerCharacterImage(charId) {
+            const char = CHARACTERS.find(c => c.id === charId);
+            if (char) {
+                const img = new Image();
+                img.src = char.img;
+                img.onload = () => {
+                    peerPlayer.imgElement = img;
+                };
+            }
+        }
+
+        // --- 4. AUDIO & SOUND SYSTEM ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        // シンセ効果音(Web Audio APIで外部ファイルいらず)
+        function playSound(type) {
+            if (gameState.volume <= 0) return;
+            try {
+                const osc = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                osc.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+
+                const now = audioCtx.currentTime;
+                gainNode.gain.setValueAtTime(gameState.volume * 0.15, now);
+
+                if (type === 'jump') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(200, now);
+                    osc.frequency.exponentialRampToValueAtTime(700, now + 0.15);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                    osc.start(now);
+                    osc.stop(now + 0.16);
+                } else if (type === 'coin') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(880, now);
+                    osc.frequency.setValueAtTime(1320, now + 0.08);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                    osc.start(now);
+                    osc.stop(now + 0.26);
+                } else if (type === 'hit') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(120, now);
+                    osc.frequency.linearRampToValueAtTime(40, now + 0.3);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                    osc.start(now);
+                    osc.stop(now + 0.31);
+                } else if (type === 'powerup') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(400, now);
+                    osc.frequency.exponentialRampToValueAtTime(1600, now + 0.4);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+                    osc.start(now);
+                    osc.stop(now + 0.41);
+                }
+            } catch (e) {
+                console.log("Audio Error:", e);
+            }
+        }
+
+        // 振動（ハプティクス）エミュレート/実機呼び出し
+        function triggerHaptic(duration = 10) {
+            if (gameState.haptics && navigator.vibrate) {
+                navigator.vibrate(duration);
+            }
+        }
+
+
+        // --- 5. GAME OBJECT GENERATOR ---
+
+        // 背景用の雲の生成
+        function initClouds() {
+            cloudAssets = [];
+            for (let i = 0; i < 6; i++) {
+                cloudAssets.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * (canvas.height * 0.4),
+                    speed: 0.1 + Math.random() * 0.3,
+                    scale: 0.8 + Math.random() * 1.2,
+                    opacity: 0.2 + Math.random() * 0.3
+                });
+            }
+        }
+
+        // 初期ビルの生成
+        function initGameObjects() {
             buildings = [];
             items = [];
             particles = [];
-            
-            // Safe wide ground starting build
+
+            // 最初の足場ビル (必ずプレイヤーの真下)
             buildings.push({
-                x: 0,
-                y: canvasH - 180,
-                width: 250,
-                height: 180,
-                color: '#2e2015',
-                hasSpire: false,
-                cleared: false
+                x: 50,
+                y: canvas.height - 220,
+                width: 350,
+                height: 300,
+                color: getRandomBuildingColor()
             });
 
-            // Generate multiple initial onward platforms
-            let nextX = 250;
+            // 続くいくつかのビルを自動生成
             for (let i = 0; i < 5; i++) {
-                const gap = 60 + Math.random() * 50;
-                const width = 110 + Math.random() * 80;
-                const height = 120 + Math.random() * 90;
-                const y = canvasH - height;
-
-                buildings.push({
-                    x: nextX + gap,
-                    y: y,
-                    width: width,
-                    height: height,
-                    color: getRandomBuildingColor(),
-                    hasSpire: Math.random() > 0.7,
-                    cleared: false
-                });
-
-                // Chance to place a golden pretzel
-                if (Math.random() > 0.4) {
-                    items.push({
-                        x: nextX + gap + width / 2,
-                        y: y - 30 - Math.random() * 40,
-                        collected: false,
-                        angle: Math.random() * Math.PI
-                    });
-                }
-
-                nextX = nextX + gap + width;
+                spawnNextBuilding();
             }
-
-            // Simple procedurally generated decorative clouds
-            clouds = [
-                { x: 50, y: 80, speed: 0.1, size: 30 },
-                { x: 220, y: 130, speed: 0.15, size: 45 },
-                { x: 380, y: 60, speed: 0.08, size: 25 }
-            ];
         }
 
-        // Historic color palette for elegant buildings
         function getRandomBuildingColor() {
+            // ミュンヘン風のレンガ造りやモダンビルカラー
             const colors = [
-                '#3e2a1d', // Antique Umber
-                '#2c1f17', // Dark Espresso
-                '#4d372c', // Warm Sepia
-                '#231e1a', // Slate Charcoal
-                '#52362a'  // Redwood Mahogany
+                '#3e4a59', '#2c3e50', '#5c3d2e', '#4a47a3', '#1e2022',
+                '#34495e', '#7f8c8d', '#27ae60', '#d35400', '#2980b9'
             ];
             return colors[Math.floor(Math.random() * colors.length)];
         }
-    </script>
 
-    <script>
-        // --- CONTROLS IMPLEMENTATION ---
+        function spawnNextBuilding() {
+            const lastBuilding = buildings[buildings.length - 1];
+            const minGap = 80;
+            const maxGap = gameState.hardMode ? 220 : 160;
+            const gap = minGap + Math.random() * (maxGap - minGap);
 
-        function handleJump() {
-            if (!isPlaying) return;
+            const width = 180 + Math.random() * 200;
+            const height = 150 + Math.random() * 250;
+            const x = lastBuilding.x + lastBuilding.width + gap;
+            // あまり急激な高低差にしない
+            const maxDeltaY = 120;
+            let y = lastBuilding.y + (Math.random() * 2 - 1) * maxDeltaY;
 
-            // Jump limit of 2 (Double-jump enabled)
-            if (player.jumpCount < 2) {
-                player.vy = player.jumpForce;
-                player.jumpCount++;
-                player.targetRotation -= 1.5; // Slight back-roll effect on jumps
-                
-                // Add tiny landing/jumping dust particles
-                createDustParticles(player.x, player.y + player.radius, 8);
-                
-                playSynthSound('jump');
-            }
+            // 画面外に行きすぎないよう調整
+            if (y < canvas.height * 0.35) y = canvas.height * 0.35;
+            if (y > canvas.height - 120) y = canvas.height - 120;
+
+            const newBuilding = {
+                x: x,
+                y: y,
+                width: width,
+                height: height + 300, // 下まで隠れる長さ
+                color: getRandomBuildingColor()
+            };
+
+            buildings.push(newBuilding);
+
+            // このビル上にコインやアイテムを生成
+            spawnItemsOnBuilding(newBuilding);
         }
 
-        // Setup desktop controls
-        window.addEventListener('keydown', (e) => {
-            if (e.code === 'Space' || e.code === 'ArrowUp') {
-                e.preventDefault();
-                handleJump();
-            }
-        });
+        function spawnItemsOnBuilding(b) {
+            const itemCount = Math.floor(Math.random() * 4); // 0〜3個のコインまたは特殊アイテム
+            const itemSpacing = b.width / (itemCount + 1);
 
-        // Touch/Click triggers anywhere on active gameplay screen
-        canvas.addEventListener('mousedown', (e) => {
-            handleJump();
-        });
+            for (let i = 1; i <= itemCount; i++) {
+                const itemX = b.x + i * itemSpacing;
+                const itemY = b.y - 30 - Math.random() * 40; // ビルの少し上に浮く
 
-        canvas.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            handleJump();
-        });
+                // 確率でコイン、ライフ、磁石
+                const rand = Math.random();
+                let type = 'coin';
+                if (rand < 0.08) {
+                    type = 'life';
+                } else if (rand < 0.18) {
+                    type = 'magnet';
+                }
 
-        // Spawn beautiful physical dust effects
-        function createDustParticles(x, y, count) {
-            for (let i = 0; i < count; i++) {
-                particles.push({
-                    x: x,
-                    y: y,
-                    vx: (Math.random() - 0.5) * 4,
-                    vy: (Math.random() - 0.7) * 3,
-                    alpha: 1.0,
-                    size: 3 + Math.random() * 5,
-                    color: '#d4af37' // gold dust sparks
+                items.push({
+                    id: 'item_' + Date.now() + '_' + Math.floor(Math.random()*1000),
+                    x: itemX,
+                    y: itemY,
+                    type: type,
+                    width: 20,
+                    height: 20,
+                    pulse: Math.random() * Math.PI
                 });
             }
         }
-    </script>
 
-    <script>
-        // --- CANVAS RENDER & DRAW ROUTINES ---
 
-        function drawBackground(canvasW, canvasH) {
-            // Draw Sepia Historical Background
-            if (bgImgLoaded) {
-                // Apply a sophisticated vignette and warm vintage tint
-                ctx.drawImage(bgImg, 0, 0, canvasW, canvasH);
-                
-                // Overlay vintage parchment tint
-                ctx.fillStyle = 'rgba(40, 24, 12, 0.45)';
-                ctx.fillRect(0, 0, canvasW, canvasH);
+        // --- 6. PHYSICS & GAME LOOP ---
+
+        function updatePhysics() {
+            if (!gameState.running || gameState.paused) return;
+
+            // 1. スクロール速度の設定
+            const baseSpeed = gameState.hardMode ? 5.5 : 3.8;
+            const speedMultiplier = 1 + (gameState.score / 5000); // 距離で少しずつ加速
+            const scrollSpeed = baseSpeed * speedMultiplier;
+
+            // プレイヤーを画面追従させるため、仮想カメラを前進させる
+            gameState.cameraX += scrollSpeed;
+            player.x = gameState.cameraX + 120; // 画面の固定位置を走る
+
+            // 2. プレイヤー重力処理
+            const activeChar = CHARACTERS.find(c => c.id === gameState.selectedChar);
+            const gravityFactor = activeChar ? activeChar.gravityFactor : 1.0;
+
+            // 長押し（ぐるぐる）中は落下速度を1/6に低下
+            if (player.isSpinning && player.vy > 0) {
+                player.vy += (player.gravity * gravityFactor) / 6;
+                // 落下終端速度も極めて小さくする
+                if (player.vy > 1.5) player.vy = 1.5;
+                player.spinAngle += 0.25; // 高速でくるくる回転
             } else {
-                // Classic gradient fallback if image is offline
-                let grad = ctx.createLinearGradient(0, 0, 0, canvasH);
-                grad.addColorStop(0, '#1c120c');
-                grad.addColorStop(1, '#0c0704');
-                ctx.fillStyle = grad;
-                ctx.fillRect(0, 0, canvasW, canvasH);
+                player.vy += player.gravity * gravityFactor;
+                // 通常の最大落下速度
+                if (player.vy > 12) player.vy = 12;
+                if (player.vy !== 0) {
+                    // 空中ではゆるやかに回転
+                    player.spinAngle += player.vy * 0.03;
+                }
             }
 
-            // Draw slow parallax Munich Skyline Spire silhouettes
-            ctx.fillStyle = 'rgba(60, 42, 30, 0.25)';
-            skylineSpires.forEach(spire => {
-                // Slow scrolling parallax based on player progression
-                let px = (spire.x - bgScrollX * 0.2) % (canvasW + 100);
-                if (px < -50) px += (canvasW + 150);
+            player.y += player.vy;
 
-                ctx.beginPath();
-                if (spire.type === 'spire') {
-                    ctx.moveTo(px, canvasH);
-                    ctx.lineTo(px + spire.w / 2, canvasH - spire.h);
-                    ctx.lineTo(px + spire.w, canvasH);
-                } else if (spire.type === ' Frauenkirche') {
-                    // Twin bulbous dome towers representing historical Munich cathedral
-                    const tw = spire.w * 0.4;
-                    // Left Tower
-                    ctx.rect(px, canvasH - spire.h + 20, tw, spire.h);
-                    ctx.arc(px + tw/2, canvasH - spire.h + 20, tw*0.8, Math.PI, 0);
-                    // Right Tower
-                    ctx.rect(px + spire.w - tw, canvasH - spire.h + 20, tw, spire.h);
-                    ctx.arc(px + spire.w - tw/2, canvasH - spire.h + 20, tw*0.8, Math.PI, 0);
-                } else {
-                    // Classic European stepped gables
-                    ctx.moveTo(px, canvasH);
-                    ctx.lineTo(px, canvasH - spire.h + 30);
-                    ctx.lineTo(px + spire.w * 0.3, canvasH - spire.h + 30);
-                    ctx.lineTo(px + spire.w * 0.3, canvasH - spire.h + 15);
-                    ctx.lineTo(px + spire.w * 0.7, canvasH - spire.h + 15);
-                    ctx.lineTo(px + spire.w * 0.7, canvasH - spire.h + 30);
-                    ctx.lineTo(px + spire.w, canvasH - spire.h + 30);
-                    ctx.lineTo(px + spire.w, canvasH);
-                }
-                ctx.fill();
-            });
+            // 3. 特殊アイテムタイマー
+            if (player.magnetTimer > 0) {
+                player.magnetTimer--;
+            }
 
-            // Draw Clouds in the sky
-            ctx.fillStyle = 'rgba(235, 215, 185, 0.08)';
-            clouds.forEach(cloud => {
-                cloud.x -= cloud.speed;
-                if (cloud.x + cloud.size * 2 < 0) {
-                    cloud.x = canvasW + 20;
-                }
-                ctx.beginPath();
-                ctx.arc(cloud.x, cloud.y, cloud.size, 0, Math.PI * 2);
-                ctx.arc(cloud.x + cloud.size*0.7, cloud.y - cloud.size*0.3, cloud.size * 0.8, 0, Math.PI * 2);
-                ctx.arc(cloud.x + cloud.size*1.3, cloud.y, cloud.size * 0.9, 0, Math.PI * 2);
-                ctx.fill();
-            });
-        }
+            // 4. 地面（ビル）との衝突判定
+            let wasGrounded = player.isGrounded;
+            player.isGrounded = false;
 
-        // Draw elegant Munich historic-styled buildings
-        function drawBuilding(b) {
-            // Draw building wall body
-            ctx.fillStyle = b.color;
-            ctx.fillRect(b.x, b.y, b.width, b.height);
-
-            // Side border / architectural pillars (aesthetic highlights)
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
-            ctx.fillRect(b.x, b.y, 8, b.height);
-            ctx.fillRect(b.x + b.width - 8, b.y, 8, b.height);
-
-            // Draw Vintage Windows
-            ctx.fillStyle = 'rgba(235, 190, 80, 0.6)'; // Yellow glowing cozy windows
-            const winRows = Math.floor(b.height / 35);
-            const winCols = Math.floor(b.width / 30);
-
-            for (let r = 1; r < winRows - 1; r++) {
-                for (let c = 0; c < winCols; c++) {
-                    // Slight randomization in window illumination
-                    if ((r + c) % 3 !== 0) {
-                        const wx = b.x + 15 + c * 28;
-                        const wy = b.y + 20 + r * 30;
-                        // Elegant historic arched window shape
-                        ctx.beginPath();
-                        ctx.rect(wx, wy + 4, 8, 12);
-                        ctx.arc(wx + 4, wy + 4, 4, Math.PI, 0);
-                        ctx.fill();
+            for (let b of buildings) {
+                // プレイヤーの足元がビルの上面と交差するか
+                if (player.x + player.radius - 10 > b.x && 
+                    player.x - player.radius + 10 < b.x + b.width) {
+                    
+                    // 足元が乗る判定
+                    if (player.y + player.radius >= b.y && 
+                        player.y - player.radius + player.vy <= b.y + 15) {
+                        
+                        player.y = b.y - player.radius;
+                        player.vy = 0;
+                        player.isGrounded = true;
+                        player.jumpCount = 0; // ジャンプカウント回復
+                        player.spinAngle = 0; // 着地したら回転リセット
+                        
+                        if (!wasGrounded) {
+                            // 着地エフェクト
+                            createLandingParticles(player.x, player.y + player.radius);
+                        }
+                        break;
                     }
                 }
             }
 
-            // Draw Historic Gable Sloped Roof (Red tile coloring)
-            ctx.fillStyle = '#8b3e2f'; // Terracotta
-            ctx.beginPath();
-            ctx.moveTo(b.x - 4, b.y);
-            ctx.lineTo(b.x + b.width / 2, b.y - 18);
-            ctx.lineTo(b.x + b.width + 4, b.y);
-            ctx.closePath();
-            ctx.fill();
-
-            // Roof highlight rim
-            ctx.strokeStyle = '#d4af37';
-            ctx.lineWidth = 1.5;
-            ctx.stroke();
-
-            // Draw miniature decorative spires, weathercocks or cupolas
-            if (b.hasSpire) {
-                ctx.fillStyle = '#5a504a'; // Iron spires
-                ctx.fillRect(b.x + b.width / 2 - 2, b.y - 38, 4, 20);
-                
-                ctx.beginPath();
-                ctx.arc(b.x + b.width / 2, b.y - 38, 4, 0, Math.PI*2);
-                ctx.fillStyle = '#d4af37'; // Golden top ball
-                ctx.fill();
+            // 5. ビル生成と古いビルの削除
+            if (buildings.length > 0 && buildings[0].x + buildings[0].width < gameState.cameraX - 100) {
+                buildings.shift();
             }
-        }
-
-        // Draw dynamic rotating Golden Pretzel collectibles
-        function drawPretzel(item) {
-            ctx.save();
-            ctx.translate(item.x, item.y);
-            ctx.rotate(item.angle);
-
-            // Stylize as a detailed vintage gold pretzel
-            ctx.strokeStyle = '#d4af37';
-            ctx.lineWidth = 4;
-            ctx.lineJoin = 'round';
-
-            // Draw continuous pretzel looping path
-            ctx.beginPath();
-            // Outer round loops
-            ctx.arc(-6, 0, 7, 0, Math.PI * 2);
-            ctx.arc(6, 0, 7, 0, Math.PI * 2);
-            // Crossing ribbon patterns
-            ctx.moveTo(-10, -3);
-            ctx.quadraticCurveTo(0, 10, 10, -3);
-            ctx.stroke();
-
-            // Core shimmer glow
-            ctx.strokeStyle = '#fff8e7';
-            ctx.lineWidth = 1;
-            ctx.stroke();
-
-            ctx.restore();
-        }
-
-        // Draw Player (The Selected Polandball)
-        function drawPlayer() {
-            ctx.save();
-            ctx.translate(player.x, player.y);
-            ctx.rotate(player.rotation);
-
-            if (ballImageLoaded) {
-                // Drawing the official high-quality hand-drawn Github Polandball asset
-                ctx.drawImage(
-                    ballImage, 
-                    -player.radius - 2, 
-                    -player.radius - 2, 
-                    player.radius * 2 + 4, 
-                    player.radius * 2 + 4
-                );
-            } else {
-                // Highly polished procedurally hand-drawn Germany ball fallback if offline
-                ctx.beginPath();
-                ctx.arc(0, 0, player.radius, 0, Math.PI * 2);
-                ctx.clip();
-
-                // Germany Flag Stripes
-                const h = (player.radius * 2) / 3;
-                ctx.fillStyle = '#000000'; // Black
-                ctx.fillRect(-player.radius, -player.radius, player.radius * 2, h);
-                ctx.fillStyle = '#dd0000'; // Red
-                ctx.fillRect(-player.radius, -player.radius + h, player.radius * 2, h);
-                ctx.fillStyle = '#ffcc00'; // Gold
-                ctx.fillRect(-player.radius, -player.radius + h * 2, player.radius * 2, h);
-
-                // Cute fallback historical eyes (Classic Polandball aesthetic)
-                ctx.fillStyle = '#ffffff';
-                ctx.beginPath();
-                ctx.arc(-6, -4, 5, 0, Math.PI * 2);
-                ctx.arc(6, -4, 5, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.strokeStyle = '#000000';
-                ctx.lineWidth = 1.5;
-                ctx.beginPath();
-                ctx.arc(-6, -4, 5, 0, Math.PI * 2);
-                ctx.arc(6, -4, 5, 0, Math.PI * 2);
-                ctx.stroke();
+            while (buildings.length < 6) {
+                spawnNextBuilding();
             }
 
-            // Draw sleek, subtle drop-shadow beneath ball on jump
-            ctx.restore();
-        }
-    </script>
+            // 6. コイン・アイテムの取得判定 & 磁石引き寄せ
+            const collectRadius = (gameState.selectedChar === 'poland' && player.isSpinning) ? 140 : 70; // ポーランドボールの長押しボーナス
 
-    <script>
-        // --- GAME LOOP & UPDATES ---
+            items.forEach((item, index) => {
+                // 磁石効果中なら引き寄せ
+                if (player.magnetTimer > 0 && item.type === 'coin') {
+                    const dx = player.x - item.x;
+                    const dy = player.y - item.y;
+                    const dist = Math.sqrt(dx*dx + dy*dy);
+                    if (dist < 180) {
+                        // プレイヤーへ向けて加速
+                        item.x += (dx / dist) * 7;
+                        item.y += (dy / dist) * 7;
+                    }
+                }
 
-        let lastTime = 0;
+                const dx = player.x - item.x;
+                const dy = player.y - item.y;
+                const dist = Math.sqrt(dx*dx + dy*dy);
 
-        function gameLoop(timestamp) {
-            if (!lastTime) lastTime = timestamp;
-            const dt = (timestamp - lastTime) / 16.666; // Normalize around 60fps
-            lastTime = timestamp;
+                if (dist < player.radius + item.width/2 + 5) {
+                    // アイテム回収
+                    triggerHaptic(15);
+                    if (item.type === 'coin') {
+                        let coinBonus = 1;
+                        if (gameState.selectedChar === 'italy') coinBonus = 2; // イタリアのコインボーナス
 
-            const canvasW = canvas.width / window.devicePixelRatio || 360;
-            const canvasH = canvas.height / window.devicePixelRatio || 640;
+                        gameState.coins += 1;
+                        gameState.score += 100 * coinBonus;
+                        playSound('coin');
+                        createScoreText(item.x, item.y, `+$${100 * coinBonus}`, '#fbbf24');
+                    } else if (item.type === 'life') {
+                        if (gameState.lives < gameState.maxLives) {
+                            gameState.lives++;
+                            updateHUDAura();
+                            playSound('powerup');
+                            createScoreText(item.x, item.y, "+1 LIFE", '#f43f5e');
+                        } else {
+                            // ライフ満タン時はコインボーナスに変換
+                            gameState.score += 500;
+                            playSound('coin');
+                            createScoreText(item.x, item.y, "+500 BONUS", '#10b981');
+                        }
+                    } else if (item.type === 'magnet') {
+                        // フランスボールは磁石時間が1.5倍長持ち
+                        const magnetDuration = (gameState.selectedChar === 'france') ? 450 : 300;
+                        player.magnetTimer = magnetDuration;
+                        playSound('powerup');
+                        createScoreText(item.x, item.y, "MAGNET ON!", '#06b6d4');
+                    }
 
-            if (isPlaying) {
-                updateGame(dt, canvasW, canvasH);
-            }
+                    // 接続相手に回収情報を送信（重複取得を防ぐ）
+                    if (conn && conn.open) {
+                        conn.send({
+                            type: 'item_collected',
+                            itemId: item.id
+                        });
+                    }
 
-            // Draw Everything
-            ctx.clearRect(0, 0, canvasW, canvasH);
-            drawBackground(canvasW, canvasH);
-
-            // Render Platforms
-            buildings.forEach(b => drawBuilding(b));
-
-            // Render Coins/Pretzels
-            items.forEach(item => {
-                if (!item.collected) drawPretzel(item);
+                    items.splice(index, 1);
+                }
             });
 
-            // Render Spark Particles
+            // 画面外のアイテム削除
+            items = items.filter(item => item.x > gameState.cameraX - 100);
+
+            // 7. パーティクル更新
             particles.forEach((p, idx) => {
                 p.x += p.vx;
                 p.y += p.vy;
-                p.alpha -= 0.03;
-                if (p.alpha <= 0) {
-                    particles.splice(idx, 1);
-                } else {
-                    ctx.save();
-                    ctx.globalAlpha = p.alpha;
-                    ctx.fillStyle = p.color;
-                    ctx.beginPath();
-                    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.restore();
-                }
+                p.alpha -= p.decay;
+                if (p.alpha <= 0) particles.splice(idx, 1);
             });
 
-            // Draw Playable Polandball
-            drawPlayer();
+            // 雲のスクロール
+            cloudAssets.forEach(c => {
+                c.x -= c.speed;
+                if (c.x < -150) c.x = canvas.width + 100;
+            });
 
-            requestAnimationFrame(gameLoop);
+            // 8. スコア進行
+            gameState.score += Math.floor(scrollSpeed * 0.1);
+            updateHUDValues();
+
+            // 9. 落下・ゲームオーバー判定
+            if (player.y > canvas.height + 80) {
+                handlePlayerHit();
+            }
+
+            // 10. 相手プレイヤーとの位置情報送信
+            if (conn && conn.open) {
+                conn.send({
+                    type: 'sync',
+                    x: player.x,
+                    y: player.y,
+                    isSpinning: player.isSpinning,
+                    spinAngle: player.spinAngle,
+                    lives: gameState.lives,
+                    charId: gameState.selectedChar
+                });
+            }
         }
 
-        // --- UPDATE SIMULATION LOGIC ---
-        function updateGame(dt, canvasW, canvasH) {
-            // Speed slowly escalates to increase difficulty
-            speedMultiplier += 0.0003 * dt;
-            const baseScrollSpeed = 3.5 * speedMultiplier;
-            bgScrollX += baseScrollSpeed;
+        // ダメージ/落下時の処理
+        function handlePlayerHit() {
+            triggerHaptic(50);
+            playSound('hit');
+            gameState.lives--;
+            updateHUDAura();
 
-            // Apply gravity and update player coordinates
-            player.vy += player.gravity * dt;
-            player.y += player.vy * dt;
+            if (gameState.lives <= 0) {
+                endGame("ビル群から落下してしまいました！");
+            } else {
+                // まだライフがある場合は最寄りの直近のビルへリスポーン
+                showToast("復活！", "残りライフ: " + gameState.lives, "favorite");
+                
+                // 現在カメラ位置から最も近いビルを特定
+                const currentBuilding = buildings.find(b => b.x + b.width > player.x) || buildings[0];
+                player.x = currentBuilding.x + 40;
+                player.y = currentBuilding.y - 120;
+                player.vy = 0;
+                player.isGrounded = false;
+                player.jumpCount = 0;
+            }
+        }
 
-            // Clean rotation transition for smooth rolls
-            player.rotation += (player.targetRotation - player.rotation) * 0.1 * dt;
-            player.rotation += 0.04 * dt; // Slow passive roll forwards
-
-            // Move and recycle buildings
-            let furthestX = 0;
-            buildings.forEach(b => {
-                b.x -= baseScrollSpeed * dt;
-                if (b.x + b.width > furthestX) {
-                    furthestX = b.x + b.width;
-                }
-            });
-
-            // If furthest building is approaching container right edge, spawn next one
-            if (furthestX < canvasW + 150) {
-                const gap = 60 + Math.random() * 80;
-                const width = 110 + Math.random() * 110;
-                const height = 120 + Math.random() * 120;
-                const y = canvasH - height;
-
-                buildings.push({
-                    x: furthestX + gap,
-                    y: y,
-                    width: width,
-                    height: height,
-                    color: getRandomBuildingColor(),
-                    hasSpire: Math.random() > 0.7,
-                    cleared: false
-                });
-
-                // Spawn collectible golden Munich Pretzel
-                if (Math.random() > 0.35) {
-                    items.push({
-                        x: furthestX + gap + width / 2,
-                        y: y - 25 - Math.random() * 45,
-                        collected: false,
-                        angle: Math.random() * Math.PI
-                    });
-                }
+        function endGame(reason) {
+            gameState.running = false;
+            
+            // 接続中の相手に通知
+            if (conn && conn.open) {
+                conn.send({ type: 'gameover' });
             }
 
-            // Cleanup off-screen buildings
-            if (buildings.length > 0 && buildings[0].x + buildings[0].width < -50) {
-                buildings.shift();
+            if (gameState.score > gameState.highScore) {
+                gameState.highScore = gameState.score;
+                localStorage.setItem('pb_high_score', gameState.highScore);
             }
 
-            // Handle items collection, animation, and screen removal
-            items.forEach((item, idx) => {
-                item.x -= baseScrollSpeed * dt;
-                item.angle += 0.02 * dt; // Rotate prebiotic visual
+            document.getElementById('gameover-reason').textContent = reason;
+            document.getElementById('final-score').textContent = Math.floor(gameState.score).toLocaleString();
+            document.getElementById('final-coins').textContent = gameState.coins;
+            document.getElementById('high-score').textContent = Math.floor(gameState.highScore).toLocaleString();
 
-                // Broad collision check with Polandball radius bounds
-                const dx = player.x - item.x;
-                const dy = player.y - item.y;
-                const distance = Math.sqrt(dx*dx + dy*dy);
+            document.getElementById('gameover-modal').classList.remove('hidden');
+        }
 
-                if (!item.collected && distance < player.radius + 15) {
-                    item.collected = true;
-                    score += 150; // Prestige Pretzel points
-                    document.getElementById('current-score-text').textContent = score;
-                    createDustParticles(item.x, item.y, 10);
-                    playSynthSound('coin');
-                }
 
-                // Cleanup offscreen items
-                if (item.x < -30) {
-                    items.splice(idx, 1);
-                }
-            });
+        // --- 7. RENDERING ENGINE ---
 
-            // Perform platform collision detection
-            let onGround = false;
+        function drawGame() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // カメラ変換の開始
+            ctx.save();
+            ctx.translate(-gameState.cameraX, 0);
+
+            // 1. 雲の描画（背景要素としてゆっくり追従）
+            ctx.restore(); // 一旦リセットしてスクリーン固定で描画
+            drawClouds();
+            ctx.save();
+            ctx.translate(-gameState.cameraX, 0);
+
+            // 2. ミュンヘンの遠景シルエット (市庁舎やタワー風のランドマークを薄く描く)
+            drawMunichSilhouette();
+
+            // 3. ビル群の描画
             buildings.forEach(b => {
-                // Check horizontal landing overlap
-                if (player.x + player.radius - 4 > b.x && player.x - player.radius + 4 < b.x + b.width) {
-                    // Check top landing overlap with tolerance
-                    const fallSpeed = player.vy;
-                    if (player.y + player.radius >= b.y && player.y + player.radius - fallSpeed * dt <= b.y + 12) {
-                        // Landed on roof successfully
-                        player.y = b.y - player.radius;
-                        player.vy = 0;
-                        player.jumpCount = 0;
-                        onGround = true;
+                // ビル本体
+                ctx.fillStyle = b.color;
+                ctx.beginPath();
+                ctx.roundRect(b.x, b.y, b.width, b.height, 12);
+                ctx.fill();
 
-                        // Increment score for clearing buildings
-                        if (!b.cleared) {
-                            b.cleared = true;
-                            clearedBuildings++;
-                            score += 100;
-                            document.getElementById('current-score-text').textContent = score;
-                        }
+                // 屋上のライトアップ / アンテナ
+                ctx.fillStyle = '#10b981';
+                ctx.fillRect(b.x + 20, b.y - 5, 6, 5);
+                ctx.fillStyle = '#ef4444';
+                ctx.fillRect(b.x + b.width - 26, b.y - 5, 6, 5);
+
+                // 窓ガラスの描画
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+                const cols = Math.floor(b.width / 40);
+                const rows = 5;
+                for (let c = 0; c < cols; c++) {
+                    for (let r = 0; r < rows; r++) {
+                        ctx.fillRect(
+                            b.x + 15 + c * 38,
+                            b.y + 25 + r * 35,
+                            18,
+                            22
+                        );
                     }
                 }
             });
 
-            // Passive score increment over distance run
-            score += Math.round(0.15 * dt * 10) / 10;
-            document.getElementById('current-score-text').textContent = Math.round(score);
+            // 4. アイテムの描画
+            items.forEach(item => {
+                item.pulse += 0.05;
+                const sizeBonus = Math.sin(item.pulse) * 3;
 
-            // Game over check: player falls into roof alley gap
-            if (player.y - player.radius > canvasH) {
-                triggerGameOver();
+                ctx.save();
+                ctx.translate(item.x, item.y);
+
+                if (item.type === 'coin') {
+                    // コインの描画
+                    ctx.fillStyle = '#fbbf24';
+                    ctx.strokeStyle = '#d97706';
+                    ctx.lineWidth = 2.5;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 10 + sizeBonus/2, 0, Math.PI*2);
+                    ctx.fill();
+                    ctx.stroke();
+                    // 内側のシンボル
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = 'bold 10px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('$', 0, 1);
+                } else if (item.type === 'life') {
+                    // ライフ（ハート）
+                    ctx.fillStyle = '#ef4444';
+                    ctx.font = '18px serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('❤️', 0, sizeBonus/2);
+                } else if (item.type === 'magnet') {
+                    // 磁石 (U字型)
+                    ctx.fillStyle = '#ef4444';
+                    ctx.strokeStyle = '#3b82f6';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 12, Math.PI, 0, false);
+                    ctx.stroke();
+                    // 磁石っぽさ
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(-12, -4, 4, 6);
+                    ctx.fillRect(8, -4, 4, 6);
+                }
+
+                ctx.restore();
+            });
+
+            // 5. パーティクルの描画
+            particles.forEach(p => {
+                ctx.fillStyle = p.color;
+                ctx.globalAlpha = p.alpha;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
+                ctx.fill();
+            });
+            ctx.globalAlpha = 1.0; // リセット
+
+            // 6. 接続中相手プレイヤーの描画
+            if (peerPlayer.active && peerPlayer.imgElement) {
+                ctx.save();
+                ctx.translate(peerPlayer.x, peerPlayer.y);
+                
+                // ネームタグ
+                ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                ctx.font = 'bold 9px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.roundRect(-25, -peerPlayer.radius - 20, 50, 14, 4);
+                ctx.fill();
+                ctx.fillStyle = '#10b981';
+                ctx.fillText('PLAYER 2', 0, -peerPlayer.radius - 10);
+
+                if (peerPlayer.isSpinning) {
+                    ctx.rotate(peerPlayer.spinAngle);
+                }
+                
+                ctx.drawImage(
+                    peerPlayer.imgElement,
+                    -peerPlayer.radius,
+                    -peerPlayer.radius,
+                    peerPlayer.radius * 2,
+                    peerPlayer.radius * 2
+                );
+                ctx.restore();
+            }
+
+            // 7. 自分（自機プレイヤー）の描画
+            ctx.save();
+            ctx.translate(player.x, player.y);
+
+            // 磁石オーラ
+            if (player.magnetTimer > 0) {
+                ctx.strokeStyle = 'rgba(6, 182, 212, 0.4)';
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.arc(0, 0, player.radius + 15 + Math.sin(Date.now() * 0.01) * 5, 0, Math.PI*2);
+                ctx.stroke();
+            }
+
+            // 回転処理
+            ctx.rotate(player.spinAngle);
+
+            if (player.hasSkinImage && player.imgElement) {
+                // 球体としてのクオリティを出すための丸いクリッピング
+                ctx.beginPath();
+                ctx.arc(0, 0, player.radius, 0, Math.PI*2);
+                ctx.clip();
+                
+                // ポーランドボール画像描画
+                ctx.drawImage(
+                    player.imgElement,
+                    -player.radius,
+                    -player.radius,
+                    player.radius * 2,
+                    player.radius * 2
+                );
+            } else {
+                // フォールバック用のカラー円球
+                ctx.fillStyle = '#3b82f6';
+                ctx.beginPath();
+                ctx.arc(0, 0, player.radius, 0, Math.PI*2);
+                ctx.fill();
+            }
+
+            ctx.restore(); // 変換行列復元
+
+            // カメラ変換の終了
+            ctx.restore();
+        }
+
+        // ミュンヘン風の薄い遠景シルエット
+        function drawMunichSilhouette() {
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.04)';
+            
+            // フラウエン教会（Frauenkirche：2つのドーム型塔）のシルエットを模して描画
+            const startX = Math.floor(gameState.cameraX * 0.4) % canvas.width;
+            
+            // ランドマークをいくつか並べて配置
+            for (let i = -1; i < 3; i++) {
+                const drawX = i * 400 - startX;
+                
+                // フラウエン教会風ドームツインタワー
+                ctx.fillRect(drawX + 50, canvas.height - 350, 40, 200);
+                ctx.fillRect(drawX + 105, canvas.height - 350, 40, 200);
+                
+                ctx.beginPath();
+                ctx.arc(drawX + 70, canvas.height - 350, 20, Math.PI, 0);
+                ctx.arc(drawX + 125, canvas.height - 350, 20, Math.PI, 0);
+                ctx.fill();
+
+                // テレビ塔(Olympiaturm)風タワー
+                ctx.fillRect(drawX + 220, canvas.height - 420, 10, 300);
+                ctx.beginPath();
+                ctx.arc(drawX + 225, canvas.height - 420, 25, 0, Math.PI*2);
+                ctx.fill();
+                ctx.fillRect(drawX + 223, canvas.height - 470, 4, 50);
             }
         }
 
-        // Game Over Trigger
-        function triggerGameOver() {
-            isPlaying = false;
-            playSynthSound('death');
+        // 雲の描画
+        function drawClouds() {
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+            cloudAssets.forEach(c => {
+                ctx.save();
+                ctx.globalAlpha = c.opacity;
+                ctx.translate(c.x, c.y);
+                ctx.scale(c.scale, c.scale);
 
-            const finalScore = Math.round(score);
-            if (finalScore > bestScore) {
-                bestScore = finalScore;
-                localStorage.setItem('munichdash_best', bestScore);
-            }
+                ctx.beginPath();
+                ctx.arc(50, 50, 30, 0, Math.PI * 2);
+                ctx.arc(80, 40, 35, 0, Math.PI * 2);
+                ctx.arc(110, 50, 30, 0, Math.PI * 2);
+                ctx.arc(80, 60, 30, 0, Math.PI * 2);
+                ctx.fill();
 
-            // Update Stats Display elements
-            document.getElementById('final-score-val').textContent = finalScore;
-            document.getElementById('best-score-val').textContent = bestScore;
-            document.getElementById('cleared-buildings-val').textContent = clearedBuildings;
-
-            // Animated transition display
-            document.getElementById('screen-gameover').classList.remove('hidden');
+                ctx.restore();
+            });
+            ctx.globalAlpha = 1.0;
         }
-    </script>
 
-    <script>
-        // --- SCREEN ROUTING & MENU EVENTS ---
+        // パーティクル生成 (着地時)
+        function createLandingParticles(x, y) {
+            for (let i = 0; i < 8; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: (Math.random() * 2 - 1) * 3,
+                    vy: -Math.random() * 2,
+                    size: 2 + Math.random() * 3,
+                    color: '#ffffff',
+                    alpha: 1.0,
+                    decay: 0.03 + Math.random() * 0.02
+                });
+            }
+        }
 
-        const titleScreen = document.getElementById('screen-title');
-        const characterScreen = document.getElementById('screen-character');
-        const gameOverScreen = document.getElementById('screen-gameover');
+        // スコアテキストポップアップ
+        function createScoreText(x, y, text, color) {
+            particles.push({
+                x: x,
+                y: y,
+                vx: 0,
+                vy: -1.5,
+                size: 1, // ダミーとして使用
+                color: color,
+                alpha: 1.0,
+                decay: 0.02,
+                isText: true,
+                text: text
+            });
+        }
 
-        // Main Menu Start Game Click
-        document.getElementById('btn-start').addEventListener('click', () => {
-            titleScreen.classList.add('hidden');
-            initGame();
-            isPlaying = true;
-        });
 
-        // Main Menu to Ball Selection Panel
-        document.getElementById('btn-choose-char').addEventListener('click', () => {
-            titleScreen.classList.add('hidden');
-            characterScreen.classList.remove('hidden');
-        });
+        // --- 8. GAME CONTROL FLOW & EVENTS ---
 
-        // Ball Selection Confirm Return
-        document.getElementById('btn-char-confirm').addEventListener('click', () => {
-            characterScreen.classList.add('hidden');
-            titleScreen.classList.remove('hidden');
-        });
+        function startGame() {
+            // ゲームオーバー画面等を隠す
+            document.getElementById('gameover-modal').classList.add('hidden');
+            document.getElementById('tap-to-start-overlay').classList.add('opacity-0');
+            setTimeout(() => {
+                document.getElementById('tap-to-start-overlay').classList.add('hidden');
+            }, 300);
 
-        // Retry Gameplay Click
-        document.getElementById('btn-retry').addEventListener('click', () => {
-            gameOverScreen.classList.add('hidden');
-            initGame();
-            isPlaying = true;
-        });
+            // キャラクターに合わせたステータス設定
+            const activeChar = CHARACTERS.find(c => c.id === gameState.selectedChar);
+            gameState.lives = activeChar ? activeChar.baseLives : 2;
+            gameState.maxLives = activeChar ? activeChar.baseLives : 2;
+            player.jumpPower = activeChar ? activeChar.jumpPower : 11.5;
 
-        // Game Over Menu Return
-        document.getElementById('btn-main-menu').addEventListener('click', () => {
-            gameOverScreen.classList.add('hidden');
-            titleScreen.classList.remove('hidden');
-        });
+            // 初期化
+            gameState.score = 0;
+            gameState.coins = 0;
+            gameState.cameraX = 0;
+            
+            player.x = 150;
+            player.y = 150;
+            player.vy = 0;
+            player.isGrounded = false;
+            player.jumpCount = 0;
+            player.isSpinning = false;
+            player.magnetTimer = 0;
 
-        // Fire up main game canvas paint loop
-        requestAnimationFrame(gameLoop);
+            initClouds();
+            initGameObjects();
+            updateHUDAura();
+
+            gameState.running = true;
+            gameState.paused = false;
+
+            showToast("ゲームスタート", "ミュンヘン上空を突き抜けろ！", "explore");
+        }
+
+        // タッチまたは押下処理（上昇・回転開始）
+        function handleActionStart() {
+            if (!gameState.running || gameState.paused) return;
+
+            isPressing = true;
+            pressStartTime = Date.now();
+
+            if (player.jumpCount < player.maxJumps) {
+                // ジャンプ実行
+                player.vy = -player.jumpPower;
+                player.isGrounded = false;
+                player.jumpCount++;
+                player.isSpinning = false; // ジャンプ初期はスピン解除
+                playSound('jump');
+                triggerHaptic(10);
+            } else {
+                // 3回目のタップ or 長押し開始として即座にぐるぐるに入る
+                player.isSpinning = true;
+                document.getElementById('float-indicator').classList.remove('opacity-0');
+            }
+        }
+
+        function handleActionEnd() {
+            isPressing = false;
+            player.isSpinning = false;
+            document.getElementById('float-indicator').classList.add('opacity-0');
+        }
+
+        // 毎フレームごとの長押し監視
+        function checkSpinningAction() {
+            if (isPressing && (Date.now() - pressStartTime > 180)) {
+                // 長押し180ms超過で「空中ぐるぐる(浮遊)」をアクティブに
+                if (!player.isGrounded && player.jumpCount >= 1) {
+                    player.isSpinning = true;
+                    document.getElementById('float-indicator').classList.remove('opacity-0');
+                }
+            }
+        }
+
+
+        // --- 9. UI INTERACTION & INTEGRATION ---
+
+        // UI情報の更新
+        function updateHUDValues() {
+            document.getElementById('hud-score').textContent = Math.floor(gameState.score).toLocaleString();
+            document.getElementById('hud-coins').textContent = gameState.coins;
+        }
+
+        // ライフのハート表示を更新
+        function updateHUDAura() {
+            const container = document.getElementById('hud-lives');
+            container.innerHTML = "";
+            for (let i = 0; i < gameState.lives; i++) {
+                const heart = document.createElement('span');
+                heart.className = "material-symbols-outlined text-[15px] text-red-500 fill-current";
+                heart.style.fontVariationSettings = "'FILL' 1, 'wght' 400";
+                heart.textContent = "favorite";
+                container.appendChild(heart);
+            }
+            if (gameState.lives === 0) {
+                container.textContent = "無し";
+            }
+        }
+
+        // トースト通知システム (iOS風)
+        function showToast(title, msg, icon = "notifications") {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-title').textContent = title;
+            document.getElementById('toast-message').textContent = msg;
+            
+            const iconElem = document.getElementById('toast-icon');
+            iconElem.textContent = icon;
+
+            toast.style.transform = "translateY(0)";
+            triggerHaptic(20);
+
+            setTimeout(() => {
+                toast.style.transform = "translateY(-150%)";
+            }, 3000);
+        }
+
+        // キャラクター切り替え
+        function setCharacterSkin(charId) {
+            gameState.selectedChar = charId;
+            const char = CHARACTERS.find(c => c.id === charId);
+            if (char) {
+                document.getElementById('character-description').textContent = char.desc;
+                
+                // 画像プリロード
+                const img = new Image();
+                img.src = char.img;
+                img.onload = () => {
+                    player.imgElement = img;
+                    player.hasSkinImage = true;
+                };
+
+                // セレクターのアクティブ表示変更
+                document.querySelectorAll('.char-btn').forEach(btn => {
+                    if (btn.dataset.char === charId) {
+                        btn.classList.add('border-blue-500', 'bg-blue-50', 'dark:bg-blue-950/40');
+                        btn.classList.remove('border-[var(--border-color)]');
+                    } else {
+                        btn.classList.remove('border-blue-500', 'bg-blue-50', 'dark:bg-blue-950/40');
+                        btn.classList.add('border-[var(--border-color)]');
+                    }
+                });
+
+                showToast("キャラ変更", `${char.name} を選択しました！`, "person");
+            }
+        }
+
+        // キャラクターセレクターUI動的生成
+        function buildCharacterSelector() {
+            const container = document.getElementById('character-selector');
+            container.innerHTML = "";
+
+            CHARACTERS.forEach(char => {
+                const btn = document.createElement('button');
+                btn.className = `char-btn flex flex-col items-center p-2 rounded-xl border-2 transition-all active:scale-95`;
+                btn.dataset.char = char.id;
+
+                btn.innerHTML = `
+                    <img src="${char.img}" alt="${char.name}" class="w-10 h-10 object-contain mb-1.5 rounded-full bg-slate-100 dark:bg-zinc-800 p-0.5">
+                    <span class="text-[9px] font-bold text-[var(--text-main)] truncate w-full text-center">${char.name}</span>
+                `;
+
+                btn.addEventListener('click', () => setCharacterSkin(char.id));
+                container.appendChild(btn);
+            });
+        }
+
+
+        // --- 10. EVENTS LISTENERS ---
+
+        // iOS設定風画面の各トリガーバインド
+        function bindUIEvents() {
+            
+            // 設定画面の開閉
+            document.getElementById('btn-settings-trigger').addEventListener('click', () => {
+                document.getElementById('settings-modal').classList.remove('hidden');
+                setTimeout(() => {
+                    document.getElementById('settings-modal').children[0].style.transform = "translateY(0)";
+                }, 50);
+                gameState.paused = true;
+            });
+
+            document.getElementById('btn-settings-close').addEventListener('click', () => {
+                document.getElementById('settings-modal').children[0].style.transform = "translateY(100%)";
+                setTimeout(() => {
+                    document.getElementById('settings-modal').classList.add('hidden');
+                }, 300);
+                if (gameState.running) {
+                    gameState.paused = false;
+                } else {
+                    // ゲーム中ではない（ゲームオーバー後またはタイトルから開いた）場合、タイトル画面を再表示
+                    const overlay = document.getElementById('tap-to-start-overlay');
+                    overlay.classList.remove('hidden');
+                    setTimeout(() => {
+                        overlay.classList.remove('opacity-0');
+                    }, 50);
+                }
+            });
+
+            // タイトル画面の設定ボタン
+            document.getElementById('btn-title-settings').addEventListener('click', () => {
+                document.getElementById('settings-modal').classList.remove('hidden');
+                setTimeout(() => {
+                    document.getElementById('settings-modal').children[0].style.transform = "translateY(0)";
+                }, 50);
+                gameState.paused = true;
+            });
+
+            // ポーズ開閉
+            document.getElementById('btn-pause').addEventListener('click', () => {
+                if (gameState.running) {
+                    gameState.paused = true;
+                    document.getElementById('pause-modal').classList.remove('hidden');
+                }
+            });
+
+            document.getElementById('btn-resume').addEventListener('click', () => {
+                gameState.paused = false;
+                document.getElementById('pause-modal').classList.add('hidden');
+            });
+
+            document.getElementById('btn-restart').addEventListener('click', () => {
+                document.getElementById('pause-modal').classList.add('hidden');
+                startGame();
+            });
+
+            // ゲームオーバーから復活
+            document.getElementById('btn-retry').addEventListener('click', () => {
+                startGame();
+            });
+
+            document.getElementById('btn-gameover-settings').addEventListener('click', () => {
+                document.getElementById('gameover-modal').classList.add('hidden');
+                document.getElementById('settings-modal').classList.remove('hidden');
+                setTimeout(() => {
+                    document.getElementById('settings-modal').children[0].style.transform = "translateY(0)";
+                }, 50);
+            });
+
+            // 空模様セグメントコントロール
+            document.querySelectorAll('.segment-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    document.querySelectorAll('.segment-btn').forEach(b => b.classList.remove('segment-active'));
+                    btn.classList.add('segment-active');
+
+                    const container = document.getElementById('game-container');
+                    container.className = "game-canvas-container w-full h-full relative";
+
+                    const bgType = btn.dataset.bg;
+                    gameState.bgTheme = bgType;
+                    if (bgType === 'sunset') {
+                        container.classList.add('sky-sunset');
+                    } else if (bgType === 'day') {
+                        container.classList.add('sky-day');
+                    } else if (bgType === 'midnight') {
+                        container.classList.add('sky-midnight');
+                    }
+                    triggerHaptic(15);
+                });
+            });
+
+            // 音量スライダー
+            document.getElementById('slider-volume').addEventListener('input', (e) => {
+                const vol = parseInt(e.target.value);
+                document.getElementById('volume-val').textContent = vol + "%";
+                gameState.volume = vol / 100;
+            });
+
+            // 難易度トグル
+            document.getElementById('toggle-hard-mode').addEventListener('change', (e) => {
+                gameState.hardMode = e.target.checked;
+                showToast("難易度変更", gameState.hardMode ? "超ハイスピードモード突入！" : "ノーマルスピードに戻りました。", "bolt");
+            });
+
+            // 振動トグル
+            document.getElementById('toggle-haptics').addEventListener('change', (e) => {
+                gameState.haptics = e.target.checked;
+                if (gameState.haptics) {
+                    triggerHaptic(50);
+                }
+            });
+
+            // ダークモードトグル
+            document.getElementById('toggle-dark-mode').addEventListener('change', (e) => {
+                document.body.classList.toggle('dark-mode', e.target.checked);
+                triggerHaptic(20);
+            });
+
+            // 接続ボタン (PeerJS)
+            document.getElementById('btn-connect-peer').addEventListener('click', () => {
+                const opId = document.getElementById('opponent-id-input').value.trim();
+                if (opId) {
+                    document.getElementById('connection-status').textContent = "接続試行中...";
+                    conn = peer.connect(opId);
+                    setupConnectionListeners();
+                }
+            });
+
+            // IDコピー
+            document.getElementById('btn-copy-id').addEventListener('click', () => {
+                if (myPeerIdStr) {
+                    navigator.clipboard.writeText(myPeerIdStr).then(() => {
+                        showToast("IDコピー完了", "クリップボードにコピーしました", "content_copy");
+                    });
+                }
+            });
+
+            // スタート
+            document.getElementById('btn-start-game').addEventListener('click', () => {
+                // Web Audioを有効化するため、ユーザーインタラクションのタイミングで呼び出し
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                startGame();
+            });
+        }
+
+        // タッチとキー操作のバインド
+        function bindGameControls() {
+            // キャンバス、もしくはオーバーレイ全体をタッチ可能に
+            const gameContainer = document.getElementById('game-container');
+
+            // マウス＆タッチのマルチ対応
+            gameContainer.addEventListener('mousedown', (e) => {
+                if (e.target.closest('button')) return; // ボタン押下時はスルー
+                handleActionStart();
+            });
+
+            window.addEventListener('mouseup', () => {
+                handleActionEnd();
+            });
+
+            gameContainer.addEventListener('touchstart', (e) => {
+                if (e.target.closest('button')) return;
+                e.preventDefault();
+                handleActionStart();
+            }, { passive: false });
+
+            window.addEventListener('touchend', () => {
+                handleActionEnd();
+            });
+
+            // キーボード操作 (PCプレイヤー用)
+            window.addEventListener('keydown', (e) => {
+                if (e.code === 'Space' || e.code === 'ArrowUp') {
+                    e.preventDefault();
+                    if (!isPressing) {
+                        handleActionStart();
+                    }
+                }
+            });
+
+            window.addEventListener('keyup', (e) => {
+                if (e.code === 'Space' || e.code === 'ArrowUp') {
+                    handleActionEnd();
+                }
+            });
+        }
+
+
+        // --- 11. INITIALIZATION ---
+
+        function init() {
+            // キャンバスサイズをウィンドウに追従させる
+            function resizeCanvas() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                initClouds();
+            }
+            window.addEventListener('resize', resizeCanvas);
+            resizeCanvas();
+
+            // ビルド・バインド関係
+            buildCharacterSelector();
+            bindUIEvents();
+            bindGameControls();
+
+            // デフォルトスキンの画像ロード
+            setCharacterSkin('germany');
+
+            // PeerJSの接続開始
+            initPeer();
+
+            // アニメーションループ開始
+            function loop() {
+                updatePhysics();
+                checkSpinningAction();
+                drawGame();
+                requestAnimationFrame(loop);
+            }
+            loop();
+        }
+
+        // DOM読み込み完了後に起動
+        window.onload = init;
+
     </script>
 </body>
 </html>
