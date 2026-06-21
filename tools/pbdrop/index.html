@@ -1,0 +1,1279 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+    <title>PBdrop - Polandball P2P File Share</title>
+
+    <!-- Google Fonts & Material Symbols -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+
+    <!-- PeerJS, QRious & jsQR CDN (No External Assets/Tailwind dependencies) -->
+    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+
+    <style>
+        :root {
+            --accent-primary: #3381FF;
+            --accent-active: #1A5FCC;
+            
+            /* Light Mode Tokens */
+            --bg-base: #F7F7F7;
+            --glass-bg: #FFFFFF;
+            --text-main: #000000;
+            --text-sub: #555555;
+            --bg-secondary: #EEEEEE;
+            
+            --m3-easing: cubic-bezier(0.32, 0.72, 0, 1);
+            --transition-smooth: 0.4s var(--m3-easing);
+            --card-padding: 20px;
+        }
+
+        .dark-mode {
+            /* Dark Mode Tokens */
+            --bg-base: #000000;
+            --glass-bg: #1C1C1E;
+            --text-main: #FFFFFF;
+            --text-sub: #A1A1A6;
+            --bg-secondary: #2C2C2E;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', 'Noto Sans JP', sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            transition: background-color var(--transition-smooth), color var(--transition-smooth);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            touch-action: none;
+        }
+
+        /* --- Scroll Container --- */
+        #app-viewport {
+            height: 100vh;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            scroll-behavior: smooth;
+        }
+
+        /* --- Header --- */
+        header {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+            height: 72px; padding: 0 24px;
+            display: flex; align-items: center; justify-content: center;
+            background: var(--glass-bg);
+            transition: background-color var(--transition-smooth);
+        }
+        .logo {
+            font-weight: 700; font-size: 22px; letter-spacing: -0.5px;
+            color: var(--text-main);
+            text-align: center;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .theme-toggle {
+            position: absolute; right: 24px;
+            width: 44px; height: 44px; border-radius: 22px;
+            border: none; background: var(--bg-secondary);
+            color: var(--text-main); cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: background var(--transition-smooth);
+        }
+
+        /* --- Main Layout --- */
+        main {
+            padding: 96px 20px 140px;
+            max-width: 800px; margin: 0 auto;
+            min-height: 100%;
+            transition: opacity 0.3s ease, transform 0.3s var(--m3-easing);
+            box-sizing: border-box;
+        }
+
+        /* --- Flat Solid Card --- */
+        .glass-card {
+            background: var(--glass-bg);
+            border-radius: 24px;
+            padding: var(--card-padding);
+            margin-bottom: 16px;
+            box-shadow: none !important;
+            border: none !important;
+            transform-style: flat;
+            transition: background-color var(--transition-smooth);
+        }
+
+        h2 { 
+            font-size: 20px; 
+            margin-top: 0; 
+            margin-bottom: 8px;
+            font-weight: 700; 
+        }
+        p {
+            font-size: 14px;
+            line-height: 1.45;
+            margin-top: 0;
+            margin-bottom: 12px;
+            color: var(--text-sub);
+        }
+
+        /* --- Interaction: Jelly/Squishy Effect --- */
+        @keyframes squishy {
+            0% { transform: scale(1, 1); }
+            30% { transform: scale(1.08, 0.92); }
+            50% { transform: scale(0.95, 1.05); }
+            70% { transform: scale(1.02, 0.98); }
+            100% { transform: scale(1, 1); }
+        }
+        .squish-active {
+            animation: squishy 0.4s var(--m3-easing);
+        }
+
+        /* --- Primary Buttons --- */
+        .ai-btn {
+            border: none; outline: none;
+            padding: 12px 24px; border-radius: 14px;
+            font-weight: 600; font-size: 15px;
+            color: white; cursor: pointer;
+            background: var(--accent-primary);
+            transition: transform 0.2s, background-color 0.2s;
+            display: inline-flex; align-items: center; gap: 8px;
+            box-shadow: none;
+            text-decoration: none;
+        }
+        .ai-btn:hover { transform: scale(1.02); }
+        .ai-btn:active {
+            background: var(--accent-active);
+            transform: scale(0.95);
+        }
+        .ai-btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-main);
+        }
+
+        /* --- Inputs --- */
+        .glass-input-wrapper { margin-bottom: 14px; width: 100%; }
+        .glass-input {
+            width: 100%; padding: 14px 18px;
+            border-radius: 14px; border: none;
+            background: var(--bg-secondary);
+            color: var(--text-main); font-size: 15px;
+            box-sizing: border-box; transition: background 0.3s var(--m3-easing);
+        }
+        .glass-input:focus {
+            outline: 2px solid var(--accent-primary);
+        }
+
+        /* --- Toggles --- */
+        .toggle-row {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 10px 0;
+        }
+        .switch {
+            position: relative; display: inline-block; width: 50px; height: 28px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--bg-secondary);
+            transition: .3s var(--m3-easing);
+            border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute; content: "";
+            height: 20px; width: 20px; left: 4px; bottom: 4px;
+            background: white; transition: .3s var(--m3-easing);
+            border-radius: 50%;
+        }
+        input:checked + .slider { background: var(--accent-primary); }
+        input:checked + .slider:before { transform: translateX(22px); }
+
+        /* --- Navigation --- */
+        .nav-container {
+            position: fixed; bottom: 32px; left: 50%;
+            transform: translateX(-50%); z-index: 500;
+        }
+        .nav-rail {
+            display: flex; align-items: center; gap: 8px;
+            background: var(--glass-bg);
+            padding: 6px; border-radius: 32px;
+            box-shadow: none;
+        }
+        .nav-item {
+            width: 52px; height: 52px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; border-radius: 26px; color: var(--text-sub);
+            transition: all 0.3s var(--m3-easing);
+            position: relative;
+        }
+        .nav-item.active {
+            background: var(--accent-primary); color: white;
+            transform: scale(1.05);
+        }
+
+        /* --- View Management --- */
+        .view { display: none; }
+        .view.active { display: block; animation: viewIn 0.4s var(--m3-easing); }
+        @keyframes viewIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* --- Custom PBdrop Elements --- */
+        .ball-mascot-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            margin: 20px 0;
+            position: relative;
+        }
+
+        /* Polska Bouncing Animation (上下にポヨンと跳ねる) */
+        @keyframes polska-bounce {
+            0%, 100% {
+                transform: translateY(0) scale(1, 1);
+            }
+            35% {
+                transform: translateY(-45px) scale(0.9, 1.1);
+            }
+            40% {
+                transform: translateY(-50px) scale(0.93, 1.07);
+            }
+            55% {
+                transform: translateY(-20px) scale(1.03, 0.97);
+            }
+            75% {
+                transform: translateY(0) scale(1.15, 0.8);
+            }
+            85% {
+                transform: translateY(0) scale(0.95, 1.05);
+            }
+        }
+
+        /* DeveloperTangle Soft Floating Animation */
+        @keyframes developer-float {
+            0%, 100% {
+                transform: translateY(0) rotate(0deg) scale(1, 1);
+            }
+            50% {
+                transform: translateY(-25px) rotate(4deg) scale(1.05, 0.95);
+            }
+        }
+
+        .polska-img {
+            width: 140px;
+            height: auto;
+            transform-origin: bottom center;
+            animation: polska-bounce 2.2s infinite ease-in-out;
+            filter: drop-shadow(0 6px 12px rgba(0,0,0,0.1));
+            user-select: none;
+            -webkit-user-drag: none;
+        }
+
+        .developer-img {
+            width: 140px;
+            height: auto;
+            transform-origin: bottom center;
+            animation: developer-float 3s infinite ease-in-out;
+            filter: drop-shadow(0 6px 12px rgba(0,0,0,0.1));
+            user-select: none;
+            -webkit-user-drag: none;
+        }
+
+        /* Speech Bubble */
+        .speech-bubble {
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            padding: 10px 16px;
+            border-radius: 18px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            position: relative;
+            text-align: center;
+            max-width: 280px;
+        }
+        .speech-bubble::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 8px 8px 0;
+            border-style: solid;
+            border-color: var(--bg-secondary) transparent;
+            display: block;
+            width: 0;
+        }
+
+        /* Drop Zone Styles (Flat, Dash Boundary) */
+        .drop-zone {
+            border: 3px dashed var(--accent-primary) !important;
+            border-radius: 20px;
+            padding: 30px 20px;
+            text-align: center;
+            background: transparent;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin: 16px 0;
+        }
+        .drop-zone.dragover {
+            background: rgba(51, 129, 255, 0.1);
+        }
+        .hidden-file-input {
+            display: none;
+        }
+
+        /* Lists & Peer ID Grid (Rule check: No gray card inside white card. Only clean inline UI/Separators used) */
+        .peer-id-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--bg-secondary);
+            padding: 12px 18px;
+            border-radius: 16px;
+            margin: 12px 0;
+        }
+        .peer-id-text {
+            font-family: monospace;
+            font-size: 16px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            color: var(--text-main);
+        }
+
+        /* QR Canvas Wrapper */
+        .qr-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 16px 0;
+            padding: 12px;
+            background: white; /* Always white for scanner contrast */
+            border-radius: 16px;
+            width: fit-content;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        #qr-canvas {
+            width: 180px;
+            height: 180px;
+        }
+
+        /* Peer Connections and File Queue Items */
+        .file-list {
+            margin-top: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .file-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--bg-secondary);
+        }
+        .file-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .file-name {
+            font-weight: 600;
+            font-size: 14px;
+            word-break: break-all;
+        }
+        .file-size {
+            font-size: 12px;
+            color: var(--text-sub);
+        }
+        .progress-bar-container {
+            width: 100%;
+            height: 6px;
+            background: var(--bg-secondary);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 6px;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background: var(--accent-primary);
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+
+        /* Status Indicator Pill */
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        .status-online {
+            background: rgba(16, 185, 129, 0.15);
+            color: #10B981;
+        }
+        .status-offline {
+            background: rgba(245, 158, 11, 0.15);
+            color: #F59E0B;
+        }
+
+        /* Toast Alert */
+        .toast {
+            position: fixed;
+            bottom: 110px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--text-main);
+            color: var(--glass-bg);
+            padding: 12px 24px;
+            border-radius: 14px;
+            font-size: 13px;
+            font-weight: 600;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s var(--m3-easing);
+            z-index: 2000;
+            box-shadow: none;
+            text-align: center;
+            white-space: nowrap;
+        }
+        .toast.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* Dialog Overlay */
+        .dialog-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000; display: flex; align-items: center; justify-content: center;
+            opacity: 0; visibility: hidden; transition: all 0.3s var(--m3-easing);
+        }
+        .dialog-overlay.active { opacity: 1; visibility: visible; }
+        .glass-dialog {
+            background: var(--glass-bg);
+            border-radius: 28px;
+            padding: 24px; max-width: 380px; width: 90%; text-align: center;
+            transform: scale(0.9) translateY(20px); transition: all 0.4s var(--m3-easing);
+        }
+        .dialog-overlay.active .glass-dialog { transform: scale(1) translateY(0); }
+
+        /* QR Scanner Specific Laser */
+        @keyframes scan-line {
+            0% { top: 0%; }
+            50% { top: 100%; }
+            100% { top: 0%; }
+        }
+        .scanner-laser {
+            box-shadow: 0 0 12px var(--accent-primary);
+        }
+
+        /* Helpers */
+        .text-center { text-align: center; }
+        .flex-between { display: flex; align-items: center; justify-content: space-between; }
+        .mt-12 { margin-top: 12px; }
+        .color-dot {
+            width: 24px;
+            height: 24px;
+            border-radius: 12px;
+            display: inline-block;
+            cursor: pointer;
+            margin-right: 6px;
+            transition: transform 0.2s;
+        }
+        .color-dot:active {
+            transform: scale(0.85);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo">
+            <span class="material-symbols-outlined" style="color: var(--accent-primary);">swap_calls</span>
+            PBdrop
+        </div>
+        <button class="theme-toggle" id="theme-btn">
+            <span class="material-symbols-outlined">light_mode</span>
+        </button>
+    </header>
+
+    <div id="app-viewport">
+        <main id="main-content">
+            
+            <!-- VIEW: SEND (ファイルを送る) -->
+            <section id="view-send" class="view active">
+                <div class="ball-mascot-container">
+                    <div class="speech-bubble" id="polska-speech">送りたいファイルを準備するんよ！ポルスカが送るんよ！</div>
+                    <!-- Polska Ball Mascot bouncing -->
+                    <img src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/pbhuB2/Polska2.png" alt="ポーランドボール" class="polska-img">
+                </div>
+
+                <div class="glass-card">
+                    <div class="flex-between">
+                        <h2>自分の接続コード</h2>
+                        <span class="status-pill status-offline" id="send-status-pill">
+                            <span class="material-symbols-outlined" style="font-size: 16px;">cloud_off</span>
+                            接続待ち
+                        </span>
+                    </div>
+                    <p>このデバイスのコードまたはQRコードを受信側に共有してください。</p>
+
+                    <div class="peer-id-container">
+                        <span class="peer-id-text" id="my-peer-id">読込中...</span>
+                        <button class="ai-btn" style="padding: 6px 12px; font-size:12px; border-radius: 8px;" onclick="copyShareLink()">
+                            リンクをコピー
+                        </button>
+                    </div>
+
+                    <!-- QR Code rendering container -->
+                    <div class="qr-wrapper">
+                        <canvas id="qr-canvas"></canvas>
+                    </div>
+                </div>
+
+                <div class="glass-card">
+                    <h2>ファイルをドロップして共有</h2>
+                    <p>相手と接続されたら、ここにファイルをドロップまたはタップして送信を開始します。</p>
+                    
+                    <div class="drop-zone" id="file-drop-zone">
+                        <span class="material-symbols-outlined" style="font-size: 48px; color: var(--accent-primary); margin-bottom: 8px;">upload_file</span>
+                        <p style="margin: 0; font-weight: 600;">ファイルをここにドラッグ＆ドロップ、またはタップして選択</p>
+                        <input type="file" id="file-selector" class="hidden-file-input" multiple>
+                    </div>
+
+                    <div id="queued-files-container" class="file-list" style="display: none;">
+                        <h3 style="font-size: 15px; margin-top: 10px; font-weight: 700;">送信キュー/状況</h3>
+                        <div id="send-file-queue"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- VIEW: RECEIVE (ファイルを受け取る) -->
+            <section id="view-receive" class="view">
+                <div class="ball-mascot-container">
+                    <div class="speech-bubble" id="tangle-speech">効率化のために、コードを読み取ってファイルを送るダス。schnell!</div>
+                    <!-- DeveloperTangle Mascot Floating -->
+                    <img src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/ltangle/Pickel.png" alt="DeveloperTangle" class="developer-img">
+                </div>
+
+                <div class="glass-card">
+                    <div class="flex-between">
+                        <h2>送信側に接続する</h2>
+                        <span class="status-pill status-offline" id="receive-status-pill">
+                            <span class="material-symbols-outlined" style="font-size: 16px;">sync_disabled</span>
+                            未接続
+                        </span>
+                    </div>
+                    <p>相手の画面に表示されている接続コードを入力、またはQRコードをスキャンして接続を開始します。</p>
+
+                    <div class="glass-input-wrapper" style="display: flex; gap: 8px; align-items: center;">
+                        <input type="text" class="glass-input" id="target-peer-id" placeholder="相手のPeer ID（接続コード）を入力..." style="flex: 1; margin-bottom: 0;">
+                        <button class="ai-btn ai-btn-secondary" style="padding: 14px; border-radius: 14px; height: 48px; width: 48px; min-width: 48px; display: flex; align-items: center; justify-content: center;" onclick="startQRScanner()" title="QRコードをスキャン">
+                            <span class="material-symbols-outlined">qr_code_scanner</span>
+                        </button>
+                    </div>
+
+                    <div style="display: flex; gap: 8px; margin-top: 12px;">
+                        <button class="ai-btn" style="flex: 1; justify-content: center;" onclick="connectToSender()">
+                            <span class="material-symbols-outlined">link</span>
+                            接続する
+                        </button>
+                        <button class="ai-btn ai-btn-secondary" style="flex: 1; justify-content: center;" onclick="clearConnection()">
+                            切断
+                        </button>
+                    </div>
+                </div>
+
+                <div class="glass-card" id="received-files-card">
+                    <h2>受信したファイル</h2>
+                    <p>接続中に相手から送信されたファイルがここにリアルタイムで表示されます。</p>
+                    
+                    <div id="received-files-empty" style="text-align: center; padding: 24px 0; color: var(--text-sub);">
+                        <span class="material-symbols-outlined" style="font-size: 40px; color: var(--text-sub); opacity: 0.5;">hourglass_empty</span>
+                        <p style="margin-top: 8px; font-size: 13px;">まだファイルを受信していません</p>
+                    </div>
+
+                    <div id="received-files-list" class="file-list">
+                        <!-- Dynamic file elements appear here -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- VIEW: SETTINGS / ABOUT (設定と情報) -->
+            <section id="view-settings" class="view">
+                <div class="glass-card">
+                    <h2>アプリ環境設定</h2>
+                    <p>システムの表示テーマや通知オプションを設定します。</p>
+                    
+                    <div class="toggle-row">
+                        <span>セマンティックダークモード</span>
+                        <label class="switch">
+                            <input type="checkbox" id="darkmode-toggle">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="toggle-row">
+                        <span>完了時にトーストで通知</span>
+                        <label class="switch">
+                            <input type="checkbox" id="toast-toggle" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="toggle-row">
+                        <span>高音質な効果音（擬音）</span>
+                        <label class="switch">
+                            <input type="checkbox" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="glass-card">
+                    <h2>アクセントカラーの変更</h2>
+                    <p>ボタンやインプットなどのフォーカス色を選択できます。</p>
+                    <div style="display: flex; align-items: center; margin-top: 12px;">
+                        <span class="color-dot" style="background: #3381FF;" onclick="changeAccent('#3381FF')"></span>
+                        <span class="color-dot" style="background: #E11D48;" onclick="changeAccent('#E11D48')"></span>
+                        <span class="color-dot" style="background: #10B981;" onclick="changeAccent('#10B981')"></span>
+                        <span class="color-dot" style="background: #F59E0B;" onclick="changeAccent('#F59E0B')"></span>
+                        <span class="color-dot" style="background: #8B5CF6;" onclick="changeAccent('#8B5CF6')"></span>
+                    </div>
+                </div>
+
+                <div class="glass-card">
+                    <h2>PBdropについて</h2>
+                    <p style="font-size: 13px; font-weight: 600; color: var(--accent-primary);">バージョン: v1.1.0-PolskaEngine</p>
+                    <p style="font-size: 13px; line-height: 1.5;">
+                        PBdropはWebRTC(PeerJS)技術を利用して、デバイス間で完全にP2P（ピア・ツー・ピア）のセキュア高速転送を可能にするアプリケーションです。
+                        中間サーバーにファイルデータを保存しないため、プライバシーに優れています。
+                    </p>
+                    <p style="font-size: 12px; color: var(--text-sub);">
+                        Mascot: Polandball & DeveloperTangle
+                    </p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Navigation Bar -->
+    <div class="nav-container">
+        <nav class="nav-rail">
+            <div class="nav-item active" data-view="view-send" title="送る">
+                <span class="material-symbols-outlined">unarchive</span>
+            </div>
+            <div class="nav-item" data-view="view-receive" title="受け取る">
+                <span class="material-symbols-outlined">download</span>
+            </div>
+            <div class="nav-item" data-view="view-settings" title="設定・情報">
+                <span class="material-symbols-outlined">settings_suggest</span>
+            </div>
+        </nav>
+    </div>
+
+    <!-- System Message Dialog -->
+    <div class="dialog-overlay" id="main-dialog">
+        <div class="glass-dialog">
+            <span class="material-symbols-outlined" style="font-size: 48px; color: var(--accent-primary);" id="dialog-icon">verified_user</span>
+            <h2 style="margin-top: 12px;" id="dialog-title">接続が完了しました！</h2>
+            <p style="margin-bottom: 20px;" id="dialog-body">ファイルを転送する準備が整いました。直接相手のブラウザとつながっています。</p>
+            <button class="ai-btn" style="width: 100%; justify-content: center;" onclick="closeDialog()">OK</button>
+        </div>
+    </div>
+
+    <!-- QR Code Scanner Dialog -->
+    <div class="dialog-overlay" id="scanner-dialog">
+        <div class="glass-dialog" style="max-width: 440px; width: 92%;">
+            <span class="material-symbols-outlined" style="font-size: 48px; color: var(--accent-primary);">qr_code_scanner</span>
+            <h2 style="margin-top: 12px;">QRコードをスキャン</h2>
+            <p style="margin-bottom: 20px;">相手の「PBdrop」に表示されているQRコードをカメラに向けてください。</p>
+            
+            <!-- Realtime Video Viewport -->
+            <div style="position: relative; width: 100%; aspect-ratio: 1; background: #111; border-radius: 20px; overflow: hidden; margin-bottom: 20px;">
+                <video id="scanner-video" style="width: 100%; height: 100%; object-fit: cover;" playsinline></video>
+                <canvas id="scanner-canvas" style="display: none;"></canvas>
+                <!-- Animation Laser Beam Overlay -->
+                <div class="scanner-laser" style="position: absolute; left: 0; right: 0; height: 3px; background: var(--accent-primary); animation: scan-line 2s infinite linear; pointer-events: none;"></div>
+            </div>
+
+            <button class="ai-btn ai-btn-secondary" style="width: 100%; justify-content: center;" onclick="stopQRScanner()">キャンセル</button>
+        </div>
+    </div>
+
+    <!-- Toast Notification Message Box -->
+    <div class="toast" id="toast-message">メッセージ</div>
+
+    <script>
+        /**
+         * PBdrop Client Engine
+         */
+
+        const viewport = document.getElementById('app-viewport');
+        const themeBtn = document.getElementById('theme-btn');
+        const themeIcon = themeBtn.querySelector('span');
+        const toast = document.getElementById('toast-message');
+
+        let currentAccent = '#3381FF';
+
+        // --- 1. Accent Color Switcher ---
+        function changeAccent(color) {
+            currentAccent = color;
+            document.documentElement.style.setProperty('--accent-primary', color);
+            document.documentElement.style.setProperty('--accent-active', adjustColorBrightness(color, -20));
+            showToast(`テーマカラーを ${color} に設定しました`);
+        }
+
+        function adjustColorBrightness(hex, percent) {
+            let R = parseInt(hex.substring(1, 3), 16);
+            let G = parseInt(hex.substring(3, 5), 16);
+            let B = parseInt(hex.substring(5, 7), 16);
+            R = parseInt(R * (100 + percent) / 100);
+            G = parseInt(G * (100 + percent) / 100);
+            B = parseInt(B * (100 + percent) / 100);
+            R = (R < 255) ? R : 255;
+            G = (G < 255) ? G : 255;
+            B = (B < 255) ? B : 255;
+            const rHex = ((R.toString(16).length == 1) ? "0" + R.toString(16) : R.toString(16));
+            const gHex = ((G.toString(16).length == 1) ? "0" + G.toString(16) : G.toString(16));
+            const bHex = ((B.toString(16).length == 1) ? "0" + B.toString(16) : B.toString(16));
+            return "#" + rHex + gHex + bHex;
+        }
+
+        // --- 2. Toast Controller ---
+        function showToast(msg) {
+            const isToastEnabled = document.getElementById('toast-toggle') ? document.getElementById('toast-toggle').checked : true;
+            if (!isToastEnabled) return;
+
+            toast.textContent = msg;
+            toast.classList.add('active');
+            setTimeout(() => {
+                toast.classList.remove('active');
+            }, 2500);
+        }
+
+        // --- 3. Custom Dialog Controller ---
+        function showSystemDialog(title, body, icon = 'verified_user') {
+            document.getElementById('dialog-icon').textContent = icon;
+            document.getElementById('dialog-title').textContent = title;
+            document.getElementById('dialog-body').textContent = body;
+            document.getElementById('main-dialog').classList.add('active');
+        }
+
+        function closeDialog() {
+            document.getElementById('main-dialog').classList.remove('active');
+        }
+
+        // --- 4. Squishy Click Interaction Module ---
+        document.addEventListener('mousedown', (e) => {
+            const target = e.target.closest('.glass-card, .ai-btn, .nav-item, .drop-zone');
+            if (target) {
+                target.classList.remove('squish-active');
+                void target.offsetWidth; // Force Reflow
+                target.classList.add('squish-active');
+                
+                setTimeout(() => {
+                    target.classList.remove('squish-active');
+                }, 400);
+            }
+        });
+
+        // --- 5. View Switcher ---
+        const navItems = document.querySelectorAll('.nav-item');
+        const views = document.querySelectorAll('.view');
+
+        function switchView(viewId) {
+            navItems.forEach(n => {
+                n.classList.remove('active');
+                if (n.getAttribute('data-view') === viewId) {
+                    n.classList.add('active');
+                }
+            });
+
+            views.forEach(v => {
+                v.classList.remove('active');
+                if (v.id === viewId) {
+                    v.classList.add('active');
+                    viewport.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+            });
+        }
+
+        navItems.forEach(item => {
+            item.addEventListener('click', () => {
+                const viewId = item.getAttribute('data-view');
+                switchView(viewId);
+            });
+        });
+
+        // --- 6. Theme Control System ---
+        function setTheme(isDark) {
+            document.body.classList.toggle('dark-mode', isDark);
+            themeIcon.textContent = isDark ? 'dark_mode' : 'light_mode';
+            
+            const dmToggle = document.getElementById('darkmode-toggle');
+            if (dmToggle) {
+                dmToggle.checked = isDark;
+            }
+        }
+
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+        setTheme(prefersDark.matches);
+
+        themeBtn.addEventListener('click', () => {
+            setTheme(!document.body.classList.contains('dark-mode'));
+        });
+
+        document.getElementById('darkmode-toggle').addEventListener('change', (e) => {
+            setTheme(e.target.checked);
+        });
+
+
+        // ==========================================
+        //  PeerJS & PBdrop File Sharing Logic
+        // ==========================================
+
+        let myPeerId = null;
+        let peerInstance = null;
+        let activeConnection = null;
+        let qrGenerator = null;
+
+        // Initialize PeerJS Connection
+        function initPeer() {
+            peerInstance = new Peer(null, {
+                debug: 1
+            });
+
+            peerInstance.on('open', (id) => {
+                myPeerId = id;
+                document.getElementById('my-peer-id').textContent = id;
+                updateQR(id);
+
+                // Check URL parameter for auto connection
+                const urlParams = new URLSearchParams(window.location.search);
+                const connectId = urlParams.get('connect');
+                if (connectId) {
+                    document.getElementById('target-peer-id').value = connectId;
+                    switchView('view-receive');
+                    setTimeout(() => {
+                        connectToSender();
+                    }, 800);
+                }
+            });
+
+            // When receiving incoming data connection
+            peerInstance.on('connection', (conn) => {
+                handleConnection(conn);
+            });
+
+            peerInstance.on('error', (err) => {
+                console.error(err);
+                showToast(`エラーが発生しました: ${err.type}`);
+            });
+        }
+
+        // Shared Connection Logic (Both Send & Receive)
+        function handleConnection(conn) {
+            activeConnection = conn;
+
+            // UI feedback
+            updateStatusPills(true);
+            showSystemDialog(
+                'デバイス接続成功', 
+                `相手デバイスと安全な直接経路（P2P）が確立されました。ファイルを送信できます！`, 
+                'diversity_1'
+            );
+
+            // Speech Bubble updates
+            document.getElementById('polska-speech').textContent = '接続されたよ！ファイルをドロップしてみて！';
+            document.getElementById('tangle-speech').textContent = '接続成功！データの到着を待っているよ。';
+
+            conn.on('open', () => {
+                console.log('Data connection opened');
+            });
+
+            conn.on('data', (data) => {
+                if (data && data.type === 'file-transfer') {
+                    receiveFileChunk(data);
+                }
+            });
+
+            conn.on('close', () => {
+                showToast('接続が切断されました。');
+                updateStatusPills(false);
+                document.getElementById('polska-speech').textContent = '接続が切れちゃった。もう一度待とう。';
+                document.getElementById('tangle-speech').textContent = '切断されたよ。またコードを入力してね。';
+            });
+        }
+
+        function updateStatusPills(isConnected) {
+            const sendPill = document.getElementById('send-status-pill');
+            const recvPill = document.getElementById('receive-status-pill');
+
+            if (isConnected) {
+                sendPill.className = "status-pill status-online";
+                sendPill.innerHTML = '<span class="material-symbols-outlined" style="font-size: 16px;">cloud_done</span>接続中';
+                recvPill.className = "status-pill status-online";
+                recvPill.innerHTML = '<span class="material-symbols-outlined" style="font-size: 16px;">sync</span>接続中';
+            } else {
+                sendPill.className = "status-pill status-offline";
+                sendPill.innerHTML = '<span class="material-symbols-outlined" style="font-size: 16px;">cloud_off</span>接続待ち';
+                recvPill.className = "status-pill status-offline";
+                recvPill.innerHTML = '<span class="material-symbols-outlined" style="font-size: 16px;">sync_disabled</span>未接続';
+            }
+        }
+
+        // --- Send Side Logic ---
+        function copyShareLink() {
+            if (!myPeerId) {
+                showToast('IDを取得中です。しばらくお待ちください。');
+                return;
+            }
+            const link = `${window.location.origin}${window.location.pathname}?connect=${myPeerId}`;
+            
+            // Clipboard fallback
+            const textarea = document.createElement('textarea');
+            textarea.value = link;
+            textarea.style.position = 'fixed';
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    showToast('接続リンクをコピーしました！');
+                } else {
+                    showToast('コピーできませんでした。');
+                }
+            } catch (err) {
+                showToast('コピーに失敗しました。');
+            }
+            document.body.removeChild(textarea);
+        }
+
+        function updateQR(id) {
+            const shareUrl = `${window.location.origin}${window.location.pathname}?connect=${id}`;
+            const qrCanvas = document.getElementById('qr-canvas');
+            
+            qrGenerator = new QRious({
+                element: qrCanvas,
+                value: shareUrl,
+                size: 180,
+                background: '#FFFFFF',
+                foreground: '#000000',
+                level: 'H'
+            });
+        }
+
+        // --- Drag and Drop File Setup ---
+        const dropZone = document.getElementById('file-drop-zone');
+        const fileSelector = document.getElementById('file-selector');
+
+        dropZone.addEventListener('click', () => {
+            fileSelector.click();
+        });
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                processFilesForSending(files);
+            }
+        });
+
+        fileSelector.addEventListener('change', (e) => {
+            const files = e.target.files;
+            if (files.length > 0) {
+                processFilesForSending(files);
+            }
+        });
+
+        // Sending files across connection
+        function processFilesForSending(files) {
+            if (!activeConnection) {
+                showSystemDialog(
+                    '接続されていません', 
+                    '受信側デバイスがまだ接続されていません。コードかQRコードを読み取ってもらってください。', 
+                    'warning'
+                );
+                return;
+            }
+
+            document.getElementById('queued-files-container').style.display = 'block';
+            const queueList = document.getElementById('send-file-queue');
+
+            Array.from(files).forEach((file) => {
+                const fileItemId = 'send-item-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5);
+                
+                const fileItemHtml = `
+                    <div class="file-item" id="${fileItemId}">
+                        <div class="file-info" style="flex: 1; padding-right: 12px;">
+                            <span class="file-name">${file.name}</span>
+                            <span class="file-size">${formatBytes(file.size)}</span>
+                            <div class="progress-bar-container">
+                                <div class="progress-bar-fill" id="progress-${fileItemId}"></div>
+                            </div>
+                        </div>
+                        <span id="status-${fileItemId}" style="font-size: 13px; font-weight: 600; color: var(--accent-primary);">準備中</span>
+                    </div>
+                `;
+                queueList.insertAdjacentHTML('beforeend', fileItemHtml);
+
+                sendFileInChunks(file, fileItemId);
+            });
+        }
+
+        // Secure chunk transmission
+        function sendFileInChunks(file, itemId) {
+            const progressFill = document.getElementById(`progress-${itemId}`);
+            const statusLabel = document.getElementById(`status-${itemId}`);
+            
+            const chunkSize = 64 * 1024; // 64KB Chunks
+            let offset = 0;
+            const reader = new FileReader();
+
+            statusLabel.textContent = "送信中";
+
+            reader.onload = (e) => {
+                if (!activeConnection) {
+                    statusLabel.textContent = "切断中断";
+                    statusLabel.style.color = "#E11D48";
+                    return;
+                }
+
+                const chunk = e.target.result;
+                const isLast = (offset + chunk.byteLength >= file.size);
+
+                activeConnection.send({
+                    type: 'file-transfer',
+                    name: file.name,
+                    size: file.size,
+                    mime: file.type,
+                    data: chunk,
+                    isLast: isLast
+                });
+
+                offset += chunk.byteLength;
+                const percentage = Math.floor((offset / file.size) * 100);
+                progressFill.style.width = `${percentage}%`;
+
+                if (!isLast) {
+                    readNext();
+                } else {
+                    statusLabel.textContent = "完了";
+                    statusLabel.style.color = "#10B981";
+                    showToast(`${file.name} の送信が完了しました！`);
+                }
+            };
+
+            function readNext() {
+                const slice = file.slice(offset, offset + chunkSize);
+                reader.readAsArrayBuffer(slice);
+            }
+
+            readNext();
+        }
+
+        // --- Receive Side Logic ---
+        function connectToSender() {
+            const targetId = document.getElementById('target-peer-id').value.trim();
+            if (!targetId) {
+                showToast('接続コードを入力してください。');
+                return;
+            }
+
+            showToast('接続を開始しています...');
+            const conn = peerInstance.connect(targetId);
+            handleConnection(conn);
+        }
+
+        function clearConnection() {
+            if (activeConnection) {
+                activeConnection.close();
+                activeConnection = null;
+                updateStatusPills(false);
+                showToast('切断しました。');
+            }
+        }
+
+        // --- 7. QR Scanner Controller ---
+        let qrScanStream = null;
+        let qrScanActive = false;
+
+        async function startQRScanner() {
+            try {
+                // Get access to environment facing camera (back camera)
+                qrScanStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: "environment" } 
+                });
+                
+                const video = document.getElementById('scanner-video');
+                video.srcObject = qrScanStream;
+                video.setAttribute("playsinline", true); // iOS Safari fix
+                video.play();
+                
+                document.getElementById('scanner-dialog').classList.add('active');
+                qrScanActive = true;
+                requestAnimationFrame(tickQRScan);
+                showToast("スキャナーを起動しました");
+            } catch (err) {
+                console.error("Camera access failed:", err);
+                showToast("カメラの起動に失敗しました。権限設定を確認してください。");
+            }
+        }
+
+        function stopQRScanner() {
+            qrScanActive = false;
+            if (qrScanStream) {
+                qrScanStream.getTracks().forEach(track => track.stop());
+                qrScanStream = null;
+            }
+            document.getElementById('scanner-dialog').classList.remove('active');
+        }
+
+        function tickQRScan() {
+            if (!qrScanActive) return;
+
+            const video = document.getElementById('scanner-video');
+            const canvasElement = document.getElementById('scanner-canvas');
+            const canvas = canvasElement.getContext('2d');
+
+            if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                canvasElement.height = video.videoHeight;
+                canvasElement.width = video.videoWidth;
+                canvas.drawImage(video, 0, 0, canvasElement.width, canvasElement.height);
+                
+                const imageData = canvas.getImageData(0, 0, canvasElement.width, canvasElement.height);
+                
+                // Parse frame with jsQR
+                const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                    inversionAttempts: "dontInvert",
+                });
+
+                if (code) {
+                    let scannedId = code.data;
+                    try {
+                        // Extract Peer ID from connection URL parameters
+                        if (scannedId.includes('?connect=')) {
+                            const urlObj = new URL(scannedId);
+                            const connectParam = urlObj.searchParams.get('connect');
+                            if (connectParam) {
+                                scannedId = connectParam;
+                            }
+                        }
+                    } catch(e) {
+                        // Not a URL structure, use raw scanned string
+                    }
+
+                    document.getElementById('target-peer-id').value = scannedId;
+                    showToast("QRコードの解析に成功しました！");
+                    stopQRScanner();
+                    
+                    // Trigger Auto connection
+                    setTimeout(() => {
+                        connectToSender();
+                    }, 450);
+                    return;
+                }
+            }
+            requestAnimationFrame(tickQRScan);
+        }
+
+        // Reconstituting incoming file chunks
+        const fileBuffers = {};
+
+        function receiveFileChunk(payload) {
+            const { name, size, mime, data, isLast } = payload;
+            
+            document.getElementById('received-files-empty').style.display = 'none';
+
+            if (!fileBuffers[name]) {
+                fileBuffers[name] = {
+                    chunks: [],
+                    receivedBytes: 0,
+                    id: 'recv-item-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5)
+                };
+
+                const list = document.getElementById('received-files-list');
+                const receiveHtml = `
+                    <div class="file-item" id="${fileBuffers[name].id}">
+                        <div class="file-info" style="flex: 1; padding-right: 12px;">
+                            <span class="file-name">${name}</span>
+                            <span class="file-size">${formatBytes(size)}</span>
+                            <div class="progress-bar-container">
+                                <div class="progress-bar-fill" id="progress-${fileBuffers[name].id}"></div>
+                            </div>
+                        </div>
+                        <div id="action-${fileBuffers[name].id}">
+                            <span style="font-size: 13px; font-weight:600; color:var(--accent-primary);" id="text-${fileBuffers[name].id}">受信中</span>
+                        </div>
+                    </div>
+                `;
+                list.insertAdjacentHTML('afterbegin', receiveHtml);
+            }
+
+            const fileMeta = fileBuffers[name];
+            fileMeta.chunks.push(data);
+            fileMeta.receivedBytes += data.byteLength;
+
+            const percentage = Math.floor((fileMeta.receivedBytes / size) * 100);
+            const progressFill = document.getElementById(`progress-${fileMeta.id}`);
+            if (progressFill) {
+                progressFill.style.width = `${percentage}%`;
+            }
+
+            if (isLast) {
+                const blob = new Blob(fileMeta.chunks, { type: mime });
+                const blobUrl = URL.createObjectURL(blob);
+                const actionContainer = document.getElementById(`action-${fileMeta.id}`);
+
+                actionContainer.innerHTML = `
+                    <a href="${blobUrl}" download="${name}" class="ai-btn" style="padding: 6px 12px; font-size:12px; border-radius: 8px;">
+                        <span class="material-symbols-outlined" style="font-size:14px;">download</span>
+                        保存
+                    </a>
+                `;
+
+                showToast(`新しいファイル「${name}」を受け取りました！`);
+                delete fileBuffers[name];
+            }
+        }
+
+        // Helper formatting bytes
+        function formatBytes(bytes, decimals = 2) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const dm = decimals < 0 ? 0 : decimals;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+        }
+
+        // Initialize App
+        window.onload = () => {
+            initPeer();
+        };
+    </script>
+</body>
+</html>
