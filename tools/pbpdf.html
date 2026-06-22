@@ -1,0 +1,1258 @@
+---
+layout: default
+title: MyPDF-PB
+---
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+    <title>PB-PDF My</title>
+
+    <!-- Google Fonts & Material Symbols -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+
+    <!-- PDF.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+
+    <style>
+        :root {
+            --accent-primary: #3381FF;
+            --accent-active: #1A5FCC;
+            
+            /* Light Mode Tokens */
+            --bg-base: #F7F7F7;
+            --glass-bg: #FFFFFF;
+            --text-main: #000000;
+            --text-sub: #555555;
+            --bg-secondary: #EEEEEE;
+            
+            --m3-easing: cubic-bezier(0.32, 0.72, 0, 1);
+            --transition-smooth: 0.4s var(--m3-easing);
+            --card-padding: 20px;
+        }
+
+        .dark-mode {
+            /* Dark Mode Tokens */
+            --bg-base: #000000;
+            --glass-bg: #1C1C1E;
+            --text-main: #FFFFFF;
+            --text-sub: #A1A1A6;
+            --bg-secondary: #2C2C2E;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', 'Noto Sans JP', sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            transition: background-color var(--transition-smooth), color var(--transition-smooth);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            touch-action: none;
+        }
+
+        /* --- Scroll Container --- */
+        #app-viewport {
+            height: 100vh;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            scroll-behavior: smooth;
+        }
+
+        /* --- Header --- */
+        header {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+            height: 72px; padding: 0 24px;
+            display: flex; align-items: center; justify-content: center;
+            background: var(--glass-bg);
+            transition: background-color var(--transition-smooth);
+        }
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .logo-img {
+            height: 32px;
+            width: auto;
+            object-fit: contain;
+        }
+        .logo {
+            font-weight: 700; font-size: 20px; letter-spacing: -0.5px;
+            color: var(--text-main);
+            text-align: center;
+        }
+        .theme-toggle {
+            position: absolute; right: 24px;
+            width: 44px; height: 44px; border-radius: 22px;
+            border: none; background: var(--bg-secondary);
+            color: var(--text-main); cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: background var(--transition-smooth);
+        }
+
+        /* --- Main Layout --- */
+        main {
+            padding: 96px 20px 140px;
+            max-width: 800px; margin: 0 auto;
+            min-height: 100%;
+            transition: opacity 0.3s ease, transform 0.3s var(--m3-easing);
+            box-sizing: border-box;
+        }
+
+        /* --- Flat Solid Card (No Shadow, No Border) --- */
+        .glass-card {
+            background: var(--glass-bg);
+            border-radius: 24px;
+            padding: var(--card-padding);
+            margin-bottom: 16px;
+            box-shadow: none !important;
+            border: none !important;
+            transform-style: flat;
+            transition: background-color var(--transition-smooth);
+        }
+
+        h2 { 
+            font-size: 20px; 
+            margin-top: 0; 
+            margin-bottom: 8px;
+            font-weight: 700; 
+        }
+        p {
+            font-size: 14px;
+            line-height: 1.45;
+            margin-top: 0;
+            margin-bottom: 12px;
+            color: var(--text-sub);
+        }
+
+        /* --- Interaction: Jelly/Squishy Effect --- */
+        @keyframes squishy {
+            0% { transform: scale(1, 1); }
+            30% { transform: scale(1.08, 0.92); }
+            50% { transform: scale(0.95, 1.05); }
+            70% { transform: scale(1.02, 0.98); }
+            100% { transform: scale(1, 1); }
+        }
+        .squish-active {
+            animation: squishy 0.4s var(--m3-easing);
+        }
+
+        /* --- Primary Buttons --- */
+        .ai-btn {
+            border: none; outline: none;
+            padding: 12px 24px; border-radius: 14px;
+            font-weight: 600; font-size: 15px;
+            color: white; cursor: pointer;
+            background: var(--accent-primary);
+            transition: transform 0.2s, background-color 0.2s;
+            display: inline-flex; align-items: center; gap: 8px;
+            box-shadow: none;
+            justify-content: center;
+        }
+        .ai-btn:hover { transform: scale(1.02); }
+        .ai-btn:active {
+            background: var(--accent-active);
+            transform: scale(0.95);
+        }
+        .ai-btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-main);
+        }
+        .ai-btn-danger {
+            background: #E11D48;
+            color: white;
+        }
+
+        /* --- File Drop & Picker Area --- */
+        .file-drop-area {
+            border: 2px dashed var(--accent-primary) !important;
+            border-radius: 20px;
+            padding: 30px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: background var(--transition-smooth);
+            margin-bottom: 16px;
+        }
+        .file-drop-area:hover {
+            background: rgba(51, 129, 255, 0.08);
+        }
+        .file-drop-area span {
+            font-size: 44px;
+            color: var(--accent-primary);
+            margin-bottom: 8px;
+        }
+
+        /* --- File List (Strict NO Gray Card Inside White Card Rule) --- */
+        .pdf-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .pdf-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 0;
+            border-bottom: 1px solid var(--bg-secondary);
+        }
+        .pdf-item:last-child {
+            border-bottom: none;
+        }
+        .pdf-item-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            flex: 1;
+            min-width: 0;
+            margin-right: 12px;
+            cursor: pointer;
+        }
+        .pdf-item-title {
+            font-weight: 600;
+            font-size: 15px;
+            color: var(--text-main);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .pdf-item-meta {
+            font-size: 12px;
+            color: var(--text-sub);
+        }
+        .pdf-item-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .icon-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 18px;
+            border: none;
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .icon-btn:active {
+            transform: scale(0.9);
+        }
+        .icon-btn.danger {
+            color: #E11D48;
+        }
+
+        /* --- Navigation --- */
+        .nav-container {
+            position: fixed; bottom: 32px; left: 50%;
+            transform: translateX(-50%); z-index: 500;
+        }
+        .nav-rail {
+            display: flex; align-items: center; gap: 8px;
+            background: var(--glass-bg);
+            padding: 6px; border-radius: 32px;
+            box-shadow: none;
+        }
+        .nav-item {
+            width: 52px; height: 52px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; border-radius: 26px; color: var(--text-sub);
+            transition: all 0.3s var(--m3-easing);
+            position: relative;
+        }
+        .nav-item.active {
+            background: var(--accent-primary); color: white;
+            transform: scale(1.05);
+        }
+
+        /* --- View Management --- */
+        .view { display: none; }
+        .view.active { display: block; animation: viewIn 0.4s var(--m3-easing); }
+        @keyframes viewIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* --- PDF Viewer Interactive Interface --- */
+        .viewer-container {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .viewer-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--glass-bg);
+            padding: 12px 16px;
+            border-radius: 16px;
+            gap: 12px;
+        }
+        .page-indicator {
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .canvas-wrapper {
+            background: #444444;
+            border-radius: 20px;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: start;
+            min-height: 350px;
+            max-height: 65vh;
+            overflow-y: auto;
+            overflow-x: auto;
+            position: relative;
+            touch-action: pan-x pan-y;
+        }
+        canvas {
+            display: block;
+            margin: auto;
+            max-width: 100%;
+            height: auto;
+        }
+
+        /* --- Toggles --- */
+        .toggle-row {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--bg-secondary);
+        }
+        .toggle-row:last-child {
+            border-bottom: none;
+        }
+        .switch {
+            position: relative; display: inline-block; width: 50px; height: 28px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--bg-secondary);
+            transition: .3s var(--m3-easing);
+            border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute; content: "";
+            height: 20px; width: 20px; left: 4px; bottom: 4px;
+            background: white; transition: .3s var(--m3-easing);
+            border-radius: 50%;
+        }
+        input:checked + .slider { background: var(--accent-primary); }
+        input:checked + .slider:before { transform: translateX(22px); }
+
+        /* --- Character Deco Panel --- */
+        .ball-deco-box {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-top: 10px;
+        }
+        .ball-img {
+            width: 70px;
+            height: 70px;
+            object-fit: contain;
+            animation: floatBall 4s ease-in-out infinite alternate;
+        }
+        .ball-speech {
+            flex: 1;
+            background: var(--bg-secondary);
+            padding: 12px 16px;
+            border-radius: 16px;
+            font-size: 13px;
+            font-weight: 500;
+            position: relative;
+        }
+        .ball-speech::after {
+            content: '';
+            position: absolute;
+            left: -8px;
+            top: 50%;
+            transform: translateY(-50%);
+            border-width: 8px 8px 8px 0;
+            border-style: solid;
+            border-color: transparent var(--bg-secondary) transparent transparent;
+            display: block;
+            width: 0;
+        }
+
+        @keyframes floatBall {
+            0% { transform: translateY(0px) rotate(0deg); }
+            100% { transform: translateY(-8px) rotate(4deg); }
+        }
+
+        /* --- Dialog Overlay --- */
+        .dialog-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000; display: flex; align-items: center; justify-content: center;
+            opacity: 0; visibility: hidden; transition: all 0.3s var(--m3-easing);
+        }
+        .dialog-overlay.active { opacity: 1; visibility: visible; }
+        .glass-dialog {
+            background: var(--glass-bg);
+            border-radius: 28px;
+            padding: 24px; max-width: 380px; width: 90%; text-align: center;
+            transform: scale(0.9) translateY(20px); transition: all 0.4s var(--m3-easing);
+        }
+        .dialog-overlay.active .glass-dialog { transform: scale(1) translateY(0); }
+
+        /* --- Toast Alert --- */
+        .toast {
+            position: fixed;
+            bottom: 110px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--text-main);
+            color: var(--glass-bg);
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s var(--m3-easing);
+            z-index: 2000;
+        }
+        .toast.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .loading-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.6);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-weight: 600;
+            border-radius: 20px;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s;
+        }
+        .loading-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: var(--accent-primary);
+            animation: spin 1s ease-in-out infinite;
+            margin-bottom: 12px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo-container">
+            <img class="logo-img" src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/pbhuB2/Polska2.png" alt="ポーラン">
+            <div class="logo">PB-PDF MY</div>
+        </div>
+        <button class="theme-toggle" id="theme-btn">
+            <span class="material-symbols-outlined">light_mode</span>
+        </button>
+    </header>
+
+    <div id="app-viewport">
+        <main id="main-content">
+            
+            <!-- Home Section -->
+            <section id="view-home" class="view active">
+                <!-- Mascot Welcome Box -->
+                <div class="glass-card">
+                    <div class="ball-deco-box">
+                        <img class="ball-img" src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/pbhuB2/Polska2.png" alt="ポーラン">
+                        <div class="ball-speech" id="welcome-bubble">
+                            ポーランドはPDFビューアーを開発したよ！これなら宇宙に行けなくても、PDFは快適に読めるんね！
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PDF Picker Box -->
+                <div class="glass-card">
+                    <h2>PDFを追加する</h2>
+                    <p>スマホ内のPDFを選択してデバイスのローカル保護ストレージ(IndexedDB)に安全に保存します。</p>
+                    
+                    <!-- File System Drop Area -->
+                    <div class="file-drop-area" id="drop-zone">
+                        <span class="material-symbols-outlined">upload_file</span>
+                        <h4 style="margin: 8px 0 4px 0; font-size: 16px;">ファイルをタップして選択</h4>
+                        <p style="font-size: 12px; margin-bottom: 0;">または、ここにドラッグ＆ドロップ</p>
+                    </div>
+                    <!-- Hidden input for standard picker -->
+                    <input type="file" id="file-input" accept="application/pdf" style="display: none;">
+
+                    <!-- Advanced Directory/File Picker System Access API Button if supported -->
+                    <div id="advanced-picker-container" style="display: none; margin-top: 8px;">
+                        <button class="ai-btn ai-btn-secondary" id="directory-picker-btn" style="width: 100%;">
+                            <span class="material-symbols-outlined">folder_open</span>
+                            Directory Access API で開く
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Saved List (Strictly flat items, no nested gray cards inside white cards) -->
+                <div class="glass-card">
+                    <h2>保存されたPDFドキュメント</h2>
+                    <p>デバイスにキャッシュされているPDFの一覧です。オフライン状態でもタップしてすぐに閲覧を開始できます。</p>
+                    
+                    <ul class="pdf-list" id="pdf-storage-list">
+                        <!-- List populated dynamically -->
+                        <li style="text-align: center; padding: 20px 0; color: var(--text-sub);" id="empty-list-placeholder">
+                            <span class="material-symbols-outlined" style="font-size: 36px; vertical-align: middle; margin-bottom: 4px;">cloud_off</span>
+                            <div>保存されたPDFはまだありません</div>
+                        </li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Viewer Section -->
+            <section id="view-viewer" class="view">
+                <div class="glass-card">
+                    <div class="viewer-container">
+                        <!-- Toolbar -->
+                        <div class="viewer-toolbar">
+                            <button class="icon-btn" id="btn-prev-page">
+                                <span class="material-symbols-outlined">navigate_before</span>
+                            </button>
+                            
+                            <div class="page-indicator">
+                                <span id="current-page-num">0</span> / <span id="total-pages-num">0</span>
+                            </div>
+
+                            <button class="icon-btn" id="btn-next-page">
+                                <span class="material-symbols-outlined">navigate_next</span>
+                            </button>
+                        </div>
+
+                        <!-- Render Canvas Board -->
+                        <div class="canvas-wrapper" id="pdf-render-wrapper">
+                            <canvas id="pdf-canvas"></canvas>
+                            
+                            <!-- Internal Loading Indicator -->
+                            <div class="loading-overlay" id="pdf-loading">
+                                <div class="spinner"></div>
+                                <div id="pdf-loading-text">レンダリング中...</div>
+                            </div>
+                        </div>
+
+                        <!-- Controls -->
+                        <div style="display: flex; gap: 8px;">
+                            <button class="ai-btn" id="btn-save-progress" style="flex: 1;">
+                                <span class="material-symbols-outlined">bookmark</span>
+                                このページを保存
+                            </button>
+                            <button class="ai-btn ai-btn-secondary" id="btn-close-viewer">
+                                閉じる
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Settings Section -->
+            <section id="view-settings" class="view">
+                <div class="glass-card">
+                    <h2>ビューアー設定</h2>
+                    <p>表示や動作に関するオプションを変更します。</p>
+                    
+                    <div class="toggle-row">
+                        <span>セマンティックダークモード</span>
+                        <label class="switch">
+                            <input type="checkbox" id="darkmode-toggle">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="toggle-row">
+                        <span>コピー成功時にトースト通知</span>
+                        <label class="switch">
+                            <input type="checkbox" checked id="toast-toggle">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="glass-card">
+                    <h2>データマネジメント</h2>
+                    <p>保存されたPDFファイルや進行状況のデータを全て削除し、初期状態にリセットします。</p>
+                    <button class="ai-btn ai-btn-danger" id="btn-clear-db" style="width: 100%;">
+                        <span class="material-symbols-outlined">delete_sweep</span>
+                        すべてのPDFデータを削除
+                    </button>
+                </div>
+
+                <!-- Germany character widget for settings -->
+                <div class="glass-card">
+                    <div class="ball-deco-box">
+                        <img class="ball-img" src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/germany/normal.png" alt="ドイツ">
+                        <div class="ball-speech">
+                            データ管理を徹底するんね。無駄なデータは圧縮・削除して効率よくストレージを使用するべき、Ja!
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Navigation Bar -->
+    <div class="nav-container">
+        <nav class="nav-rail">
+            <div class="nav-item active" data-view="view-home">
+                <span class="material-symbols-outlined">home</span>
+            </div>
+            <div class="nav-item" data-view="view-viewer" id="nav-item-viewer" style="opacity: 0.5; pointer-events: none;">
+                <span class="material-symbols-outlined">menu_book</span>
+            </div>
+            <div class="nav-item" data-view="view-settings">
+                <span class="material-symbols-outlined">settings</span>
+            </div>
+        </nav>
+    </div>
+
+    <!-- Custom Dialog System -->
+    <div class="dialog-overlay" id="main-dialog">
+        <div class="glass-dialog">
+            <span class="material-symbols-outlined" style="font-size: 48px; color: var(--accent-primary);">help_outline</span>
+            <h2 id="dialog-title" style="margin-top: 12px;">確認</h2>
+            <p id="dialog-message" style="margin-bottom: 20px;">メッセージがここに入ります。</p>
+            <div style="display: flex; gap: 8px;">
+                <button class="ai-btn ai-btn-secondary" id="dialog-cancel-btn" style="flex: 1;">キャンセル</button>
+                <button class="ai-btn" id="dialog-confirm-btn" style="flex: 1;">確認</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Message Box -->
+    <div class="toast" id="toast-message">メッセージ</div>
+
+    <script>
+        /**
+         * PB-PDF Mi Core Logic & IndexedDB Manager
+         */
+
+        const viewport = document.getElementById('app-viewport');
+        const themeBtn = document.getElementById('theme-btn');
+        const themeIcon = themeBtn.querySelector('span');
+        const toast = document.getElementById('toast-message');
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const pdfStorageList = document.getElementById('pdf-storage-list');
+        const emptyListPlaceholder = document.getElementById('empty-list-placeholder');
+        const navItemViewer = document.getElementById('nav-item-viewer');
+
+        // Character bubbles pool
+        const polandQuotes = [
+            "ポーランドはPDFビューアーを開発したよ！宇宙には行けないけれどPDFは表示できるんね！",
+            "ドイツ！これなら物理的なペーパーワークもデジタルになるよ！",
+            "IndexedDBという魔法の金庫にPDFがしまってあるんね！安心安全！",
+            "フリックするか、左右のボタンをタップしてページをめくるんよ！"
+        ];
+
+        // IndexedDB Configuration
+        const DB_NAME = 'PB_PDF_Mi_Database';
+        const DB_VERSION = 1;
+        const STORE_NAME = 'pdf_documents';
+        let db = null;
+
+        // Active Viewer State
+        let currentPdfDoc = null;
+        let currentPdfId = null;
+        let currentPageNum = 1;
+        let totalPagesNum = 0;
+        let isRendering = false;
+
+        // Initialize PDFjs
+        const pdfjsLib = window['pdfjs-dist/build/pdf'];
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+
+        // Custom Dialog Callback
+        let onDialogConfirm = null;
+
+        // --- 1. IndexedDB Core Operations ---
+        function initIndexedDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+                
+                request.onupgradeneeded = (e) => {
+                    const database = e.target.result;
+                    if (!database.objectStoreNames.contains(STORE_NAME)) {
+                        database.createObjectStore(STORE_NAME, { keyPath: 'id' });
+                    }
+                };
+
+                request.onsuccess = (e) => {
+                    db = e.target.result;
+                    resolve(db);
+                };
+
+                request.onerror = (e) => {
+                    reject(e.target.error);
+                };
+            });
+        }
+
+        function savePdfToDB(id, name, blob, size) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([STORE_NAME], 'readwrite');
+                const store = transaction.objectStore(STORE_NAME);
+                
+                const record = {
+                    id: id,
+                    name: name,
+                    blob: blob,
+                    size: size,
+                    lastPage: 1,
+                    totalPages: 0,
+                    addedAt: Date.now()
+                };
+
+                const request = store.put(record);
+                
+                request.onsuccess = () => resolve();
+                request.onerror = (e) => reject(e.target.error);
+            });
+        }
+
+        function getPdfFromDB(id) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([STORE_NAME], 'readonly');
+                const store = transaction.objectStore(STORE_NAME);
+                const request = store.get(id);
+                
+                request.onsuccess = (e) => resolve(e.target.result);
+                request.onerror = (e) => reject(e.target.error);
+            });
+        }
+
+        function updatePdfProgress(id, lastPage) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([STORE_NAME], 'readwrite');
+                const store = transaction.objectStore(STORE_NAME);
+                
+                const getRequest = store.get(id);
+                getRequest.onsuccess = (e) => {
+                    const record = e.target.result;
+                    if (record) {
+                        record.lastPage = lastPage;
+                        const putRequest = store.put(record);
+                        putRequest.onsuccess = () => resolve();
+                        putRequest.onerror = (err) => reject(err);
+                    } else {
+                        reject('Record not found');
+                    }
+                };
+            });
+        }
+
+        function deletePdfFromDB(id) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([STORE_NAME], 'readwrite');
+                const store = transaction.objectStore(STORE_NAME);
+                const request = store.delete(id);
+                
+                request.onsuccess = () => resolve();
+                request.onerror = (e) => reject(e.target.error);
+            });
+        }
+
+        function getAllPdfs() {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([STORE_NAME], 'readonly');
+                const store = transaction.objectStore(STORE_NAME);
+                const request = store.getAll();
+                
+                request.onsuccess = (e) => resolve(e.target.result);
+                request.onerror = (e) => reject(e.target.error);
+            });
+        }
+
+        function clearAllPdfs() {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([STORE_NAME], 'readwrite');
+                const store = transaction.objectStore(STORE_NAME);
+                const request = store.clear();
+                
+                request.onsuccess = () => resolve();
+                request.onerror = (e) => reject(e.target.error);
+            });
+        }
+
+        // --- 2. Mascot & Bubble Interactions ---
+        function updateMascotBubble() {
+            const bubble = document.getElementById('welcome-bubble');
+            if (bubble) {
+                const randomIndex = Math.floor(Math.random() * polandQuotes.length);
+                bubble.textContent = polandQuotes[randomIndex];
+            }
+        }
+
+        // --- 3. Rendering PDF in Canvas with Adaptive Design ---
+        async function renderPDFPage(pageNum) {
+            if (!currentPdfDoc || isRendering) return;
+            isRendering = true;
+            currentPageNum = pageNum;
+            
+            document.getElementById('pdf-loading').classList.add('active');
+            
+            try {
+                const page = await currentPdfDoc.getPage(pageNum);
+                const canvas = document.getElementById('pdf-canvas');
+                const ctx = canvas.getContext('2d');
+                
+                // Get layout viewport scale adaptively based on wrapper width
+                const wrapper = document.getElementById('pdf-render-wrapper');
+                const wrapperWidth = wrapper.clientWidth - 16;
+                const unscaledViewport = page.getViewport({ scale: 1 });
+                
+                // Set scale dynamically for crisp mobile layouts
+                const dynamicScale = Math.min(2.0, (wrapperWidth / unscaledViewport.width));
+                const viewport = page.getViewport({ scale: dynamicScale });
+                
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+                
+                const renderContext = {
+                    canvasContext: ctx,
+                    viewport: viewport
+                };
+                
+                await renderContext.canvasContext;
+                await page.render(renderContext).promise;
+                
+                document.getElementById('current-page-num').textContent = pageNum;
+            } catch (error) {
+                console.error("PDF rendering error: ", error);
+                showToast("ページのレンダリングに失敗しました");
+            } finally {
+                isRendering = false;
+                document.getElementById('pdf-loading').classList.remove('active');
+            }
+        }
+
+        async function openPdfViewer(id) {
+            try {
+                showToast("PDFを読み込み中...");
+                const doc = await getPdfFromDB(id);
+                if (!doc) throw new Error("Document not found");
+
+                currentPdfId = id;
+                const fileReader = new FileReader();
+                
+                fileReader.onload = async function() {
+                    const typedarray = new Uint8Array(this.result);
+                    try {
+                        currentPdfDoc = await pdfjsLib.getDocument(typedarray).promise;
+                        totalPagesNum = currentPdfDoc.numPages;
+                        document.getElementById('total-pages-num').textContent = totalPagesNum;
+                        
+                        // Set active viewer icon to interactive
+                        navItemViewer.style.opacity = "1";
+                        navItemViewer.style.pointerEvents = "auto";
+                        
+                        // Load last progress page
+                        currentPageNum = doc.lastPage || 1;
+                        if (currentPageNum > totalPagesNum) currentPageNum = 1;
+
+                        switchView('view-viewer');
+                        await renderPDFPage(currentPageNum);
+                        
+                        // Update total count metadata if unset
+                        if (doc.totalPages !== totalPagesNum) {
+                            doc.totalPages = totalPagesNum;
+                            const transaction = db.transaction([STORE_NAME], 'readwrite');
+                            transaction.objectStore(STORE_NAME).put(doc);
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        showToast("PDFの解析に失敗しました");
+                    }
+                };
+                fileReader.readAsArrayBuffer(doc.blob);
+            } catch (err) {
+                console.error(err);
+                showToast("PDFの展開に失敗しました");
+            }
+        }
+
+        // --- 4. Populate Document Storage List (No Nested Cards!) ---
+        async function refreshSavedList() {
+            try {
+                const list = await getAllPdfs();
+                pdfStorageList.innerHTML = '';
+                
+                if (list.length === 0) {
+                    pdfStorageList.appendChild(emptyListPlaceholder);
+                    return;
+                }
+
+                list.sort((a, b) => b.addedAt - a.addedAt);
+
+                list.forEach(doc => {
+                    const li = document.createElement('li');
+                    li.className = 'pdf-item';
+                    
+                    const sizeKB = (doc.size / 1024).toFixed(1);
+                    const formattedDate = new Date(doc.addedAt).toLocaleDateString('ja-JP', {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+
+                    // Build Flat Items structure
+                    li.innerHTML = `
+                        <div class="pdf-item-info">
+                            <span class="pdf-item-title">${escapeHTML(doc.name)}</span>
+                            <span class="pdf-item-meta">${sizeKB} KB • ${formattedDate} • ページ: ${doc.lastPage || 1} / ${doc.totalPages || '?'}</span>
+                        </div>
+                        <div class="pdf-item-actions">
+                            <button class="icon-btn" title="開く" class="btn-open">
+                                <span class="material-symbols-outlined">menu_book</span>
+                            </button>
+                            <button class="icon-btn danger" title="削除" class="btn-delete">
+                                <span class="material-symbols-outlined">delete</span>
+                            </button>
+                        </div>
+                    `;
+
+                    // Bind item events
+                    li.querySelector('.pdf-item-info').addEventListener('click', () => {
+                        openPdfViewer(doc.id);
+                    });
+                    li.querySelector('.pdf-item-actions .icon-btn:not(.danger)').addEventListener('click', () => {
+                        openPdfViewer(doc.id);
+                    });
+                    li.querySelector('.pdf-item-actions .danger').addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        requestDeleteDoc(doc.id, doc.name);
+                    });
+
+                    pdfStorageList.appendChild(li);
+                });
+            } catch (err) {
+                console.error("Failed to load PDF storage index", err);
+            }
+        }
+
+        function requestDeleteDoc(id, name) {
+            openCustomDialog(
+                "PDFを削除",
+                `本当に「${name}」を削除しますか？この操作は取り消せません。`,
+                async () => {
+                    await deletePdfFromDB(id);
+                    showToast("PDFを削除しました");
+                    // If deleted the active viewport doc, reset active menu navigation
+                    if (currentPdfId === id) {
+                        currentPdfDoc = null;
+                        currentPdfId = null;
+                        navItemViewer.style.opacity = "0.5";
+                        navItemViewer.style.pointerEvents = "none";
+                        switchView('view-home');
+                    }
+                    refreshSavedList();
+                }
+            );
+        }
+
+        // --- 5. Custom Dialog System (Replaces browser block alerts) ---
+        function openCustomDialog(title, message, onConfirm) {
+            document.getElementById('dialog-title').textContent = title;
+            document.getElementById('dialog-message').textContent = message;
+            document.getElementById('main-dialog').classList.add('active');
+            onDialogConfirm = onConfirm;
+        }
+
+        function closeDialog() {
+            document.getElementById('main-dialog').classList.remove('active');
+            onDialogConfirm = null;
+        }
+
+        // --- 6. Event Handlers & Dropzone Processing ---
+        async function processFile(file) {
+            if (!file) return;
+            if (file.type !== 'application/pdf' && !file.name.endsWith('.pdf')) {
+                showToast("PDFファイルのみがサポートされています");
+                return;
+            }
+
+            const id = 'pdf_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            try {
+                showToast("保存処理中...");
+                await savePdfToDB(id, file.name, file, file.size);
+                showToast("IndexedDBにPDFを安全に保存しました！");
+                updateMascotBubble();
+                refreshSavedList();
+            } catch (err) {
+                console.error(err);
+                showToast("保存に失敗しました。容量が不足している可能性があります。");
+            }
+        }
+
+        // Handle native Directory Picker (Directory / File System Access API support)
+        async function attemptDirectoryOrFilePicker() {
+            try {
+                if ('showOpenFilePicker' in window) {
+                    const [fileHandle] = await window.showOpenFilePicker({
+                        types: [{
+                            description: 'PDF Files',
+                            accept: { 'application/pdf': ['.pdf'] }
+                        }],
+                        excludeAcceptAllOption: true,
+                        multiple: false
+                    });
+                    const file = await fileHandle.getFile();
+                    await processFile(file);
+                } else {
+                    // Fallback to trigger conventional filepicker
+                    fileInput.click();
+                }
+            } catch (err) {
+                if (err.name !== 'AbortError') {
+                    console.error(err);
+                    showToast("ファイルへのアクセスに失敗しました");
+                }
+            }
+        }
+
+        // Drag and Drop implementation
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.style.background = "rgba(51, 129, 255, 0.15)";
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.style.background = "transparent";
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.style.background = "transparent";
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                processFile(files[0]);
+            }
+        });
+
+        dropZone.addEventListener('click', () => {
+            attemptDirectoryOrFilePicker();
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                processFile(e.target.files[0]);
+            }
+        });
+
+        // Show Filepicker Button Support Detection
+        if ('showOpenFilePicker' in window) {
+            document.getElementById('advanced-picker-container').style.display = 'block';
+            document.getElementById('directory-picker-btn').addEventListener('click', attemptDirectoryOrFilePicker);
+        }
+
+        // Close Viewer button action
+        document.getElementById('btn-close-viewer').addEventListener('click', () => {
+            switchView('view-home');
+            updateMascotBubble();
+        });
+
+        // Pagination Triggers
+        document.getElementById('btn-prev-page').addEventListener('click', () => {
+            if (currentPageNum > 1) {
+                renderPDFPage(currentPageNum - 1);
+            } else {
+                showToast("すでに最初のページです");
+            }
+        });
+
+        document.getElementById('btn-next-page').addEventListener('click', () => {
+            if (currentPageNum < totalPagesNum) {
+                renderPDFPage(currentPageNum + 1);
+            } else {
+                showToast("最後のページに到達しました");
+            }
+        });
+
+        // Progress Bookmark Saving Trigger
+        document.getElementById('btn-save-progress').addEventListener('click', async () => {
+            if (!currentPdfId) return;
+            try {
+                await updatePdfProgress(currentPdfId, currentPageNum);
+                showToast(`進行状況 (${currentPageNum} ページ) をセーブしました！`);
+                refreshSavedList();
+            } catch (err) {
+                console.error(err);
+                showToast("進行状況のセーブに失敗しました");
+            }
+        });
+
+        // Swipe & Navigation Events on Canvas (Optimal mobile experience)
+        let touchStartX = 0;
+        let touchEndX = 0;
+        const canvasWrapper = document.getElementById('pdf-render-wrapper');
+
+        canvasWrapper.addEventListener('touchstart', (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+        }, { passive: true });
+
+        canvasWrapper.addEventListener('touchend', (e) => {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipeGesture();
+        }, { passive: true });
+
+        function handleSwipeGesture() {
+            const swipeDistanceThreshold = 60;
+            if (touchEndX < touchStartX - swipeDistanceThreshold) {
+                // Swipe Left -> Next Page
+                if (currentPageNum < totalPagesNum) renderPDFPage(currentPageNum + 1);
+            }
+            if (touchEndX > touchStartX + swipeDistanceThreshold) {
+                // Swipe Right -> Prev Page
+                if (currentPageNum > 1) renderPDFPage(currentPageNum - 1);
+            }
+        }
+
+        // --- 7. Utility Handlers & Setup ---
+        function showToast(msg) {
+            const isToastEnabled = document.getElementById('toast-toggle') ? document.getElementById('toast-toggle').checked : true;
+            if (!isToastEnabled) return;
+
+            toast.textContent = msg;
+            toast.classList.add('active');
+            setTimeout(() => {
+                toast.classList.remove('active');
+            }, 2500);
+        }
+
+        function escapeHTML(str) {
+            return str.replace(/[&<>'"]/g, 
+                tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+            );
+        }
+
+        // Dialog Actions
+        document.getElementById('dialog-confirm-btn').addEventListener('click', () => {
+            if (onDialogConfirm) onDialogConfirm();
+            closeDialog();
+        });
+        document.getElementById('dialog-cancel-btn').addEventListener('click', closeDialog);
+
+        // System Settings
+        document.getElementById('btn-clear-db').addEventListener('click', () => {
+            openCustomDialog(
+                "全データ初期化",
+                "本当にすべての保存データと進行状況を消去しますか？",
+                async () => {
+                    await clearAllPdfs();
+                    showToast("IndexedDBデータベースを完全にクリアしました");
+                    
+                    // Reset Active Viewer status
+                    currentPdfDoc = null;
+                    currentPdfId = null;
+                    navItemViewer.style.opacity = "0.5";
+                    navItemViewer.style.pointerEvents = "none";
+                    
+                    refreshSavedList();
+                }
+            );
+        });
+
+        // --- 8. Theme Control System (HyperUI compliance) ---
+        function setTheme(isDark) {
+            document.body.classList.toggle('dark-mode', isDark);
+            themeIcon.textContent = isDark ? 'dark_mode' : 'light_mode';
+            
+            const dmToggle = document.getElementById('darkmode-toggle');
+            if (dmToggle) {
+                dmToggle.checked = isDark;
+            }
+        }
+
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+        setTheme(prefersDark.matches);
+
+        themeBtn.addEventListener('click', () => {
+            setTheme(!document.body.classList.contains('dark-mode'));
+        });
+
+        document.getElementById('darkmode-toggle').addEventListener('change', (e) => {
+            setTheme(e.target.checked);
+        });
+
+        // Squishy click effect module
+        document.addEventListener('mousedown', (e) => {
+            const target = e.target.closest('.glass-card, .ai-btn, .nav-item, .pdf-item');
+            if (target) {
+                target.classList.remove('squish-active');
+                void target.offsetWidth; // Force reflow
+                target.classList.add('squish-active');
+                
+                setTimeout(() => {
+                    target.classList.remove('squish-active');
+                }, 400);
+            }
+        });
+
+        // --- 9. View Switcher Protocol ---
+        const navItems = document.querySelectorAll('.nav-item');
+        const views = document.querySelectorAll('.view');
+
+        function switchView(viewId) {
+            // Update navigation state
+            navItems.forEach(n => {
+                n.classList.remove('active');
+                if (n.getAttribute('data-view') === viewId) {
+                    n.classList.add('active');
+                }
+            });
+
+            // Update visible view element
+            views.forEach(v => {
+                v.classList.remove('active');
+                if (v.id === viewId) {
+                    v.classList.add('active');
+                    viewport.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+            });
+        }
+
+        navItems.forEach(item => {
+            item.addEventListener('click', () => {
+                const viewId = item.getAttribute('data-view');
+                if (viewId) switchView(viewId);
+            });
+        });
+
+        // --- 10. Initialization Hooks ---
+        window.onload = async () => {
+            try {
+                await initIndexedDB();
+                await refreshSavedList();
+                updateMascotBubble();
+            } catch (err) {
+                console.error("IndexedDB startup error", err);
+                showToast("データベースの初期化に失敗しました。");
+            }
+        };
+    </script>
+</body>
+</html>
