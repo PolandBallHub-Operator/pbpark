@@ -1,0 +1,1449 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+    <title>画像編集するダス</title>
+
+    <!-- Google Fonts & Material Symbols -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+
+    <style>
+        :root {
+            /* ドイツ国旗テーマカラー */
+            --accent-primary: #FFCC00; /* 黄（ドイツゴールド） */
+            --accent-active: #CC9900;
+            --de-red: #FF0000;         /* 赤 */
+            --de-black: #000000;       /* 黒 */
+            
+            /* Light Mode Tokens */
+            --bg-base: #F7F7F7;
+            --glass-bg: #FFFFFF;
+            --text-main: #000000;
+            --text-sub: #555555;
+            --bg-secondary: #EEEEEE;
+            
+            --m3-easing: cubic-bezier(0.32, 0.72, 0, 1);
+            --transition-smooth: 0.4s var(--m3-easing);
+            --card-padding: 20px;
+        }
+
+        .dark-mode {
+            /* Dark Mode Tokens */
+            --bg-base: #121212;
+            --glass-bg: #1E1E1E;
+            --text-main: #FFFFFF;
+            --text-sub: #A1A1A6;
+            --bg-secondary: #2C2C2E;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', 'Noto Sans JP', sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            transition: background-color var(--transition-smooth), color var(--transition-smooth);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            touch-action: none;
+        }
+
+        /* --- Scroll Container --- */
+        #app-viewport {
+            height: 100vh;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            scroll-behavior: smooth;
+        }
+
+        /* --- Header (Centered Title, No Border/Shadow) --- */
+        header {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+            height: 72px; padding: 0 24px;
+            display: flex; align-items: center; justify-content: space-between;
+            background: var(--glass-bg);
+            transition: background-color var(--transition-smooth);
+        }
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .logo-avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--accent-primary);
+        }
+        .logo {
+            font-weight: 700; font-size: 20px; letter-spacing: -0.5px;
+            color: var(--text-main);
+        }
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .theme-toggle {
+            width: 44px; height: 44px; border-radius: 22px;
+            border: none; background: var(--bg-secondary);
+            color: var(--text-main); cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: background var(--transition-smooth);
+        }
+
+        /* --- Main Layout --- */
+        main {
+            padding: 96px 20px 140px;
+            max-width: 900px; margin: 0 auto;
+            min-height: 100%;
+            transition: opacity 0.3s ease, transform 0.3s var(--m3-easing);
+            box-sizing: border-box;
+        }
+
+        /* --- Flat Solid Card (No Shadow, No Border) --- */
+        .glass-card {
+            background: var(--glass-bg);
+            border-radius: 24px;
+            padding: var(--card-padding);
+            margin-bottom: 16px;
+            box-shadow: none !important;
+            border: none !important;
+            transform-style: flat;
+            transition: background-color var(--transition-smooth);
+        }
+
+        h2 { 
+            font-size: 20px; 
+            margin-top: 0; 
+            margin-bottom: 8px;
+            font-weight: 700; 
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        h3 {
+            font-size: 16px;
+            margin-top: 0;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        p {
+            font-size: 14px;
+            line-height: 1.45;
+            margin-top: 0;
+            margin-bottom: 12px;
+            color: var(--text-sub);
+        }
+
+        /* --- Interaction: Jelly/Squishy Effect --- */
+        @keyframes squishy {
+            0% { transform: scale(1, 1); }
+            30% { transform: scale(1.08, 0.92); }
+            50% { transform: scale(0.95, 1.05); }
+            70% { transform: scale(1.02, 0.98); }
+            100% { transform: scale(1, 1); }
+        }
+        .squish-active {
+            animation: squishy 0.4s var(--m3-easing);
+        }
+
+        /* --- Primary Buttons --- */
+        .ai-btn {
+            border: none; outline: none;
+            padding: 12px 24px; border-radius: 14px;
+            font-weight: 600; font-size: 15px;
+            color: var(--de-black); cursor: pointer;
+            background: var(--accent-primary);
+            transition: transform 0.2s, background-color 0.2s;
+            display: inline-flex; align-items: center; gap: 8px;
+            box-shadow: none;
+        }
+        .ai-btn:hover { transform: scale(1.02); }
+        .ai-btn:active {
+            background: var(--accent-active);
+            transform: scale(0.95);
+        }
+        .ai-btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-main);
+        }
+        .ai-btn-danger {
+            background: var(--de-red);
+            color: white;
+        }
+
+        /* --- Inputs --- */
+        .glass-input-wrapper { margin-bottom: 14px; }
+        .glass-input {
+            width: 100%; padding: 14px 18px;
+            border-radius: 14px; border: none;
+            background: var(--bg-secondary);
+            color: var(--text-main); font-size: 15px;
+            box-sizing: border-box; transition: background 0.3s var(--m3-easing);
+        }
+        .glass-input:focus {
+            outline: 2px solid var(--accent-primary);
+        }
+
+        /* Select styling matching HyperUI */
+        .glass-select {
+            width: 100%; padding: 14px 18px;
+            border-radius: 14px; border: none;
+            background: var(--bg-secondary);
+            color: var(--text-main); font-size: 15px;
+            box-sizing: border-box; transition: background 0.3s var(--m3-easing);
+            appearance: none;
+            outline: none;
+            cursor: pointer;
+        }
+        .glass-select:focus {
+            outline: 2px solid var(--accent-primary);
+        }
+
+        /* --- Toggles --- */
+        .toggle-row {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 10px 0;
+        }
+        .switch {
+            position: relative; display: inline-block; width: 50px; height: 28px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--bg-secondary);
+            transition: .3s var(--m3-easing);
+            border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute; content: "";
+            height: 20px; width: 20px; left: 4px; bottom: 4px;
+            background: white; transition: .3s var(--m3-easing);
+            border-radius: 50%;
+        }
+        input:checked + .slider { background: var(--accent-primary); }
+        input:checked + .slider:before { transform: translateX(22px); }
+
+        /* --- Navigation --- */
+        .nav-container {
+            position: fixed; bottom: 32px; left: 50%;
+            transform: translateX(-50%); z-index: 500;
+        }
+        .nav-rail {
+            display: flex; align-items: center; gap: 8px;
+            background: var(--glass-bg);
+            padding: 6px; border-radius: 32px;
+            box-shadow: none;
+        }
+        .nav-item {
+            width: 52px; height: 52px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; border-radius: 26px; color: var(--text-sub);
+            transition: all 0.3s var(--m3-easing);
+            position: relative;
+        }
+        .nav-item.active {
+            background: var(--accent-primary); color: var(--de-black);
+            transform: scale(1.05);
+            font-weight: bold;
+        }
+
+        /* --- View Management --- */
+        .view { display: none; }
+        .view.active { display: block; animation: viewIn 0.4s var(--m3-easing); }
+        @keyframes viewIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* --- Custom App Specific UI Components --- */
+        .character-card {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            background: linear-gradient(135deg, rgba(0,0,0,0.05), rgba(255,0,0,0.05), rgba(255,204,0,0.05));
+            border-radius: 20px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+        .character-img {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid var(--accent-primary);
+            flex-shrink: 0;
+        }
+        .character-text {
+            flex-grow: 1;
+        }
+        .character-bubble {
+            background: var(--bg-secondary);
+            padding: 10px 14px;
+            border-radius: 12px 12px 12px 0;
+            font-size: 13px;
+            position: relative;
+            color: var(--text-main);
+        }
+
+        /* --- Workspace Layout --- */
+        .workspace-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+        @media (min-width: 800px) {
+            .workspace-grid {
+                grid-template-columns: 1.2fr 0.8fr;
+            }
+        }
+
+        /* --- Visual Canvas Frame --- */
+        .canvas-container {
+            position: relative;
+            background: var(--bg-secondary);
+            border-radius: 24px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 350px;
+            overflow: hidden;
+        }
+        #main-canvas {
+            max-width: 100%;
+            max-height: 50vh;
+            border-radius: 12px;
+            object-fit: contain;
+            display: block;
+        }
+
+        /* Controls Layout */
+        .controls-accordion {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .control-section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--bg-secondary);
+            padding: 12px 16px;
+            border-radius: 14px;
+            cursor: pointer;
+            user-select: none;
+            transition: background-color 0.2s;
+        }
+        .control-section-header:hover {
+            background: var(--accent-primary);
+            color: var(--de-black);
+        }
+        .control-section-content {
+            display: none;
+            padding: 12px 8px;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .control-section-content.active {
+            display: flex;
+        }
+
+        .slider-group {
+            margin-bottom: 8px;
+        }
+        .slider-group label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            margin-bottom: 4px;
+            font-weight: 600;
+        }
+        .custom-slider {
+            width: 100%;
+            accent-color: var(--accent-primary);
+            cursor: pointer;
+        }
+
+        /* Filter preset buttons */
+        .preset-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+        .preset-btn {
+            background: var(--bg-secondary);
+            border: none;
+            padding: 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-main);
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+        .preset-btn.active {
+            background: var(--accent-primary);
+            color: var(--de-black);
+        }
+
+        /* Stamp Panel */
+        .stamp-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+        }
+        .stamp-item {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 8px;
+            text-align: center;
+            font-size: 24px;
+            cursor: pointer;
+            user-select: none;
+            transition: transform 0.2s;
+        }
+        .stamp-item:hover {
+            transform: scale(1.1);
+        }
+
+        /* Image Quick Select Options */
+        .image-quick-select {
+            display: flex;
+            gap: 12px;
+            margin-top: 12px;
+            overflow-x: auto;
+            padding-bottom: 8px;
+        }
+        .quick-thumb {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            object-fit: cover;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: border-color 0.2s;
+        }
+        .quick-thumb.active {
+            border-color: var(--accent-primary);
+        }
+
+        /* --- Dialog Overlay --- */
+        .dialog-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000; display: flex; align-items: center; justify-content: center;
+            opacity: 0; visibility: hidden; transition: all 0.3s var(--m3-easing);
+        }
+        .dialog-overlay.active { opacity: 1; visibility: visible; }
+        .glass-dialog {
+            background: var(--glass-bg);
+            border-radius: 28px;
+            padding: 24px; max-width: 420px; width: 90%; text-align: center;
+            transform: scale(0.9) translateY(20px); transition: all 0.4s var(--m3-easing);
+        }
+        .dialog-overlay.active .glass-dialog { transform: scale(1) translateY(0); }
+
+        /* --- Toast Alert --- */
+        .toast {
+            position: fixed;
+            bottom: 110px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--text-main);
+            color: var(--glass-bg);
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s var(--m3-easing);
+            z-index: 2000;
+        }
+        .toast.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* Interactive Canvas Mode indicators */
+        .canvas-toolbar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+            width: 100%;
+            justify-content: flex-end;
+        }
+        .tool-indicator {
+            font-size: 12px;
+            background: var(--accent-primary);
+            color: var(--de-black);
+            padding: 4px 10px;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+
+        .upload-area {
+            border: 2px dashed var(--text-sub);
+            padding: 30px;
+            border-radius: 18px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .upload-area:hover {
+            border-color: var(--accent-primary);
+            background: rgba(255, 204, 0, 0.05);
+        }
+
+        /* --- Color Picker Custom Rounded style --- */
+        .color-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .color-dot {
+            width: 28px;
+            height: 28px;
+            border-radius: 14px;
+            display: inline-block;
+            cursor: pointer;
+            transition: transform 0.2s;
+            border: 2px solid transparent;
+        }
+        .color-dot.active {
+            border-color: var(--text-main);
+            transform: scale(1.1);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo-container">
+            <img src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/pbhuB2/de2.png" alt="DE Ball" class="logo-avatar">
+            <div class="logo">画像編集するダス</div>
+        </div>
+        <div class="header-actions">
+            <button class="theme-toggle" id="theme-btn">
+                <span class="material-symbols-outlined">light_mode</span>
+            </button>
+        </div>
+    </header>
+
+    <div id="app-viewport">
+        <main id="main-content">
+            
+            <!-- HOME VIEW -->
+            <section id="view-home" class="view active">
+                <div class="character-card">
+                    <img src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/pbhuB2/de2.png" alt="DE Ball" class="character-img">
+                    <div class="character-text">
+                        <div class="character-bubble">
+                            ハロー！ドイツ国旗テーマの画像編集エンジン「画像編集するダス」へようこそ！豊富なフィルター加工、トリミング、テキスト書き込み、スタンプを体験するダス！
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card">
+                    <h2>画像をアップロードするダス</h2>
+                    <p>ローカルから画像を選ぶか、ドイツボールのサンプル画像からすぐに加工を開始できます。</p>
+                    
+                    <div class="upload-area" onclick="triggerFileInput()">
+                        <span class="material-symbols-outlined" style="font-size: 48px; color: var(--text-sub); display: block; margin-bottom: 8px;">image</span>
+                        <div style="font-weight: 700; margin-bottom: 4px;">ファイルを選択</div>
+                        <p style="margin: 0; font-size: 12px;">またはここにドラッグ＆ドロップ</p>
+                        <input type="file" id="image-loader" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
+                    </div>
+
+                    <div style="margin-top: 20px;">
+                        <h3>サンプル画像で試す</h3>
+                        <div class="image-quick-select">
+                            <img src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/pbhuB2/de2.png" class="quick-thumb active" onclick="loadSampleImage(this.src)" alt="Germany Ball">
+                            <img src="https://images.unsplash.com/photo-1527004013197-933c4bb611b3?auto=format&fit=crop&w=300&q=80" class="quick-thumb" onclick="loadSampleImage(this.src)" alt="Landscape">
+                            <img src="https://images.unsplash.com/photo-1543002588-bfa74002ed7e?auto=format&fit=crop&w=300&q=80" class="quick-thumb" onclick="loadSampleImage(this.src)" alt="Book">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card">
+                    <h2>自慢の機能一覧</h2>
+                    <p>この画像編集エンジンでできること：</p>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin-top: 12px;">
+                        <div style="background: var(--bg-secondary); padding: 14px; border-radius: 16px;">
+                            <span class="material-symbols-outlined" style="color: var(--accent-primary); font-size: 28px;">filter_b_and_w</span>
+                            <div style="font-weight: 700; font-size: 14px; margin-top: 6px;">10種類以上のフィルタ</div>
+                        </div>
+                        <div style="background: var(--bg-secondary); padding: 14px; border-radius: 16px;">
+                            <span class="material-symbols-outlined" style="color: var(--accent-primary); font-size: 28px;">title</span>
+                            <div style="font-weight: 700; font-size: 14px; margin-top: 6px;">文字入れカスタマイズ</div>
+                        </div>
+                        <div style="background: var(--bg-secondary); padding: 14px; border-radius: 16px;">
+                            <span class="material-symbols-outlined" style="color: var(--accent-primary); font-size: 28px;">crop_rotate</span>
+                            <div style="font-weight: 700; font-size: 14px; margin-top: 6px;">回転・トリミング</div>
+                        </div>
+                        <div style="background: var(--bg-secondary); padding: 14px; border-radius: 16px;">
+                            <span class="material-symbols-outlined" style="color: var(--accent-primary); font-size: 28px;">mood</span>
+                            <div style="font-weight: 700; font-size: 14px; margin-top: 6px;">楽しい国旗系スタンプ</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- WORKSPACE/EDITOR VIEW -->
+            <section id="view-editor" class="view">
+                <div class="workspace-grid">
+                    <!-- Preview side -->
+                    <div style="display: flex; flex-direction: column; gap: 12px;">
+                        <div class="canvas-container" id="editor-canvas-container">
+                            <div class="canvas-toolbar">
+                                <span class="tool-indicator" id="current-tool-indicator">移動・スタンプモード</span>
+                            </div>
+                            <canvas id="main-canvas"></canvas>
+                        </div>
+
+                        <div class="glass-card" style="padding: 16px; margin-bottom: 0; display: flex; gap: 8px; justify-content: space-between;">
+                            <button class="ai-btn ai-btn-secondary" onclick="resetCanvasChanges()">
+                                <span class="material-symbols-outlined">restart_alt</span> 戻す
+                            </button>
+                            <button class="ai-btn" onclick="saveEditedImage()">
+                                <span class="material-symbols-outlined">download</span> 保存するダス
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Controls side -->
+                    <div class="controls-accordion">
+                        
+                        <!-- 1. Basic Adjustments & Filter -->
+                        <div class="glass-card" style="margin-bottom: 0;">
+                            <div class="control-section-header" onclick="toggleAccordion('sect-filters')">
+                                <span style="font-weight: 700; display:flex; align-items:center; gap:8px;">
+                                    <span class="material-symbols-outlined">tune</span> 色調・フィルター
+                                </span>
+                                <span class="material-symbols-outlined">expand_more</span>
+                            </div>
+                            <div class="control-section-content active" id="sect-filters">
+                                <h3>プリセットフィルター</h3>
+                                <div class="preset-grid">
+                                    <button class="preset-btn active" onclick="applyPresetFilter('normal')">通常</button>
+                                    <button class="preset-btn" onclick="applyPresetFilter('grayscale')">白黒</button>
+                                    <button class="preset-btn" onclick="applyPresetFilter('sepia')">セピア</button>
+                                    <button class="preset-btn" onclick="applyPresetFilter('invert')">反転</button>
+                                    <button class="preset-btn" onclick="applyPresetFilter('vintage')">ビンテージ</button>
+                                    <button class="preset-btn" onclick="applyPresetFilter('highcontrast')">高コントラスト</button>
+                                </div>
+
+                                <h3 style="margin-top: 14px;">微調整</h3>
+                                <div class="slider-group">
+                                    <label><span>明るさ</span><span id="val-brightness">100%</span></label>
+                                    <input type="range" class="custom-slider" id="slider-brightness" min="0" max="200" value="100" oninput="applyAdjustments()">
+                                </div>
+                                <div class="slider-group">
+                                    <label><span>コントラスト</span><span id="val-contrast">100%</span></label>
+                                    <input type="range" class="custom-slider" id="slider-contrast" min="0" max="200" value="100" oninput="applyAdjustments()">
+                                </div>
+                                <div class="slider-group">
+                                    <label><span>彩度</span><span id="val-saturation">100%</span></label>
+                                    <input type="range" class="custom-slider" id="slider-saturation" min="0" max="200" value="100" oninput="applyAdjustments()">
+                                </div>
+                                <div class="slider-group">
+                                    <label><span>ぼかし (px)</span><span id="val-blur">0px</span></label>
+                                    <input type="range" class="custom-slider" id="slider-blur" min="0" max="10" value="0" oninput="applyAdjustments()">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 2. Text Input Module -->
+                        <div class="glass-card" style="margin-bottom: 0;">
+                            <div class="control-section-header" onclick="toggleAccordion('sect-text')">
+                                <span style="font-weight: 700; display:flex; align-items:center; gap:8px;">
+                                    <span class="material-symbols-outlined">title</span> 文字入れ
+                                </span>
+                                <span class="material-symbols-outlined">expand_more</span>
+                            </div>
+                            <div class="control-section-content" id="sect-text">
+                                <p style="font-size: 12px; margin-bottom: 8px;">文字を入力して「テキスト追加」を押してください。画像上の追加されたテキストをドラッグで動かせます。</p>
+                                <div class="glass-input-wrapper">
+                                    <input type="text" class="glass-input" id="text-input-field" placeholder="文字を入力するダス">
+                                </div>
+
+                                <div class="slider-group">
+                                    <label><span>文字サイズ (px)</span><span id="val-fontsize">36</span></label>
+                                    <input type="range" class="custom-slider" id="slider-fontsize" min="14" max="80" value="36">
+                                </div>
+
+                                <div style="margin-bottom: 12px;">
+                                    <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">文字色</label>
+                                    <div class="color-row">
+                                        <span class="color-dot active" style="background: #FFFFFF;" onclick="setTextColor('#FFFFFF', this)"></span>
+                                        <span class="color-dot" style="background: #FFCC00;" onclick="setTextColor('#FFCC00', this)"></span>
+                                        <span class="color-dot" style="background: #FF0000;" onclick="setTextColor('#FF0000', this)"></span>
+                                        <span class="color-dot" style="background: #000000;" onclick="setTextColor('#000000', this)"></span>
+                                        <span class="color-dot" style="background: #3381FF;" onclick="setTextColor('#3381FF', this)"></span>
+                                    </div>
+                                </div>
+
+                                <div class="toggle-row">
+                                    <span>縁取り（黒）を追加</span>
+                                    <label class="switch">
+                                        <input type="checkbox" id="text-outline-toggle" checked>
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+
+                                <button class="ai-btn" style="width:100%; justify-content:center;" onclick="addTextToCanvas()">
+                                    <span class="material-symbols-outlined">add_comment</span> テキスト追加
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 3. Rotation & Flip & Crop -->
+                        <div class="glass-card" style="margin-bottom: 0;">
+                            <div class="control-section-header" onclick="toggleAccordion('sect-geometry')">
+                                <span style="font-weight: 700; display:flex; align-items:center; gap:8px;">
+                                    <span class="material-symbols-outlined">crop_rotate</span> 回転・変形・切り抜き
+                                </span>
+                                <span class="material-symbols-outlined">expand_more</span>
+                            </div>
+                            <div class="control-section-content" id="sect-geometry">
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                                    <button class="ai-btn ai-btn-secondary" style="justify-content:center;" onclick="rotateCanvas(90)">
+                                        <span class="material-symbols-outlined">rotate_right</span> 右回転
+                                    </button>
+                                    <button class="ai-btn ai-btn-secondary" style="justify-content:center;" onclick="rotateCanvas(-90)">
+                                        <span class="material-symbols-outlined">rotate_left</span> 左回転
+                                    </button>
+                                    <button class="ai-btn ai-btn-secondary" style="justify-content:center;" onclick="flipCanvas('horizontal')">
+                                        <span class="material-symbols-outlined">flip</span> 左右反転
+                                    </button>
+                                    <button class="ai-btn ai-btn-secondary" style="justify-content:center;" onclick="flipCanvas('vertical')">
+                                        <span class="material-symbols-outlined">flip</span> 上下反転
+                                    </button>
+                                </div>
+
+                                <h3 style="margin-top: 14px;">トリミング (簡易比率切り抜き)</h3>
+                                <div class="preset-grid">
+                                    <button class="preset-btn" onclick="applySimpleCrop(1, 1)">1:1 正方形</button>
+                                    <button class="preset-btn" onclick="applySimpleCrop(16, 9)">16:9 横長</button>
+                                    <button class="preset-btn" onclick="applySimpleCrop(4, 3)">4:3 標準</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 4. Stamps & Character Stickers -->
+                        <div class="glass-card" style="margin-bottom: 0;">
+                            <div class="control-section-header" onclick="toggleAccordion('sect-stamps')">
+                                <span style="font-weight: 700; display:flex; align-items:center; gap:8px;">
+                                    <span class="material-symbols-outlined">mood</span> スタンプ追加
+                                </span>
+                                <span class="material-symbols-outlined">expand_more</span>
+                            </div>
+                            <div class="control-section-content" id="sect-stamps">
+                                <p style="font-size: 12px; margin-bottom: 8px;">クリックしてキャンバスにスタンプを置き、位置をドラッグして調整できます。</p>
+                                
+                                <h3>国旗・球スタンプ</h3>
+                                <div style="display:flex; gap:12px; margin-bottom:12px;">
+                                    <img src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/pbhuB2/de2.png" style="width:48px; height:48px; border-radius:50%; cursor:pointer; object-fit:contain; border:2px solid var(--accent-primary);" onclick="addImgStamp('https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/pbhuB2/de2.png')" alt="Germany Stamp">
+                                </div>
+
+                                <h3>絵文字スタンプ</h3>
+                                <div class="stamp-grid">
+                                    <div class="stamp-item" onclick="addEmojiStamp('👑')">👑</div>
+                                    <div class="stamp-item" onclick="addEmojiStamp('🇩🇪')">🇩🇪</div>
+                                    <div class="stamp-item" onclick="addEmojiStamp('🔥')">🔥</div>
+                                    <div class="stamp-item" onclick="addEmojiStamp('🌟')">🌟</div>
+                                    <div class="stamp-item" onclick="addEmojiStamp('💥')">💥</div>
+                                    <div class="stamp-item" onclick="addEmojiStamp('🍺')">🍺</div>
+                                    <div class="stamp-item" onclick="addEmojiStamp('✨')">✨</div>
+                                    <div class="stamp-item" onclick="addEmojiStamp('🎯')">🎯</div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </section>
+
+            <!-- SETTINGS VIEW -->
+            <section id="view-settings" class="view">
+                <div class="glass-card">
+                    <h2>環境設定</h2>
+                    <p>エディタの挙動や外観システムを切り替えます。</p>
+                    
+                    <div class="toggle-row">
+                        <span>セマンティックダークモード</span>
+                        <label class="switch">
+                            <input type="checkbox" id="darkmode-toggle">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="toggle-row">
+                        <span>ドイツ風デザイン強調 (黄・黒アクセント)</span>
+                        <label class="switch">
+                            <input type="checkbox" id="de-accent-toggle" checked onchange="toggleDeAccent(this.checked)">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="toggle-row">
+                        <span>ドラッグガイド線の描画</span>
+                        <label class="switch">
+                            <input type="checkbox" id="guide-lines-toggle" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="glass-card">
+                    <h2>「画像編集するダス」について</h2>
+                    <p style="font-size: 13px;">バージョン: v4.1.0-Deutschland</p>
+                    <p style="font-size: 13px;">
+                        ドイツ国旗カラーをアクセントとした、境界線とシャドウを廃した超フラットデザインの次世代画像エディタ。
+                        国旗ボールキャラクターが常にあなたの作業をサポートするダス！
+                    </p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Navigation Bar -->
+    <div class="nav-container">
+        <nav class="nav-rail">
+            <div class="nav-item active" data-view="view-home" onclick="switchView('view-home')">
+                <span class="material-symbols-outlined">home</span>
+            </div>
+            <div class="nav-item" data-view="view-editor" onclick="enterEditorView()">
+                <span class="material-symbols-outlined">palette</span>
+            </div>
+            <div class="nav-item" data-view="view-settings" onclick="switchView('view-settings')">
+                <span class="material-symbols-outlined">settings</span>
+            </div>
+        </nav>
+    </div>
+
+    <!-- System Dialog (No Alert) -->
+    <div class="dialog-overlay" id="main-dialog">
+        <div class="glass-dialog">
+            <span class="material-symbols-outlined" style="font-size: 48px; color: var(--accent-primary);">verified_user</span>
+            <h2 id="dialog-title" style="margin-top: 12px; justify-content: center;">システムロード完了</h2>
+            <p id="dialog-message" style="margin-bottom: 20px;">ドイツボールがテーマの高性能エディター環境が最適化されたダス。画像を入れて遊び尽くすダス！</p>
+            <button class="ai-btn" style="width: 100%; justify-content: center;" onclick="closeDialog()">始めるダス！</button>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast-message">メッセージ</div>
+
+    <script>
+        /**
+         * 画像編集するダス Core System
+         */
+
+        const viewport = document.getElementById('app-viewport');
+        const themeBtn = document.getElementById('theme-btn');
+        const themeIcon = themeBtn.querySelector('span');
+        const toast = document.getElementById('toast-message');
+
+        // Canvas & Image State
+        const canvas = document.getElementById('main-canvas');
+        const ctx = canvas.getContext('2d');
+        let baseImage = new Image();
+        let imageLoaded = false;
+        let originalSrc = "";
+
+        // Interactive Objects State (Text and Stamps overlay)
+        let canvasObjects = []; 
+        let selectedObject = null;
+        let isDragging = false;
+        let dragStartX = 0;
+        let dragStartY = 0;
+
+        // Visual controls
+        let activeFilter = 'normal';
+        let customBrightness = 100;
+        let customContrast = 100;
+        let customSaturation = 100;
+        let customBlur = 0;
+        let rotationAngle = 0;
+        let flipH = 1;
+        let flipV = 1;
+
+        // Interactive properties for adding items
+        let currentTextColor = '#FFFFFF';
+
+        // --- 1. Accent Color Management ---
+        function toggleDeAccent(enabled) {
+            if (enabled) {
+                document.documentElement.style.setProperty('--accent-primary', '#FFCC00');
+                document.documentElement.style.setProperty('--accent-active', '#CC9900');
+                showToast("ドイツ国旗風テーマカラーを適用しました！");
+            } else {
+                document.documentElement.style.setProperty('--accent-primary', '#3381FF');
+                document.documentElement.style.setProperty('--accent-active', '#1A5FCC');
+                showToast("通常テーマカラーに戻しました！");
+            }
+        }
+
+        // --- 2. Multi-view Navigation ---
+        const navItems = document.querySelectorAll('.nav-item');
+        const views = document.querySelectorAll('.view');
+
+        function switchView(viewId) {
+            navItems.forEach(n => {
+                n.classList.remove('active');
+                if (n.getAttribute('data-view') === viewId) {
+                    n.classList.add('active');
+                }
+            });
+
+            views.forEach(v => {
+                v.classList.remove('active');
+                if (v.id === viewId) {
+                    v.classList.add('active');
+                    viewport.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+            });
+        }
+
+        function enterEditorView() {
+            if (!imageLoaded) {
+                // Default fallback to Germany Ball sample if no image loaded yet
+                loadSampleImage('https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/pbhuB2/de2.png');
+            }
+            switchView('view-editor');
+        }
+
+        // Accordion functionality for parameters
+        function toggleAccordion(id) {
+            const sect = document.getElementById(id);
+            const headers = document.querySelectorAll('.control-section-header');
+            const isCurrentlyActive = sect.classList.contains('active');
+            
+            // Close all contents
+            document.querySelectorAll('.control-section-content').forEach(c => c.classList.remove('active'));
+            
+            // Toggle clicked
+            if (!isCurrentlyActive) {
+                sect.classList.add('active');
+            }
+        }
+
+        // --- 3. Image Loaders ---
+        function triggerFileInput() {
+            document.getElementById('image-loader').click();
+        }
+
+        function handleImageUpload(e) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                originalSrc = event.target.result;
+                baseImage.src = originalSrc;
+            };
+            if(e.target.files[0]) {
+                reader.readAsDataURL(e.target.files[0]);
+            }
+        }
+
+        function loadSampleImage(url) {
+            document.querySelectorAll('.quick-thumb').forEach(thumb => {
+                if(thumb.src === url) {
+                    thumb.classList.add('active');
+                } else {
+                    thumb.classList.remove('active');
+                }
+            });
+            originalSrc = url;
+            baseImage.crossOrigin = "anonymous";
+            baseImage.src = url;
+        }
+
+        baseImage.onload = function() {
+            imageLoaded = true;
+            resetCanvasChanges();
+            switchView('view-editor');
+            showToast("画像を読み込みましたダス！");
+        };
+
+        // --- 4. Interactive Object Classes (Drag elements) ---
+        class CanvasText {
+            constructor(text, x, y, size, color, hasOutline) {
+                this.type = 'text';
+                this.text = text;
+                this.x = x;
+                this.y = y;
+                this.size = size;
+                this.color = color;
+                this.hasOutline = hasOutline;
+                this.width = 0; // calculated dynamically
+                this.height = size;
+            }
+
+            draw(context) {
+                context.font = `bold ${this.size}px 'Plus Jakarta Sans', 'Noto Sans JP', sans-serif`;
+                context.fillStyle = this.color;
+                context.textAlign = 'center';
+                context.textBaseline = 'middle';
+
+                if (this.hasOutline) {
+                    context.strokeStyle = '#000000';
+                    context.lineWidth = Math.max(2, this.size / 8);
+                    context.strokeText(this.text, this.x, this.y);
+                }
+                context.fillText(this.text, this.x, this.y);
+
+                // Update width boundary
+                this.width = context.measureText(this.text).width;
+            }
+
+            contains(px, py) {
+                const halfW = this.width / 2;
+                const halfH = this.height / 2;
+                return (px >= this.x - halfW && px <= this.x + halfW &&
+                        py >= this.y - halfH && py <= this.y + halfH);
+            }
+        }
+
+        class CanvasStamp {
+            constructor(emojiOrUrl, x, y, size) {
+                this.type = emojiOrUrl.startsWith('http') ? 'img' : 'emoji';
+                this.content = emojiOrUrl;
+                this.x = x;
+                this.y = y;
+                this.size = size;
+                this.width = size;
+                this.height = size;
+                this.loadedImg = null;
+
+                if (this.type === 'img') {
+                    this.loadedImg = new Image();
+                    this.loadedImg.crossOrigin = "anonymous";
+                    this.loadedImg.src = emojiOrUrl;
+                    this.loadedImg.onload = () => drawWorkspace();
+                }
+            }
+
+            draw(context) {
+                if (this.type === 'emoji') {
+                    context.font = `${this.size}px sans-serif`;
+                    context.textAlign = 'center';
+                    context.textBaseline = 'middle';
+                    context.fillText(this.content, this.x, this.y);
+                } else if (this.type === 'img' && this.loadedImg && this.loadedImg.complete) {
+                    const half = this.size / 2;
+                    context.drawImage(this.loadedImg, this.x - half, this.y - half, this.size, this.size);
+                }
+            }
+
+            contains(px, py) {
+                const halfW = this.width / 2;
+                const halfH = this.height / 2;
+                return (px >= this.x - halfW && px <= this.x + halfW &&
+                        py >= this.y - halfH && py <= this.y + halfH);
+            }
+        }
+
+        // --- 5. Customizer Rendering Engine ---
+        function drawWorkspace() {
+            if (!imageLoaded) return;
+
+            // 1. Calculate physical size including rotation/flip
+            let renderWidth = baseImage.naturalWidth;
+            let renderHeight = baseImage.naturalHeight;
+
+            if (rotationAngle % 180 !== 0) {
+                renderWidth = baseImage.naturalHeight;
+                renderHeight = baseImage.naturalWidth;
+            }
+
+            canvas.width = renderWidth;
+            canvas.height = renderHeight;
+
+            // 2. Clear & Save Context for Global transformations
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.save();
+
+            // Move origin to center for rotation/flip transformations
+            ctx.translate(canvas.width / 2, canvas.height / 2);
+            ctx.scale(flipH, flipV);
+            ctx.rotate((rotationAngle * Math.PI) / 180);
+
+            // Apply global CSS-like filter in 2d context
+            const filtersStr = `brightness(${customBrightness}%) contrast(${customContrast}%) saturate(${customSaturation}%) blur(${customBlur}px) ${getPresetFilterString()}`;
+            ctx.filter = filtersStr;
+
+            // Draw Base Image
+            const drawW = (rotationAngle % 180 !== 0) ? renderHeight : renderWidth;
+            const drawH = (rotationAngle % 180 !== 0) ? renderWidth : renderHeight;
+            ctx.drawImage(baseImage, -drawW / 2, -drawH / 2, drawW, drawH);
+
+            // Restore from base transformation to keep overlays orientation correct if preferred,
+            // or keep them transformed. For standard sticker editor, overlay transformations on base is natural.
+            ctx.restore();
+
+            // 3. Draw added interactive items (Texts, Stamps)
+            canvasObjects.forEach(obj => {
+                obj.draw(ctx);
+                
+                // If selected, draw delicate bounding guide box
+                if (obj === selectedObject && document.getElementById('guide-lines-toggle').checked) {
+                    ctx.save();
+                    ctx.strokeStyle = '#FFCC00';
+                    ctx.lineWidth = 3;
+                    ctx.setLineDash([6, 4]);
+                    const halfW = obj.width / 2 + 8;
+                    const halfH = obj.height / 2 + 8;
+                    ctx.strokeRect(obj.x - halfW, obj.y - halfH, halfW * 2, halfH * 2);
+                    
+                    // Small trash badge helper
+                    ctx.fillStyle = '#FF0000';
+                    ctx.beginPath();
+                    ctx.arc(obj.x + halfW, obj.y - halfH, 10, 0, Math.PI*2);
+                    ctx.fill();
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.font = 'bold 12px sans-serif';
+                    ctx.fillText('×', obj.x + halfW, obj.y - halfH - 1);
+                    ctx.restore();
+                }
+            });
+        }
+
+        function getPresetFilterString() {
+            switch(activeFilter) {
+                case 'grayscale': return 'grayscale(100%)';
+                case 'sepia': return 'sepia(80%)';
+                case 'invert': return 'invert(100%)';
+                case 'vintage': return 'sepia(40%) saturate(120%) hue-rotate(-20deg)';
+                case 'highcontrast': return 'contrast(160%) brightness(90%)';
+                default: return 'none';
+            }
+        }
+
+        // Adjustments updates
+        function applyAdjustments() {
+            customBrightness = document.getElementById('slider-brightness').value;
+            customContrast = document.getElementById('slider-contrast').value;
+            customSaturation = document.getElementById('slider-saturation').value;
+            customBlur = document.getElementById('slider-blur').value;
+
+            document.getElementById('val-brightness').textContent = `${customBrightness}%`;
+            document.getElementById('val-contrast').textContent = `${customContrast}%`;
+            document.getElementById('val-saturation').textContent = `${customSaturation}%`;
+            document.getElementById('val-blur').textContent = `${customBlur}px`;
+
+            drawWorkspace();
+        }
+
+        function applyPresetFilter(filterName) {
+            activeFilter = filterName;
+            document.querySelectorAll('.preset-btn').forEach(b => {
+                if (b.textContent.includes(filterName === 'normal' ? '通常' : filterName === 'grayscale' ? '白黒' : filterName === 'sepia' ? 'セピア' : filterName === 'invert' ? '反転' : filterName === 'vintage' ? 'ビンテージ' : '高コントラスト')) {
+                    b.classList.add('active');
+                } else {
+                    b.classList.remove('active');
+                }
+            });
+            drawWorkspace();
+            showToast(`フィルター「${filterName}」を適用しました`);
+        }
+
+        // Reset all custom parameters
+        function resetCanvasChanges() {
+            canvasObjects = [];
+            selectedObject = null;
+            activeFilter = 'normal';
+            customBrightness = 100;
+            customContrast = 100;
+            customSaturation = 100;
+            customBlur = 0;
+            rotationAngle = 0;
+            flipH = 1;
+            flipV = 1;
+
+            // Reset UI Sliders
+            document.getElementById('slider-brightness').value = 100;
+            document.getElementById('slider-contrast').value = 100;
+            document.getElementById('slider-saturation').value = 100;
+            document.getElementById('slider-blur').value = 0;
+            applyAdjustments();
+
+            drawWorkspace();
+            showToast("編集をすべて元に戻しました");
+        }
+
+        // --- 6. Interactivity & Add Overlay Elements ---
+        function addTextToCanvas() {
+            const rawText = document.getElementById('text-input-field').value.trim();
+            if (!rawText) {
+                showToast("文字を入力するダス！");
+                return;
+            }
+            const size = parseInt(document.getElementById('slider-fontsize').value);
+            const outline = document.getElementById('text-outline-toggle').checked;
+            
+            // Place in center of the canvas view
+            const newText = new CanvasText(rawText, canvas.width / 2, canvas.height / 2, size, currentTextColor, outline);
+            canvasObjects.push(newText);
+            selectedObject = newText;
+            
+            document.getElementById('text-input-field').value = ''; // clear input
+            drawWorkspace();
+            showToast("テキストを配置したダス！");
+        }
+
+        function setTextColor(color, el) {
+            currentTextColor = color;
+            document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
+            el.classList.add('active');
+        }
+
+        function addEmojiStamp(emoji) {
+            const size = 64; // Default emoji size
+            const stamp = new CanvasStamp(emoji, canvas.width / 2, canvas.height / 2, size);
+            canvasObjects.push(stamp);
+            selectedObject = stamp;
+            drawWorkspace();
+            showToast(`スタンプ ${emoji} を追加しました`);
+        }
+
+        function addImgStamp(url) {
+            const size = 100; // Default ball stamp size
+            const stamp = new CanvasStamp(url, canvas.width / 2, canvas.height / 2, size);
+            canvasObjects.push(stamp);
+            selectedObject = stamp;
+            drawWorkspace();
+            showToast("ドイツスタンプを追加しました");
+        }
+
+        // Geometry Transform operations
+        function rotateCanvas(deg) {
+            rotationAngle = (rotationAngle + deg) % 360;
+            drawWorkspace();
+            showToast(`画像を ${deg}度 回転しました`);
+        }
+
+        function flipCanvas(direction) {
+            if (direction === 'horizontal') {
+                flipH *= -1;
+            } else {
+                flipV *= -1;
+            }
+            drawWorkspace();
+            showToast("画像を反転しましたダス！");
+        }
+
+        // Simple Crop Simulation
+        function applySimpleCrop(ratioW, ratioH) {
+            // Cut existing canvas area to ratio
+            const currentW = canvas.width;
+            const currentH = canvas.height;
+            let targetW = currentW;
+            let targetH = currentW * (ratioH / ratioW);
+
+            if (targetH > currentH) {
+                targetH = currentH;
+                targetW = currentH * (ratioW / ratioH);
+            }
+
+            // Sub-render canvas to cropped size
+            const cropCanvas = document.createElement('canvas');
+            cropCanvas.width = targetW;
+            cropCanvas.height = targetH;
+            const cropCtx = cropCanvas.getContext('2d');
+
+            // Center grab crop
+            const sx = (currentW - targetW) / 2;
+            const sy = (currentH - targetH) / 2;
+
+            cropCtx.drawImage(canvas, sx, sy, targetW, targetH, 0, 0, targetW, targetH);
+            
+            // Set cropped back to primary view
+            const croppedDataUrl = cropCanvas.toDataURL();
+            baseImage.src = croppedDataUrl;
+            canvasObjects = []; // Reset overlays as crop coordinates shift completely
+            showToast("トリミングを実行しましたダス！");
+        }
+
+        // --- 7. Mouse & Touch Dragging Events Protocol ---
+        function getCanvasCoordinates(e) {
+            const rect = canvas.getBoundingClientRect();
+            // Scaling factors
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+
+            let clientX, clientY;
+            if (e.touches && e.touches[0]) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            } else {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            }
+
+            return {
+                x: (clientX - rect.left) * scaleX,
+                y: (clientY - rect.top) * scaleY
+            };
+        }
+
+        function handleDragStart(e) {
+            const coords = getCanvasCoordinates(e);
+            let hitFound = false;
+
+            // Traverse reverse order (draw list end is on top)
+            for (let i = canvasObjects.length - 1; i >= 0; i--) {
+                const obj = canvasObjects[i];
+                
+                // Check if hit delete button of selected object
+                if (obj === selectedObject) {
+                    const halfW = obj.width / 2 + 8;
+                    const halfH = obj.height / 2 + 8;
+                    // Delete badge position: obj.x + halfW, obj.y - halfH
+                    const distToDelete = Math.hypot(coords.x - (obj.x + halfW), coords.y - (obj.y - halfH));
+                    if (distToDelete < 15) {
+                        canvasObjects.splice(i, 1);
+                        selectedObject = null;
+                        drawWorkspace();
+                        showToast("要素を削除しました");
+                        return;
+                    }
+                }
+
+                if (obj.contains(coords.x, coords.y)) {
+                    selectedObject = obj;
+                    isDragging = true;
+                    dragStartX = coords.x - obj.x;
+                    dragStartY = coords.y - obj.y;
+                    hitFound = true;
+                    document.getElementById('current-tool-indicator').textContent = 'ドラッグ中ダス...';
+                    break;
+                }
+            }
+
+            if (!hitFound) {
+                // Click empty space removes selection outline
+                selectedObject = null;
+            }
+            drawWorkspace();
+        }
+
+        function handleDragMove(e) {
+            if (!isDragging || !selectedObject) return;
+            // Prevent scrolling behavior on mobile touch
+            if (e.cancelable) e.preventDefault();
+
+            const coords = getCanvasCoordinates(e);
+            selectedObject.x = coords.x - dragStartX;
+            selectedObject.y = coords.y - dragStartY;
+            drawWorkspace();
+        }
+
+        function handleDragEnd() {
+            isDragging = false;
+            document.getElementById('current-tool-indicator').textContent = '移動・スタンプモード';
+            drawWorkspace();
+        }
+
+        // Add event listeners on load
+        canvas.addEventListener('mousedown', handleDragStart);
+        canvas.addEventListener('mousemove', handleDragMove);
+        window.addEventListener('mouseup', handleDragEnd);
+
+        canvas.addEventListener('touchstart', handleDragStart, { passive: false });
+        canvas.addEventListener('touchmove', handleDragMove, { passive: false });
+        window.addEventListener('touchend', handleDragEnd);
+
+
+        // --- 8. Save & Download Output ---
+        function saveEditedImage() {
+            try {
+                // Create temp link
+                const dataUrl = canvas.toDataURL('image/png');
+                const link = document.createElement('a');
+                link.download = 'edited-by-de-ball.png';
+                link.href = dataUrl;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                showToast("画像をお使いのデバイスに保存したダス！");
+            } catch (err) {
+                // If cross-origin image was used without CORS approval
+                showToast("安全保護エラー：画像を保存できない場合は、自身の画像をアップロードして試してくださいダス。");
+            }
+        }
+
+        // --- 9. Custom Dialog & Toast Protocol ---
+        function openDialog(title, message) {
+            document.getElementById('dialog-title').textContent = title;
+            document.getElementById('dialog-message').textContent = message;
+            document.getElementById('main-dialog').classList.add('active');
+        }
+        function closeDialog() {
+            document.getElementById('main-dialog').classList.remove('active');
+        }
+
+        function showToast(msg) {
+            toast.textContent = msg;
+            toast.classList.add('active');
+            setTimeout(() => {
+                toast.classList.remove('active');
+            }, 3000);
+        }
+
+        // --- 10. Jelly / Squishy Interaction Animation ---
+        document.addEventListener('mousedown', (e) => {
+            const target = e.target.closest('.glass-card, .ai-btn, .nav-item, .preset-btn, .stamp-item');
+            if (target) {
+                target.classList.remove('squish-active');
+                void target.offsetWidth; // Force reflow trigger
+                target.classList.add('squish-active');
+                
+                setTimeout(() => {
+                    target.classList.remove('squish-active');
+                }, 400);
+            }
+        });
+
+        // --- 11. Theme Switcher System ---
+        function setTheme(isDark) {
+            document.body.classList.toggle('dark-mode', isDark);
+            themeIcon.textContent = isDark ? 'dark_mode' : 'light_mode';
+            
+            const dmToggle = document.getElementById('darkmode-toggle');
+            if (dmToggle) {
+                dmToggle.checked = isDark;
+            }
+        }
+
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+        setTheme(prefersDark.matches);
+
+        themeBtn.addEventListener('click', () => {
+            setTheme(!document.body.classList.contains('dark-mode'));
+        });
+
+        document.getElementById('darkmode-toggle').addEventListener('change', (e) => {
+            setTheme(e.target.checked);
+        });
+
+        // Initialize On Load
+        window.onload = () => {
+            // Load base ball character
+            loadSampleImage('https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/pbhuB2/de2.png');
+            openDialog("ドイツボール降臨ダス！", "ハロー！このドイツのボールキャラと一緒に、あらゆる画像を鮮やかにデコレーション・編集・回転・トリミングして、最高の一作を作り上げるダス！");
+        };
+    </script>
+</body>
+</html>
