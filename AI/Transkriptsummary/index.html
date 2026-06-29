@@ -1,1 +1,1542 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+    <title>PB 文字起こし-AI要約</title>
 
+    <!-- Google Fonts & Material Symbols -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+    <!-- JSZip (for Zip Save/Restore) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <style>
+        :root {
+            /* 全てが紫系グラデーション & フラットUIのカラー定義 */
+            --accent-primary: #8B5CF6;
+            --accent-active: #6D28D9;
+            --purple-grad-start: #7C3AED;
+            --purple-grad-end: #C084FC;
+            
+            /* Light Mode Tokens (紫系アクセント) */
+            --bg-base: #F5F3FF;
+            --glass-bg: #FFFFFF;
+            --text-main: #1F192F;
+            --text-sub: #6B5E84;
+            --bg-secondary: #EDE9FE;
+            
+            --m3-easing: cubic-bezier(0.32, 0.72, 0, 1);
+            --transition-smooth: 0.4s var(--m3-easing);
+            --card-padding: 20px;
+        }
+
+        .dark-mode {
+            /* Dark Mode Tokens (深紫・黒) */
+            --bg-base: #0F0A1C;
+            --glass-bg: #1A122B;
+            --text-main: #F5F3FF;
+            --text-sub: #A78BFA;
+            --bg-secondary: #2E1F47;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', 'Noto Sans JP', sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            transition: background-color var(--transition-smooth), color var(--transition-smooth);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            touch-action: none;
+        }
+
+        /* --- Scroll Container --- */
+        #app-viewport {
+            height: 100vh;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            scroll-behavior: smooth;
+        }
+
+        /* --- Header (Centered Title, No Border/Shadow) --- */
+        header {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+            height: 72px; padding: 0 24px;
+            display: flex; align-items: center; justify-content: center;
+            background: var(--glass-bg);
+            transition: background-color var(--transition-smooth);
+        }
+        .header-content {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .header-logo-img {
+            width: 32px;
+            height: 32px;
+            object-fit: contain;
+        }
+        .logo {
+            font-weight: 700; font-size: 20px; letter-spacing: -0.5px;
+            color: var(--text-main);
+            text-align: center;
+        }
+        .theme-toggle {
+            position: absolute; right: 24px;
+            width: 44px; height: 44px; border-radius: 22px;
+            border: none; background: var(--bg-secondary);
+            color: var(--text-main); cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: background var(--transition-smooth);
+        }
+
+        /* --- Main Layout --- */
+        main {
+            padding: 96px 20px 140px;
+            max-width: 800px; margin: 0 auto;
+            min-height: 100%;
+            transition: opacity 0.3s ease, transform 0.3s var(--m3-easing);
+            box-sizing: border-box;
+        }
+
+        /* --- Flat Solid Card (No Shadow, No Border) --- */
+        .glass-card {
+            background: var(--glass-bg);
+            border-radius: 24px;
+            padding: var(--card-padding);
+            margin-bottom: 16px;
+            box-shadow: none !important;
+            border: none !important;
+            transform-style: flat;
+            transition: background-color var(--transition-smooth);
+        }
+
+        h2 { 
+            font-size: 20px; 
+            margin-top: 0; 
+            margin-bottom: 8px;
+            font-weight: 700; 
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        p {
+            font-size: 14px;
+            line-height: 1.45;
+            margin-top: 0;
+            margin-bottom: 12px;
+            color: var(--text-sub);
+        }
+
+        /* --- Interaction: Jelly/Squishy Effect --- */
+        @keyframes squishy {
+            0% { transform: scale(1, 1); }
+            30% { transform: scale(1.08, 0.92); }
+            50% { transform: scale(0.95, 1.05); }
+            70% { transform: scale(1.02, 0.98); }
+            100% { transform: scale(1, 1); }
+        }
+        .squish-active {
+            animation: squishy 0.4s var(--m3-easing);
+        }
+
+        /* --- Primary Buttons --- */
+        .ai-btn {
+            border: none; outline: none;
+            padding: 12px 24px; border-radius: 14px;
+            font-weight: 600; font-size: 15px;
+            color: white; cursor: pointer;
+            background: linear-gradient(135deg, var(--purple-grad-start), var(--purple-grad-end));
+            transition: transform 0.2s, opacity 0.2s;
+            display: inline-flex; align-items: center; gap: 8px;
+            box-shadow: none;
+        }
+        .ai-btn:hover { transform: scale(1.02); opacity: 0.95; }
+        .ai-btn:active {
+            transform: scale(0.95);
+        }
+        .ai-btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-main);
+        }
+        .ai-btn-danger {
+            background: #EF4444;
+            color: white;
+        }
+
+        /* --- Inputs & Selects --- */
+        .glass-input-wrapper { margin-bottom: 14px; }
+        .glass-input {
+            width: 100%; padding: 14px 18px;
+            border-radius: 14px; border: none;
+            background: var(--bg-secondary);
+            color: var(--text-main); font-size: 15px;
+            box-sizing: border-box; transition: background 0.3s var(--m3-easing);
+            font-family: inherit;
+        }
+        .glass-input:focus {
+            outline: 2px solid var(--accent-primary);
+        }
+
+        /* --- Toggles --- */
+        .toggle-row {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 12px 0;
+        }
+        .switch {
+            position: relative; display: inline-block; width: 50px; height: 28px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--bg-secondary);
+            transition: .3s var(--m3-easing);
+            border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute; content: "";
+            height: 20px; width: 20px; left: 4px; bottom: 4px;
+            background: white; transition: .3s var(--m3-easing);
+            border-radius: 50%;
+        }
+        input:checked + .slider { background: var(--accent-primary); }
+        input:checked + .slider:before { transform: translateX(22px); }
+
+        /* --- Navigation --- */
+        .nav-container {
+            position: fixed; bottom: 32px; left: 50%;
+            transform: translateX(-50%); z-index: 500;
+        }
+        .nav-rail {
+            display: flex; align-items: center; gap: 8px;
+            background: var(--glass-bg);
+            padding: 6px; border-radius: 32px;
+            box-shadow: none;
+        }
+        .nav-item {
+            width: 52px; height: 52px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; border-radius: 26px; color: var(--text-sub);
+            transition: all 0.3s var(--m3-easing);
+            position: relative;
+        }
+        .nav-item.active {
+            background: var(--accent-primary); color: white;
+            transform: scale(1.05);
+        }
+
+        /* --- View Management --- */
+        .view { display: none; }
+        .view.active { display: block; animation: viewIn 0.4s var(--m3-easing); }
+        @keyframes viewIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* --- Speech Recognition Panel Custom --- */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            background: var(--bg-secondary);
+            margin-bottom: 12px;
+        }
+        .status-badge.recording {
+            background: #FEE2E2;
+            color: #EF4444;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.6; }
+            100% { opacity: 1; }
+        }
+
+        /* Flag Image Config */
+        .flag-selector-wrapper {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+        .flag-option {
+            background: var(--bg-secondary);
+            padding: 10px;
+            border-radius: 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent !important;
+        }
+        .flag-option.selected {
+            border: 2px solid var(--accent-primary) !important;
+            background: var(--glass-bg);
+        }
+        .flag-img {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            object-fit: cover;
+            display: block;
+            margin: 0 auto 6px;
+        }
+        .flag-label {
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        /* Live Transcription Output */
+        .live-note-editor {
+            border-radius: 16px;
+            background: var(--bg-secondary);
+            padding: 16px;
+            min-height: 180px;
+            max-height: 350px;
+            overflow-y: auto;
+            font-size: 14px;
+            line-height: 1.6;
+            color: var(--text-main);
+        }
+        .transcription-line {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px dashed rgba(139, 92, 246, 0.2);
+        }
+        .transcription-time {
+            font-size: 11px;
+            background: var(--accent-primary);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 6px;
+            white-space: nowrap;
+            margin-top: 3px;
+        }
+        .transcription-text {
+            word-break: break-all;
+        }
+
+        /* Note list item & editor UI */
+        .note-item {
+            background: var(--glass-bg);
+            border-radius: 18px;
+            padding: 16px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .note-item:hover {
+            transform: translateY(-2px);
+        }
+        .note-info {
+            flex-grow: 1;
+            margin-right: 12px;
+        }
+        .note-title {
+            font-weight: 700;
+            font-size: 15px;
+            margin-bottom: 4px;
+            color: var(--text-main);
+        }
+        .note-date {
+            font-size: 12px;
+            color: var(--text-sub);
+        }
+
+        /* Detailed view */
+        .detail-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+
+        /* Info disclaimer styling */
+        .security-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            border-radius: 12px;
+            background: rgba(139, 92, 246, 0.1);
+            color: var(--accent-primary);
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        /* --- Dialog Overlay --- */
+        .dialog-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000; display: flex; align-items: center; justify-content: center;
+            opacity: 0; visibility: hidden; transition: all 0.3s var(--m3-easing);
+        }
+        .dialog-overlay.active { opacity: 1; visibility: visible; }
+        .glass-dialog {
+            background: var(--glass-bg);
+            border-radius: 28px;
+            padding: 24px; max-width: 420px; width: 90%; text-align: left;
+            transform: scale(0.9) translateY(20px); transition: all 0.4s var(--m3-easing);
+        }
+        .dialog-overlay.active .glass-dialog { transform: scale(1) translateY(0); }
+
+        /* --- Toast Alert --- */
+        .toast {
+            position: fixed;
+            bottom: 110px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--text-main);
+            color: var(--glass-bg);
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s var(--m3-easing);
+            z-index: 2000;
+        }
+        .toast.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .summary-box {
+            background: rgba(139, 92, 246, 0.05);
+            border-radius: 16px;
+            padding: 16px;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-top: 14px;
+            border-left: 4px solid var(--accent-primary);
+            white-space: pre-wrap;
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+        }
+
+        .flex-center {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-content">
+            <img class="header-logo-img" src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbhub/refs/heads/main/AI/Transkriptsummary/res/assets/Transkript.png" alt="PB Transkript" onerror="this.style.display='none'">
+            <div class="logo">Loca文字起こし＆AI要約</div>
+        </div>
+        <button class="theme-toggle" id="theme-btn">
+            <span class="material-symbols-outlined">light_mode</span>
+        </button>
+    </header>
+
+    <div id="app-viewport">
+        <main id="main-content">
+            
+            <!-- VIEW: Home (Real-time Recorder) -->
+            <section id="view-home" class="view active">
+                <div class="security-badge">
+                    <span class="material-symbols-outlined">security</span>
+                    <span>セキュリティおよび個人情報保護のため、音声録音機能はありません。<br>文字起こしにAIは使用していません。ブラウザが処理します。<br>GoogleAIにより文字起こし要約は処理されます。しかし、要約をしない限り処理されません。</span>
+                </div>
+
+                <div class="glass-card">
+                    <h2>
+                        <span class="material-symbols-outlined">mic</span>
+                        リアルタイム文字起こし
+                    </h2>
+                    <p>対象の言語を選択し、開始ボタンを押してください。発話の区切りごとにタイムスタンプが付与されます。</p>
+
+                    <!-- Language Selection (Flags) -->
+                    <div class="flag-selector-wrapper">
+                        <!-- Japan -->
+                        <div class="flag-option selected" onclick="selectLanguage('ja-JP', 'japan', this)">
+                            <img class="flag-img" src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/japan/normal.png" alt="Japan" onerror="this.src='https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=80&q=80'">
+                            <div class="flag-label">日本語</div>
+                        </div>
+                        <!-- USA (English) -->
+                        <div class="flag-option" onclick="selectLanguage('en-US', 'usa', this)">
+                            <img class="flag-img" src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/usa/normal.png" alt="usa" onerror="this.src='https://images.unsplash.com/photo-1501594907352-04cda38ebc29?auto=format&fit=crop&w=80&q=80'">
+                            <div class="flag-label">English</div>
+                        </div>
+                        <!-- Germany -->
+                        <div class="flag-option" onclick="selectLanguage('de-DE', 'germany', this)">
+                            <img class="flag-img" src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/germany/normal.png" alt="Germany" onerror="this.src='https://images.unsplash.com/photo-1467269204594-9661b134dd2b?auto=format&fit=crop&w=80&q=80'">
+                            <div class="flag-label">Deutsch</div>
+                        </div>
+                        <!-- China -->
+                        <div class="flag-option" onclick="selectLanguage('zh-CN', 'china', this)">
+                            <img class="flag-img" src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/china/normal.png" alt="China" onerror="this.src='https://images.unsplash.com/photo-1508672019048-805c876b67e2?auto=format&fit=crop&w=80&q=80'">
+                            <div class="flag-label">中文</div>
+                        </div>
+                        <!-- Korea -->
+                        <div class="flag-option" onclick="selectLanguage('ko-KR', 'korea', this)">
+                            <img class="flag-img" src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/korea/normal.png" alt="Korea" onerror="this.src='https://images.unsplash.com/photo-1517154421773-0529f29ea451?auto=format&fit=crop&w=80&q=80'">
+                            <div class="flag-label">한국어</div>
+                        </div>
+                    </div>
+
+                    <!-- Recording Controller -->
+                    <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 16px;">
+                        <button class="ai-btn" id="record-toggle-btn">
+                            <span class="material-symbols-outlined" id="mic-icon">play_arrow</span>
+                            <span id="record-btn-text">文字起こし開始</span>
+                        </button>
+                        <div class="status-badge" id="recording-status">
+                            <span class="material-symbols-outlined">radio_button_checked</span>
+                            <span id="status-text">待機中</span>
+                        </div>
+                    </div>
+
+                    <!-- Note Title Input -->
+                    <div class="glass-input-wrapper">
+                        <label style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 6px;">ノートタイトル (未入力の場合は現在時刻になります)</label>
+                        <input type="text" class="glass-input" id="current-note-title" placeholder="会議メモ、授業など...">
+                    </div>
+
+                    <!-- Realtime Transcription Box -->
+                    <div class="live-note-editor" id="live-transcription-box">
+                        <div style="color: var(--text-sub); font-style: italic; text-align: center; margin-top: 60px;">ここにリアルタイムの文字起こし結果が表示されます。</div>
+                    </div>
+
+                    <!-- Save Operations -->
+                    <div class="btn-row" style="margin-top: 14px;">
+                        <button class="ai-btn ai-btn-secondary" id="save-note-btn" disabled>
+                            <span class="material-symbols-outlined">save</span>
+                            ノートを保存
+                        </button>
+                        <button class="ai-btn ai-btn-secondary ai-btn-danger" id="clear-live-btn">
+                            <span class="material-symbols-outlined">delete</span>
+                            クリア
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- VIEW: Notes List & Detail (Interactive Notes Tab) -->
+            <section id="view-notes" class="view">
+                <div class="glass-card" id="notes-list-container">
+                    <h2>
+                        <span class="material-symbols-outlined">folder</span>
+                        保存された文字起こし
+                    </h2>
+                    <p>保存された文字起こしノートを選択して、編集、要約、またはエクスポートを行います。</p>
+                    <div id="notes-list" style="margin-top: 14px;">
+                        <!-- JS Loaded dynamic elements -->
+                    </div>
+                </div>
+
+                <!-- Note Editor Panel (Shown when a note is active) -->
+                <div class="glass-card" id="note-editor-container" style="display: none;">
+                    <div class="detail-header">
+                        <button class="ai-btn ai-btn-secondary" onclick="closeNoteEditor()" style="padding: 8px 16px;">
+                            <span class="material-symbols-outlined">arrow_back</span>
+                            一覧に戻る
+                        </button>
+                        <div class="flex-center">
+                            <span class="material-symbols-outlined" style="color: var(--accent-primary);">edit_note</span>
+                            <span style="font-weight: 700;">ノート詳細編集</span>
+                        </div>
+                    </div>
+
+                    <!-- Edit Details Form -->
+                    <div class="glass-input-wrapper">
+                        <label style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 4px;">タイトル</label>
+                        <input type="text" class="glass-input" id="edit-note-title">
+                    </div>
+
+                    <div style="margin-bottom: 14px;">
+                        <label style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 4px;">文字起こし内容</label>
+                        <!-- Editable Area with Time Markers -->
+                        <div class="live-note-editor" id="edit-note-content" contenteditable="true" style="white-space: pre-wrap;"></div>
+                    </div>
+
+                    <!-- AI Summary Box -->
+                    <div id="ai-summary-wrapper" style="margin-top: 16px; margin-bottom: 16px;">
+                        <h3 style="font-size: 16px; font-weight: 700; margin: 0 0 8px 0; display: flex; align-items: center; gap: 6px;">
+                            <span class="material-symbols-outlined" style="color: var(--accent-primary);">psychology</span>
+                            AI要約結果
+                        </h3>
+                        <p style="font-size: 12px; margin-bottom: 6px;">※設定タブでAPIキーを設定した後、要約ボタンを押してください。</p>
+                        <div class="summary-box" id="summary-content-display">要約はまだ作成されていません。下のボタンからAI要約をリクエストしてください。</div>
+                    </div>
+
+                    <div class="btn-row">
+                        <button class="ai-btn" id="generate-ai-summary-btn">
+                            <span class="material-symbols-outlined">auto_awesome</span>
+                            AIで要約を生成
+                        </button>
+                        <button class="ai-btn ai-btn-secondary" id="download-note-txt-btn">
+                            <span class="material-symbols-outlined">download</span>
+                            TXTでダウンロード
+                        </button>
+                        <button class="ai-btn ai-btn-secondary" id="save-edited-note-btn">
+                            <span class="material-symbols-outlined">check</span>
+                            編集を保存
+                        </button>
+                        <button class="ai-btn ai-btn-secondary ai-btn-danger" id="delete-note-btn" style="margin-left: auto;">
+                            <span class="material-symbols-outlined">delete</span>
+                            削除
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- VIEW: Settings & Config -->
+            <section id="view-settings" class="view">
+                <div class="glass-card">
+                    <h2>
+                        <span class="material-symbols-outlined">settings</span>
+                        要約設定 (Gemini API)
+                    </h2>
+                    <p>文字起こしデータを要約するためには、Google Gemini APIキーが必要です。</p>
+                    
+                    <div class="glass-input-wrapper">
+                        <label style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 6px;">Gemini API キー</label>
+                        <input type="password" class="glass-input" id="settings-gemini-key" placeholder="AIzaSy...">
+                    </div>
+
+                    <div class="glass-input-wrapper">
+                        <label style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 6px;">使用するモデル</label>
+                        <input type="text" class="glass-input" id="settings-gemini-model" value="gemini-2.5-flash-lite" placeholder="gemini-2.5-flash-lite, gemini-2.5-flash-preview-09-2025など">
+                    </div>
+                </div>
+
+                <div class="glass-card">
+                    <h2>
+                        <span class="material-symbols-outlined">cleaning_services</span>
+                        フィルター機能
+                    </h2>
+                    <p>文脈に合わせて無駄なフィラーワード（あの、えと、えっと、えー、など）を取り除いて文字起こしを行います。</p>
+                    
+                    <div class="toggle-row">
+                        <span>フィラー自動除去機能</span>
+                        <label class="switch">
+                            <input type="checkbox" id="settings-filler-toggle" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="glass-card">
+                    <h2>
+                        <span class="material-symbols-outlined">swap_driving_side</span>
+                        バックアップ / リストア (ZIP)
+                    </h2>
+                    <p>現在保存されている文字起こし履歴全体の保存および他環境からのリストアを、単一のZIPパッケージで実行可能です。</p>
+                    
+                    <div class="btn-row">
+                        <button class="ai-btn" id="export-zip-btn">
+                            <span class="material-symbols-outlined">folder_zip</span>
+                            全体のセーブ (ZIP形式でDL)
+                        </button>
+                        <button class="ai-btn ai-btn-secondary" onclick="document.getElementById('import-file-input').click()">
+                            <span class="material-symbols-outlined">upload_file</span>
+                            リストア (ZIPインポート)
+                        </button>
+                        <input type="file" id="import-file-input" style="display: none;" accept=".zip">
+                    </div>
+                </div>
+
+                <div class="glass-card">
+                    <h2>
+                        <span class="material-symbols-outlined">palette</span>
+                        テーマ & デザイン
+                    </h2>
+                    <div class="toggle-row">
+                        <span>セマンティックダークモード</span>
+                        <label class="switch">
+                            <input type="checkbox" id="darkmode-toggle">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Navigation Bar -->
+    <div class="nav-container">
+        <nav class="nav-rail">
+            <div class="nav-item active" data-view="view-home">
+                <span class="material-symbols-outlined">mic</span>
+            </div>
+            <div class="nav-item" data-view="view-notes" id="nav-notes-tab">
+                <span class="material-symbols-outlined">description</span>
+            </div>
+            <div class="nav-item" data-view="view-settings">
+                <span class="material-symbols-outlined">settings</span>
+            </div>
+        </nav>
+    </div>
+
+    <!-- Modal Dialog System -->
+    <div class="dialog-overlay" id="main-dialog">
+        <div class="glass-dialog">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="material-symbols-outlined" style="font-size: 32px; color: var(--accent-primary);" id="dialog-icon">info</span>
+                <h2 style="margin: 0;" id="dialog-title">通知</h2>
+            </div>
+            <p style="margin-top: 14px; margin-bottom: 20px;" id="dialog-body"></p>
+            <div style="display: flex; justify-content: flex-end; gap: 8px;" id="dialog-buttons">
+                <button class="ai-btn" onclick="closeDialog()">閉じる</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Message Box -->
+    <div class="toast" id="toast-message">メッセージ</div>
+
+    <script>
+        /**
+         * PB 文字起こし-AI要約 Core Logic
+         * IndexedDB によるノートデータおよび設定の永続化
+         */
+
+        const viewport = document.getElementById('app-viewport');
+        const themeBtn = document.getElementById('theme-btn');
+        const themeIcon = themeBtn.querySelector('span');
+        const toast = document.getElementById('toast-message');
+
+        // State 管理
+        let currentLangCode = 'ja-JP';
+        let currentCountryBall = 'japan';
+        let isRecording = false;
+        let recognition = null;
+        let db = null;
+        let currentSessionLines = [];
+        let startTime = null;
+        let activeNoteId = null;
+
+        // フィラー単語リスト
+        const fillerWords = ['あの', 'えと', 'えっと', 'えー', 'えーと', 'あのー', 'まあ', 'ま、', 'なんか', 'なんていうか'];
+
+        // --- 1. IndexedDB 初期設定 ---
+        function initDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open('PB_Transcription_DB', 1);
+                request.onupgradeneeded = (e) => {
+                    const dbInstance = e.target.result;
+                    if (!dbInstance.objectStoreNames.contains('notes')) {
+                        dbInstance.createObjectStore('notes', { keyPath: 'id', autoIncrement: true });
+                    }
+                    if (!dbInstance.objectStoreNames.contains('settings')) {
+                        dbInstance.createObjectStore('settings', { keyPath: 'key' });
+                    }
+                };
+                request.onsuccess = (e) => {
+                    db = e.target.result;
+                    resolve(db);
+                };
+                request.onerror = (e) => reject(e);
+            });
+        }
+
+        // 汎用 IndexedDB 操作
+        function getSetting(key, defaultValue) {
+            return new Promise((resolve) => {
+                if (!db) return resolve(defaultValue);
+                const transaction = db.transaction(['settings'], 'readonly');
+                const store = transaction.objectStore('settings');
+                const req = store.get(key);
+                req.onsuccess = () => {
+                    resolve(req.result ? req.result.value : defaultValue);
+                };
+                req.onerror = () => resolve(defaultValue);
+            });
+        }
+
+        function saveSetting(key, value) {
+            return new Promise((resolve) => {
+                if (!db) return resolve();
+                const transaction = db.transaction(['settings'], 'readwrite');
+                const store = transaction.objectStore('settings');
+                store.put({ key, value });
+                transaction.oncomplete = () => resolve();
+            });
+        }
+
+        function getAllNotes() {
+            return new Promise((resolve) => {
+                if (!db) return resolve([]);
+                const transaction = db.transaction(['notes'], 'readonly');
+                const store = transaction.objectStore('notes');
+                const req = store.getAll();
+                req.onsuccess = () => {
+                    // 最新順にソートして返却
+                    const sorted = req.result.sort((a, b) => b.timestamp - a.timestamp);
+                    resolve(sorted);
+                };
+                req.onerror = () => resolve([]);
+            });
+        }
+
+        function saveNote(note) {
+            return new Promise((resolve) => {
+                if (!db) return resolve();
+                const transaction = db.transaction(['notes'], 'readwrite');
+                const store = transaction.objectStore('notes');
+                const req = store.put(note);
+                req.onsuccess = (e) => resolve(req.result);
+            });
+        }
+
+        function deleteNoteFromDB(id) {
+            return new Promise((resolve) => {
+                if (!db) return resolve();
+                const transaction = db.transaction(['notes'], 'readwrite');
+                const store = transaction.objectStore('notes');
+                const req = store.delete(id);
+                req.onsuccess = () => resolve();
+            });
+        }
+
+        // --- 2. 音声認識エンジン (WebKitSpeechRecognition) ---
+        function initSpeechRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                showDialog('音声認識非対応', 'お使いのブラウザは音声認識に対応していません。Google Chromeなどの対応ブラウザをご利用ください。');
+                return;
+            }
+
+            recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = false;
+            recognition.lang = currentLangCode;
+
+            recognition.onstart = () => {
+                isRecording = true;
+                updateRecordingUI();
+            };
+
+            recognition.onresult = (event) => {
+                const results = event.results;
+                const latestResult = results[results.length - 1];
+                if (latestResult.isFinal) {
+                    let transcript = latestResult[0].transcript.trim();
+                    if (!transcript) return;
+
+                    // フィラー自動除去ロジック
+                    const isFillerEnabled = document.getElementById('settings-filler-toggle').checked;
+                    if (isFillerEnabled) {
+                        transcript = cleanFillerWords(transcript);
+                    }
+
+                    if (transcript.length === 0) return;
+
+                    // 秒数を計算
+                    const now = new Date();
+                    const diffMs = now - startTime;
+                    const elapsedStr = formatElapsedTime(diffMs);
+
+                    const line = {
+                        time: elapsedStr,
+                        text: transcript,
+                        timestamp: now.getTime()
+                    };
+
+                    currentSessionLines.push(line);
+                    appendLineToLiveBox(line);
+                    document.getElementById('save-note-btn').disabled = false;
+                }
+            };
+
+            recognition.onerror = (event) => {
+                console.error('Speech recognition error', event.error);
+                if (event.error === 'not-allowed') {
+                    showDialog('マイクアクセス拒否', 'マイクへのアクセスが拒否されています。ブラウザの設定でマイクの許可をお願いします。');
+                    stopRecording();
+                }
+            };
+
+            recognition.onend = () => {
+                if (isRecording) {
+                    // 継続して音声を取得するために再起動
+                    try {
+                        recognition.start();
+                    } catch (e) {
+                        console.error('Recognition restart error:', e);
+                    }
+                }
+            };
+        }
+
+        // フィラー除去アルゴリズム
+        function cleanFillerWords(text) {
+            let processed = text;
+            
+            // 厳密な単語マッチや、日本語特有の接辞としてのフィラーワード除去
+            // 日本語の助詞につづく「あの、えと」などの除去
+            fillerWords.forEach(word => {
+                // 正規表現で文脈的なフィラーを取り除く
+                const regex = new RegExp(`(^|\\s|、|。)${word}(、|。|\\s|$)`, 'g');
+                processed = processed.replace(regex, '$1$2');
+            });
+
+            // 余分な句読点の修正
+            processed = processed.replace(/、+/g, '、').replace(/。+/g, '。');
+            processed = processed.replace(/^、|^。/, '');
+            
+            return processed.trim();
+        }
+
+        // 経過時間フォーマッタ (HH:MM:SS)
+        function formatElapsedTime(ms) {
+            const totalSeconds = Math.floor(ms / 1000);
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+
+            const pad = (num) => String(num).padStart(2, '0');
+            return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+        }
+
+        function selectLanguage(langCode, countryBall, element) {
+            if (isRecording) {
+                showToast('録音中は言語を変更できません。一度停止してください。');
+                return;
+            }
+            currentLangCode = langCode;
+            currentCountryBall = countryBall;
+
+            // UIのトグル切り替え
+            document.querySelectorAll('.flag-option').forEach(opt => opt.classList.remove('selected'));
+            element.classList.add('selected');
+
+            if (recognition) {
+                recognition.lang = currentLangCode;
+            }
+            showToast(`言語を ${element.querySelector('.flag-label').textContent} に切り替えました。`);
+        }
+
+        function toggleRecording() {
+            if (!recognition) {
+                initSpeechRecognition();
+            }
+
+            if (!recognition) return;
+
+            if (isRecording) {
+                stopRecording();
+            } else {
+                startRecording();
+            }
+        }
+
+        function startRecording() {
+            startTime = new Date();
+            currentSessionLines = [];
+            const liveBox = document.getElementById('live-transcription-box');
+            liveBox.innerHTML = '';
+            
+            try {
+                recognition.start();
+                showToast('音声認識を開始しました。');
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function stopRecording() {
+            isRecording = false;
+            if (recognition) {
+                try {
+                    recognition.stop();
+                } catch (e) {
+                    console.error(e);
+                }
+            }
+            updateRecordingUI();
+            showToast('音声認識を停止しました。');
+        }
+
+        function updateRecordingUI() {
+            const toggleBtn = document.getElementById('record-toggle-btn');
+            const micIcon = document.getElementById('mic-icon');
+            const btnText = document.getElementById('record-btn-text');
+            const statusBadge = document.getElementById('recording-status');
+            const statusText = document.getElementById('status-text');
+
+            if (isRecording) {
+                toggleBtn.classList.add('ai-btn-danger');
+                micIcon.textContent = 'stop';
+                btnText.textContent = '文字起こし停止';
+                statusBadge.classList.add('recording');
+                statusText.textContent = '音声検出中...';
+            } else {
+                toggleBtn.classList.remove('ai-btn-danger');
+                micIcon.textContent = 'play_arrow';
+                btnText.textContent = '文字起こし開始';
+                statusBadge.classList.remove('recording');
+                statusText.textContent = '待機中';
+            }
+        }
+
+        function appendLineToLiveBox(line) {
+            const liveBox = document.getElementById('live-transcription-box');
+            // 初期プレースホルダー除去
+            if (liveBox.querySelector('em') || liveBox.innerText.includes('ここにリアルタイム')) {
+                liveBox.innerHTML = '';
+            }
+
+            const lineEl = document.createElement('div');
+            lineEl.className = 'transcription-line';
+            lineEl.innerHTML = `
+                <span class="transcription-time">${line.time}</span>
+                <span class="transcription-text">${escapeHTML(line.text)}</span>
+            `;
+            liveBox.appendChild(lineEl);
+            liveBox.scrollTop = liveBox.scrollHeight;
+        }
+
+        // --- 3. ノートの保存 & 管理システム ---
+        async function handleSaveNote() {
+            if (currentSessionLines.length === 0) return;
+
+            const titleInput = document.getElementById('current-note-title').value.trim();
+            const now = new Date();
+            const dateStr = now.toLocaleString('ja-JP');
+            const finalTitle = titleInput || `文字起こし - ${dateStr}`;
+
+            const newNote = {
+                title: finalTitle,
+                language: currentLangCode,
+                country: currentCountryBall,
+                lines: currentSessionLines,
+                timestamp: now.getTime(),
+                dateText: dateStr,
+                summary: ''
+            };
+
+            await saveNote(newNote);
+            showToast('ノートを IndexedDB に保存しました！');
+            
+            // クリーンアップ
+            document.getElementById('current-note-title').value = '';
+            document.getElementById('live-transcription-box').innerHTML = `<div style="color: var(--text-sub); font-style: italic; text-align: center; margin-top: 60px;">ここにリアルタイムの文字起こし結果が表示されます。</div>`;
+            document.getElementById('save-note-btn').disabled = true;
+            currentSessionLines = [];
+
+            // ノートリストへ切り替え
+            switchView('view-notes');
+            loadNotesList();
+        }
+
+        async function loadNotesList() {
+            const notes = await getAllNotes();
+            const listContainer = document.getElementById('notes-list');
+            listContainer.innerHTML = '';
+
+            if (notes.length === 0) {
+                listContainer.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: var(--text-sub);">
+                        <span class="material-symbols-outlined" style="font-size: 48px; opacity: 0.5;">description</span>
+                        <p style="margin-top: 10px;">保存されたノートはまだありません。</p>
+                    </div>
+                `;
+                return;
+            }
+
+            notes.forEach(note => {
+                const item = document.createElement('div');
+                item.className = 'note-item';
+                item.onclick = () => openNoteEditor(note);
+
+                // 国旗画像 fallback
+                const flagSrc = `https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/${note.country}/normal.png`;
+
+                item.innerHTML = `
+                    <div class="note-info">
+                        <div class="note-title">${escapeHTML(note.title)}</div>
+                        <div class="note-date">${note.dateText} (${getLanguageLabel(note.language)})</div>
+                    </div>
+                    <div class="flex-center">
+                        <img src="${flagSrc}" class="flag-img" style="width: 28px; height: 28px; margin-bottom: 0;" onerror="this.style.display='none'">
+                        <span class="material-symbols-outlined" style="color: var(--text-sub);">chevron_right</span>
+                    </div>
+                `;
+                listContainer.appendChild(item);
+            });
+        }
+
+        function getLanguageLabel(code) {
+            const map = {
+                'ja-JP': '日本語',
+                'en-US': 'English',
+                'de-DE': 'Deutsch',
+                'zh-CN': '中文',
+                'ko-KR': '한국어'
+            };
+            return map[code] || code;
+        }
+
+        // --- 4. ノート詳細エディタ / AI要約 / 再生 ---
+        let currentEditingNote = null;
+
+        function openNoteEditor(note) {
+            currentEditingNote = note;
+            activeNoteId = note.id;
+
+            document.getElementById('notes-list-container').style.display = 'none';
+            document.getElementById('note-editor-container').style.display = 'block';
+
+            document.getElementById('edit-note-title').value = note.title;
+            
+            // コンテンツをタイムスタンプつきの編集可能形式でレンダリング
+            const contentEditor = document.getElementById('edit-note-content');
+            contentEditor.innerHTML = '';
+
+            if (note.lines && note.lines.length > 0) {
+                note.lines.forEach(line => {
+                    const lineDiv = document.createElement('div');
+                    lineDiv.className = 'transcription-line';
+                    lineDiv.innerHTML = `
+                        <span class="transcription-time" contenteditable="false">${line.time}</span>
+                        <span class="transcription-text" contenteditable="true">${escapeHTML(line.text)}</span>
+                    `;
+                    contentEditor.appendChild(lineDiv);
+                });
+            } else {
+                contentEditor.innerHTML = '<div style="color: var(--text-sub);">内容がありません。</div>';
+            }
+
+            // 要約表示
+            const summaryDisplay = document.getElementById('summary-content-display');
+            if (note.summary) {
+                summaryDisplay.textContent = note.summary;
+                summaryDisplay.style.color = 'var(--text-main)';
+            } else {
+                summaryDisplay.textContent = '要約はまだ作成されていません。下のボタンからAI要約をリクエストしてください。';
+                summaryDisplay.style.color = 'var(--text-sub)';
+            }
+        }
+
+        function closeNoteEditor() {
+            document.getElementById('notes-list-container').style.display = 'block';
+            document.getElementById('note-editor-container').style.display = 'none';
+            currentEditingNote = null;
+            activeNoteId = null;
+            loadNotesList();
+        }
+
+        async function handleSaveEditedNote() {
+            if (!currentEditingNote) return;
+
+            const updatedTitle = document.getElementById('edit-note-title').value.trim();
+            if (!updatedTitle) {
+                showToast('タイトルを入力してください。');
+                return;
+            }
+
+            // エディタ内の編集後データ再構成
+            const contentEditor = document.getElementById('edit-note-content');
+            const lineElems = contentEditor.querySelectorAll('.transcription-line');
+            const updatedLines = [];
+
+            lineElems.forEach(el => {
+                const timeStr = el.querySelector('.transcription-time').textContent;
+                const textStr = el.querySelector('.transcription-text').textContent.trim();
+                if (textStr) {
+                    updatedLines.push({
+                        time: timeStr,
+                        text: textStr,
+                        timestamp: Date.now() // 近似
+                    });
+                }
+            });
+
+            currentEditingNote.title = updatedTitle;
+            currentEditingNote.lines = updatedLines;
+            // 要約も保存
+            currentEditingNote.summary = document.getElementById('summary-content-display').textContent;
+
+            await saveNote(currentEditingNote);
+            showToast('編集内容を保存しました。');
+            loadNotesList();
+        }
+
+        async function handleDeleteNote() {
+            if (!currentEditingNote) return;
+
+            showConfirmDialog('削除の確認', 'この文字起こしデータを完全に削除してもよろしいですか？', async () => {
+                await deleteNoteFromDB(currentEditingNote.id);
+                showToast('ノートを削除しました。');
+                closeNoteEditor();
+            });
+        }
+
+        // --- 5. Gemini API 要約エンジン ---
+        async function handleAISummary() {
+            if (!currentEditingNote) return;
+
+            const apiKey = document.getElementById('settings-gemini-key').value.trim();
+            const model = document.getElementById('settings-gemini-model').value.trim() || 'gemini-2.5-flash-lite';
+
+            if (!apiKey) {
+                showDialog('APIキー未設定', '設定タブにて有効なGemini APIキーを入力してください。');
+                return;
+            }
+
+            // 本文テキストの構築
+            const contentEditor = document.getElementById('edit-note-content');
+            const textToSummarize = Array.from(contentEditor.querySelectorAll('.transcription-text'))
+                .map(el => el.textContent)
+                .join('\n');
+
+            if (!textToSummarize) {
+                showToast('要約するテキストが存在しません。');
+                return;
+            }
+
+            const summaryDisplay = document.getElementById('summary-content-display');
+            summaryDisplay.textContent = '要約生成中... しばらくお待ちください。';
+            summaryDisplay.style.color = 'var(--text-sub)';
+
+            const prompt = `以下の文字起こしテキストの内容を、分かりやすく綺麗に構成した日本語の文章で要約してください。重要な決定事項、議論の要旨、次のステップに分けて整理してください：\n\n${textToSummarize}`;
+
+            try {
+                const summary = await callGeminiAPI(apiKey, model, prompt);
+                summaryDisplay.textContent = summary;
+                summaryDisplay.style.color = 'var(--text-main)';
+                
+                // 即座にオブジェクトを更新してIndexedDBへ格納
+                currentEditingNote.summary = summary;
+                await saveNote(currentEditingNote);
+                showToast('AI要約の作成が完了し、自動保存しました！');
+            } catch (err) {
+                summaryDisplay.textContent = `要約に失敗しました：${err.message}`;
+                summaryDisplay.style.color = '#EF4444';
+            }
+        }
+
+        // 指数バックオフ対応APIコール
+        async function callGeminiAPI(apiKey, model, prompt) {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+            const payload = {
+                contents: [{ parts: [{ text: prompt }] }]
+            };
+
+            let retries = 5;
+            let delay = 1000;
+
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        const textResult = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                        if (textResult) {
+                            return textResult;
+                        } else {
+                            throw new Error('APIレスポンスからテキストを抽出できませんでした。');
+                        }
+                    } else {
+                        const errDetails = await response.text();
+                        console.error(`Gemini Error details: ${errDetails}`);
+                    }
+                } catch (e) {
+                    console.warn(`Attempt ${i+1} failed. Retrying...`);
+                }
+
+                if (i < retries - 1) {
+                    await new Promise(r => setTimeout(r, delay));
+                    delay *= 2;
+                }
+            }
+
+            throw new Error('5回のリトライ後もAPIから有効な応答を得られませんでした。キーの有効性やネットワーク接続を確認してください。');
+        }
+
+        // TXTエクスポート
+        function handleDownloadTxt() {
+            if (!currentEditingNote) return;
+
+            const title = currentEditingNote.title;
+            const contentEditor = document.getElementById('edit-note-content');
+            const lines = Array.from(contentEditor.querySelectorAll('.transcription-line'))
+                .map(el => {
+                    const t = el.querySelector('.transcription-time').textContent;
+                    const txt = el.querySelector('.transcription-text').textContent;
+                    return `[${t}] ${txt}`;
+                }).join('\n');
+
+            const summary = currentEditingNote.summary ? `\n\n【AI要約】\n${currentEditingNote.summary}` : '';
+            const fullOutput = `タイトル: ${title}\n日付: ${currentEditingNote.dateText}\n\n【文字起こし詳細】\n${lines}${summary}`;
+
+            const blob = new Blob([fullOutput], { type: 'text/plain;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${title.replace(/[\/\\?%*:|"<>\s]/g, '_')}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast('ノートをダウンロードしました。');
+        }
+
+        // --- 6. 全バックアップ & リストア (Zip形式 / JSZip) ---
+        async function handleExportZip() {
+            const notes = await getAllNotes();
+            if (notes.length === 0) {
+                showToast('保存するメモがありません。');
+                return;
+            }
+
+            const zip = new JSZip();
+            // JSON メタデータ
+            zip.file('metadata.json', JSON.stringify(notes, null, 2));
+
+            // テキストファイル群も同封してバックアップを閲覧可能にする
+            const folder = zip.folder("transcriptions");
+            notes.forEach(note => {
+                const textLines = note.lines.map(l => `[${l.time}] ${l.text}`).join('\n');
+                const fileContent = `Title: ${note.title}\nDate: ${note.dateText}\n\n---\n${textLines}\n\n---\nSummary:\n${note.summary || ''}`;
+                folder.file(`${note.id}_${note.title.replace(/[\/\\?%*:|"<>\s]/g, '_')}.txt`, fileContent);
+            });
+
+            const content = await zip.generateAsync({ type: 'blob' });
+            const url = URL.createObjectURL(content);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `PB_Transcription_Backup_${Date.now()}.zip`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast('全体バックアップZIPをエクスポートしました。');
+        }
+
+        function handleImportZip(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const zip = await JSZip.loadAsync(e.target.result);
+                    const metadataFile = zip.file('metadata.json');
+                    if (!metadataFile) {
+                        showDialog('復元エラー', 'ZIPファイル内に有効なバックアップデータ (metadata.json) が見つかりません。');
+                        return;
+                    }
+
+                    const jsonStr = await metadataFile.async('string');
+                    const importedNotes = JSON.parse(jsonStr);
+
+                    if (!Array.isArray(importedNotes)) {
+                        throw new Error('無効なデータ形式です。');
+                    }
+
+                    // DBにマージして保存
+                    for (const note of importedNotes) {
+                        // IDが衝突しないように新規追加、あるいは既存を上書き
+                        await saveNote(note);
+                    }
+
+                    showDialog('リストア成功', 'すべての文字起こしデータを正常にインポートしました！', () => {
+                        loadNotesList();
+                        switchView('view-notes');
+                    });
+                } catch (err) {
+                    showDialog('リストア失敗', `ZIPファイルの解析に失敗しました。ファイルが破損しているか、非対応の形式です：\n${err.message}`);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+            // インプットの値をリセットして再度のインポートに対応
+            event.target.value = '';
+        }
+
+        // --- 7. ダイアログ & UI ヘルパーシステム ---
+        function showDialog(title, body, onConfirm = null) {
+            document.getElementById('dialog-title').textContent = title;
+            document.getElementById('dialog-body').textContent = body;
+            const btnContainer = document.getElementById('dialog-buttons');
+            
+            if (onConfirm) {
+                btnContainer.innerHTML = `
+                    <button class="ai-btn ai-btn-secondary" onclick="closeDialog()">キャンセル</button>
+                    <button class="ai-btn" id="dialog-confirm-btn">確認</button>
+                `;
+                document.getElementById('dialog-confirm-btn').onclick = () => {
+                    closeDialog();
+                    onConfirm();
+                };
+            } else {
+                btnContainer.innerHTML = `<button class="ai-btn" onclick="closeDialog()">閉じる</button>`;
+            }
+
+            document.getElementById('main-dialog').classList.add('active');
+        }
+
+        function showConfirmDialog(title, body, onConfirm) {
+            showDialog(title, body, onConfirm);
+        }
+
+        function closeDialog() {
+            document.getElementById('main-dialog').classList.remove('active');
+        }
+
+        function showToast(msg) {
+            toast.textContent = msg;
+            toast.classList.add('active');
+            setTimeout(() => {
+                toast.classList.remove('active');
+            }, 2800);
+        }
+
+        function escapeHTML(str) {
+            if (!str) return '';
+            return str.replace(/[&<>'"]/g, 
+                tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+            );
+        }
+
+        // --- 8. テーマ & 環境設定システム ---
+        function setTheme(isDark) {
+            document.body.classList.toggle('dark-mode', isDark);
+            themeIcon.textContent = isDark ? 'dark_mode' : 'light_mode';
+            
+            const dmToggle = document.getElementById('darkmode-toggle');
+            if (dmToggle) {
+                dmToggle.checked = isDark;
+            }
+            saveSetting('dark_mode', isDark);
+        }
+
+        // --- 9. ビューの切り替えプロトコル ---
+        const navItems = document.querySelectorAll('.nav-item');
+        const views = document.querySelectorAll('.view');
+
+        function switchView(viewId) {
+            navItems.forEach(n => {
+                n.classList.remove('active');
+                if (n.getAttribute('data-view') === viewId) {
+                    n.classList.add('active');
+                }
+            });
+
+            views.forEach(v => {
+                v.classList.remove('active');
+                if (v.id === viewId) {
+                    v.classList.add('active');
+                    viewport.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+            });
+
+            // 遷移ごとのアクション
+            if (viewId === 'view-notes') {
+                loadNotesList();
+            }
+        }
+
+        // --- 10. 初期化フック ---
+        window.onload = async () => {
+            // DBロード
+            await initDB();
+
+            // 設定読み込み
+            const savedApiKey = await getSetting('gemini_api_key', '');
+            const savedModel = await getSetting('gemini_model', 'gemini-2.5-flash-lite');
+            const savedFiller = await getSetting('filler_enabled', true);
+            const savedDarkMode = await getSetting('dark_mode', false);
+
+            document.getElementById('settings-gemini-key').value = savedApiKey;
+            document.getElementById('settings-gemini-model').value = savedModel;
+            document.getElementById('settings-filler-toggle').checked = savedFiller;
+            setTheme(savedDarkMode);
+
+            // リスナー設定
+            document.getElementById('record-toggle-btn').addEventListener('click', toggleRecording);
+            document.getElementById('save-note-btn').addEventListener('click', handleSaveNote);
+            document.getElementById('clear-live-btn').addEventListener('click', () => {
+                currentSessionLines = [];
+                document.getElementById('live-transcription-box').innerHTML = `<div style="color: var(--text-sub); font-style: italic; text-align: center; margin-top: 60px;">ここにリアルタイムの文字起こし結果が表示されます。</div>`;
+                document.getElementById('save-note-btn').disabled = true;
+                showToast('セッションのテキストをクリアしました。');
+            });
+
+            // エディタ内リスナー
+            document.getElementById('save-edited-note-btn').addEventListener('click', handleSaveEditedNote);
+            document.getElementById('delete-note-btn').addEventListener('click', handleDeleteNote);
+            document.getElementById('download-note-txt-btn').addEventListener('click', handleDownloadTxt);
+            document.getElementById('generate-ai-summary-btn').addEventListener('click', handleAISummary);
+
+            // 設定保存リスナー
+            document.getElementById('settings-gemini-key').addEventListener('input', (e) => {
+                saveSetting('gemini_api_key', e.target.value.trim());
+            });
+            document.getElementById('settings-gemini-model').addEventListener('input', (e) => {
+                saveSetting('gemini_model', e.target.value.trim() || 'gemini-2.5-flash-lite');
+            });
+            document.getElementById('settings-filler-toggle').addEventListener('change', (e) => {
+                saveSetting('filler_enabled', e.target.checked);
+            });
+
+            // ZIP インポート
+            document.getElementById('import-file-input').addEventListener('change', handleImportZip);
+            document.getElementById('export-zip-btn').addEventListener('click', handleExportZip);
+
+            // テーマボタン切り替え
+            themeBtn.addEventListener('click', () => {
+                setTheme(!document.body.classList.contains('dark-mode'));
+            });
+            document.getElementById('darkmode-toggle').addEventListener('change', (e) => {
+                setTheme(e.target.checked);
+            });
+
+            // ナビゲーション
+            navItems.forEach(item => {
+                item.addEventListener('click', () => {
+                    const viewId = item.getAttribute('data-view');
+                    switchView(viewId);
+                });
+            });
+
+            // クリックスクィーズ (Jellyフィードバック)
+            document.addEventListener('mousedown', (e) => {
+                const target = e.target.closest('.glass-card, .ai-btn, .nav-item, .note-item, .flag-option');
+                if (target) {
+                    target.classList.remove('squish-active');
+                    void target.offsetWidth; // Force Reflow
+                    target.classList.add('squish-active');
+                    
+                    setTimeout(() => {
+                        target.classList.remove('squish-active');
+                    }, 400);
+                }
+            });
+        };
+    </script>
+</body>
+</html>
