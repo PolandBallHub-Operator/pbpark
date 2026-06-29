@@ -1,0 +1,2140 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+    <title>AI RPG Creator</title>
+
+    <!-- Google Fonts & Material Symbols -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+
+    <style>
+        :root {
+            /* 赤と青のグラデーション用CSS変数 */
+            --gradient-start: #FF3B30;
+            --gradient-end: #007AFF;
+            --accent-primary: #007AFF;
+            --accent-active: #0056B3;
+            
+            /* Light Mode Tokens */
+            --bg-base: #F7F7F7;
+            --glass-bg: #FFFFFF;
+            --text-main: #000000;
+            --text-sub: #555555;
+            --bg-secondary: #EEEEEE;
+            
+            --m3-easing: cubic-bezier(0.32, 0.72, 0, 1);
+            --transition-smooth: 0.4s var(--m3-easing);
+            --card-padding: 20px;
+        }
+
+        .dark-mode {
+            /* Dark Mode Tokens */
+            --bg-base: #0A0A0C;
+            --glass-bg: #1C1C1E;
+            --text-main: #FFFFFF;
+            --text-sub: #A1A1A6;
+            --bg-secondary: #2C2C2E;
+        }
+
+        /* 隠しテーマ2: サイバー紫-オレンジグラデーション */
+        .theme-cyber {
+            --gradient-start: #8B5CF6;
+            --gradient-end: #F59E0B;
+            --accent-primary: #8B5CF6;
+            --accent-active: #7C3AED;
+        }
+        /* 隠しテーマ3: エメラルド-ディープピンク */
+        .theme-emerald {
+            --gradient-start: #10B981;
+            --gradient-end: #E11D48;
+            --accent-primary: #10B981;
+            --accent-active: #059669;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', 'Noto Sans JP', sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            transition: background-color var(--transition-smooth), color var(--transition-smooth);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            touch-action: none;
+        }
+
+        /* --- Scroll Container --- */
+        #app-viewport {
+            height: 100vh;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            scroll-behavior: smooth;
+        }
+
+        /* --- Header (Centered Title, No Border/Shadow) --- */
+        header {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+            height: 72px; padding: 0 24px;
+            display: flex; align-items: center; justify-content: center;
+            background: var(--glass-bg);
+            transition: background-color var(--transition-smooth);
+        }
+        .logo {
+            font-weight: 700; font-size: 20px; letter-spacing: -0.5px;
+            color: var(--text-main);
+            text-align: center;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .logo-gradient-text {
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 800;
+        }
+        .theme-toggle {
+            position: absolute; right: 24px;
+            width: 44px; height: 44px; border-radius: 22px;
+            border: none; background: var(--bg-secondary);
+            color: var(--text-main); cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: background var(--transition-smooth);
+        }
+
+        /* --- Main Layout --- */
+        main {
+            padding: 96px 20px 140px;
+            max-width: 800px; margin: 0 auto;
+            min-height: 100%;
+            transition: opacity 0.3s ease, transform 0.3s var(--m3-easing);
+            box-sizing: border-box;
+        }
+
+        /* --- Flat Solid Card (No Shadow, No Border) --- */
+        .glass-card {
+            background: var(--glass-bg);
+            border-radius: 24px;
+            padding: var(--card-padding);
+            margin-bottom: 16px;
+            box-shadow: none !important;
+            border: none !important;
+            transform-style: flat;
+            transition: background-color var(--transition-smooth);
+        }
+
+        h2 { 
+            font-size: 20px; 
+            margin-top: 0; 
+            margin-bottom: 8px;
+            font-weight: 700; 
+        }
+        h3 {
+            font-size: 16px;
+            margin-top: 0;
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+        p {
+            font-size: 14px;
+            line-height: 1.45;
+            margin-top: 0;
+            margin-bottom: 12px;
+            color: var(--text-sub);
+        }
+
+        /* --- Interaction: Jelly/Squishy Effect --- */
+        @keyframes squishy {
+            0% { transform: scale(1, 1); }
+            30% { transform: scale(1.08, 0.92); }
+            50% { transform: scale(0.95, 1.05); }
+            70% { transform: scale(1.02, 0.98); }
+            100% { transform: scale(1, 1); }
+        }
+        .squish-active {
+            animation: squishy 0.4s var(--m3-easing);
+        }
+
+        /* --- Gradient & Primary Buttons --- */
+        .ai-btn {
+            border: none; outline: none;
+            padding: 12px 24px; border-radius: 14px;
+            font-weight: 600; font-size: 15px;
+            color: white; cursor: pointer;
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+            transition: transform 0.2s, opacity 0.2s;
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+            box-shadow: none;
+        }
+        .ai-btn:hover { transform: scale(1.02); }
+        .ai-btn:active {
+            transform: scale(0.95);
+            opacity: 0.9;
+        }
+        .ai-btn-secondary {
+            background: var(--bg-secondary) !important;
+            color: var(--text-main) !important;
+        }
+        .ai-btn-danger {
+            background: #FF3B30 !important;
+            color: white !important;
+        }
+
+        /* --- Inputs --- */
+        .glass-input-wrapper { margin-bottom: 14px; }
+        .glass-input-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: var(--text-main);
+        }
+        .glass-input {
+            width: 100%; padding: 14px 18px;
+            border-radius: 14px; border: none;
+            background: var(--bg-secondary);
+            color: var(--text-main); font-size: 15px;
+            box-sizing: border-box; transition: background 0.3s var(--m3-easing);
+        }
+        .glass-input:focus {
+            outline: 2px solid var(--accent-primary);
+        }
+        textarea.glass-input {
+            resize: vertical;
+            min-height: 100px;
+            font-family: inherit;
+        }
+        select.glass-input {
+            appearance: none;
+            cursor: pointer;
+        }
+
+        /* --- File Picker Design --- */
+        .file-picker-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 4px;
+        }
+        .file-picker-preview {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            object-fit: cover;
+            background: var(--bg-secondary);
+            border: none;
+        }
+        .file-picker-btn {
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            padding: 10px 16px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border: none;
+            transition: opacity 0.2s;
+        }
+        .file-picker-btn:hover {
+            opacity: 0.9;
+        }
+
+        /* --- Toggles --- */
+        .toggle-row {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 12px 0;
+        }
+        .switch {
+            position: relative; display: inline-block; width: 50px; height: 28px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--bg-secondary);
+            transition: .3s var(--m3-easing);
+            border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute; content: "";
+            height: 20px; width: 20px; left: 4px; bottom: 4px;
+            background: white; transition: .3s var(--m3-easing);
+            border-radius: 50%;
+        }
+        input:checked + .slider { background: var(--accent-primary); }
+        input:checked + .slider:before { transform: translateX(22px); }
+
+        /* --- Navigation --- */
+        .nav-container {
+            position: fixed; bottom: 32px; left: 50%;
+            transform: translateX(-50%); z-index: 500;
+            width: calc(100% - 40px);
+            max-width: 450px;
+        }
+        .nav-rail {
+            display: flex; align-items: center; justify-content: space-around; gap: 8px;
+            background: var(--glass-bg);
+            padding: 6px; border-radius: 32px;
+            box-shadow: none;
+        }
+        .nav-item {
+            flex: 1;
+            height: 52px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            cursor: pointer; border-radius: 26px; color: var(--text-sub);
+            transition: all 0.3s var(--m3-easing);
+            position: relative;
+        }
+        .nav-item span.nav-icon {
+            font-size: 24px;
+        }
+        .nav-item span.nav-label {
+            font-size: 10px;
+            font-weight: 600;
+            margin-top: 2px;
+        }
+        .nav-item.active {
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+            color: white;
+            transform: scale(1.05);
+        }
+
+        /* --- View Management --- */
+        .view { display: none; }
+        .view.active { display: block; animation: viewIn 0.4s var(--m3-easing); }
+        @keyframes viewIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* --- App Specific UI Components --- */
+        .app-ball-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 16px 0;
+            position: relative;
+        }
+        .app-ball {
+            width: 110px;
+            height: 110px;
+            border-radius: 55px;
+            object-fit: cover;
+            cursor: pointer;
+            user-select: none;
+            -webkit-user-drag: none;
+            transition: transform 0.1s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+        }
+        .app-ball:active {
+            transform: scale(0.9);
+        }
+        .tap-counter-badge {
+            position: absolute;
+            top: 0;
+            right: calc(50% - 70px);
+            background: var(--accent-primary);
+            color: white;
+            border-radius: 12px;
+            padding: 2px 8px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .list-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 16px;
+            margin-top: 12px;
+        }
+        .game-card {
+            background: var(--bg-secondary);
+            border-radius: 20px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            transition: transform 0.2s var(--m3-easing);
+            cursor: pointer;
+            position: relative;
+        }
+        .game-card:hover {
+            transform: translateY(-4px);
+        }
+        .game-card-header {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        .game-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            object-fit: cover;
+            background: #CCC;
+        }
+        .game-title {
+            font-weight: 700;
+            font-size: 16px;
+            color: var(--text-main);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            flex: 1;
+        }
+        .game-desc {
+            font-size: 12px;
+            color: var(--text-sub);
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            height: 34px;
+        }
+        .game-badge {
+            align-self: flex-start;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 8px;
+            background: rgba(0,0,0,0.05);
+            color: var(--text-sub);
+        }
+        .dark-mode .game-badge {
+            background: rgba(255,255,255,0.1);
+            color: var(--text-main);
+        }
+
+        /* --- Creator Workspace Elements --- */
+        .character-entry {
+            border-left: 4px solid var(--accent-primary);
+            padding-left: 14px;
+            margin-bottom: 16px;
+            position: relative;
+        }
+        .remove-char-btn {
+            position: absolute;
+            top: 0;
+            right: 0;
+            color: #FF3B30;
+            cursor: pointer;
+            background: none;
+            border: none;
+            padding: 4px;
+        }
+
+        /* --- Game Arena Styles --- */
+        .arena-container {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            height: calc(100vh - 240px);
+            min-height: 400px;
+        }
+        .dialogue-history {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            padding-right: 4px;
+        }
+        
+        /* 吹き出し（Balloon）スタイル */
+        .bubble-row {
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+            max-width: 85%;
+        }
+        .bubble-row.self {
+            align-self: flex-end;
+            flex-direction: row-reverse;
+        }
+        .bubble-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: #ddd;
+            flex-shrink: 0;
+        }
+        .bubble-content {
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            padding: 12px 16px;
+            border-radius: 18px;
+            border-top-left-radius: 4px;
+            font-size: 14px;
+            line-height: 1.45;
+        }
+        .bubble-row.self .bubble-content {
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+            color: white;
+            border-radius: 18px;
+            border-top-right-radius: 4px;
+        }
+        .bubble-name {
+            font-size: 11px;
+            color: var(--text-sub);
+            margin-bottom: 4px;
+            font-weight: 600;
+        }
+        .bubble-row.self .bubble-name {
+            text-align: right;
+        }
+
+        /* 小説（Text Flow）スタイル */
+        .novel-block {
+            padding: 14px 18px;
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            font-size: 14px;
+            line-height: 1.6;
+            color: var(--text-main);
+            border-left: 4px solid var(--gradient-end);
+        }
+        .novel-block.self {
+            background: var(--glass-bg);
+            border-left-color: var(--gradient-start);
+            font-weight: 600;
+        }
+
+        /* 4択UIパネル */
+        .choices-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        @media (min-width: 480px) {
+            .choices-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        .choice-btn {
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            border: none;
+            padding: 14px;
+            border-radius: 14px;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s;
+            line-height: 1.4;
+        }
+        .choice-btn:hover {
+            background: var(--accent-primary);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        /* --- Dialog Overlay --- */
+        .dialog-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000; display: flex; align-items: center; justify-content: center;
+            opacity: 0; visibility: hidden; transition: all 0.3s var(--m3-easing);
+        }
+        .dialog-overlay.active { opacity: 1; visibility: visible; }
+        .glass-dialog {
+            background: var(--glass-bg);
+            border-radius: 28px;
+            padding: 24px; max-width: 440px; width: 90%; text-align: left;
+            transform: scale(0.9) translateY(20px); transition: all 0.4s var(--m3-easing);
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .dialog-overlay.active .glass-dialog { transform: scale(1) translateY(0); }
+
+        /* --- Toast Alert --- */
+        .toast {
+            position: fixed;
+            bottom: 110px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--text-main);
+            color: var(--glass-bg);
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s var(--m3-easing);
+            z-index: 2000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            text-align: center;
+        }
+        .toast.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* モデル候補タグ */
+        .model-chip {
+            display: inline-block;
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-right: 6px;
+            margin-bottom: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .model-chip:hover {
+            background: var(--accent-primary);
+            color: white;
+        }
+
+        /* 汎用的な進捗ロード */
+        .loading-spinner {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-sub);
+        }
+        .empty-state span {
+            font-size: 48px;
+            margin-bottom: 12px;
+            display: block;
+            color: var(--accent-primary);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo">
+            <span class="logo-gradient-text">AI RPG Creator</span>
+        </div>
+        <button class="theme-toggle" id="theme-btn">
+            <span class="material-symbols-outlined">light_mode</span>
+        </button>
+    </header>
+
+    <div id="app-viewport">
+        <main id="main-content">
+            
+            <!-- HOME VIEW: プレイ中ゲーム & クイック起動 -->
+            <section id="view-home" class="view active">
+                <div class="glass-card" style="text-align: center;">
+                    <div class="app-ball-container">
+                        <img id="app-logo-ball" src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/pbhuB2/jpn2.png" alt="Japan Ball" class="app-ball">
+                        <span class="tap-counter-badge" id="tap-count-badge" style="display: none;">0 / 10</span>
+                    </div>
+                    <h2>無限の並行世界へようこそ</h2>
+                    <p>
+                        ご指定のボールを10回タップすると、UIの隠しグラデーションテーマを切り替えることができます。まずはRPG作成タブであなただけの世界を作りましょう。
+                    </p>
+                </div>
+
+                <div class="glass-card">
+                    <h2>現在プレイ中のRPG一覧</h2>
+                    <p>最後にセーブした時点から冒険を再開できます。</p>
+                    <div id="active-play-list" class="list-grid">
+                        <!-- 動的にプレイ中ゲームがレンダリングされます -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- CREATOR VIEW: 新規RPG作成 & 編集 -->
+            <section id="view-creator" class="view">
+                <div class="glass-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <h2>オリジナルRPGを創造する</h2>
+                        <button class="ai-btn" style="padding: 8px 16px; font-size: 13px;" onclick="resetCreatorForm()">
+                            <span class="material-symbols-outlined">add</span>新規作成
+                        </button>
+                    </div>
+                    <p>世界観、キャラクター、進行形式を指定してAIが無限 of シナリオを生成可能にします。</p>
+                </div>
+
+                <!-- RPG作成フォーム -->
+                <div class="glass-card">
+                    <h3>基本情報設定</h3>
+                    <div class="glass-input-wrapper">
+                        <label class="glass-input-label">RPGタイトル</label>
+                        <input type="text" id="rpg-title" class="glass-input" placeholder="例: 異世界ダンジョンサバイバル">
+                    </div>
+
+                    <div class="glass-input-wrapper">
+                        <label class="glass-input-label">RPGアイコン画像設定</label>
+                        <div class="file-picker-container">
+                            <img id="rpg-icon-preview" class="file-picker-preview" src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/pbhuB2/jpn2.png" alt="Preview">
+                            <button class="file-picker-btn" onclick="document.getElementById('rpg-icon-file').click()">
+                                <span class="material-symbols-outlined">photo_library</span>画像を選択
+                            </button>
+                            <input type="file" id="rpg-icon-file" style="display: none;" accept="image/*" onchange="handleRpgIconSelect(event)">
+                        </div>
+                        <input type="hidden" id="rpg-icon-base64">
+                    </div>
+
+                    <div class="glass-input-wrapper">
+                        <label class="glass-input-label">世界観・あらすじ</label>
+                        <textarea id="rpg-synopsis" class="glass-input" placeholder="どのような世界、前提条件、プレイヤーの目的かを書いてください。"></textarea>
+                    </div>
+
+                    <div class="glass-input-wrapper">
+                        <label class="glass-input-label">RPG進行形式</label>
+                        <select id="rpg-format" class="glass-input" onchange="toggleFormatHint()">
+                            <option value="chat">自由記述型チャット (プレイヤーが自由に発言)</option>
+                            <option value="choices">4択選択型 (AIが常に4つの次の行動を提示)</option>
+                        </select>
+                        <p id="format-hint" style="font-size: 11px; margin-top: 4px; color: var(--text-sub);">
+                            ※自由記述型はプレイヤーが自由に文章を打ち込みます。4択型はAIが選択肢を構築します。
+                        </p>
+                    </div>
+                </div>
+
+                <!-- 登場キャラクター & 画像・詳細 -->
+                <div class="glass-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <h3>登場キャラクター & 設定</h3>
+                        <button class="ai-btn ai-btn-secondary" style="padding: 6px 12px; font-size: 12px;" onclick="addCharacterField()">
+                            <span class="material-symbols-outlined">person_add</span>キャラを追加
+                        </button>
+                    </div>
+                    <p>NPCや敵、案内人などを追加できます。喋るときに指定したキャラクター画像が表示されます。</p>
+
+                    <div id="character-container">
+                        <!-- 動的キャラクターインプットフィールドがここに追加されます -->
+                    </div>
+                </div>
+
+                <div class="glass-card" style="display: flex; gap: 10px;">
+                    <button class="ai-btn" style="flex: 1;" onclick="saveNewRPG()">
+                        <span class="material-symbols-outlined">save</span>このRPGデータを保存する
+                    </button>
+                </div>
+            </section>
+
+            <!-- GAMES DIRECTORY VIEW: 保存したゲーム一覧 & インポート -->
+            <section id="view-directory" class="view">
+                <div class="glass-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <h2>創造した世界アーカイブ</h2>
+                        <button class="ai-btn ai-btn-secondary" style="padding: 8px 16px; font-size: 13px;" onclick="triggerImportJson()">
+                            <span class="material-symbols-outlined">file_upload</span>JSONインポート
+                        </button>
+                    </div>
+                    <input type="file" id="import-json-file" style="display: none;" accept=".json" onchange="importRPGFromJson(event)">
+                    <p>作成・インポートされたすべてのRPGです。ここから新規セッションを開始します。</p>
+                    
+                    <div id="directory-list" class="list-grid">
+                        <!-- データベースから取得したゲーム一覧 -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- ARENA VIEW: ゲームプレイ画面（チャット or 4択） -->
+            <section id="view-arena" class="view">
+                <div class="glass-card" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 14px 20px;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <img id="arena-rpg-icon" src="" class="game-icon" style="width: 36px; height: 36px;" onerror="this.src='https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/pbhuB2/jpn2.png'">
+                        <div>
+                            <h3 id="arena-rpg-title" style="margin: 0; font-size: 15px;">RPG名</h3>
+                            <span id="arena-rpg-mode" style="font-size: 10px; opacity: 0.8; font-weight: 600;">チャット形式</span>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="ai-btn ai-btn-secondary" style="padding: 6px 10px; font-size: 12px;" onclick="toggleDisplayMode()" title="表示モード切替">
+                            <span class="material-symbols-outlined" id="display-mode-icon">forum</span>
+                        </button>
+                        <button class="ai-btn ai-btn-secondary" style="padding: 6px 10px; font-size: 12px; background: #FF3B30 !important; color: white !important;" onclick="quitSession()">
+                            <span class="material-symbols-outlined">logout</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="glass-card" style="margin-bottom: 12px; padding: 16px;">
+                    <div class="arena-container">
+                        <!-- メッセージログ -->
+                        <div class="dialogue-history" id="dialogue-history-box">
+                            <!-- メッセージが追加されていきます -->
+                        </div>
+
+                        <!-- ローディングアニメーション -->
+                        <div id="arena-loading" style="display: none; align-items: center; gap: 10px; padding: 10px; font-size: 13px; color: var(--text-sub);">
+                            <div class="loading-spinner" style="border-top-color: var(--accent-primary);"></div>
+                            <span>AIが世界の応答を構築中...</span>
+                        </div>
+
+                        <!-- 進行インターフェース: チャット型 -->
+                        <div id="arena-input-chat-panel" style="display: none;">
+                            <div style="display: flex; gap: 8px;">
+                                <input type="text" id="player-chat-input" class="glass-input" placeholder="あなたの行動や発言を入力..." onkeydown="if(event.key === 'Enter') sendPlayerAction()">
+                                <button class="ai-btn" style="padding: 12px;" onclick="sendPlayerAction()">
+                                    <span class="material-symbols-outlined">send</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 進行インターフェース: 4択型 -->
+                        <div id="arena-input-choices-panel" style="display: none;">
+                            <p style="font-size: 12px; font-weight: 600; margin-bottom: 6px; color: var(--text-sub);">次の行動を選択してください：</p>
+                            <div class="choices-grid" id="arena-choices-grid">
+                                <!-- AIが提示する4つのボタン -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SETTINGS VIEW: 設定・プロフィール・データ移行 -->
+            <section id="view-settings" class="view">
+                <div class="glass-card">
+                    <h2>プレイヤー設定 & 接続情報</h2>
+                    <p>AIモデルの選択やGemini APIキー、プロフィールなどの構成を行います。</p>
+                </div>
+
+                <div class="glass-card">
+                    <h3>ユーザープロフィール</h3>
+                    <div class="glass-input-wrapper">
+                        <label class="glass-input-label">プレイヤー名</label>
+                        <input type="text" id="player-profile-name" class="glass-input" placeholder="例: 伝説の勇者">
+                    </div>
+                </div>
+
+                <div class="glass-card">
+                    <h3>Gemini API 設定</h3>
+                    <div class="glass-input-wrapper">
+                        <label class="glass-input-label">Gemini APIキー (ローカル暗号化保存)</label>
+                        <input type="password" id="gemini-api-key" class="glass-input" placeholder="AIの利用にはキーが必要です">
+                    </div>
+
+                    <div class="glass-input-wrapper">
+                        <label class="glass-input-label">モデル名</label>
+                        <input type="text" id="gemini-model-name" class="glass-input" placeholder="gemini-2.5-flash-lite">
+                    </div>
+
+                    <div style="margin-top: 8px;">
+                        <span class="glass-input-label">おすすめモデルを即時設定:</span>
+                        <div style="margin-top: 4px;">
+                            <span class="model-chip" onclick="fillModel('gemini-2.5-flash-lite')">gemini-2.5-flash-lite (最速・省枠)</span>
+                            <span class="model-chip" onclick="fillModel('gemini-2.5-flash')">gemini-2.5-flash</span>
+                            <span class="model-chip" onclick="fillModel('gemini-2.5-pro')">gemini-2.5-pro (超高品質)</span>
+                            <span class="model-chip" onclick="fillModel('gemini-3.1-flash-lite')">gemini-3.1-flash-lite (最新予想)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card">
+                    <h3>システムテーマ設定</h3>
+                    <div class="toggle-row">
+                        <span>ダークモードの有効化</span>
+                        <label class="switch">
+                            <input type="checkbox" id="darkmode-toggle">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="glass-card">
+                    <h3>データのバックアップと同期</h3>
+                    <p>作成した全RPGデータ、進行データをまとめて移行できます。</p>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <button class="ai-btn ai-btn-secondary" style="font-size: 13px;" onclick="exportFullSystemData()">
+                            <span class="material-symbols-outlined">download</span>フルエクスポート
+                        </button>
+                        <button class="ai-btn ai-btn-secondary" style="font-size: 13px;" onclick="triggerFullImport()">
+                            <span class="material-symbols-outlined">upload_file</span>フルインポート
+                        </button>
+                    </div>
+                    <input type="file" id="full-import-file" style="display: none;" accept=".json" onchange="importFullSystemData(event)">
+                </div>
+
+                <div class="glass-card" style="display: flex; gap: 10px;">
+                    <button class="ai-btn" style="flex: 1;" onclick="saveSystemSettings()">
+                        <span class="material-symbols-outlined">save</span>設定をローカル保存
+                    </button>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Navigation Bar -->
+    <div class="nav-container">
+        <nav class="nav-rail">
+            <div class="nav-item active" data-view="view-home">
+                <span class="material-symbols-outlined nav-icon">home</span>
+                <span class="nav-label">ホーム</span>
+            </div>
+            <div class="nav-item" data-view="view-creator">
+                <span class="material-symbols-outlined nav-icon">add_circle</span>
+                <span class="nav-label">RPG作成</span>
+            </div>
+            <div class="nav-item" data-view="view-directory" onclick="loadDirectoryList()">
+                <span class="material-symbols-outlined nav-icon">folder_open</span>
+                <span class="nav-label">ゲーム一覧</span>
+            </div>
+            <div class="nav-item" data-view="view-settings">
+                <span class="material-symbols-outlined nav-icon">settings</span>
+                <span class="nav-label">設定</span>
+            </div>
+        </nav>
+    </div>
+
+    <!-- Global Custom Dialog -->
+    <div class="dialog-overlay" id="main-dialog">
+        <div class="glass-dialog" id="dialog-content-area">
+            <!-- ダイアログ内容はJSで動的に注入されます -->
+        </div>
+    </div>
+
+    <!-- Toast Notification Message Box -->
+    <div class="toast" id="toast-message">処理を完了しました。</div>
+
+    <script>
+        /**
+         * AI RPG Creator & Player Suite
+         * IndexedDB による強力なゲーム持続性
+         * Gemini-APIへのダイレクトシームレス統合
+         */
+
+        const viewport = document.getElementById('app-viewport');
+        const themeBtn = document.getElementById('theme-btn');
+        const themeIcon = themeBtn.querySelector('span');
+        const toast = document.getElementById('toast-message');
+
+        // タップテーマカウンター
+        let tapCount = 0;
+        let currentThemeIndex = 0; // 0: 赤青、1: 紫オレンジ、2: 緑ピンク
+        const themeClasses = ['', 'theme-cyber', 'theme-emerald'];
+
+        // IndexedDB初期化
+        let db;
+        const DB_NAME = "AIRPGCreatorDB_v2";
+        const DB_VERSION = 2;
+
+        // ゲームシステムステート
+        let activeRPGList = [];
+        let createdRPGList = [];
+        let systemSettings = {
+            playerName: "伝説の勇者",
+            apiKey: "",
+            modelName: "gemini-2.5-flash-lite",
+            isDark: false,
+            currentTheme: 0
+        };
+
+        // デフォルトアイコンデータ
+        const DEFAULT_ICON = "https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/pbhuB2/jpn2.png";
+
+        // プレイ中のセッションデータ
+        let currentPlaySession = null; 
+        let displayMode = 'bubble'; // 'bubble'吹き出し または 'novel'小説文章
+
+        // ページロード
+        window.onload = async () => {
+            await initDatabase();
+            await loadSettings();
+            applyThemeState();
+            await loadCreatedRPGs();
+            await loadActiveSessions();
+            setupInteractiveElements();
+            toggleFormatHint();
+            addCharacterField(); // 初期状態で1人目のキャラ追加
+        };
+
+        // IndexedDB の接続
+        function initDatabase() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+                request.onupgradeneeded = (e) => {
+                    const database = e.target.result;
+                    if (!database.objectStoreNames.contains('settings')) {
+                        database.createObjectStore('settings', { keyPath: 'key' });
+                    }
+                    if (!database.objectStoreNames.contains('rpgs')) {
+                        database.createObjectStore('rpgs', { keyPath: 'id' });
+                    }
+                    if (!database.objectStoreNames.contains('sessions')) {
+                        database.createObjectStore('sessions', { keyPath: 'id' });
+                    }
+                };
+                request.onsuccess = (e) => {
+                    db = e.target.result;
+                    resolve();
+                };
+                request.onerror = (e) => {
+                    showToast("データベースの接続に失敗しました。");
+                    reject(e);
+                };
+            });
+        }
+
+        // 設定のロード
+        async function loadSettings() {
+            const tx = db.transaction('settings', 'readonly');
+            const store = tx.objectStore('settings');
+            const req = store.get('app_config');
+            return new Promise((resolve) => {
+                req.onsuccess = (e) => {
+                    const res = e.target.result;
+                    if (res && res.value) {
+                        systemSettings = { ...systemSettings, ...res.value };
+                    }
+                    // UIにバインド
+                    document.getElementById('player-profile-name').value = systemSettings.playerName;
+                    document.getElementById('gemini-api-key').value = systemSettings.apiKey;
+                    document.getElementById('gemini-model-name').value = systemSettings.modelName;
+                    document.getElementById('darkmode-toggle').checked = systemSettings.isDark;
+                    currentThemeIndex = systemSettings.currentTheme || 0;
+                    resolve();
+                };
+                req.onerror = () => resolve();
+            });
+        }
+
+        // 設定のセーブ
+        function saveSystemSettings() {
+            const pName = document.getElementById('player-profile-name').value.trim() || "伝説の勇者";
+            const aKey = document.getElementById('gemini-api-key').value.trim();
+            const mName = document.getElementById('gemini-model-name').value.trim() || "gemini-2.5-flash-lite";
+            const isDark = document.getElementById('darkmode-toggle').checked;
+
+            systemSettings.playerName = pName;
+            systemSettings.apiKey = aKey;
+            systemSettings.modelName = mName;
+            systemSettings.isDark = isDark;
+            systemSettings.currentTheme = currentThemeIndex;
+
+            const tx = db.transaction('settings', 'readwrite');
+            const store = tx.objectStore('settings');
+            store.put({ key: 'app_config', value: systemSettings });
+            tx.oncomplete = () => {
+                showToast("設定をローカルに保存しました。");
+                applyThemeState();
+            };
+        }
+
+        function fillModel(model) {
+            document.getElementById('gemini-model-name').value = model;
+        }
+
+        // テーマの適用
+        function applyThemeState() {
+            document.body.classList.toggle('dark-mode', systemSettings.isDark);
+            
+            // 全てのカスタムグラデーションテーマをクリアしてから再適用
+            document.body.classList.remove('theme-cyber', 'theme-emerald');
+            const targetClass = themeClasses[currentThemeIndex];
+            if (targetClass) {
+                document.body.classList.add(targetClass);
+            }
+        }
+
+        // ボールタップイースターエッグ
+        function setupInteractiveElements() {
+            const ball = document.getElementById('app-logo-ball');
+            const badge = document.getElementById('tap-count-badge');
+            
+            ball.addEventListener('click', () => {
+                tapCount++;
+                badge.style.display = 'block';
+                badge.textContent = `${tapCount} / 10`;
+
+                // スクイーズアニメーション
+                ball.classList.remove('squish-active');
+                void ball.offsetWidth;
+                ball.classList.add('squish-active');
+
+                if (tapCount >= 10) {
+                    tapCount = 0;
+                    badge.style.display = 'none';
+                    
+                    // テーマ切り替え
+                    currentThemeIndex = (currentThemeIndex + 1) % themeClasses.length;
+                    systemSettings.currentTheme = currentThemeIndex;
+                    
+                    // データベースを即時更新
+                    const tx = db.transaction('settings', 'readwrite');
+                    tx.objectStore('settings').put({ key: 'app_config', value: systemSettings });
+                    
+                    applyThemeState();
+                    showToast("グラデーションテーマを変更しました！");
+                }
+            });
+        }
+
+        // 表示フォーマットのヒントテキスト切替
+        function toggleFormatHint() {
+            const fmt = document.getElementById('rpg-format').value;
+            const hint = document.getElementById('format-hint');
+            if (fmt === 'choices') {
+                hint.textContent = "AIは常に次に繋がる4つの選択肢を自動設計します。直感的な進行に適しています。";
+            } else {
+                hint.textContent = "自由記述形式。プレイヤーが任意の行動をメッセージ入力し、AIと会話しながら進めます。";
+            }
+        }
+
+        // RPG作成アイコン選択処理
+        function handleRpgIconSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const base64Data = e.target.result;
+                document.getElementById('rpg-icon-preview').src = base64Data;
+                document.getElementById('rpg-icon-base64').value = base64Data;
+                showToast("RPGアイコン画像を設定しました。");
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // キャラクター入力用個別画像ファイル選択処理
+        function handleCharImageSelect(event, previewId, hiddenInputId) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const base64Data = e.target.result;
+                document.getElementById(previewId).src = base64Data;
+                document.getElementById(hiddenInputId).value = base64Data;
+                showToast("キャラクター画像を設定しました。");
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // キャラクター入力枠の動的制御
+        function addCharacterField(name = '', detail = '', imageBase64 = '') {
+            const container = document.getElementById('character-container');
+            const uniqueId = Date.now() + '_' + Math.floor(Math.random()*1000);
+            const charId = 'char_' + uniqueId;
+            const previewId = 'char_preview_' + uniqueId;
+            const fileInputId = 'char_file_' + uniqueId;
+            const hiddenInputId = 'char_base64_' + uniqueId;
+
+            const finalImage = imageBase64 || DEFAULT_ICON;
+
+            const charDiv = document.createElement('div');
+            charDiv.className = 'character-entry';
+            charDiv.id = charId;
+            charDiv.innerHTML = `
+                <button class="remove-char-btn" onclick="removeCharacterField('${charId}')">
+                    <span class="material-symbols-outlined" style="font-size:18px;">close</span>
+                </button>
+                <div class="grid">
+                    <div class="glass-input-wrapper">
+                        <label class="glass-input-label">キャラクター名</label>
+                        <input type="text" class="glass-input char-name-input" value="${name}" placeholder="例: 魔王アゼル">
+                    </div>
+                    <div class="glass-input-wrapper">
+                        <label class="glass-input-label">キャラクター立ち絵</label>
+                        <div class="file-picker-container">
+                            <img id="${previewId}" class="file-picker-preview" src="${finalImage}" alt="Preview" onerror="this.src='${DEFAULT_ICON}'">
+                            <button class="file-picker-btn" onclick="document.getElementById('${fileInputId}').click()">
+                                <span class="material-symbols-outlined">photo_library</span>ファイルを選択
+                            </button>
+                            <input type="file" id="${fileInputId}" style="display: none;" accept="image/*">
+                        </div>
+                        <input type="hidden" class="char-image-base64" id="${hiddenInputId}" value="${imageBase64}">
+                    </div>
+                </div>
+                <div class="glass-input-wrapper" style="margin-bottom:0;">
+                    <label class="glass-input-label">キャラクター説明・性格設定</label>
+                    <input type="text" class="glass-input char-detail-input" value="${detail}" placeholder="例: 冷酷かつ理性的。プレイヤーの問いに対して皮肉気味に応じる。">
+                </div>
+            `;
+            container.appendChild(charDiv);
+
+            // 動的イベントリスナ割り当て
+            document.getElementById(fileInputId).addEventListener('change', (e) => {
+                handleCharImageSelect(e, previewId, hiddenInputId);
+            });
+        }
+
+        function removeCharacterField(id) {
+            const field = document.getElementById(id);
+            if (field) {
+                field.remove();
+                showToast("キャラクター枠を削除しました");
+            }
+        }
+
+        function resetCreatorForm() {
+            document.getElementById('rpg-title').value = '';
+            document.getElementById('rpg-icon-preview').src = DEFAULT_ICON;
+            document.getElementById('rpg-icon-base64').value = '';
+            document.getElementById('rpg-synopsis').value = '';
+            document.getElementById('rpg-format').value = 'chat';
+            document.getElementById('character-container').innerHTML = '';
+            toggleFormatHint();
+            addCharacterField();
+            showToast("フォームをリセットしました");
+        }
+
+        // 作成データのIndexedDB保存
+        async function saveNewRPG() {
+            const title = document.getElementById('rpg-title').value.trim();
+            const iconBase64 = document.getElementById('rpg-icon-base64').value;
+            const synopsis = document.getElementById('rpg-synopsis').value.trim();
+            const format = document.getElementById('rpg-format').value;
+
+            if (!title || !synopsis) {
+                showToast("RPG名と世界観・あらすじは必須です。");
+                return;
+            }
+
+            // キャラクターデータを収集
+            const charElements = document.querySelectorAll('.character-entry');
+            const characters = [];
+            charElements.forEach(elem => {
+                const cName = elem.querySelector('.char-name-input').value.trim();
+                const cImage = elem.querySelector('.char-image-base64').value || DEFAULT_ICON;
+                const cDetail = elem.querySelector('.char-detail-input').value.trim();
+                if (cName) {
+                    characters.push({
+                        name: cName,
+                        image: cImage,
+                        detail: cDetail
+                    });
+                }
+            });
+
+            const newRPG = {
+                id: 'rpg_' + Date.now(),
+                title: title,
+                icon: iconBase64 || DEFAULT_ICON,
+                synopsis: synopsis,
+                format: format,
+                characters: characters,
+                createdAt: new Date().toISOString()
+            };
+
+            const tx = db.transaction('rpgs', 'readwrite');
+            tx.objectStore('rpgs').put(newRPG);
+
+            tx.oncomplete = async () => {
+                showToast("RPGの設計をアーカイブしました！");
+                resetCreatorForm();
+                await loadCreatedRPGs();
+                switchView('view-directory');
+            };
+        }
+
+        // ディレクトリデータの取得・レンダリング
+        async function loadCreatedRPGs() {
+            createdRPGList = [];
+            const tx = db.transaction('rpgs', 'readonly');
+            const store = tx.objectStore('rpgs');
+            
+            return new Promise((resolve) => {
+                store.openCursor().onsuccess = (e) => {
+                    const cursor = e.target.result;
+                    if (cursor) {
+                        createdRPGList.push(cursor.value);
+                        cursor.continue();
+                    } else {
+                        renderDirectory();
+                        resolve();
+                    }
+                };
+            });
+        }
+
+        function renderDirectory() {
+            const container = document.getElementById('directory-list');
+            container.innerHTML = '';
+
+            if (createdRPGList.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state" style="grid-column: 1/-1;">
+                        <span class="material-symbols-outlined">auto_awesome</span>
+                        <p>作成されたRPGがまだありません。<br>「RPG作成」タブから独自の世界観を設計しましょう！</p>
+                    </div>
+                `;
+                return;
+            }
+
+            createdRPGList.forEach(rpg => {
+                const card = document.createElement('div');
+                card.className = 'game-card';
+                card.innerHTML = `
+                    <div class="game-card-header">
+                        <img class="game-icon" src="${rpg.icon}" onerror="this.src='${DEFAULT_ICON}'">
+                        <div class="game-title" title="${rpg.title}">${rpg.title}</div>
+                    </div>
+                    <div class="game-desc">${rpg.synopsis}</div>
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span class="game-badge">${rpg.format === 'choices' ? '4択選択型' : 'チャット型'}</span>
+                        <div style="display:flex; gap:6px;">
+                            <button class="ai-btn ai-btn-secondary" style="padding:6px 10px; font-size:12px;" onclick="event.stopPropagation(); exportSingleRPG('${rpg.id}')" title="共有JSONエクスポート">
+                                <span class="material-symbols-outlined" style="font-size:16px;">share</span>
+                            </button>
+                            <button class="ai-btn ai-btn-danger" style="padding:6px 10px; font-size:12px;" onclick="event.stopPropagation(); confirmDeleteRPG('${rpg.id}')" title="削除">
+                                <span class="material-symbols-outlined" style="font-size:16px;">delete</span>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                card.onclick = () => showGameStartDialog(rpg);
+                container.appendChild(card);
+            });
+        }
+
+        // RPGアーカイブ一覧を最新状態にロードする外部ラッパー
+        function loadDirectoryList() {
+            loadCreatedRPGs();
+        }
+
+        // RPGの開始ダイアログ
+        function showGameStartDialog(rpg) {
+            const hasAPIKey = systemSettings.apiKey && systemSettings.apiKey.length > 5;
+            const dialog = document.getElementById('main-dialog');
+            const content = document.getElementById('dialog-content-area');
+
+            content.innerHTML = `
+                <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+                    <img src="${rpg.icon}" class="game-icon" style="width:50px; height:50px;" onerror="this.src='${DEFAULT_ICON}'">
+                    <div>
+                        <h2 style="margin:0; font-size:18px;">${rpg.title}</h2>
+                        <span class="game-badge">${rpg.format === 'choices' ? '4択型' : 'チャット型'}</span>
+                    </div>
+                </div>
+                <p><strong>あらすじ:</strong></p>
+                <div style="background:var(--bg-secondary); padding:12px; border-radius:12px; font-size:13px; max-height:150px; overflow-y:auto; margin-bottom:14px; color:var(--text-sub); white-space:pre-wrap;">${rpg.synopsis}</div>
+                
+                ${rpg.characters && rpg.characters.length > 0 ? `
+                    <p style="margin-top:10px;"><strong>主要登場キャラクター:</strong></p>
+                    <div style="display:flex; gap:8px; overflow-x:auto; padding-bottom:8px; margin-bottom:14px;">
+                        ${rpg.characters.map(c => `
+                            <div style="flex-shrink:0; width:100px; text-align:center; background:var(--bg-secondary); padding:8px; border-radius:12px;">
+                                <img src="${c.image}" style="width:40px; height:40px; border-radius:50%; object-fit:cover;" onerror="this.src='${DEFAULT_ICON}'">
+                                <div style="font-size:11px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-top:4px;">${c.name}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                ` : ''}
+
+                ${!hasAPIKey ? `
+                    <div style="background:rgba(255,59,48,0.1); border-left:4px solid #FF3B30; padding:10px; border-radius:8px; font-size:12px; color:#FF3B30; margin-bottom:16px;">
+                        <strong>警告:</strong> Gemini APIキーが設定されていません。プレイを開始する前に「設定」タブでAPIキーを設定する必要があります。
+                    </div>
+                ` : ''}
+
+                <div style="display:flex; gap:10px;">
+                    <button class="ai-btn ai-btn-secondary" style="flex:1;" onclick="closeDialog()">閉じる</button>
+                    <button class="ai-btn" style="flex:1.5;" ${!hasAPIKey ? 'disabled' : ''} onclick="startNewSession('${rpg.id}')">
+                        <span class="material-symbols-outlined">play_arrow</span>冒険へ出発！
+                    </button>
+                </div>
+            `;
+            dialog.classList.add('active');
+        }
+
+        // ゲーム削除の確認
+        function confirmDeleteRPG(id) {
+            const rpg = createdRPGList.find(x => x.id === id);
+            if (!rpg) return;
+
+            const dialog = document.getElementById('main-dialog');
+            const content = document.getElementById('dialog-content-area');
+
+            content.innerHTML = `
+                <h2 style="color:#FF3B30; display:flex; align-items:center; gap:8px;">
+                    <span class="material-symbols-outlined">warning</span>世界を破滅させますか？
+                </h2>
+                <p>RPG「<strong>${rpg.title}</strong>」を消去すると、関連するプレイデータや設計アーカイブはすべて修復不可能になります。</p>
+                <div style="display:flex; gap:10px; margin-top:20px;">
+                    <button class="ai-btn ai-btn-secondary" style="flex:1;" onclick="closeDialog()">やめる</button>
+                    <button class="ai-btn ai-btn-danger" style="flex:1;" onclick="deleteRPG('${id}')">破滅を実行する</button>
+                </div>
+            `;
+            dialog.classList.add('active');
+        }
+
+        async function deleteRPG(id) {
+            const tx = db.transaction(['rpgs', 'sessions'], 'readwrite');
+            tx.objectStore('rpgs').delete(id);
+            
+            // 関連セッションも削除
+            const sessStore = tx.objectStore('sessions');
+            sessStore.openCursor().onsuccess = (e) => {
+                const cursor = e.target.result;
+                if (cursor) {
+                    if (cursor.value.rpgId === id) {
+                        cursor.delete();
+                    }
+                    cursor.continue();
+                }
+            };
+
+            tx.oncomplete = async () => {
+                showToast("RPGとセッションデータを破滅（消去）しました。");
+                closeDialog();
+                await loadCreatedRPGs();
+                await loadActiveSessions();
+            };
+        }
+
+        // セッションのロード＆プレイ中リスト表示
+        async function loadActiveSessions() {
+            activeRPGList = [];
+            const tx = db.transaction('sessions', 'readonly');
+            const store = tx.objectStore('sessions');
+
+            return new Promise((resolve) => {
+                store.openCursor().onsuccess = (e) => {
+                    const cursor = e.target.result;
+                    if (cursor) {
+                        activeRPGList.push(cursor.value);
+                        cursor.continue();
+                    } else {
+                        renderActivePlayList();
+                        resolve();
+                    }
+                };
+            });
+        }
+
+        function renderActivePlayList() {
+            const container = document.getElementById('active-play-list');
+            container.innerHTML = '';
+
+            if (activeRPGList.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <span class="material-symbols-outlined" style="opacity:0.5;">explore</span>
+                        <p>現在進行中のセッションはありません。<br>「ゲーム一覧」からRPGを選んで冒険を開始してください！</p>
+                    </div>
+                `;
+                return;
+            }
+
+            activeRPGList.forEach(session => {
+                const card = document.createElement('div');
+                card.className = 'game-card';
+                card.innerHTML = `
+                    <div class="game-card-header">
+                        <img class="game-icon" src="${session.icon}" onerror="this.src='${DEFAULT_ICON}'">
+                        <div class="game-title" title="${session.title}">${session.title}</div>
+                    </div>
+                    <div class="game-desc">
+                        最終行動: ${session.history.length > 0 ? session.history[session.history.length - 1].text : 'ゲーム開始直後'}
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span class="game-badge" style="background:var(--accent-primary); color:white;">セーブ済み</span>
+                        <span style="font-size:11px; color:var(--text-sub); font-weight:600;">再開する →</span>
+                    </div>
+                `;
+                card.onclick = () => resumeSession(session.id);
+                container.appendChild(card);
+            });
+        }
+
+        // 新規プレイセッション起動
+        async function startNewSession(rpgId) {
+            closeDialog();
+            const rpg = createdRPGList.find(x => x.id === rpgId);
+            if (!rpg) return;
+
+            // 新規セッション構築
+            const newSession = {
+                id: 'session_' + Date.now(),
+                rpgId: rpg.id,
+                title: rpg.title,
+                icon: rpg.icon,
+                synopsis: rpg.synopsis,
+                format: rpg.format,
+                characters: rpg.characters || [],
+                history: [], // チャット・進行ヒストリ
+                choices: [], // 4択型の場合の最新選択肢
+                createdAt: new Date().toISOString()
+            };
+
+            currentPlaySession = newSession;
+
+            // セッション保存
+            const tx = db.transaction('sessions', 'readwrite');
+            tx.objectStore('sessions').put(newSession);
+            await loadActiveSessions();
+
+            // アリーナへ移行
+            switchView('view-arena');
+            initArenaPlay();
+        }
+
+        // セッション再開
+        async function resumeSession(sessionId) {
+            const tx = db.transaction('sessions', 'readonly');
+            const req = tx.objectStore('sessions').get(sessionId);
+
+            req.onsuccess = (e) => {
+                const session = e.target.result;
+                if (session) {
+                    currentPlaySession = session;
+                    switchView('view-arena');
+                    initArenaPlay();
+                } else {
+                    showToast("セッションデータが見つかりません。");
+                }
+            };
+        }
+
+        // アリーナビューの初期化
+        function initArenaPlay() {
+            if (!currentPlaySession) return;
+
+            // ヘッダー情報セット
+            document.getElementById('arena-rpg-icon').src = currentPlaySession.icon;
+            document.getElementById('arena-rpg-title').textContent = currentPlaySession.title;
+            document.getElementById('arena-rpg-mode').textContent = 
+                currentPlaySession.format === 'choices' ? '4択選択型' : 'チャット形式';
+
+            // 履歴レンダリング
+            renderArenaHistory();
+
+            // インプットパネル切り替え
+            toggleArenaControls();
+
+            // 最初のメッセージが空の場合、AIから導入メッセージを構築
+            if (currentPlaySession.history.length === 0) {
+                generateNextAIScenario("ゲームを開始し、導入シナリオと最初の状況説明を行ってください。");
+            }
+        }
+
+        // 表示モード（吹き出し/小説）切り替え
+        function toggleDisplayMode() {
+            const icon = document.getElementById('display-mode-icon');
+            if (displayMode === 'bubble') {
+                displayMode = 'novel';
+                icon.textContent = 'book';
+                showToast("小説風(従来の文章スタイル)に切り替えました。キャラアイコンは表示されません。");
+            } else {
+                displayMode = 'bubble';
+                icon.textContent = 'forum';
+                showToast("キャラ吹き出し表示モードに切り替えました。");
+            }
+            renderArenaHistory();
+        }
+
+        // アリーナ履歴レンダリング
+        function renderArenaHistory() {
+            const box = document.getElementById('dialogue-history-box');
+            box.innerHTML = '';
+
+            if (currentPlaySession.history.length === 0) {
+                box.innerHTML = `
+                    <div class="empty-state" style="padding-top:100px;">
+                        <span class="material-symbols-outlined">hourglass_empty</span>
+                        <p>ゲームを生成中です。少々お待ちください...</p>
+                    </div>
+                `;
+                return;
+            }
+
+            currentPlaySession.history.forEach(msg => {
+                if (displayMode === 'bubble') {
+                    // 吹き出し（キャラクター/プレイヤー）
+                    const row = document.createElement('div');
+                    row.className = `bubble-row ${msg.sender === 'player' ? 'self' : ''}`;
+
+                    let avatar = DEFAULT_ICON;
+                    let name = msg.speakerName || 'ナレーター';
+
+                    if (msg.sender === 'player') {
+                        avatar = DEFAULT_ICON;
+                        name = systemSettings.playerName;
+                    } else if (msg.speakerName) {
+                        // 登場キャラクターに対応する画像を探す
+                        const charData = currentPlaySession.characters.find(c => c.name === msg.speakerName);
+                        if (charData && charData.image) {
+                            avatar = charData.image;
+                        }
+                    }
+
+                    row.innerHTML = `
+                        <img class="bubble-avatar" src="${avatar}" onerror="this.src='${DEFAULT_ICON}'">
+                        <div style="flex: 1;">
+                            <div class="bubble-name">${name}</div>
+                            <div class="bubble-content">${msg.text.replace(/\n/g, '<br>')}</div>
+                        </div>
+                    `;
+                    box.appendChild(row);
+                } else {
+                    // 小説スタイル
+                    const block = document.createElement('div');
+                    block.className = `novel-block ${msg.sender === 'player' ? 'self' : ''}`;
+                    
+                    let prefix = '';
+                    if (msg.sender === 'player') {
+                        prefix = `【${systemSettings.playerName}】`;
+                    } else if (msg.speakerName) {
+                        prefix = `【${msg.speakerName}】`;
+                    } else {
+                        prefix = `【ナレーション】`;
+                    }
+
+                    block.innerHTML = `<strong>${prefix}</strong><br>${msg.text.replace(/\n/g, '<br>')}`;
+                    box.appendChild(block);
+                }
+            });
+
+            // スクロール最下部へ
+            box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
+        }
+
+        // UIコントロールパネル表示
+        function toggleArenaControls() {
+            const chatPanel = document.getElementById('arena-input-chat-panel');
+            const choicePanel = document.getElementById('arena-input-choices-panel');
+
+            if (currentPlaySession.format === 'choices') {
+                chatPanel.style.display = 'none';
+                choicePanel.style.display = 'block';
+                renderChoices();
+            } else {
+                chatPanel.style.display = 'block';
+                choicePanel.style.display = 'none';
+            }
+        }
+
+        // 4択ボタンの生成
+        function renderChoices() {
+            const grid = document.getElementById('arena-choices-grid');
+            grid.innerHTML = '';
+
+            const list = currentPlaySession.choices || [];
+            if (list.length === 0) {
+                // 初期状態など
+                for(let i=1; i<=4; i++) {
+                    const btn = document.createElement('button');
+                    btn.className = 'choice-btn';
+                    btn.textContent = `選択肢 ${i} (AI構築待機中...)`;
+                    btn.disabled = true;
+                    grid.appendChild(btn);
+                }
+                return;
+            }
+
+            list.forEach(choiceText => {
+                const btn = document.createElement('button');
+                btn.className = 'choice-btn';
+                btn.textContent = choiceText;
+                btn.onclick = () => selectChoiceAction(choiceText);
+                grid.appendChild(btn);
+            });
+        }
+
+        // プレイヤーのアクション（チャット形式）
+        async function sendPlayerAction() {
+            const input = document.getElementById('player-chat-input');
+            const text = input.value.trim();
+            if (!text) return;
+
+            input.value = '';
+
+            // 履歴に追加
+            currentPlaySession.history.push({
+                sender: 'player',
+                speakerName: systemSettings.playerName,
+                text: text,
+                time: new Date().toISOString()
+            });
+
+            renderArenaHistory();
+            saveCurrentSession();
+
+            // AI応答リクエスト
+            await generateNextAIScenario(`プレイヤーの行動: 「${text}」`);
+        }
+
+        // プレイヤーのアクション（4択形式）
+        async function selectChoiceAction(choiceText) {
+            // 履歴に追加
+            currentPlaySession.history.push({
+                sender: 'player',
+                speakerName: systemSettings.playerName,
+                text: choiceText,
+                time: new Date().toISOString()
+            });
+
+            renderArenaHistory();
+            saveCurrentSession();
+
+            // AI応答リクエスト
+            await generateNextAIScenario(`プレイヤーが次の選択肢を実行しました: 「${choiceText}」`);
+        }
+
+        // セッションデータをIndexedDBへ即セーブ
+        function saveCurrentSession() {
+            if (!currentPlaySession) return;
+            const tx = db.transaction('sessions', 'readwrite');
+            tx.objectStore('sessions').put(currentPlaySession);
+        }
+
+        // 終了してホームへ
+        function quitSession() {
+            saveCurrentSession();
+            currentPlaySession = null;
+            switchView('view-home');
+            loadActiveSessions();
+            showToast("ゲームは自動セーブされ、中断されました。");
+        }
+
+        // ==========================================
+        //  GEMINI API シームレス統合
+        // ==========================================
+        async function generateNextAIScenario(promptMessage) {
+            const loader = document.getElementById('arena-loading');
+            loader.style.display = 'flex';
+
+            // UIを最下部へスクロール
+            const box = document.getElementById('dialogue-history-box');
+            box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
+
+            const apiKey = systemSettings.apiKey;
+            const model = systemSettings.modelName || "gemini-2.5-flash-lite";
+
+            if (!apiKey) {
+                loader.style.display = 'none';
+                showToast("エラー: Gemini APIキーが設定されていません。");
+                return;
+            }
+
+            // システムプロンプト設計
+            const characterContext = currentPlaySession.characters.map(c => `- ${c.name}: ${c.detail}`).join('\n');
+            const systemPrompt = `
+あなたは究極のTRPGゲームマスターAIです。プレイヤーに最高のエンターテインメントを提供してください。
+
+【ゲーム世界観】
+${currentPlaySession.synopsis}
+
+【登場可能キャラクター（セリフを喋らせる場合、この名前を「喋っているキャラクター」に設定してください）】
+${characterContext}
+
+【進行ルール】
+1. 現在進行中のストーリーコンテキスト、プレイヤーのアクションに基づいて次のシナリオストーリーを展開してください。
+2. ナレーション（地の文）だけでなく、登場キャラクターを活発に登場させて対話させてください。
+3. 今回誰かが話している場合は、必ずその「喋っているキャラクター名」を単独で宣言できるようにレスポンスを構成してください。
+4. RPG進行形式は「${currentPlaySession.format === 'choices' ? '4択選択型' : 'チャット自由型'}」です。
+${currentPlaySession.format === 'choices' ? '5. レスポンスの最後に、プレイヤーが次にとることができる行動の選択肢を必ず厳密に4つ作ってください。' : ''}
+
+【返却構造の厳格な指示】
+必ず以下のJSONフォーマットのみを返却してください。マークダウンブロック（\`\`\`json）などに包まず、生パース可能なJSONテキストとして返却してください。
+
+JSON構造:
+{
+  "narration": "状況説明やストーリー進行、地の文を記載してください。没入感の高い描写を心がけてください。",
+  "speakerName": "今回メインでセリフを発言する登場キャラクターの名前（上記キャラ設定にある名前。ナレーションのみなら空文字か「ナレーター」）。",
+  "dialogue": "その登場キャラクターの具体的なセリフ内容（なければ空文字）。",
+  "choices": ["選択肢1の内容", "選択肢2の内容", "選択肢3の内容", "選択肢4の内容"] // 4択型なら必須、チャット型なら空配列
+}
+            `;
+
+            // 会話履歴コンテキスト
+            const lastMessages = currentPlaySession.history.slice(-10).map(m => {
+                return `${m.sender === 'player' ? 'プレイヤー' : m.speakerName}: ${m.text}`;
+            }).join('\n');
+
+            const queryText = `
+【直前のやり取り】
+${lastMessages}
+
+【最新のプレイヤーアクション・イベント指示】
+${promptMessage}
+
+状況を判断し、上記のJSONフォーマット指示に完全準拠して、次の展開をJSONオブジェクトとして作成してください。
+`;
+
+            // 指数バックオフ付きAPIフェッチ実行
+            const resultText = await callGeminiAPIWithRetry(apiKey, model, systemPrompt, queryText);
+
+            loader.style.display = 'none';
+
+            if (!resultText) {
+                showToast("AIの応答取得に失敗しました。接続状況を確認してください。");
+                return;
+            }
+
+            try {
+                // 時にAIがマークダウンの```json ... ```で囲んでしまう場合を考慮した前処理
+                let cleanJson = resultText.trim();
+                if (cleanJson.startsWith("```json")) {
+                    cleanJson = cleanJson.substring(7);
+                }
+                if (cleanJson.startsWith("```")) {
+                    cleanJson = cleanJson.substring(3);
+                }
+                if (cleanJson.endsWith("```")) {
+                    cleanJson = cleanJson.substring(0, cleanJson.length - 3);
+                }
+                cleanJson = cleanJson.trim();
+
+                const parsed = JSON.parse(cleanJson);
+
+                // 1. 地の文/ストーリー展開をナレーションとして記録
+                if (parsed.narration) {
+                    currentPlaySession.history.push({
+                        sender: 'ai',
+                        speakerName: 'ナレーター',
+                        text: parsed.narration,
+                        time: new Date().toISOString()
+                    });
+                }
+
+                // 2. キャラクターの発言がある場合
+                if (parsed.dialogue) {
+                    currentPlaySession.history.push({
+                        sender: 'ai',
+                        speakerName: parsed.speakerName || '？？？',
+                        text: parsed.dialogue,
+                        time: new Date().toISOString()
+                    });
+                }
+
+                // 3. 4択選択肢の設定
+                if (currentPlaySession.format === 'choices' && parsed.choices && parsed.choices.length >= 4) {
+                    currentPlaySession.choices = parsed.choices.slice(0, 4);
+                }
+
+                renderArenaHistory();
+                toggleArenaControls();
+                saveCurrentSession();
+
+            } catch (err) {
+                console.error("JSONパースエラー:", err, resultText);
+                // パースエラー時のフォールバック。テキストそのままナレーター扱い
+                currentPlaySession.history.push({
+                    sender: 'ai',
+                    speakerName: 'ナレーター',
+                    text: resultText,
+                    time: new Date().toISOString()
+                });
+                
+                if (currentPlaySession.format === 'choices') {
+                    // 最低限のフォールバック選択肢
+                    currentPlaySession.choices = [
+                        "周りを探索する",
+                        "慎重に前に進む",
+                        "ステータスを確認する",
+                        "立ち止まって考える"
+                    ];
+                }
+
+                renderArenaHistory();
+                toggleArenaControls();
+                saveCurrentSession();
+            }
+        }
+
+        // 指数バックオフ付きAPI呼び出しコア
+        async function callGeminiAPIWithRetry(apiKey, model, systemInstruction, prompt, retries = 5, delay = 1000) {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+            const payload = {
+                contents: [{ parts: [{ text: prompt }] }],
+                systemInstruction: { parts: [{ text: systemInstruction }] },
+                generationConfig: {
+                    responseMimeType: "application/json"
+                }
+            };
+
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        return data.candidates?.[0]?.content?.parts?.[0]?.text || null;
+                    }
+
+                    // APIキーや特定の400エラー等の場合、即時中断
+                    if (response.status === 400 || response.status === 403) {
+                        const errorData = await response.json();
+                        console.error("Gemini API致命的エラー:", errorData);
+                        return null;
+                    }
+
+                } catch (e) {
+                    console.error(`リトライ実行中 (${i+1}/${retries}):`, e);
+                }
+
+                // 待ち時間の指数増加
+                await new Promise(resolve => setTimeout(resolve, delay));
+                delay *= 2;
+            }
+            return null;
+        }
+
+        // ==========================================
+        //  データ共有・エクスポート・インポート
+        // ==========================================
+
+        // 個別RPG JSONエクスポート
+        function exportSingleRPG(id) {
+            const rpg = createdRPGList.find(x => x.id === id);
+            if (!rpg) return;
+
+            const jsonStr = JSON.stringify(rpg, null, 2);
+            const blob = new Blob([jsonStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${rpg.title}_rpg.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast("RPG設定ファイルを個別エクスポートしました！お友達に共有できます。");
+        }
+
+        // 個別RPGインポートトリガー
+        function triggerImportJson() {
+            document.getElementById('import-json-file').click();
+        }
+
+        // 個別RPGファイルインポート
+        function importRPGFromJson(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const rpg = JSON.parse(e.target.result);
+                    if (!rpg.title || !rpg.synopsis) {
+                        showToast("インポートに失敗しました。正しいRPGjson構造ではありません。");
+                        return;
+                    }
+
+                    // 新しいユニークID付与
+                    rpg.id = 'rpg_' + Date.now();
+                    rpg.createdAt = new Date().toISOString();
+
+                    const tx = db.transaction('rpgs', 'readwrite');
+                    tx.objectStore('rpgs').put(rpg);
+                    tx.oncomplete = async () => {
+                        showToast(`RPG「${rpg.title}」を正常にインポートしました！`);
+                        await loadCreatedRPGs();
+                    };
+                } catch (err) {
+                    showToast("JSONファイルの解析に失敗しました。");
+                }
+            };
+            reader.readAsText(file);
+            // 連続選択対応
+            event.target.value = '';
+        }
+
+        // システム全バックアップエクスポート
+        async function exportFullSystemData() {
+            try {
+                const fullData = {
+                    rpgs: [],
+                    sessions: [],
+                    settings: systemSettings
+                };
+
+                const tx = db.transaction(['rpgs', 'sessions'], 'readonly');
+                
+                // RPG全フェッチ
+                const rpgsPromise = new Promise((resolve) => {
+                    const list = [];
+                    tx.objectStore('rpgs').openCursor().onsuccess = (e) => {
+                        const cursor = e.target.result;
+                        if (cursor) {
+                            list.push(cursor.value);
+                            cursor.continue();
+                        } else resolve(list);
+                    };
+                });
+
+                // セッション全フェッチ
+                const sessionsPromise = new Promise((resolve) => {
+                    const list = [];
+                    tx.objectStore('sessions').openCursor().onsuccess = (e) => {
+                        const cursor = e.target.result;
+                        if (cursor) {
+                            list.push(cursor.value);
+                            cursor.continue();
+                        } else resolve(list);
+                    };
+                });
+
+                fullData.rpgs = await rpgsPromise;
+                fullData.sessions = await sessionsPromise;
+
+                const jsonStr = JSON.stringify(fullData, null, 2);
+                const blob = new Blob([jsonStr], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `AIRPGCreator_FullBackup_${Date.now()}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                showToast("全データを格納した完全バックアップファイルを生成しました。");
+            } catch (err) {
+                showToast("エクスポート中にエラーが発生しました。");
+            }
+        }
+
+        // システム全バックアップインポートトリガー
+        function triggerFullImport() {
+            document.getElementById('full-import-file').click();
+        }
+
+        // システム全バックアップインポート実行
+        function importFullSystemData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (!data.rpgs || !data.sessions) {
+                        showToast("正しいフルバックアップファイルではありません。");
+                        return;
+                    }
+
+                    const tx = db.transaction(['rpgs', 'sessions', 'settings'], 'readwrite');
+                    
+                    // 設定上書き
+                    if (data.settings) {
+                        systemSettings = { ...systemSettings, ...data.settings };
+                        tx.objectStore('settings').put({ key: 'app_config', value: systemSettings });
+                    }
+
+                    // RPG復元
+                    const rpgStore = tx.objectStore('rpgs');
+                    data.rpgs.forEach(r => rpgStore.put(r));
+
+                    // セッション復元
+                    const sessStore = tx.objectStore('sessions');
+                    data.sessions.forEach(s => sessStore.put(s));
+
+                    tx.oncomplete = async () => {
+                        showToast("完全システム復元が完了しました。");
+                        await loadSettings();
+                        applyThemeState();
+                        await loadCreatedRPGs();
+                        await loadActiveSessions();
+                    };
+
+                } catch (err) {
+                    showToast("インポート処理中に解析エラーが発生しました。");
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        // ==========================================
+        //  UI ユーティリティ & ダイアログ制御
+        // ==========================================
+        function closeDialog() {
+            document.getElementById('main-dialog').classList.remove('active');
+        }
+
+        function showToast(msg) {
+            toast.textContent = msg;
+            toast.classList.add('active');
+            setTimeout(() => {
+                toast.classList.remove('active');
+            }, 3000);
+        }
+
+        // ナビゲーション切り替え
+        const navItems = document.querySelectorAll('.nav-item');
+        const views = document.querySelectorAll('.view');
+
+        function switchView(viewId) {
+            navItems.forEach(n => {
+                n.classList.remove('active');
+                if (n.getAttribute('data-view') === viewId) {
+                    n.classList.add('active');
+                }
+            });
+
+            views.forEach(v => {
+                v.classList.remove('active');
+                if (v.id === viewId) {
+                    v.classList.add('active');
+                    viewport.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+            });
+        }
+
+        navItems.forEach(item => {
+            item.addEventListener('click', () => {
+                const viewId = item.getAttribute('data-view');
+                if (viewId === 'view-arena' && !currentPlaySession) {
+                    showToast("現在進行中のゲームセッションがありません。ゲーム一覧から再開してください。");
+                    return;
+                }
+                switchView(viewId);
+            });
+        });
+
+        // テーマ切り替え
+        function setTheme(isDark) {
+            systemSettings.isDark = isDark;
+            applyThemeState();
+            
+            // データベースも同期
+            const tx = db.transaction('settings', 'readwrite');
+            tx.objectStore('settings').put({ key: 'app_config', value: systemSettings });
+        }
+
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+        themeBtn.addEventListener('click', () => {
+            setTheme(!document.body.classList.contains('dark-mode'));
+        });
+
+        document.getElementById('darkmode-toggle').addEventListener('change', (e) => {
+            setTheme(e.target.checked);
+        });
+
+        // 汎用インタラクション
+        document.addEventListener('mousedown', (e) => {
+            const target = e.target.closest('.glass-card, .ai-btn, .nav-item, .game-card, .model-chip, .choice-btn');
+            if (target) {
+                target.classList.remove('squish-active');
+                void target.offsetWidth;
+                target.classList.add('squish-active');
+                
+                setTimeout(() => {
+                    target.classList.remove('squish-active');
+                }, 400);
+            }
+        });
+    </script>
+</body>
+</html>
