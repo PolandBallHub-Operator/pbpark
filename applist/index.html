@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+    <title>PolandballHub Apps</title>
+
+    <!-- Google Fonts & Material Symbols -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+
+    <style>
+        :root {
+            --accent-primary: #3381FF;
+            --accent-active: #1A5FCC;
+            
+            /* Light Mode Tokens */
+            --bg-base: #F7F7F7;
+            --glass-bg: #FFFFFF;
+            --text-main: #000000;
+            --text-sub: #555555;
+            --bg-secondary: #EEEEEE;
+            
+            --m3-easing: cubic-bezier(0.32, 0.72, 0, 1);
+            --transition-smooth: 0.4s var(--m3-easing);
+            --card-padding: 20px;
+        }
+
+        .dark-mode {
+            /* Dark Mode Tokens */
+            --bg-base: #000000;
+            --glass-bg: #1C1C1E;
+            --text-main: #FFFFFF;
+            --text-sub: #A1A1A6;
+            --bg-secondary: #2C2C2E;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', 'Noto Sans JP', sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            transition: background-color var(--transition-smooth), color var(--transition-smooth);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            touch-action: none;
+        }
+
+        /* --- Scroll Container --- */
+        #app-viewport {
+            height: 100vh;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            scroll-behavior: smooth;
+        }
+
+        /* --- Header (Centered Title, No Border/Shadow) --- */
+        header {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+            height: 72px; padding: 0 24px;
+            display: flex; align-items: center; justify-content: space-between;
+            background: var(--glass-bg);
+            transition: background-color var(--transition-smooth);
+        }
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .pb-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            object-fit: contain;
+            background: transparent;
+        }
+        .logo {
+            font-weight: 700; font-size: 18px; letter-spacing: -0.5px;
+            color: var(--text-main);
+            text-align: center;
+        }
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .theme-toggle {
+            width: 44px; height: 44px; border-radius: 22px;
+            border: none; background: var(--bg-secondary);
+            color: var(--text-main); cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: background var(--transition-smooth);
+        }
+
+        /* --- Main Layout --- */
+        main {
+            padding: 96px 20px 140px;
+            max-width: 800px; margin: 0 auto;
+            min-height: 100%;
+            transition: opacity 0.3s ease, transform 0.3s var(--m3-easing);
+            box-sizing: border-box;
+        }
+
+        /* --- Flat Solid Card (No Shadow, No Border) --- */
+        .glass-card {
+            background: var(--glass-bg);
+            border-radius: 24px;
+            padding: var(--card-padding);
+            margin-bottom: 16px;
+            box-shadow: none !important;
+            border: none !important;
+            transform-style: flat;
+            transition: background-color var(--transition-smooth);
+        }
+
+        h2 { 
+            font-size: 18px; 
+            margin-top: 0; 
+            margin-bottom: 8px;
+            font-weight: 700; 
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        p {
+            font-size: 14px;
+            line-height: 1.45;
+            margin-top: 0;
+            margin-bottom: 12px;
+            color: var(--text-sub);
+        }
+
+        /* --- Interaction: Jelly/Squishy Effect --- */
+        @keyframes squishy {
+            0% { transform: scale(1, 1); }
+            30% { transform: scale(1.08, 0.92); }
+            50% { transform: scale(0.95, 1.05); }
+            70% { transform: scale(1.02, 0.98); }
+            100% { transform: scale(1, 1); }
+        }
+        .squish-active {
+            animation: squishy 0.4s var(--m3-easing);
+        }
+
+        /* --- Primary Buttons --- */
+        .ai-btn {
+            border: none; outline: none;
+            padding: 12px 20px; border-radius: 14px;
+            font-weight: 600; font-size: 14px;
+            color: white; cursor: pointer;
+            background: var(--accent-primary);
+            transition: transform 0.2s, background-color 0.2s;
+            display: inline-flex; align-items: center; gap: 8px;
+            box-shadow: none;
+            text-decoration: none;
+        }
+        .ai-btn:hover { transform: scale(1.02); }
+        .ai-btn:active {
+            background: var(--accent-active);
+            transform: scale(0.95);
+        }
+        .ai-btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-main);
+        }
+
+        /* --- Inputs --- */
+        .glass-input-wrapper { margin-bottom: 14px; position: relative; }
+        .glass-input {
+            width: 100%; padding: 14px 18px;
+            border-radius: 14px; border: none;
+            background: var(--bg-secondary);
+            color: var(--text-main); font-size: 15px;
+            box-sizing: border-box; transition: background 0.3s var(--m3-easing);
+        }
+        .glass-input:focus {
+            outline: 2px solid var(--accent-primary);
+        }
+
+        /* --- Toggles --- */
+        .toggle-row {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 12px 0;
+        }
+        .switch {
+            position: relative; display: inline-block; width: 50px; height: 28px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--bg-secondary);
+            transition: .3s var(--m3-easing);
+            border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute; content: "";
+            height: 20px; width: 20px; left: 4px; bottom: 4px;
+            background: white; transition: .3s var(--m3-easing);
+            border-radius: 50%;
+        }
+        input:checked + .slider { background: var(--accent-primary); }
+        input:checked + .slider:before { transform: translateX(22px); }
+
+        /* --- Navigation --- */
+        .nav-container {
+            position: fixed; bottom: 32px; left: 50%;
+            transform: translateX(-50%); z-index: 500;
+        }
+        .nav-rail {
+            display: flex; align-items: center; gap: 8px;
+            background: var(--glass-bg);
+            padding: 6px; border-radius: 32px;
+            box-shadow: none;
+        }
+        .nav-item {
+            width: 52px; height: 52px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; border-radius: 26px; color: var(--text-sub);
+            transition: all 0.3s var(--m3-easing);
+            position: relative;
+        }
+        .nav-item.active {
+            background: var(--accent-primary); color: white;
+            transform: scale(1.05);
+        }
+
+        /* --- View Management --- */
+        .view { display: none; }
+        .view.active { display: block; animation: viewIn 0.4s var(--m3-easing); }
+        @keyframes viewIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* --- Custom App Specific UI Components --- */
+        /* ※白いカード(glass-card)の中にさらに灰色のカードを入れることは禁止のため、独立してフラットに並ぶ仕様に */
+        .app-category-section {
+            margin-top: 24px;
+            margin-bottom: 24px;
+        }
+        
+        .category-title {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-main);
+            opacity: 0.9;
+        }
+
+        .apps-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+        
+        @media (min-width: 600px) {
+            .apps-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        /* アプリ用カード自体を「白いカード(glass-card)」と同じフラットカードで生成 */
+        .app-item-card {
+            background: var(--glass-bg);
+            border-radius: 20px;
+            padding: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            position: relative;
+            transition: background-color var(--transition-smooth), transform 0.2s;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .app-item-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .app-info-block {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            flex: 1;
+            padding-right: 12px;
+        }
+
+        .app-name {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .app-desc {
+            font-size: 12px;
+            color: var(--text-sub);
+            line-height: 1.4;
+        }
+
+        .app-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .favorite-btn {
+            background: none;
+            border: none;
+            color: var(--text-sub);
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.2s, background-color 0.2s;
+        }
+
+        .favorite-btn:hover {
+            background-color: var(--bg-secondary);
+        }
+
+        .favorite-btn.active {
+            color: #E11D48;
+        }
+
+        .launch-icon-btn {
+            color: var(--accent-primary);
+            padding: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* --- Dialog Overlay --- */
+        .dialog-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000; display: flex; align-items: center; justify-content: center;
+            opacity: 0; visibility: hidden; transition: all 0.3s var(--m3-easing);
+        }
+        .dialog-overlay.active { opacity: 1; visibility: visible; }
+        .glass-dialog {
+            background: var(--glass-bg);
+            border-radius: 28px;
+            padding: 24px; max-width: 380px; width: 90%; text-align: center;
+            transform: scale(0.9) translateY(20px); transition: all 0.4s var(--m3-easing);
+        }
+        .dialog-overlay.active .glass-dialog { transform: scale(1) translateY(0); }
+
+        /* --- Toast Alert --- */
+        .toast {
+            position: fixed;
+            bottom: 110px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--text-main);
+            color: var(--glass-bg);
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s var(--m3-easing);
+            z-index: 2000;
+            text-align: center;
+            white-space: nowrap;
+        }
+        .toast.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* --- Color Previews --- */
+        .color-dot {
+            width: 28px;
+            height: 28px;
+            border-radius: 14px;
+            display: inline-block;
+            cursor: pointer;
+            margin-right: 8px;
+            transition: transform 0.2s;
+        }
+        .color-dot:active {
+            transform: scale(0.85);
+        }
+
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        @media (max-width: 650px) { .grid { grid-template-columns: 1fr; } }
+
+        /* Loading Spinner */
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--bg-secondary);
+            border-top: 4px solid var(--accent-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-sub);
+        }
+        .empty-state span {
+            font-size: 48px;
+            opacity: 0.5;
+            margin-bottom: 12px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo-area">
+            <img class="pb-avatar" src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/pbhuB2/de2.png" alt="Polandball Logo">
+            <div class="logo">PolandballHub Apps</div>
+        </div>
+        <div class="header-actions">
+            <button class="theme-toggle" id="theme-btn">
+                <span class="material-symbols-outlined">light_mode</span>
+            </button>
+        </div>
+    </header>
+
+    <div id="app-viewport">
+        <main id="main-content">
+            
+            <!-- View 1: ホーム & アプリ一覧 -->
+            <section id="view-home" class="view active">
+                <div class="glass-card">
+                    <h2>Willkommen bei Polandballhub2!</h2>
+                    <p>
+                        PolandballHubが提供する各種Webツール＆ミニゲー厶集です!
+                    </p>
+                    <div style="margin-top: 14px;">
+                        <button class="ai-btn" onclick="openInfoDialog()">
+                            <span class="material-symbols-outlined">info</span>
+                            PolandballHubとは？
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 検索・フィルターエリア（カードを多重にしないよう、これも1枚のカードとして独立） -->
+                <div class="glass-card" style="padding-bottom: 12px;">
+                    <h2>アプリをさがす</h2>
+                    <div class="glass-input-wrapper" style="margin-bottom: 0;">
+                        <input type="text" class="glass-input" id="search-input" placeholder="キーワード、アプリ名を入力して検索..." oninput="filterApps()">
+                    </div>
+                </div>
+
+                <!-- 読み込み中表示 -->
+                <div id="loading-area" class="glass-card" style="display: none;">
+                    <div class="spinner"></div>
+                    <p style="text-align: center; margin-bottom: 0;">最新のアプリリストを取得しています...</p>
+                </div>
+
+                <!-- アプリリスト動的描画エリア -->
+                <div id="apps-list-container"></div>
+            </section>
+
+            <!-- View 2: お気に入り専用ビュー -->
+            <section id="view-favorites" class="view">
+                <div class="glass-card">
+                    <h2>お気に入り登録したアプリ</h2>
+                    <p>いつでもすぐに起動できるようにハートをつけたお気に入りのコレクションです。起動時にダイレクトアクセスが可能です。</p>
+                </div>
+
+                <div id="favorites-list-container"></div>
+            </section>
+
+            <!-- View 3: 設定セクション -->
+            <section id="view-settings" class="view">
+                <div class="glass-card">
+                    <h2>ランチャー環境設定</h2>
+                    <p>お好みに合わせてデザインと動作設定をパーソナライズできます。</p>
+                    
+                    <div class="toggle-row">
+                        <span>セマンティックダークモード</span>
+                        <label class="switch">
+                            <input type="checkbox" id="darkmode-toggle">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="toggle-row">
+                        <span>起動時にお気に入りを開く</span>
+                        <label class="switch">
+                            <input type="checkbox" id="fav-on-start-toggle">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="toggle-row">
+                        <span>アプリ読み込み時に自動保存</span>
+                        <label class="switch">
+                            <input type="checkbox" checked disabled>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="glass-card">
+                    <h2>テーマアクセントカラー</h2>
+                    <p>アプリのアイコンやボタン、チェックボックス等のアクセントカラーを瞬時に調整します。</p>
+                    <div style="display: flex; align-items: center; margin-top: 8px;">
+                        <span class="color-dot" style="background: #3381FF;" onclick="changeAccent('#3381FF')"></span>
+                        <span class="color-dot" style="background: #E11D48;" onclick="changeAccent('#E11D48')"></span>
+                        <span class="color-dot" style="background: #10B981;" onclick="changeAccent('#10B981')"></span>
+                        <span class="color-dot" style="background: #F59E0B;" onclick="changeAccent('#F59E0B')"></span>
+                        <span class="color-dot" style="background: #8B5CF6;" onclick="changeAccent('#8B5CF6')"></span>
+                    </div>
+                </div>
+
+                <div class="glass-card">
+                    <h2>システム情報</h2>
+                    <p style="font-size: 13px; margin-bottom: 4px;"><strong>ランチャーバージョン:</strong> v4.1.2-HubLive</p>
+                    <p style="font-size: 13px; margin-bottom: 4px;"><strong>ポーランドボールアバター:</strong> de2.png</p>
+                    <p style="font-size: 13px; margin-bottom: 0;"><strong>データ同期:</strong> 起動時にGitHub Repositoryからキャッシュなしで強制リフレッシュします。</p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Navigation Bar -->
+    <div class="nav-container">
+        <nav class="nav-rail">
+            <div class="nav-item active" data-view="view-home" onclick="switchView('view-home')">
+                <span class="material-symbols-outlined">home</span>
+            </div>
+            <div class="nav-item" data-view="view-favorites" onclick="switchView('view-favorites')">
+                <span class="material-symbols-outlined">favorite</span>
+            </div>
+            <div class="nav-item" data-view="view-settings" onclick="switchView('view-settings')">
+                <span class="material-symbols-outlined">settings</span>
+            </div>
+        </nav>
+    </div>
+
+    <!-- Info Dialog -->
+    <div class="dialog-overlay" id="info-dialog">
+        <div class="glass-dialog">
+            <span class="material-symbols-outlined" style="font-size: 48px; color: var(--accent-primary);">help</span>
+            <h2 style="margin-top: 12px; justify-content: center;">PolandballHub とは？</h2>
+            <p style="margin-bottom: 20px; text-align: left; font-size: 13px; line-height: 1.6;">
+                世界史や地理が元になったボールキャラクターたちのアプリやゲームが集まってます！
+            </p>
+            <button class="ai-btn" style="width: 100%; justify-content: center;" onclick="closeInfoDialog()">閉じる</button>
+        </div>
+    </div>
+
+    <!-- Toast Notification Message Box -->
+    <div class="toast" id="toast-message">メッセージ</div>
+
+    <script>
+        /**
+         * PolandballHub Apps Launcher Core Logic
+         */
+
+        const viewport = document.getElementById('app-viewport');
+        const themeBtn = document.getElementById('theme-btn');
+        const themeIcon = themeBtn.querySelector('span');
+        const toast = document.getElementById('toast-message');
+
+        const APPLIST_URL = "https://raw.githubusercontent.com/PolandBallHub-Operator/pbhub/refs/heads/main/applist/applist.json";
+        
+        let appCategories = []; // APIから取得したカテゴリ一覧
+        let favorites = []; // お気に入りアプリのURLリスト
+        let currentAccent = '#3381FF';
+
+        // --- お気に入りの読み込み・保存 ---
+        function loadFavoritesFromStorage() {
+            try {
+                const saved = localStorage.getItem('pb_hub_favorites');
+                if (saved) {
+                    favorites = JSON.parse(saved);
+                }
+            } catch (e) {
+                console.error("Local storage access failed, starting fresh", e);
+                favorites = [];
+            }
+        }
+
+        function saveFavoritesToStorage() {
+            try {
+                localStorage.setItem('pb_hub_favorites', JSON.stringify(favorites));
+            } catch (e) {
+                console.error("Failed to save favorites", e);
+            }
+        }
+
+        function toggleFavorite(appUrl, appName, event) {
+            if (event) {
+                event.stopPropagation();
+                event.preventDefault();
+            }
+
+            const index = favorites.indexOf(appUrl);
+            if (index > -1) {
+                favorites.splice(index, 1);
+                showToast(`「${appName}」をお気に入りから外しました`);
+            } else {
+                favorites.push(appUrl);
+                showToast(`「${appName}」をお気に入りに追加しました！`);
+            }
+            saveFavoritesToStorage();
+            
+            // 再レンダリング
+            renderApps();
+            renderFavorites();
+        }
+
+        // --- 柔軟なJS/JSONパーサー（変数宣言等に包まれている場合も自己解決します） ---
+        function parseFlexibleJson(text) {
+            let cleanText = text.trim();
+            
+            // 1. 通常のJSONとして解析を試みる
+            try {
+                return JSON.parse(cleanText);
+            } catch (e) {
+                console.warn("Standard JSON parse failed, attempting JavaScript syntax extraction...", e);
+            }
+            
+            // 2. JavaScriptの代入文（const toolDatabase = [...] 等）からデータを安全に抽出
+            const startIndex = cleanText.search(/[\[\{]/);
+            if (startIndex !== -1) {
+                const lastIndex = Math.max(cleanText.lastIndexOf(']'), cleanText.lastIndexOf('}'));
+                if (lastIndex !== -1 && lastIndex > startIndex) {
+                    const extracted = cleanText.substring(startIndex, lastIndex + 1);
+                    
+                    // 抽出したオブジェクトをまずJSONとしてパース
+                    try {
+                        return JSON.parse(extracted);
+                    } catch (innerError) {
+                        console.warn("Extracted standard JSON parse failed, executing safe evaluation...", innerError);
+                        
+                        // JSON規格に完全準拠していない（末尾カンマ、キーのクオート漏れ、コメント等）場合、式として評価
+                        try {
+                            const evaluator = new Function(`return ${extracted};`);
+                            return evaluator();
+                        } catch (fnError) {
+                            throw new Error("Failed to evaluate loose JS object: " + fnError.message);
+                        }
+                    }
+                }
+            }
+            throw new Error("No parseable JSON array or object structure detected in raw response.");
+        }
+
+        // --- APIからアプリリストのフェッチ ---
+        async function fetchAppList() {
+            const loadingArea = document.getElementById('loading-area');
+            loadingArea.style.display = 'block';
+            document.getElementById('apps-list-container').innerHTML = '';
+
+            const cacheBuster = `?t=${Date.now()}`;
+            const primaryUrl = `${APPLIST_URL}${cacheBuster}`;
+            const fallbackUrl = `https://cdn.jsdelivr.net/gh/PolandBallHub-Operator/pbhub@main/applist/applist.json${cacheBuster}`;
+
+            let responseText = null;
+            try {
+                // 1次試行: GitHub Raw
+                const response = await fetch(primaryUrl);
+                if (!response.ok) throw new Error("GitHub Raw fetch failed");
+                responseText = await response.text();
+            } catch (error) {
+                console.warn("Primary GitHub fetch failed. Trying fallback CDN (jsDelivr)...", error);
+                try {
+                    // 2次試行: サンドボックス制限を回避しやすい高速CDNから取得
+                    const response = await fetch(fallbackUrl);
+                    if (!response.ok) throw new Error("Fallback CDN fetch failed");
+                    responseText = await response.text();
+                } catch (fallbackError) {
+                    console.error("All network requests failed:", fallbackError);
+                    responseText = null;
+                }
+            }
+
+            try {
+                if (!responseText) throw new Error("Offline or Connection Blocked");
+                
+                // 柔軟な解析パーサーを使って展開
+                appCategories = parseFlexibleJson(responseText);
+                
+                renderApps();
+                renderFavorites();
+            } catch (error) {
+                console.error("Failed to parse app list JSON, loading fallback simulation data", error);
+                // 通信環境がオフラインまたは完全にブロックされた場合のローカル予備データベース
+                appCategories = [
+                    {
+                        "category": "主要ツール",
+                        "icon": "star",
+                        "apps": [
+                            { 
+                                "appname": "PBDrop-ファイル共有", 
+                                "appinfo": "とても簡単にファイルをおくれるんよ！", 
+                                "appurl": "https://polandballhub-operator.github.io/pbhub/tools/pbdrop/" 
+                            },
+                            {
+                                "appname": "PolanAI-pb同学", 
+                                "appinfo": "PolanAIの最新版！AIチャットアプリ！", 
+                                "appurl": "https://polandballhub-operator.github.io/pbhub/AI/pbai" 
+                            },
+                            { 
+                                "appname": "PB Draw", 
+                                "appinfo": "絵を描くならコレ!", 
+                                "appurl": "https://polandballhub-operator.github.io/pbhub/tools/drawer" 
+                            },
+                            { 
+                                "appname": "アーケード海戦", 
+                                "appinfo": "フレンドと遊べる", 
+                                "appurl": "https://polandballhub-operator.github.io/ArcadeMyPlaneShooting/" 
+                            },
+                            { 
+                                "appname": "PB-PDF", 
+                                "appinfo": "ポーランたちのPDFビューワー", 
+                                "appurl": "https://polandballhub-operator.github.io/pbhub/tools/pbpdf" 
+                            }
+                        ]
+                    },
+                    {
+                        "category": "ゲーム",
+                        "icon": "sports_esports",
+                        "apps": [
+                            {
+                                "appname": "ポーランド大冒険",
+                                "appinfo": "宇宙を目指して跳び上がれ！",
+                                "appurl": "https://polandballhub-operator.github.io/pbhub/games/adventure"
+                            }
+                        ]
+                    }
+                ];
+                renderApps();
+                renderFavorites();
+                showToast("最新リスト取得失敗のため予備データを使用します");
+            } finally {
+                loadingArea.style.display = 'none';
+            }
+        }
+
+        // --- アプリのダイレクト起動 (同一タブ内展開) ---
+        function launchApp(url) {
+            // 同一タブ内で確実に開く
+            window.location.href = url;
+        }
+
+        // --- アプリ一覧描画 ---
+        function renderApps(searchQuery = '') {
+            const container = document.getElementById('apps-list-container');
+            container.innerHTML = '';
+            
+            const query = searchQuery.toLowerCase().trim();
+            let hasResults = false;
+
+            appCategories.forEach(cat => {
+                // 検索クエリに合致するアプリを抽出
+                const filteredApps = cat.apps.filter(app => 
+                    app.appname.toLowerCase().includes(query) || 
+                    app.appinfo.toLowerCase().includes(query)
+                );
+
+                if (filteredApps.length > 0) {
+                    hasResults = true;
+                    
+                    // カテゴリコンテナ要素の作成
+                    const section = document.createElement('div');
+                    section.className = 'app-category-section';
+
+                    // 灰色の背景は中に作らず、独立したフラットカード等に割り当て
+                    const titleEl = document.createElement('div');
+                    titleEl.className = 'category-title';
+                    
+                    // アイコンマッピング
+                    let iconName = cat.icon || 'folder';
+                    if (iconName === 'stadia_controller') iconName = 'sports_esports'; // レガシーアイコン補正
+                    
+                    titleEl.innerHTML = `
+                        <span class="material-symbols-outlined" style="color: var(--accent-primary);">${iconName}</span>
+                        <span>${cat.category}</span>
+                    `;
+                    section.appendChild(titleEl);
+
+                    const grid = document.createElement('div');
+                    grid.className = 'apps-grid';
+
+                    filteredApps.forEach(app => {
+                        const isFav = favorites.includes(app.appurl);
+                        
+                        // アプリ毎のフラットカード作成
+                        const appCard = document.createElement('div');
+                        appCard.className = 'app-item-card';
+                        appCard.style.cursor = 'pointer';
+                        appCard.onclick = () => launchApp(app.appurl);
+
+                        appCard.innerHTML = `
+                            <div class="app-info-block">
+                                <div class="app-name">
+                                    <span>${escapeHtml(app.appname)}</span>
+                                </div>
+                                <div class="app-desc">${escapeHtml(app.appinfo)}</div>
+                            </div>
+                            <div class="app-actions">
+                                <button class="favorite-btn ${isFav ? 'active' : ''}" onclick="toggleFavorite('${app.appurl}', '${escapeHtml(app.appname)}', event)">
+                                    <span class="material-symbols-outlined">${isFav ? 'favorite' : 'favorite_border'}</span>
+                                </button>
+                                <div class="launch-icon-btn">
+                                    <span class="material-symbols-outlined">chevron_right</span>
+                                </div>
+                            </div>
+                        `;
+
+                        grid.appendChild(appCard);
+                    });
+
+                    section.appendChild(grid);
+                    container.appendChild(section);
+                }
+            });
+
+            if (!hasResults) {
+                container.innerHTML = `
+                    <div class="glass-card empty-state">
+                        <span class="material-symbols-outlined">search_off</span>
+                        <p style="margin-top: 10px;">「${escapeHtml(searchQuery)}」に一致するアプリは見つかりませんでした。</p>
+                    </div>
+                `;
+            }
+        }
+
+        // --- お気に入り一覧描画 ---
+        function renderFavorites() {
+            const container = document.getElementById('favorites-list-container');
+            container.innerHTML = '';
+
+            let favApps = [];
+            appCategories.forEach(cat => {
+                cat.apps.forEach(app => {
+                    if (favorites.includes(app.appurl)) {
+                        favApps.push(app);
+                    }
+                });
+            });
+
+            if (favApps.length === 0) {
+                container.innerHTML = `
+                    <div class="glass-card empty-state">
+                        <span class="material-symbols-outlined">favorite_border</span>
+                        <p style="margin-top: 10px; margin-bottom: 0;">お気に入りに登録されたアプリはありません。<br>ホームからハートマークをつけて追加しましょう！</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const grid = document.createElement('div');
+            grid.className = 'apps-grid';
+
+            favApps.forEach(app => {
+                const appCard = document.createElement('div');
+                appCard.className = 'app-item-card';
+                appCard.style.cursor = 'pointer';
+                appCard.onclick = () => launchApp(app.appurl);
+
+                appCard.innerHTML = `
+                    <div class="app-info-block">
+                        <div class="app-name">
+                            <span>${escapeHtml(app.appname)}</span>
+                        </div>
+                        <div class="app-desc">${escapeHtml(app.appinfo)}</div>
+                    </div>
+                    <div class="app-actions">
+                        <button class="favorite-btn active" onclick="toggleFavorite('${app.appurl}', '${escapeHtml(app.appname)}', event)">
+                            <span class="material-symbols-outlined">favorite</span>
+                        </button>
+                        <div class="launch-icon-btn">
+                            <span class="material-symbols-outlined">chevron_right</span>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(appCard);
+            });
+
+            container.appendChild(grid);
+        }
+
+        // --- 検索フィルター実行 ---
+        function filterApps() {
+            const searchVal = document.getElementById('search-input').value;
+            renderApps(searchVal);
+        }
+
+        // --- HTMLエスケープ処理 ---
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>'"]/g, 
+                tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+            );
+        }
+
+        // --- 1. Accent Color Switcher ---
+        function changeAccent(color) {
+            currentAccent = color;
+            document.documentElement.style.setProperty('--accent-primary', color);
+            document.documentElement.style.setProperty('--accent-active', adjustColorBrightness(color, -20));
+            showToast(`アクセント色を ${color} に変更しました`);
+            localStorage.setItem('pb_accent_color', color);
+        }
+
+        function adjustColorBrightness(hex, percent) {
+            let R = parseInt(hex.substring(1, 3), 16);
+            let G = parseInt(hex.substring(3, 5), 16);
+            let B = parseInt(hex.substring(5, 7), 16);
+            R = parseInt(R * (100 + percent) / 100);
+            G = parseInt(G * (100 + percent) / 100);
+            B = parseInt(B * (100 + percent) / 100);
+            R = (R < 255) ? R : 255;
+            G = (G < 255) ? G : 255;
+            B = (B < 255) ? B : 255;
+            const rHex = ((R.toString(16).length == 1) ? "0" + R.toString(16) : R.toString(16));
+            const gHex = ((G.toString(16).length == 1) ? "0" + G.toString(16) : G.toString(16));
+            const bHex = ((B.toString(16).length == 1) ? "0" + B.toString(16) : B.toString(16));
+            return "#" + rHex + gHex + bHex;
+        }
+
+        // --- 2. Toast Controller ---
+        function showToast(msg) {
+            toast.textContent = msg;
+            toast.classList.add('active');
+            setTimeout(() => {
+                toast.classList.remove('active');
+            }, 2500);
+        }
+
+        // --- 3. Custom Dialog Controller ---
+        function openInfoDialog() {
+            document.getElementById('info-dialog').classList.add('active');
+        }
+        function closeInfoDialog() {
+            document.getElementById('info-dialog').classList.remove('active');
+        }
+
+        // --- 4. Squishy Click Interaction Module ---
+        document.addEventListener('mousedown', (e) => {
+            const target = e.target.closest('.glass-card, .ai-btn, .nav-item, .app-item-card');
+            if (target) {
+                target.classList.remove('squish-active');
+                void target.offsetWidth; // Force Reflow
+                target.classList.add('squish-active');
+                
+                setTimeout(() => {
+                    target.classList.remove('squish-active');
+                }, 400);
+            }
+        });
+
+        // --- 5. View Switcher Protocol ---
+        const navItems = document.querySelectorAll('.nav-item');
+        const views = document.querySelectorAll('.view');
+
+        function switchView(viewId) {
+            // Update Navigation State
+            navItems.forEach(n => {
+                n.classList.remove('active');
+                if (n.getAttribute('data-view') === viewId) {
+                    n.classList.add('active');
+                }
+            });
+
+            // Update Rendered View Elements
+            views.forEach(v => {
+                v.classList.remove('active');
+                if (v.id === viewId) {
+                    v.classList.add('active');
+                    viewport.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+            });
+
+            // ビュー別追加アクション
+            if (viewId === 'view-favorites') {
+                renderFavorites();
+            }
+        }
+
+        // --- 6. Theme Control System ---
+        function setTheme(isDark) {
+            document.body.classList.toggle('dark-mode', isDark);
+            themeIcon.textContent = isDark ? 'dark_mode' : 'light_mode';
+            
+            const dmToggle = document.getElementById('darkmode-toggle');
+            if (dmToggle) {
+                dmToggle.checked = isDark;
+            }
+        }
+
+        // デバイスデフォルト設定 & 保存データ復元
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+        
+        themeBtn.addEventListener('click', () => {
+            const currentDark = document.body.classList.contains('dark-mode');
+            setTheme(!currentDark);
+            localStorage.setItem('pb_dark_mode', !currentDark);
+        });
+
+        document.getElementById('darkmode-toggle').addEventListener('change', (e) => {
+            setTheme(e.target.checked);
+            localStorage.setItem('pb_dark_mode', e.target.checked);
+        });
+
+        // --- 7. Startup Check & Storage Loading ---
+        window.onload = async () => {
+            loadFavoritesFromStorage();
+
+            // 保存した設定をロード
+            const savedTheme = localStorage.getItem('pb_dark_mode');
+            if (savedTheme !== null) {
+                setTheme(savedTheme === 'true');
+            } else {
+                setTheme(prefersDark.matches);
+            }
+
+            const savedAccent = localStorage.getItem('pb_accent_color');
+            if (savedAccent) {
+                changeAccent(savedAccent);
+            }
+
+            // 「起動時にお気に入りを開く」設定の適用
+            const startWithFavorites = localStorage.getItem('pb_start_favorites') === 'true';
+            document.getElementById('fav-on-start-toggle').checked = startWithFavorites;
+            
+            document.getElementById('fav-on-start-toggle').addEventListener('change', (e) => {
+                localStorage.setItem('pb_start_favorites', e.target.checked);
+            });
+
+            // アプリ情報リストの非同期読み込み
+            await fetchAppList();
+
+            // 読み込み完了時、お気に入り自動表示がONかつお気に入りがある場合はお気に入りビューへ遷移
+            if (startWithFavorites && favorites.length > 0) {
+                switchView('view-favorites');
+            }
+        };
+    </script>
+</body>
+</html>
