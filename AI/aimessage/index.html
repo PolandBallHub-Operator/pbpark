@@ -1,0 +1,2267 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+    <title>Deu2Chat - AI Character Interface</title>
+
+    <!-- Google Fonts & Material Symbols (Noto Sans JP / Material Symbols ONLY) -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" id="google-symbols-link">
+
+    <style>
+        /* デフォルトテーマ（PTZ.jsonのデフォルト値と連動） */
+        :root {
+            --accent-primary: #3381FF;
+            --accent-active: #1A5FCC;
+            
+            /* PTZ 規格初期値 */
+            --ptz-theme-name: "Default Blue PTZ";
+            --ptz-card-radius: 24px;
+            --ptz-slider-height: 16px;
+            --ptz-toggle-width: 54px;
+            --ptz-toggle-height: 30px;
+            --ptz-toggle-knob-radius: 50%;
+            --ptz-toggle-knob-width: 22px;
+            --ptz-blur-intensity: 0px;
+
+            /* Light Mode ベースカラー */
+            --bg-base: #F7F7F7;
+            --glass-bg: #FFFFFF;
+            --text-main: #000000;
+            --text-sub: #666666;
+            --bg-secondary: #EEEEEE;
+            --nav-bg: #FFFFFF;
+            --nav-icon-active: #000000; /* アクティブ時は完全に黒 */
+            
+            --m3-easing: cubic-bezier(0.32, 0.72, 0, 1);
+            --transition-smooth: 0.35s var(--m3-easing);
+            --card-padding: 24px;
+
+            /* LUI チャット専用 カスタマイズカラー */
+            --lui-bubble-bg: #8CEF84; /* 画像に近いライトグリーン */
+            --lui-bubble-text: #000000;
+            --lui-sendbar-bg: #FFFFFF;
+            --chat-bg-custom: #A0B2D6; /* 画像に近い青みがかった背景 */
+        }
+
+        /* ダークモード */
+        .dark-mode {
+            --bg-base: #121212;
+            --glass-bg: #1E1E1E;
+            --text-main: #FFFFFF;
+            --text-sub: #A1A1A6;
+            --bg-secondary: #2C2C2E;
+            --nav-bg: #1E1E1E;
+            --nav-icon-active: #FFFFFF; /* アクティブ時は完全に白 */
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Noto Sans JP', sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            transition: background-color var(--transition-smooth), color var(--transition-smooth);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* アプリ全体のコンテナ */
+        #app-viewport {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+        }
+
+        /* スプラッシュスクリーン */
+        #splash-screen {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: #121212;
+            color: #FFFFFF;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            transition: opacity 0.6s ease, visibility 0.6s;
+        }
+        #splash-screen.fade-out {
+            opacity: 0;
+            visibility: hidden;
+        }
+        .splash-logo-container {
+            text-align: center;
+            animation: pulse 2s infinite ease-in-out;
+        }
+        .splash-logo {
+            width: 130px;
+            height: 130px;
+            border-radius: 50%;
+            object-fit: contain;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+        }
+        .splash-title {
+            font-size: 26px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            color: #FFFFFF;
+        }
+        .splash-sub {
+            font-size: 13px;
+            color: #A1A1A6;
+            margin-top: 8px;
+        }
+
+        /* ヘッダー */
+        header {
+            height: 64px;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--glass-bg);
+            transition: background-color var(--transition-smooth);
+            position: relative;
+            flex-shrink: 0;
+            z-index: 100;
+        }
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .logo-text {
+            font-weight: 700;
+            font-size: 18px;
+            letter-spacing: -0.5px;
+            color: var(--text-main);
+        }
+        .header-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        .theme-toggle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: none;
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background var(--transition-smooth), transform 0.2s;
+        }
+        .theme-toggle:active {
+            transform: scale(0.9);
+        }
+
+        /* メインコンテンツ */
+        main {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 24px 20px 100px;
+            max-width: 720px;
+            width: 100%;
+            margin: 0 auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* フラットソリッドカード */
+        .glass-card {
+            background: var(--glass-bg);
+            border-radius: var(--ptz-card-radius);
+            padding: var(--card-padding);
+            margin-bottom: 20px;
+            box-shadow: none !important;
+            border: none !important;
+            transition: background-color var(--transition-smooth), border-radius var(--transition-smooth);
+        }
+
+        h2 { 
+            font-size: 18px; 
+            margin-top: 0; 
+            margin-bottom: 12px;
+            font-weight: 700; 
+            letter-spacing: -0.3px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        p {
+            font-size: 13.5px;
+            line-height: 1.5;
+            margin-top: 0;
+            margin-bottom: 16px;
+            color: var(--text-sub);
+        }
+
+        /* リストコンポーネント */
+        .custom-list {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            margin-bottom: 16px;
+        }
+        .list-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 4px;
+            border-bottom: 1px solid var(--bg-secondary);
+        }
+        .list-item:last-child {
+            border-bottom: none;
+        }
+        .list-item-title {
+            font-weight: 600;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .list-item-desc {
+            font-size: 12px;
+            color: var(--text-sub);
+        }
+
+        /* UIコンポーネント用スイッチ */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: var(--ptz-toggle-width);
+            height: var(--ptz-toggle-height);
+            transition: width var(--transition-smooth), height var(--transition-smooth);
+        }
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--bg-secondary);
+            transition: var(--transition-smooth);
+            border-radius: calc(var(--ptz-toggle-height) / 2);
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: var(--ptz-toggle-knob-width);
+            width: var(--ptz-toggle-knob-width);
+            left: 4px;
+            bottom: calc((var(--ptz-toggle-height) - var(--ptz-toggle-knob-width)) / 2);
+            background: white;
+            transition: var(--transition-smooth);
+            border-radius: var(--ptz-toggle-knob-radius);
+        }
+        input:checked + .slider {
+            background: var(--accent-primary);
+        }
+        input:checked + .slider:before {
+            transform: translateX(calc(var(--ptz-toggle-width) - var(--ptz-toggle-knob-width) - 8px));
+        }
+
+        /* アクションボタン */
+        .ai-btn {
+            border: none;
+            outline: none;
+            padding: 12px 24px;
+            border-radius: 14px;
+            font-weight: 600;
+            font-size: 14px;
+            color: white;
+            cursor: pointer;
+            background: var(--accent-primary);
+            transition: transform 0.2s, background-color var(--transition-smooth);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            justify-content: center;
+        }
+        .ai-btn:hover {
+            transform: scale(1.02);
+        }
+        .ai-btn:active {
+            background: var(--accent-active);
+            transform: scale(0.96);
+        }
+        .ai-btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-main);
+        }
+        .ai-btn-danger {
+            background: #FF3B30;
+            color: white;
+        }
+
+        /* インプットテキスト */
+        .glass-input-wrapper {
+            margin-bottom: 14px;
+        }
+        .glass-input {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: none;
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            font-size: 14px;
+            font-family: inherit;
+            box-sizing: border-box;
+            transition: background var(--transition-smooth);
+        }
+        .glass-input:focus {
+            outline: 2px solid var(--accent-primary);
+        }
+
+        /* JSONエディタ */
+        .json-textarea {
+            width: 100%;
+            height: 180px;
+            font-family: monospace;
+            font-size: 12.5px;
+            padding: 16px;
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            border: none;
+            border-radius: var(--ptz-card-radius);
+            resize: vertical;
+            outline: none;
+            line-height: 1.4;
+            transition: background var(--transition-smooth);
+        }
+
+        /* ------------------ 下付き固定ナビゲーションバー ------------------ */
+        .bottom-nav-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 72px;
+            background: var(--nav-bg);
+            border-top: 1px solid var(--bg-secondary);
+            z-index: 500;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding-bottom: env(safe-area-inset-bottom);
+            transition: background-color var(--transition-smooth), border-color var(--transition-smooth);
+        }
+        .nav-item {
+            flex: 1;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-sub);
+            transition: color 0.25s var(--m3-easing);
+            position: relative;
+            gap: 4px;
+        }
+        .nav-item span.material-symbols-outlined {
+            font-size: 24px;
+            font-variation-settings: 'FILL' 0, 'wght' 400;
+            transition: font-variation-settings 0.2s, color 0.2s;
+        }
+        .nav-label {
+            font-size: 10px;
+            font-weight: 600;
+        }
+        .nav-item.active {
+            color: var(--nav-icon-active);
+        }
+        .nav-item.active span.material-symbols-outlined {
+            font-variation-settings: 'FILL' 1, 'wght' 700;
+        }
+
+        /* ------------------ ビュー切り替え ------------------ */
+        .view {
+            display: none;
+        }
+        .view.active {
+            display: block;
+            animation: viewIn 0.3s var(--m3-easing);
+        }
+        @keyframes viewIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ------------------ キャラクターリスト / ギャラリー表示 ------------------ */
+        .char-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+        }
+        .char-card {
+            background: var(--glass-bg);
+            border-radius: var(--ptz-card-radius);
+            padding: 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            border: 1px solid var(--bg-secondary);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .char-card:active {
+            transform: scale(0.96);
+        }
+        .char-avatar {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: var(--bg-secondary);
+            margin-bottom: 12px;
+            font-size: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .char-name {
+            font-weight: 700;
+            font-size: 15px;
+            color: var(--text-main);
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 100%;
+        }
+        .char-profile-snippet {
+            font-size: 11px;
+            color: var(--text-sub);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 100%;
+        }
+        .char-action-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 18px;
+            color: var(--text-sub);
+        }
+
+        /* ------------------ チャット画面 (HyperOS vs LUI) ------------------ */
+        #chat-view-container {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-base);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            transform: translateX(100%);
+            transition: transform 0.35s var(--m3-easing);
+        }
+        #chat-view-container.active {
+            transform: translateX(0);
+        }
+
+        /* チャットヘッダー */
+        .chat-header {
+            height: 60px;
+            background: var(--glass-bg);
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--bg-secondary);
+            flex-shrink: 0;
+        }
+        .chat-header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .chat-back-btn {
+            background: none;
+            border: none;
+            color: var(--text-main);
+            cursor: pointer;
+            padding: 4px;
+            display: flex;
+            align-items: center;
+        }
+        .chat-header-title {
+            font-weight: 700;
+            font-size: 16px;
+        }
+        .chat-header-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* チャットメッセージ表示エリア */
+        .chat-body {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            background-color: var(--bg-base);
+            background-size: cover;
+            background-position: center;
+        }
+
+        /* メッセージバブルの汎用構造 */
+        .msg-row {
+            display: flex;
+            width: 100%;
+            align-items: flex-start;
+            gap: 8px;
+        }
+        .msg-row.my-msg {
+            justify-content: flex-end;
+        }
+        .msg-row.ai-msg {
+            justify-content: flex-start;
+        }
+        .msg-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            object-fit: cover;
+            flex-shrink: 0;
+            background: var(--bg-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+        .msg-bubble-wrapper {
+            max-width: 70%;
+            display: flex;
+            flex-direction: column;
+        }
+        .msg-bubble {
+            padding: 10px 14px;
+            border-radius: 16px;
+            font-size: 14px;
+            line-height: 1.4;
+            word-break: break-all;
+            white-space: pre-wrap;
+        }
+        .msg-stamp {
+            max-width: 120px;
+            max-height: 120px;
+            object-fit: contain;
+            border-radius: 8px;
+        }
+        .msg-time {
+            font-size: 10px;
+            color: var(--text-sub);
+            margin-top: 3px;
+        }
+
+        /* ------------------ テーマ別メッセージバブルスタイル ------------------ */
+        
+        /* 1. HyperOS風スタイル（左右に丸く、余分な影なし、アクティブ色を自分に使用） */
+        .chat-style-hyperos .my-msg .msg-bubble {
+            background: var(--accent-primary);
+            color: #FFFFFF;
+            border-bottom-right-radius: 4px;
+        }
+        .chat-style-hyperos .ai-msg .msg-bubble {
+            background: var(--glass-bg);
+            color: var(--text-main);
+            border-bottom-left-radius: 4px;
+        }
+        .chat-style-hyperos .my-msg {
+            flex-direction: row-reverse;
+        }
+        .chat-style-hyperos .my-msg .msg-bubble-wrapper {
+            align-items: flex-end;
+        }
+        .chat-style-hyperos .ai-msg .msg-bubble-wrapper {
+            align-items: flex-start;
+        }
+
+        /* 2. LUIスタイル（画像再現: 右側に吹き出し口、既読や時間が吹き出しの左隣に並列で表示される構成） */
+        .chat-style-lui {
+            background-color: var(--chat-bg-custom) !important;
+        }
+        .chat-style-lui .chat-body {
+            background-color: var(--chat-bg-custom) !important;
+        }
+        /* 相手のメッセージ */
+        .chat-style-lui .ai-msg {
+            flex-direction: row;
+        }
+        .chat-style-lui .ai-msg .msg-bubble {
+            background-color: var(--glass-bg);
+            color: #000000;
+            border-radius: 14px;
+            border-top-left-radius: 2px;
+            position: relative;
+        }
+        .chat-style-lui .ai-msg .msg-bubble-wrapper {
+            flex-direction: row;
+            align-items: flex-end;
+            gap: 6px;
+            max-width: 80%;
+        }
+        .chat-style-lui .ai-msg .msg-time-container {
+            display: flex;
+            flex-direction: column;
+            font-size: 10px;
+            color: #333333;
+            line-height: 1.2;
+            flex-shrink: 0;
+        }
+
+        /* 自分のメッセージ (画像再現: 緑色の吹き出し、既読・時刻が吹き出しの左側に並ぶ) */
+        .chat-style-lui .my-msg {
+            flex-direction: row-reverse;
+        }
+        .chat-style-lui .my-msg .msg-bubble {
+            background-color: var(--lui-bubble-bg);
+            color: var(--lui-bubble-text);
+            border-radius: 14px;
+            border-top-right-radius: 2px;
+            position: relative;
+        }
+        .chat-style-lui .my-msg .msg-bubble-wrapper {
+            flex-direction: row-reverse;
+            align-items: flex-end;
+            gap: 6px;
+            max-width: 80%;
+        }
+        .chat-style-lui .my-msg .msg-time-container {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            font-size: 10px;
+            color: #555555;
+            line-height: 1.2;
+            flex-shrink: 0;
+        }
+        .chat-style-lui .my-msg .read-status {
+            font-size: 10px;
+            color: #4A6B82;
+            font-weight: 500;
+        }
+
+        /* チャット送信バー */
+        .chat-footer {
+            padding: 10px 16px;
+            background: var(--glass-bg);
+            border-top: 1px solid var(--bg-secondary);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex-shrink: 0;
+            padding-bottom: calc(10px + env(safe-area-inset-bottom));
+        }
+        .chat-footer-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .chat-input {
+            flex-grow: 1;
+            border: none;
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            padding: 12px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            outline: none;
+        }
+        .chat-send-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--accent-primary);
+            color: white;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background var(--transition-smooth);
+        }
+        .chat-send-btn:active {
+            transform: scale(0.9);
+        }
+
+        /* チャット補助機能 (スタンプ/画像選択) */
+        .chat-addon-bar {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            padding-top: 4px;
+        }
+        .chat-addon-btn {
+            background: none;
+            border: none;
+            color: var(--text-sub);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            padding: 4px;
+            font-size: 20px;
+        }
+        .chat-addon-btn:active {
+            color: var(--accent-primary);
+        }
+
+        /* スタンプパレット */
+        .sticker-drawer {
+            display: none;
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 10px;
+            margin-top: 8px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        .sticker-drawer.active {
+            display: block;
+        }
+        .sticker-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+            gap: 8px;
+        }
+        .sticker-item {
+            width: 60px;
+            height: 60px;
+            object-fit: contain;
+            cursor: pointer;
+            border-radius: 6px;
+            background: var(--glass-bg);
+            padding: 4px;
+            transition: transform 0.1s;
+        }
+        .sticker-item:active {
+            transform: scale(0.9);
+        }
+
+        /* ------------------ キャラ作成・プロフィール用モーダル ------------------ */
+        .sheet-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1500; display: flex; align-items: flex-end; justify-content: center;
+            opacity: 0; visibility: hidden; transition: all 0.3s var(--m3-easing);
+        }
+        .sheet-overlay.active { opacity: 1; visibility: visible; }
+        .glass-sheet {
+            background: var(--glass-bg);
+            border-top-left-radius: var(--ptz-card-radius);
+            border-top-right-radius: var(--ptz-card-radius);
+            padding: 24px; max-width: 720px; width: 100%; max-height: 90vh; overflow-y: auto;
+            transform: translateY(100%); transition: all 0.35s var(--m3-easing);
+        }
+        .sheet-overlay.active .glass-sheet { transform: translateY(0); }
+
+        /* スタンプ追加エリア */
+        .sticker-manager-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .sticker-manager-card {
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            padding: 6px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+        .sticker-delete-btn {
+            position: absolute;
+            top: 2px; right: 2px;
+            background: #FF3B30; color: white; border: none; border-radius: 50%;
+            width: 18px; height: 18px; font-size: 10px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        /* ------------------ トースト & ダイアログ ------------------ */
+        .toast {
+            position: fixed;
+            bottom: 84px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--text-main);
+            color: var(--glass-bg);
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s var(--m3-easing);
+            z-index: 2000;
+        }
+        .toast.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .dialog-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 2100; display: flex; align-items: center; justify-content: center;
+            opacity: 0; visibility: hidden; transition: all 0.3s var(--m3-easing);
+        }
+        .dialog-overlay.active { opacity: 1; visibility: visible; }
+        .glass-dialog {
+            background: var(--glass-bg);
+            border-radius: var(--ptz-card-radius);
+            padding: 24px; max-width: 380px; width: 90%; text-align: center;
+            transform: scale(0.9) translateY(20px); transition: all 0.4s var(--m3-easing);
+        }
+        .dialog-overlay.active .glass-dialog { transform: scale(1) translateY(0); }
+
+        /* ジェリーバウンド演出クラス */
+        @keyframes squishy {
+            0% { transform: scale(1, 1); }
+            30% { transform: scale(1.06, 0.94); }
+            50% { transform: scale(0.97, 1.03); }
+            70% { transform: scale(1.01, 0.99); }
+            100% { transform: scale(1, 1); }
+        }
+        .squish-active {
+            animation: squishy 0.35s var(--m3-easing);
+        }
+
+        /* 隠し機能解放中のバッジ */
+        .unlocked-badge {
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            color: #000;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            margin-left: 8px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 起動時スプラッシュスクリーン (GermanyBall ONLY) -->
+    <div id="splash-screen">
+        <div class="splash-logo-container">
+            <img class="splash-logo" src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/germany/lol.png" alt="GermanyBall">
+            <div class="splash-title">Deu2Chat</div>
+            <div class="splash-sub">GermanyBall & Custom AI Engine</div>
+        </div>
+    </div>
+
+    <div id="app-viewport">
+        <!-- ヘッダー -->
+        <header>
+            <div class="logo-area">
+                <span class="logo-text" id="app-title-display">Deu2Chat</span>
+                <span id="pbhub-badge" style="display: none;" class="unlocked-badge">PRO 解放済</span>
+            </div>
+            <div class="header-actions">
+                <button class="theme-toggle" id="theme-btn" title="テーマ切り替え">
+                    <span class="material-symbols-outlined">light_mode</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- メインコンテンツ -->
+        <main id="main-scroll-area">
+            
+            <!-- 1. ホームビュー (Deu2Chat) -->
+            <section id="view-home" class="view active">
+                <div class="glass-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span style="background: var(--accent-primary); color: white; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 700;" id="ptz-active-badge">Default Blue PTZ</span>
+                        <span style="font-size: 11px; color: var(--text-sub);">Version 2.0.4</span>
+                    </div>
+                    <h2>Deu2Chat へようこそ</h2>
+                    <p>
+                        独自のキャラクターAIを作成し、極上のフラットUIまたはLUIチャットスタイルで自由に対話ができます。
+                        Gemini APIキーを設定して、今すぐあなたのAIボール達と対話を始めましょう。
+                    </p>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <button class="ai-btn" onclick="toggleFullScreen()">
+                            <span class="material-symbols-outlined">fullscreen</span>
+                            全画面表示
+                        </button>
+                        <button class="ai-btn ai-btn-secondary" onclick="openAddCharSheet()">
+                            <span class="material-symbols-outlined">person_add</span>
+                            キャラ新規作成
+                        </button>
+                    </div>
+                </div>
+
+                <!-- キャラクター一覧エリア (HyperOSベース) -->
+                <div class="glass-card">
+                    <h2>AI キャラクター一覧 (HyperOS)</h2>
+                    <p>プロフィールを選択するとチャット対話、または詳細確認を行えます。</p>
+                    
+                    <div class="char-grid" id="char-list-grid">
+                        <!-- 動的にキャラカードがレンダリングされます -->
+                    </div>
+                </div>
+
+                <!-- 画像送信機能解放シークレットパネル -->
+                <div class="glass-card">
+                    <h2>隠し機能の解放</h2>
+                    <p>特定のアクションを行うことで、画像送信機能などを解放できます。</p>
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--bg-secondary); padding-bottom: 8px;">
+                            <div>
+                                <div style="font-weight:600; font-size:14px;">画像・ファイル送信機能</div>
+                                <div style="font-size:11px; color:var(--text-sub);">pbhub.s.gyに移動 ＞ ホーム画面に追加</div>
+                            </div>
+                            <button class="ai-btn ai-btn-secondary" style="padding: 6px 12px; font-size:12px;" onclick="simulateUnlock()">移動して追加</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2. 設定ビュー -->
+            <section id="view-settings" class="view">
+                <div class="glass-card">
+                    <h2>Gemini API 設定</h2>
+                    <p>AIの頭脳となるAPI構成を設定します。一度での返答に必要なリクエストは1回のみに抑えられています。</p>
+                    
+                    <div class="glass-input-wrapper">
+                        <label style="font-size: 12px; font-weight:600; color:var(--text-sub); display:block; margin-bottom:4px;">Gemini API キー</label>
+                        <input type="password" class="glass-input" id="cfg-api-key" placeholder="AI-************************" oninput="saveApiConfig()">
+                    </div>
+
+                    <div class="glass-input-wrapper">
+                        <label style="font-size: 12px; font-weight:600; color:var(--text-sub); display:block; margin-bottom:4px;">モデル名</label>
+                        <input type="text" class="glass-input" id="cfg-model-name" value="gemini-2.5-flash-lite" placeholder="gemini-2.5-flash-lite" oninput="saveApiConfig()">
+                    </div>
+                </div>
+
+                <div class="glass-card">
+                    <h2>チャット画面の設定</h2>
+                    <p>チャット画面のテーマスタイルを選択・カスタマイズします。</p>
+
+                    <div class="custom-list">
+                        <div class="list-item">
+                            <div>
+                                <div class="list-item-title">デフォルトのチャットスタイル</div>
+                                <div class="list-item-desc">HyperOS風 または LUIスタイル</div>
+                            </div>
+                            <select class="glass-input" id="cfg-chat-style" style="width: auto; padding: 6px 12px;" onchange="saveChatConfig()">
+                                <option value="hyperos">HyperOS風 (フラット)</option>
+                                <option value="lui">LUIスタイル (緑・時間横並び)</option>
+                            </select>
+                        </div>
+
+                        <!-- LUI専用カラー＆背景カスタマイズ -->
+                        <div class="list-item" style="flex-direction: column; align-items: stretch; gap: 8px;">
+                            <div>
+                                <div class="list-item-title">LUI専用: 吹き出し背景色</div>
+                                <div class="list-item-desc">メッセージ送信バブルの色</div>
+                            </div>
+                            <input type="color" id="cfg-lui-bubble-bg" value="#8CEF84" style="width:100%; height:40px; border:none; border-radius:8px; cursor:pointer;" onchange="saveChatConfig()">
+                        </div>
+
+                        <div class="list-item" style="flex-direction: column; align-items: stretch; gap: 8px;">
+                            <div>
+                                <div class="list-item-title">LUI専用: 送信バー背景色</div>
+                                <div class="list-item-desc">下部入力欄の背景カラー</div>
+                            </div>
+                            <input type="color" id="cfg-lui-sendbar-bg" value="#FFFFFF" style="width:100%; height:40px; border:none; border-radius:8px; cursor:pointer;" onchange="saveChatConfig()">
+                        </div>
+
+                        <div class="list-item" style="flex-direction: column; align-items: stretch; gap: 8px;">
+                            <div>
+                                <div class="list-item-title">チャットの背景</div>
+                                <div class="list-item-desc">背景カラーまたは画像URLを指定できます</div>
+                            </div>
+                            <input type="text" class="glass-input" id="cfg-chat-bg-url" placeholder="色コード（#A0B2D6）または画像URL" value="#A0B2D6" oninput="saveChatConfig()">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PTZ.json 連携マネージャー (iDBへ永続化、自動ロード) -->
+                <div class="glass-card">
+                    <h2>PTZ.json インポート</h2>
+                    <p>外部のPTZ.json構成をテキストエリアに貼り付けることで、アプリ全体のデザイン比率を自動同期し、次回起動時も適用します。</p>
+
+                    <textarea class="json-textarea" id="ptz-code-area" placeholder="ここにPTZ.jsonの中身を貼り付けてください..."></textarea>
+                    
+                    <div style="margin-top: 12px; display:flex; gap:8px;">
+                        <button class="ai-btn" style="flex:1;" onclick="applyPtzFromInput()">
+                            <span class="material-symbols-outlined">sync</span>
+                            適用してiDBに保存
+                        </button>
+                        <button class="ai-btn ai-btn-secondary" onclick="resetPtzToDefault()">
+                            初期化
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 自作スタンプ管理システム -->
+                <div class="glass-card">
+                    <h2>オリジナルスタンプ管理</h2>
+                    <p>チャットで送信したり、AIに送信させることができるスタンプを定義します。</p>
+                    
+                    <div class="custom-list" style="margin-bottom:12px;">
+                        <div class="glass-input-wrapper">
+                            <input type="text" class="glass-input" id="new-stamp-name" placeholder="スタンプ名（例：お疲れ様、beer）">
+                        </div>
+                        <div class="glass-input-wrapper">
+                            <input type="text" class="glass-input" id="new-stamp-url" placeholder="スタンプ画像URL、または絵文字">
+                        </div>
+                        <button class="ai-btn" style="width: 100%;" onclick="addNewStamp()">スタンプを追加</button>
+                    </div>
+
+                    <h3 style="font-size: 14px; font-weight:700; margin-top:16px;">登録済みスタンプ一覧</h3>
+                    <div class="sticker-manager-grid" id="registered-stamps-grid">
+                        <!-- 登録済みスタンプが動的に表示されます -->
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- 固定ナビゲーションバー -->
+        <div class="bottom-nav-container">
+            <div class="nav-item active" data-view="view-home" onclick="switchView('view-home')">
+                <span class="material-symbols-outlined">home</span>
+                <span class="nav-label">Deu2Chat</span>
+            </div>
+            <div class="nav-item" data-view="view-settings" onclick="switchView('view-settings')">
+                <span class="material-symbols-outlined">settings</span>
+                <span class="nav-label">構成設定</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ------------------ チャット画面 (HyperOS / LUI) ------------------ -->
+    <div id="chat-view-container" class="chat-style-hyperos">
+        <div class="chat-header">
+            <div class="chat-header-left">
+                <button class="chat-back-btn" onclick="closeChatView()">
+                    <span class="material-symbols-outlined" style="font-size: 28px;">chevron_left</span>
+                </button>
+                <div class="msg-avatar" id="chat-target-avatar">🍺</div>
+                <div>
+                    <div class="chat-header-title" id="chat-target-name">GermanyBall</div>
+                    <div style="font-size: 11px; color: var(--text-sub);" id="chat-target-status">オンライン</div>
+                </div>
+            </div>
+            <div class="chat-header-right">
+                <button class="chat-back-btn" id="chat-profile-shortcut" onclick="openProfileFromChat()" title="プロフィール">
+                    <span class="material-symbols-outlined">info</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- チャット本文エリア -->
+        <div class="chat-body" id="chat-body-messages">
+            <!-- メッセージが描画される -->
+        </div>
+
+        <!-- スタンプ引き出し -->
+        <div class="sticker-drawer" id="chat-sticker-drawer">
+            <div class="sticker-grid" id="chat-sticker-grid">
+                <!-- スタンプが並ぶ -->
+            </div>
+        </div>
+
+        <!-- チャットフッター -->
+        <div class="chat-footer" id="chat-footer-bar">
+            <div class="chat-footer-row">
+                <!-- 補助ボタン (画像送信は解放中のみ有効) -->
+                <button class="chat-addon-btn" id="addon-image-btn" onclick="triggerImgUpload()" style="opacity: 0.5; cursor: not-allowed;" title="画像送信(未解放)">
+                    <span class="material-symbols-outlined">image</span>
+                </button>
+                <button class="chat-addon-btn" onclick="toggleStickerDrawer()" title="スタンプ">
+                    <span class="material-symbols-outlined">sentiment_satisfied</span>
+                </button>
+                
+                <input type="text" class="chat-input" id="chat-input-text" placeholder="メッセージを入力...">
+                <button class="chat-send-btn" onclick="sendTextMessage()">
+                    <span class="material-symbols-outlined">send</span>
+                </button>
+            </div>
+            <!-- 隠し画像アップロード用のinput -->
+            <input type="file" id="chat-image-file-input" accept="image/*" style="display: none;" onchange="handleImageMessageSend(event)">
+        </div>
+    </div>
+
+
+    <!-- ------------------ ボトムシート: キャラ作成/編集モーダル ------------------ -->
+    <div class="sheet-overlay" id="char-sheet">
+        <div class="glass-sheet">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 id="char-sheet-title" style="margin: 0;">キャラクターを作成</h2>
+                <button class="chat-back-btn" onclick="closeCharSheet()">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+
+            <div class="glass-input-wrapper">
+                <label style="font-size:12px; font-weight:600; color:var(--text-sub);">キャラクター名</label>
+                <input type="text" class="glass-input" id="char-form-name" placeholder="例：GermanyBall">
+            </div>
+
+            <div class="glass-input-wrapper">
+                <label style="font-size:12px; font-weight:600; color:var(--text-sub);">アイコン（画像URL or 絵文字）</label>
+                <input type="text" class="glass-input" id="char-form-avatar" placeholder="https://... または絵文字 🍺">
+            </div>
+
+            <div class="glass-input-wrapper">
+                <label style="font-size:12px; font-weight:600; color:var(--text-sub);">プロフィール/特徴（🍺🥨🇩🇪など）</label>
+                <input type="text" class="glass-input" id="char-form-profile" placeholder="🍺🥨🇩🇪 ビールとプレッツェルを愛するボール">
+            </div>
+
+            <div class="glass-input-wrapper">
+                <label style="font-size:12px; font-weight:600; color:var(--text-sub);">システムプロンプト（性格・セリフ規約）</label>
+                <textarea class="json-textarea" id="char-form-prompt" style="height: 100px;" placeholder="あなたはGermanyBallです。語尾に「～だす」「～ねん」をつけて、ビールと規律を重視して喋ってください。また、もしユーザーがスタンプを送ってきたら、自分のスタンプを使ってリアクションしてください。"></textarea>
+            </div>
+
+            <div style="display: flex; gap: 8px; margin-top: 16px;" id="char-sheet-actions">
+                <!-- JSで保存・削除ボタンなどを動的に書き換えます -->
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ------------------ ボトムシート: キャラクター詳細プロフィール ------------------ -->
+    <div class="sheet-overlay" id="profile-sheet">
+        <div class="glass-sheet">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="margin: 0;">プロフィール詳細</h2>
+                <button class="chat-back-btn" onclick="closeProfileSheet()">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+
+            <div style="text-align: center; margin-bottom: 20px;">
+                <div class="char-avatar" id="prof-disp-avatar" style="width:100px; height:100px; font-size:44px; margin: 0 auto 12px;">🍺</div>
+                <h3 style="margin: 0; font-size:22px;" id="prof-disp-name">GermanyBall</h3>
+                <p style="margin-top: 8px; font-size:14px; color:var(--accent-primary); font-weight:600;" id="prof-disp-subtitle">🍺🥨🇩🇪</p>
+            </div>
+
+            <div class="glass-card" style="padding:16px;">
+                <h4 style="margin:0 0 8px; font-size:13px; color:var(--text-sub);">AI性格システム命令</h4>
+                <div style="font-size:13px; line-height:1.5; white-space:pre-wrap;" id="prof-disp-prompt">プロンプトがここに表示されます。</div>
+            </div>
+
+            <div style="display: flex; gap: 8px; margin-top: 24px;">
+                <button class="ai-btn" style="flex:1;" id="prof-btn-chat" onclick="startChatFromProfile()">
+                    <span class="material-symbols-outlined">chat</span>
+                    トークを開始する
+                </button>
+                <button class="ai-btn ai-btn-secondary" id="prof-btn-edit">
+                    編集
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- 汎用確認ダイアログ -->
+    <div class="dialog-overlay" id="confirm-dialog">
+        <div class="glass-dialog">
+            <span class="material-symbols-outlined" style="font-size: 44px; color: #FF3B30;" id="dialog-icon">warning</span>
+            <h2 style="margin-top: 12px;" id="dialog-title">確認</h2>
+            <p style="margin-bottom: 20px;" id="dialog-message">本当に実行しますか？</p>
+            <div style="display: flex; gap: 8px;">
+                <button class="ai-btn ai-btn-secondary" style="flex:1;" onclick="closeConfirmDialog()">キャンセル</button>
+                <button class="ai-btn ai-btn-danger" style="flex:1;" id="dialog-confirm-btn">削除</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- トースト通知 -->
+    <div class="toast" id="toast-message">トースト</div>
+
+
+    <!-- ------------------ CORE JAVASCRIPT ------------------ -->
+    <script>
+        /**
+         * Deu2Chat - Interactive AI Engine with Solid Adaptive Design
+         */
+
+        // IndexedDB初期化・連携
+        const DB_NAME = 'Deu2ChatDB_v2';
+        const DB_VERSION = 1;
+        let db;
+
+        // グローバル変数
+        let characters = [];
+        let messages = []; // 現在チャット中のキャラとのログ
+        let chatConfig = {
+            chatStyle: 'hyperos',
+            luiBubbleBg: '#8CEF84',
+            luiSendbarBg: '#FFFFFF',
+            chatBgUrl: '#A0B2D6'
+        };
+        let apiConfig = {
+            apiKey: '',
+            modelName: 'gemini-2.5-flash-lite'
+        };
+        let ptzTheme = {
+            "themeName": "Default Blue PTZ",
+            "accentColor": "#3381FF",
+            "cardRadius": 24,
+            "sliderHeight": 16,
+            "toggleWidth": 54,
+            "toggleHeight": 30,
+            "toggleKnobRadius": 50,
+            "toggleKnobWidth": 22,
+            "blurIntensity": 0,
+            "bgLight": "#F7F7F7",
+            "bgDark": "#121212"
+        };
+        let myStamps = [];
+
+        // 状態管理
+        let activeCharId = null;
+        let isImageFeatureUnlocked = false;
+
+        // IndexedDBのセットアップ
+        function initIndexedDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+                request.onerror = (e) => reject(e);
+                request.onsuccess = (e) => {
+                    db = e.target.result;
+                    resolve(db);
+                };
+                request.onupgradeneeded = (e) => {
+                    const database = e.target.result;
+                    
+                    // キャラスタック
+                    if (!database.objectStoreNames.contains('characters')) {
+                        database.createObjectStore('characters', { keyPath: 'id' });
+                    }
+                    // 対話履歴
+                    if (!database.objectStoreNames.contains('chat_logs')) {
+                        database.createObjectStore('chat_logs', { keyPath: 'id', autoIncrement: true });
+                    }
+                    // 各種コンフィグ
+                    if (!database.objectStoreNames.contains('configs')) {
+                        database.createObjectStore('configs', { keyPath: 'key' });
+                    }
+                };
+            });
+        }
+
+        // DBデータロード
+        async function loadAllData() {
+            try {
+                await initIndexedDB();
+
+                // 1. 各種コンフィグロード
+                const confTx = db.transaction('configs', 'readonly');
+                const confStore = confTx.objectStore('configs');
+                
+                const apiConfRes = await getDbValue(confStore, 'api_config');
+                if (apiConfRes) apiConfig = apiConfRes.value;
+
+                const chatConfRes = await getDbValue(confStore, 'chat_config');
+                if (chatConfRes) chatConfig = chatConfRes.value;
+
+                const ptzRes = await getDbValue(confStore, 'ptz_theme');
+                if (ptzRes) ptzTheme = ptzRes.value;
+
+                const stampsRes = await getDbValue(confStore, 'my_stamps');
+                if (stampsRes) myStamps = stampsRes.value;
+
+                const unlockRes = await getDbValue(confStore, 'image_unlocked');
+                if (unlockRes) isImageFeatureUnlocked = unlockRes.value;
+
+                // 2. キャラクター取得
+                const charTx = db.transaction('characters', 'readonly');
+                const charStore = charTx.objectStore('characters');
+                const allChars = await getAllDbValues(charStore);
+                
+                if (allChars.length === 0) {
+                    // デフォルト「GermanyBall」登録
+                    const defaultChar = {
+                        id: 'germanyball',
+                        name: 'GermanyBall',
+                        avatar: 'https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/germany/lol.png',
+                        profile: '🍺🥨🇩🇪 規律正しくビールが大好きなドイツボール。',
+                        prompt: 'あなたはGermanyBallです。国土地理や歴史に詳しく、ビールとプレッツェルが主食。語尾に「～だす」「～ねん」をつけて規律を重視する喋り方をしてください。またユーザーがスタンプを送信してきた場合は、必ずその内容に合わせたドイツ風スタンプ(🍺など)でのリアクションを示すセリフを語ってください。一回での返答は簡潔かつコミカルに行ってください。',
+                        createdAt: Date.now()
+                    };
+                    await saveDbValue('characters', defaultChar);
+                    characters = [defaultChar];
+                } else {
+                    characters = allChars;
+                }
+
+                // 3. デフォルトスタンプ初期化（空の場合）
+                if (myStamps.length === 0) {
+                    myStamps = [
+                        { id: 'stamp-1', name: 'ドイツビール', url: '🍺' },
+                        { id: 'stamp-2', name: 'プレッツェル', url: '🥨' },
+                        { id: 'stamp-3', name: '国旗', url: '🇩🇪' },
+                        { id: 'stamp-4', name: 'ハッピー', url: '😃' },
+                        { id: 'stamp-5', name: '怒るボール', url: '💢' }
+                    ];
+                    await saveDbValue('configs', { key: 'my_stamps', value: myStamps });
+                }
+
+                // UI適用
+                applyPtz(ptzTheme);
+                applyConfigToUI();
+                renderCharacterGrid();
+                renderStampsManager();
+                renderChatStickers();
+                updateImageUnlockUI();
+
+            } catch (err) {
+                console.error("Database loading error:", err);
+            }
+        }
+
+        // DB ヘルパー
+        function getDbValue(store, key) {
+            return new Promise((resolve) => {
+                const req = store.get(key);
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => resolve(null);
+            });
+        }
+
+        function getAllDbValues(store) {
+            return new Promise((resolve) => {
+                const req = store.getAll();
+                req.onsuccess = () => resolve(req.result || []);
+                req.onerror = () => resolve([]);
+            });
+        }
+
+        function saveDbValue(storeName, item) {
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(storeName, 'readwrite');
+                const store = tx.objectStore(storeName);
+                const req = store.put(item);
+                req.onsuccess = () => resolve(true);
+                req.onerror = (e) => reject(e);
+            });
+        }
+
+        function deleteDbValue(storeName, key) {
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(storeName, 'readwrite');
+                const store = tx.objectStore(storeName);
+                const req = store.delete(key);
+                req.onsuccess = () => resolve(true);
+                req.onerror = (e) => reject(e);
+            });
+        }
+
+        // Google Fonts Symbol を IndexedDB にキャッシュ (初回ロード時)
+        async function cacheGoogleSymbols() {
+            const cacheName = 'gfonts-symbol-cache';
+            const fontUrl = 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200';
+            try {
+                if ('caches' in window) {
+                    const cache = await caches.open(cacheName);
+                    const response = await cache.match(fontUrl);
+                    if (!response) {
+                        await cache.add(fontUrl);
+                        console.log("Material Symbols Cached to CacheStorage!");
+                    }
+                }
+            } catch (e) {
+                console.log("Cache Storage symbols issue:", e);
+            }
+        }
+
+        // --- PTZ デザインエンジンの適用 ---
+        function applyPtz(ptz) {
+            ptzTheme = { ...ptzTheme, ...ptz };
+
+            const root = document.documentElement;
+            root.style.setProperty('--accent-primary', ptzTheme.accentColor);
+            root.style.setProperty('--accent-active', adjustColorBrightness(ptzTheme.accentColor, -15));
+            root.style.setProperty('--ptz-card-radius', `${ptzTheme.cardRadius}px`);
+            root.style.setProperty('--ptz-slider-height', `${ptzTheme.sliderHeight}px`);
+            root.style.setProperty('--ptz-toggle-width', `${ptzTheme.toggleWidth}px`);
+            root.style.setProperty('--ptz-toggle-height', `${ptzTheme.toggleHeight}px`);
+            root.style.setProperty('--ptz-toggle-knob-radius', isNaN(ptzTheme.toggleKnobRadius) ? ptzTheme.toggleKnobRadius : `${ptzTheme.toggleKnobRadius}%`);
+            root.style.setProperty('--ptz-toggle-knob-width', `${ptzTheme.toggleKnobWidth}px`);
+            
+            // ライト/ダーク
+            const isDark = document.body.classList.contains('dark-mode');
+            root.style.setProperty('--bg-base', isDark ? ptzTheme.bgDark : ptzTheme.bgLight);
+
+            // バッジ/エディタを更新
+            document.getElementById('ptz-active-badge').textContent = ptzTheme.themeName || "PTZ Config";
+            document.getElementById('ptz-code-area').value = JSON.stringify(ptzTheme, null, 2);
+        }
+
+        function adjustColorBrightness(hex, percent) {
+            if (!hex.startsWith('#')) return hex;
+            let R = parseInt(hex.substring(1, 3), 16) || 0;
+            let G = parseInt(hex.substring(3, 5), 16) || 0;
+            let B = parseInt(hex.substring(5, 7), 16) || 0;
+            R = parseInt(R * (100 + percent) / 100);
+            G = parseInt(G * (100 + percent) / 100);
+            B = parseInt(B * (100 + percent) / 100);
+            R = Math.min(255, Math.max(0, R));
+            G = Math.min(255, Math.max(0, G));
+            B = Math.min(255, Math.max(0, B));
+            const rHex = R.toString(16).padStart(2, '0');
+            const gHex = G.toString(16).padStart(2, '0');
+            const bHex = B.toString(16).padStart(2, '0');
+            return "#" + rHex + gHex + bHex;
+        }
+
+        // PTZの手動貼り付け適用
+        async function applyPtzFromInput() {
+            const raw = document.getElementById('ptz-code-area').value;
+            try {
+                const parsed = JSON.parse(raw);
+                applyPtz(parsed);
+                await saveDbValue('configs', { key: 'ptz_theme', value: parsed });
+                showToast('PTZ.json を保存し反映しました！');
+            } catch (e) {
+                showToast('JSON 構文エラーです');
+            }
+        }
+
+        async function resetPtzToDefault() {
+            const def = {
+                "themeName": "Default Blue PTZ",
+                "accentColor": "#3381FF",
+                "cardRadius": 24,
+                "sliderHeight": 16,
+                "toggleWidth": 54,
+                "toggleHeight": 30,
+                "toggleKnobRadius": 50,
+                "toggleKnobWidth": 22,
+                "blurIntensity": 0,
+                "bgLight": "#F7F7F7",
+                "bgDark": "#121212"
+            };
+            applyPtz(def);
+            await saveDbValue('configs', { key: 'ptz_theme', value: def });
+            showToast('PTZテーマを初期化しました');
+        }
+
+        // UI表示に設定値を同期
+        function applyConfigToUI() {
+            document.getElementById('cfg-api-key').value = apiConfig.apiKey;
+            document.getElementById('cfg-model-name').value = apiConfig.modelName;
+            document.getElementById('cfg-chat-style').value = chatConfig.chatStyle;
+            document.getElementById('cfg-lui-bubble-bg').value = chatConfig.luiBubbleBg;
+            document.getElementById('cfg-lui-sendbar-bg').value = chatConfig.luiSendbarBg;
+            document.getElementById('cfg-chat-bg-url').value = chatConfig.chatBgUrl;
+        }
+
+        // 各種設定保存
+        async function saveApiConfig() {
+            apiConfig.apiKey = document.getElementById('cfg-api-key').value;
+            apiConfig.modelName = document.getElementById('cfg-model-name').value || 'gemini-2.5-flash-lite';
+            await saveDbValue('configs', { key: 'api_config', value: apiConfig });
+        }
+
+        async function saveChatConfig() {
+            chatConfig.chatStyle = document.getElementById('cfg-chat-style').value;
+            chatConfig.luiBubbleBg = document.getElementById('cfg-lui-bubble-bg').value;
+            chatConfig.luiSendbarBg = document.getElementById('cfg-lui-sendbar-bg').value;
+            chatConfig.chatBgUrl = document.getElementById('cfg-chat-bg-url').value;
+
+            // LUI用カラーをカスタムプロパティに適用
+            const root = document.documentElement;
+            root.style.setProperty('--lui-bubble-bg', chatConfig.luiBubbleBg);
+            root.style.setProperty('--lui-sendbar-bg', chatConfig.luiSendbarBg);
+            
+            // チャット背景色をLUI用または直接適用
+            if (chatConfig.chatStyle === 'lui') {
+                root.style.setProperty('--chat-bg-custom', chatConfig.chatBgUrl.startsWith('#') ? chatConfig.chatBgUrl : '#A0B2D6');
+            }
+
+            await saveDbValue('configs', { key: 'chat_config', value: chatConfig });
+        }
+
+        // --- 隠し機能：画像送信機能の解放 ---
+        async function simulateUnlock() {
+            showToast('pbhub.s.gy に転送中...(シミュレート)');
+            setTimeout(async () => {
+                isImageFeatureUnlocked = true;
+                await saveDbValue('configs', { key: 'image_unlocked', value: true });
+                updateImageUnlockUI();
+                showToast('おめでとうございます！画像・ファイル送信機能が解放されました。');
+            }, 1200);
+        }
+
+        function updateImageUnlockUI() {
+            const btn = document.getElementById('addon-image-btn');
+            const badge = document.getElementById('pbhub-badge');
+            if (isImageFeatureUnlocked) {
+                btn.style.opacity = '1';
+                btn.style.cursor = 'pointer';
+                btn.title = '画像を送信';
+                badge.style.display = 'inline-block';
+            } else {
+                btn.style.opacity = '0.5';
+                btn.style.cursor = 'not-allowed';
+                btn.title = '画像送信(未解放)';
+                badge.style.display = 'none';
+            }
+        }
+
+        // ------------------ キャラクターグリッド描画 ------------------
+        function renderCharacterGrid() {
+            const container = document.getElementById('char-list-grid');
+            container.innerHTML = '';
+
+            characters.forEach(char => {
+                const isEmoji = !char.avatar.startsWith('http') && char.avatar.length <= 4;
+                
+                const card = document.createElement('div');
+                card.className = 'char-card';
+                card.onclick = () => openProfileSheet(char.id);
+
+                let avatarHTML = '';
+                if (isEmoji) {
+                    avatarHTML = `<div class="char-avatar">${char.avatar}</div>`;
+                } else {
+                    avatarHTML = `<img class="char-avatar" src="${char.avatar}" onerror="this.onerror=null; this.src=''; this.innerHTML='🍺';" alt="${char.name}">`;
+                }
+
+                card.innerHTML = `
+                    ${avatarHTML}
+                    <div class="char-name">${escapeHTML(char.name)}</div>
+                    <div class="char-profile-snippet">${escapeHTML(char.profile || '')}</div>
+                    <span class="material-symbols-outlined char-action-badge">arrow_forward_ios</span>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // ------------------ スタンプ定義・描画 ------------------
+        function renderStampsManager() {
+            const grid = document.getElementById('registered-stamps-grid');
+            grid.innerHTML = '';
+            
+            myStamps.forEach(stamp => {
+                const card = document.createElement('div');
+                card.className = 'sticker-manager-card';
+                
+                const isUrl = stamp.url.startsWith('http');
+                let viewHtml = '';
+                if (isUrl) {
+                    viewHtml = `<img src="${stamp.url}" style="width:40px; height:40px; object-fit:contain;" alt="${stamp.name}">`;
+                } else {
+                    viewHtml = `<span style="font-size:32px;">${stamp.url}</span>`;
+                }
+
+                card.innerHTML = `
+                    ${viewHtml}
+                    <span style="font-size:10px; margin-top:4px; font-weight:700; text-align:center; overflow:hidden; text-overflow:ellipsis; width:100%; white-space:nowrap;">${escapeHTML(stamp.name)}</span>
+                    <button class="sticker-delete-btn" onclick="deleteStamp('${stamp.id}')">×</button>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        async function addNewStamp() {
+            const name = document.getElementById('new-stamp-name').value.trim();
+            const url = document.getElementById('new-stamp-url').value.trim();
+            if (!name || !url) {
+                showToast('名前と内容(絵文字か画像URL)を入力してください');
+                return;
+            }
+
+            const newStamp = {
+                id: 'stamp-' + Date.now(),
+                name,
+                url
+            };
+            myStamps.push(newStamp);
+            await saveDbValue('configs', { key: 'my_stamps', value: myStamps });
+            
+            document.getElementById('new-stamp-name').value = '';
+            document.getElementById('new-stamp-url').value = '';
+            
+            renderStampsManager();
+            renderChatStickers();
+            showToast('オリジナルスタンプを追加しました');
+        }
+
+        async function deleteStamp(id) {
+            myStamps = myStamps.filter(s => s.id !== id);
+            await saveDbValue('configs', { key: 'my_stamps', value: myStamps });
+            renderStampsManager();
+            renderChatStickers();
+            showToast('スタンプを削除しました');
+        }
+
+        function renderChatStickers() {
+            const grid = document.getElementById('chat-sticker-grid');
+            grid.innerHTML = '';
+            myStamps.forEach(stamp => {
+                const img = document.createElement('div');
+                img.className = 'sticker-item';
+                img.style.display = 'flex';
+                img.style.alignItems = 'center';
+                img.style.justifyContent = 'center';
+                img.title = stamp.name;
+                img.onclick = () => sendStickerMessage(stamp);
+
+                const isUrl = stamp.url.startsWith('http');
+                if (isUrl) {
+                    img.innerHTML = `<img src="${stamp.url}" style="width:100%; height:100%; object-fit:contain;" alt="${stamp.name}">`;
+                } else {
+                    img.innerHTML = `<span style="font-size:32px;">${stamp.url}</span>`;
+                }
+                grid.appendChild(img);
+            });
+        }
+
+        // ------------------ キャラクター作成・編集用アクション ------------------
+        function openAddCharSheet() {
+            document.getElementById('char-sheet-title').textContent = 'キャラクターを新規作成';
+            document.getElementById('char-form-name').value = '';
+            document.getElementById('char-form-avatar').value = '';
+            document.getElementById('char-form-profile').value = '';
+            document.getElementById('char-form-prompt').value = '';
+            
+            const actions = document.getElementById('char-sheet-actions');
+            actions.innerHTML = `
+                <button class="ai-btn" style="flex:1;" onclick="saveCharacterForm(null)">
+                    新規保存
+                </button>
+            `;
+            document.getElementById('char-sheet').classList.add('active');
+        }
+
+        function openEditCharSheet(id) {
+            const char = characters.find(c => c.id === id);
+            if (!char) return;
+
+            document.getElementById('char-sheet-title').textContent = 'キャラクターを編集';
+            document.getElementById('char-form-name').value = char.name;
+            document.getElementById('char-form-avatar').value = char.avatar;
+            document.getElementById('char-form-profile').value = char.profile;
+            document.getElementById('char-form-prompt').value = char.prompt;
+
+            const actions = document.getElementById('char-sheet-actions');
+            actions.innerHTML = `
+                <button class="ai-btn" style="flex:1;" onclick="saveCharacterForm('${char.id}')">
+                    上書き保存
+                </button>
+                <button class="ai-btn ai-btn-danger" onclick="triggerDeleteCharacter('${char.id}')">
+                    削除
+                </button>
+            `;
+            closeProfileSheet();
+            document.getElementById('char-sheet').classList.add('active');
+        }
+
+        function closeCharSheet() {
+            document.getElementById('char-sheet').classList.remove('active');
+        }
+
+        async function saveCharacterForm(id) {
+            const name = document.getElementById('char-form-name').value.trim();
+            const avatar = document.getElementById('char-form-avatar').value.trim() || '🍺';
+            const profile = document.getElementById('char-form-profile').value.trim();
+            const prompt = document.getElementById('char-form-prompt').value.trim();
+
+            if (!name) {
+                showToast('キャラクター名を入力してください');
+                return;
+            }
+
+            const finalId = id || 'char-' + Date.now();
+            const charData = {
+                id: finalId,
+                name,
+                avatar,
+                profile,
+                prompt,
+                createdAt: id ? (characters.find(c => c.id === id)?.createdAt || Date.now()) : Date.now()
+            };
+
+            await saveDbValue('characters', charData);
+            
+            // ローカルステート更新
+            const existingIdx = characters.findIndex(c => c.id === finalId);
+            if (existingIdx !== -1) {
+                characters[existingIdx] = charData;
+            } else {
+                characters.push(charData);
+            }
+
+            renderCharacterGrid();
+            closeCharSheet();
+            showToast('キャラクター情報を保存しました');
+        }
+
+        function triggerDeleteCharacter(id) {
+            // デフォルトは削除制限を促すか、安全に確認ダイアログ
+            if (id === 'germanyball') {
+                showToast('初期プリセットのGermanyBallは削除できません');
+                return;
+            }
+            openConfirmDialog("キャラクター削除", "このAIキャラクターを完全に削除しますか？対話履歴も消去されます。", async () => {
+                await deleteDbValue('characters', id);
+                characters = characters.filter(c => c.id !== id);
+                renderCharacterGrid();
+                closeCharSheet();
+                closeConfirmDialog();
+                showToast('キャラクターを削除しました');
+            });
+        }
+
+        // ------------------ 詳細プロフィールシート ------------------
+        function openProfileSheet(id) {
+            const char = characters.find(c => c.id === id);
+            if (!char) return;
+
+            activeCharId = id;
+
+            // アバター表示
+            const isEmoji = !char.avatar.startsWith('http') && char.avatar.length <= 4;
+            const dispAvatar = document.getElementById('prof-disp-avatar');
+            if (isEmoji) {
+                dispAvatar.innerHTML = char.avatar;
+                dispAvatar.style.background = 'var(--bg-secondary)';
+            } else {
+                dispAvatar.innerHTML = `<img src="${char.avatar}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;" onerror="this.onerror=null; this.parentElement.innerHTML='🍺';">`;
+            }
+
+            document.getElementById('prof-disp-name').textContent = char.name;
+            document.getElementById('prof-disp-subtitle').textContent = char.profile || '🍺🥨🇩🇪';
+            document.getElementById('prof-disp-prompt').textContent = char.prompt || 'システムプロンプト未設定。一般的なAIとして応答します。';
+
+            // 編集ボタンフック
+            document.getElementById('prof-btn-edit').onclick = () => openEditCharSheet(char.id);
+
+            document.getElementById('profile-sheet').classList.add('active');
+        }
+
+        function closeProfileSheet() {
+            document.getElementById('profile-sheet').classList.remove('active');
+        }
+
+        function startChatFromProfile() {
+            closeProfileSheet();
+            openChatView(activeCharId);
+        }
+
+        // ------------------ チャット画面のコントロール ------------------
+        async function openChatView(charId) {
+            const char = characters.find(c => c.id === charId);
+            if (!char) return;
+
+            activeCharId = charId;
+
+            // チャットヘッダー同期
+            document.getElementById('chat-target-name').textContent = char.name;
+            document.getElementById('chat-target-status').textContent = char.profile || 'オンライン';
+            
+            const isEmoji = !char.avatar.startsWith('http') && char.avatar.length <= 4;
+            const headerAvatar = document.getElementById('chat-target-avatar');
+            if (isEmoji) {
+                headerAvatar.innerHTML = char.avatar;
+            } else {
+                headerAvatar.innerHTML = `<img src="${char.avatar}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;" onerror="this.onerror=null; this.parentElement.innerHTML='🍺';">`;
+            }
+
+            // スタイルの同期
+            const chatContainer = document.getElementById('chat-view-container');
+            const chatStyle = chatConfig.chatStyle;
+            
+            chatContainer.className = ''; // クラスリセット
+            if (chatStyle === 'lui') {
+                chatContainer.classList.add('chat-style-lui');
+                // LUI専用設定の背景適用
+                const bg = chatConfig.chatBgUrl;
+                const chatBody = document.getElementById('chat-body-messages');
+                if (bg.startsWith('#')) {
+                    chatBody.style.backgroundImage = 'none';
+                    chatBody.style.backgroundColor = bg;
+                } else if (bg.startsWith('http')) {
+                    chatBody.style.backgroundImage = `url(${bg})`;
+                    chatBody.style.backgroundColor = 'transparent';
+                } else {
+                    chatBody.style.backgroundImage = 'none';
+                    chatBody.style.backgroundColor = 'var(--chat-bg-custom)';
+                }
+                // 送信バーカラー
+                document.getElementById('chat-footer-bar').style.backgroundColor = chatConfig.luiSendbarBg;
+            } else {
+                chatContainer.classList.add('chat-style-hyperos');
+                const chatBody = document.getElementById('chat-body-messages');
+                chatBody.style.backgroundImage = 'none';
+                chatBody.style.backgroundColor = 'var(--bg-base)';
+                document.getElementById('chat-footer-bar').style.backgroundColor = 'var(--glass-bg)';
+            }
+
+            // チャット履歴をIndexedDBからロード
+            messages = await getChatHistoryFromDb(charId);
+            renderChatMessages();
+
+            chatContainer.classList.add('active');
+        }
+
+        function closeChatView() {
+            document.getElementById('chat-view-container').classList.remove('active');
+            activeCharId = null;
+        }
+
+        function openProfileFromChat() {
+            if (activeCharId) {
+                openProfileSheet(activeCharId);
+            }
+        }
+
+        // ------------------ メッセージの永続化と取得 ------------------
+        function getChatHistoryFromDb(charId) {
+            return new Promise((resolve) => {
+                const tx = db.transaction('chat_logs', 'readonly');
+                const store = tx.objectStore('chat_logs');
+                const req = store.getAll();
+                req.onsuccess = () => {
+                    const allLogs = req.result || [];
+                    const filtered = allLogs.filter(log => log.charId === charId);
+                    // 時系列ソート
+                    filtered.sort((a,b) => a.timestamp - b.timestamp);
+                    resolve(filtered);
+                };
+                req.onerror = () => resolve([]);
+            });
+        }
+
+        async function saveMessageToDb(charId, sender, text, type = 'text', stampData = null) {
+            const newMsg = {
+                charId,
+                sender, // 'me' or 'ai'
+                text,
+                type, // 'text', 'stamp', 'image'
+                stampData,
+                timestamp: Date.now()
+            };
+            await saveDbValue('chat_logs', newMsg);
+            messages.push(newMsg);
+            renderChatMessages();
+            return newMsg;
+        }
+
+        // ------------------ メッセージレンダリング (画像LUI構造再現) ------------------
+        function renderChatMessages() {
+            const container = document.getElementById('chat-body-messages');
+            container.innerHTML = '';
+
+            const char = characters.find(c => c.id === activeCharId);
+            const isLui = chatConfig.chatStyle === 'lui';
+
+            messages.forEach(msg => {
+                const isMe = msg.sender === 'me';
+                const row = document.createElement('div');
+                row.className = `msg-row ${isMe ? 'my-msg' : 'ai-msg'}`;
+
+                // アバター（相手の場合のみLUIと共通、自分アバターは非表示）
+                let avatarHTML = '';
+                if (!isMe && char) {
+                    const isEmoji = !char.avatar.startsWith('http') && char.avatar.length <= 4;
+                    if (isEmoji) {
+                        avatarHTML = `<div class="msg-avatar">${char.avatar}</div>`;
+                    } else {
+                        avatarHTML = `<img class="msg-avatar" src="${char.avatar}" onerror="this.onerror=null; this.innerHTML='🍺';" alt="avatar">`;
+                    }
+                }
+
+                // 時間表示フォーマット (HH:MM)
+                const date = new Date(msg.timestamp);
+                const timeStr = `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+
+                // コンテンツの構成
+                let contentHTML = '';
+                if (msg.type === 'stamp' && msg.stampData) {
+                    const isUrl = msg.stampData.url.startsWith('http');
+                    if (isUrl) {
+                        contentHTML = `<img class="msg-stamp" src="${msg.stampData.url}" alt="${msg.stampData.name}">`;
+                    } else {
+                        contentHTML = `<div class="msg-bubble" style="font-size: 38px; background: none; padding: 0;">${msg.stampData.url}</div>`;
+                    }
+                } else if (msg.type === 'image') {
+                    contentHTML = `<img class="msg-stamp" src="${msg.text}" style="max-width: 180px; max-height: 180px;" alt="image">`;
+                } else {
+                    contentHTML = `<div class="msg-bubble">${escapeHTML(msg.text)}</div>`;
+                }
+
+                // 吹き出し外ラッパーとステータス表示（LUI画像完全再現：既読、13:23、送信が横一列並列）
+                let wrapperHTML = '';
+                if (isLui) {
+                    if (isMe) {
+                        wrapperHTML = `
+                            <div class="msg-bubble-wrapper">
+                                ${contentHTML}
+                                <div class="msg-time-container">
+                                    <span class="read-status">既読</span>
+                                    <span>${timeStr}</span>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        wrapperHTML = `
+                            <div class="msg-bubble-wrapper">
+                                ${contentHTML}
+                                <div class="msg-time-container">
+                                    <span>${timeStr}</span>
+                                </div>
+                            </div>
+                        `;
+                    }
+                } else {
+                    // HyperOSフラット風
+                    wrapperHTML = `
+                        <div class="msg-bubble-wrapper">
+                            ${contentHTML}
+                            <div class="msg-time">${timeStr}</div>
+                        </div>
+                    `;
+                }
+
+                row.innerHTML = `
+                    ${avatarHTML}
+                    ${wrapperHTML}
+                `;
+                container.appendChild(row);
+            });
+
+            // 最下部へスクロール
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // ------------------ 対話送信ロジック & Gemini API ------------------
+        async function sendTextMessage() {
+            const input = document.getElementById('chat-input-text');
+            const text = input.value.trim();
+            if (!text) return;
+
+            input.value = '';
+            await performMessageFlow(text, 'text');
+        }
+
+        async function sendStickerMessage(stamp) {
+            toggleStickerDrawer();
+            await performMessageFlow(stamp.name, 'stamp', stamp);
+        }
+
+        // 画像送信機能（解放時限定）
+        function triggerImgUpload() {
+            if (!isImageFeatureUnlocked) {
+                showToast('「画像・ファイル送信」機能はまだ未解放です');
+                return;
+            }
+            document.getElementById('chat-image-file-input').click();
+        }
+
+        async function handleImageMessageSend(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async function(event) {
+                const base64Data = event.target.result;
+                await performMessageFlow('画像を送信しました', 'image', null, base64Data);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // 統合メッセージ処理フロー
+        async function performMessageFlow(userText, type, stampData = null, base64Image = null) {
+            const charId = activeCharId;
+            const char = characters.find(c => c.id === charId);
+            if (!char) return;
+
+            // 1. ユーザー発言保存
+            if (type === 'image') {
+                await saveMessageToDb(charId, 'me', base64Image, 'image');
+            } else if (type === 'stamp') {
+                await saveMessageToDb(charId, 'me', userText, 'stamp', stampData);
+            } else {
+                await saveMessageToDb(charId, 'me', userText, 'text');
+            }
+
+            // スクロール調整
+            const body = document.getElementById('chat-body-messages');
+            body.scrollTop = body.scrollHeight;
+
+            // 2. AI応答用の仮ロード
+            const typingId = 'typing-' + Date.now();
+            const typingRow = document.createElement('div');
+            typingRow.className = 'msg-row ai-msg';
+            typingRow.id = typingId;
+            typingRow.innerHTML = `
+                <div class="msg-avatar">${char.avatar.startsWith('http') ? `<img src="${char.avatar}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">` : char.avatar}</div>
+                <div class="msg-bubble-wrapper">
+                    <div class="msg-bubble" style="font-style: italic; opacity:0.7;">思考中...</div>
+                </div>
+            `;
+            body.appendChild(typingRow);
+            body.scrollTop = body.scrollHeight;
+
+            // 3. APIリクエスト準備（直近ログをコンテキストとして送信、呼び出しは1回のみ）
+            const apiKey = apiConfig.apiKey;
+            const modelName = apiConfig.modelName || 'gemini-2.5-flash-lite';
+
+            if (!apiKey) {
+                setTimeout(() => {
+                    typingRow.remove();
+                    saveMessageToDb(charId, 'ai', '【Deu2Chatシステム通知】設定画面からGemini APIキーを入力してください。現在はオフライン自動応答になっています。🍻 ドイツビールでも飲んでお待ちだす！', 'text');
+                }, 1000);
+                return;
+            }
+
+            // チャットログの構築
+            const historyToInclude = messages.slice(-10); // 直近10件
+            const contents = [];
+
+            // システムプロンプトを先頭に格納
+            contents.push({
+                role: 'user',
+                parts: [{ text: `以下のルールを厳守してロールプレイを行ってください。\n【システムルール】\n${char.prompt || ''}` }]
+            });
+            contents.push({
+                role: 'model',
+                parts: [{ text: '了解しました。そのルールに基づき、キャラクターになりきって応答します。' }]
+            });
+
+            // 履歴をGemini形式へ
+            historyToInclude.forEach(msg => {
+                if (msg.type === 'stamp') {
+                    contents.push({
+                        role: msg.sender === 'me' ? 'user' : 'model',
+                        parts: [{ text: `[スタンプ「${msg.stampData?.name || 'スタンプ'}」を送信しました]` }]
+                    });
+                } else if (msg.type === 'image') {
+                    contents.push({
+                        role: msg.sender === 'me' ? 'user' : 'model',
+                        parts: [{ text: `[画像を送信しました]` }]
+                    });
+                } else {
+                    contents.push({
+                        role: msg.sender === 'me' ? 'user' : 'model',
+                        parts: [{ text: msg.text }]
+                    });
+                }
+            });
+
+            // AI生成API呼び出し
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+            
+            try {
+                const response = await fetchWithRetry(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: contents })
+                });
+
+                typingRow.remove();
+
+                if (!response.ok) {
+                    throw new Error(`HTTP Error ${response.status}`);
+                }
+
+                const result = await response.json();
+                const aiResponseText = result.candidates?.[0]?.content?.parts?.[0]?.text || '...(無言)';
+                
+                // 応答メッセージを解析。AIがスタンプを送ってきたかどうかの簡易判断
+                let detectStamp = null;
+                // マイスタンプの中にプロンプトにマッチする名前または絵文字が含まれているか探索
+                for (const stamp of myStamps) {
+                    if (aiResponseText.includes(stamp.name) || aiResponseText.includes(stamp.url)) {
+                        detectStamp = stamp;
+                        break;
+                    }
+                }
+
+                if (detectStamp && Math.random() > 0.4) {
+                    // スタンプ風応答
+                    await saveMessageToDb(charId, 'ai', aiResponseText, 'stamp', detectStamp);
+                } else {
+                    // 通常テキスト応答
+                    await saveMessageToDb(charId, 'ai', aiResponseText, 'text');
+                }
+
+            } catch (err) {
+                typingRow.remove();
+                showToast('API通信エラーが発生しました');
+                await saveMessageToDb(charId, 'ai', `エラーだす！ビールを飲みすぎたかもねん。(詳細: ${err.message})`, 'text');
+            }
+        }
+
+        // 指数バックオフ付きAPIフェッチ
+        async function fetchWithRetry(url, options, retries = 5, delay = 1000) {
+            try {
+                const res = await fetch(url, options);
+                if (res.status === 429 && retries > 0) {
+                    await new Promise(r => setTimeout(r, delay));
+                    return fetchWithRetry(url, options, retries - 1, delay * 2);
+                }
+                return res;
+            } catch (err) {
+                if (retries > 0) {
+                    await new Promise(r => setTimeout(r, delay));
+                    return fetchWithRetry(url, options, retries - 1, delay * 2);
+                }
+                throw err;
+            }
+        }
+
+        // ------------------ スタンプドロワー切り替え ------------------
+        function toggleStickerDrawer() {
+            const dr = document.getElementById('chat-sticker-drawer');
+            dr.classList.toggle('active');
+        }
+
+        // ------------------ 画面切り替え ------------------
+        const navItems = document.querySelectorAll('.nav-item');
+        const views = document.querySelectorAll('.view');
+
+        function switchView(viewId) {
+            navItems.forEach(n => {
+                n.classList.remove('active');
+                if (n.getAttribute('data-view') === viewId) {
+                    n.classList.add('active');
+                }
+            });
+
+            views.forEach(v => {
+                v.classList.remove('active');
+                if (v.id === viewId) {
+                    v.classList.add('active');
+                }
+            });
+        }
+
+        // ------------------ 全画面表示切り替え ------------------
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().then(() => {
+                    showToast('全画面モードを有効にしました');
+                }).catch(err => {
+                    showToast('全画面化に失敗しました');
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        // ------------------ 汎用確認ダイアログ ------------------
+        let confirmCallback = null;
+        function openConfirmDialog(title, message, callback) {
+            document.getElementById('dialog-title').textContent = title;
+            document.getElementById('dialog-message').textContent = message;
+            confirmCallback = callback;
+            document.getElementById('confirm-dialog').classList.add('active');
+        }
+
+        function closeConfirmDialog() {
+            document.getElementById('confirm-dialog').classList.remove('active');
+            confirmCallback = null;
+        }
+
+        document.getElementById('dialog-confirm-btn').addEventListener('click', () => {
+            if (confirmCallback) confirmCallback();
+        });
+
+        // ------------------ トースト通知 ------------------
+        const toast = document.getElementById('toast-message');
+        function showToast(msg) {
+            toast.textContent = msg;
+            toast.classList.add('active');
+            setTimeout(() => {
+                toast.classList.remove('active');
+            }, 2300);
+        }
+
+        // --- テーマ（ライト・ダーク）切替 ---
+        const themeBtn = document.getElementById('theme-btn');
+        const themeIcon = themeBtn.querySelector('span');
+
+        function setTheme(isDark) {
+            document.body.classList.toggle('dark-mode', isDark);
+            themeIcon.textContent = isDark ? 'dark_mode' : 'light_mode';
+            
+            // PTZの背景設定をベースに背景色を動的適用
+            const root = document.documentElement;
+            root.style.setProperty('--bg-base', isDark ? ptzTheme.bgDark : ptzTheme.bgLight);
+        }
+
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+        setTheme(prefersDark.matches);
+
+        themeBtn.addEventListener('click', () => {
+            setTheme(!document.body.classList.contains('dark-mode'));
+        });
+
+        // HTMLエスケープヘルパー
+        function escapeHTML(str) {
+            return str
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        // 触感・ジェリー風バウンド演出
+        document.addEventListener('mousedown', (e) => {
+            const target = e.target.closest('.glass-card, .ai-btn, .nav-item, .char-card, .sticker-manager-card');
+            if (target) {
+                target.classList.remove('squish-active');
+                void target.offsetWidth; // リフロートリガー
+                target.classList.add('squish-active');
+                
+                setTimeout(() => {
+                    target.classList.remove('squish-active');
+                }, 350);
+            }
+        });
+
+        // ------------------ 初期起動ロード処理 ------------------
+        window.onload = async () => {
+            // IndexedDB ＆ データ復旧
+            await loadAllData();
+
+            // Material Symbolsのキャッシュ
+            await cacheGoogleSymbols();
+
+            // スプラッシュスクリーンのフェードアウト (1.2秒後に消去)
+            setTimeout(() => {
+                const splash = document.getElementById('splash-screen');
+                splash.classList.add('fade-out');
+                setTimeout(() => splash.style.display = 'none', 600);
+            }, 1200);
+        };
+    </script>
+</body>
+</html>
