@@ -1,0 +1,1789 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Holo UI Settings</title>
+    <style>
+        /* --- RESET & BASIC STYLES --- */
+        * {
+            box-sizing: border-box;
+            -webkit-box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            background-color: #000000;
+            font-family: "Roboto", "Droid Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+            color: #ffffff;
+            overflow: hidden;
+        }
+
+        /* スマートフォン風のコンテナ（デスクトップ表示用） */
+        #phone-container {
+            width: 100%;
+            height: 100%;
+            max-width: 480px;
+            max-height: 850px;
+            margin: 0 auto;
+            position: relative;
+            background-color: #000000;
+            border: 1px solid #222222;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            display: -webkit-box;
+            display: -webkit-flex;
+            display: flex;
+            -webkit-box-orient: vertical;
+            -webkit-box-direction: normal;
+            -webkit-flex-direction: column;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* --- STATUS BAR (Android 4.x Style) --- */
+        #statusbar {
+            height: 25px;
+            background-color: #000000;
+            display: -webkit-box;
+            display: -webkit-flex;
+            display: flex;
+            -webkit-box-pack: justify;
+            -webkit-justify-content: space-between;
+            justify-content: space-between;
+            -webkit-box-align: center;
+            -webkit-align-items: center;
+            align-items: center;
+            padding: 0 8px;
+            font-size: 12px;
+            font-weight: bold;
+            color: #33b5e5; /* Holo Light Blue */
+            border-bottom: 1px solid #111111;
+            flex-shrink: 0;
+        }
+
+        .status-left {
+            display: -webkit-box;
+            display: -webkit-flex;
+            display: flex;
+            -webkit-box-align: center;
+            -webkit-align-items: center;
+            align-items: center;
+        }
+
+        .status-right {
+            display: -webkit-box;
+            display: -webkit-flex;
+            display: flex;
+            -webkit-box-align: center;
+            -webkit-align-items: center;
+            align-items: center;
+        }
+
+        .status-icon {
+            width: 16px;
+            height: 16px;
+            margin: 0 3px;
+            fill: #33b5e5;
+            transition: opacity 0.2s;
+        }
+
+        .status-icon.disabled {
+            fill: #444444;
+        }
+
+        .status-time {
+            margin-left: 6px;
+            color: #33b5e5;
+        }
+
+        /* --- ACTION BAR --- */
+        #actionbar {
+            height: 48px;
+            background-color: #000000;
+            display: -webkit-box;
+            display: -webkit-flex;
+            display: flex;
+            -webkit-box-align: center;
+            -webkit-align-items: center;
+            align-items: center;
+            padding: 0 12px;
+            border-bottom: 2px solid #0099cc; /* Holo Dark Blue Line */
+            flex-shrink: 0;
+        }
+
+        .actionbar-icon {
+            width: 32px;
+            height: 32px;
+            margin-right: 12px;
+            fill: #33b5e5;
+            display: -webkit-box;
+            display: -webkit-flex;
+            display: flex;
+            -webkit-box-align: center;
+            -webkit-align-items: center;
+            align-items: center;
+            -webkit-box-pack: center;
+            -webkit-justify-content: center;
+            justify-content: center;
+        }
+
+        .actionbar-title {
+            font-size: 18px;
+            font-weight: normal;
+            color: #ffffff;
+        }
+
+        /* --- SETTINGS CONTENT --- */
+        #content {
+            -webkit-box-flex: 1;
+            -webkit-flex: 1;
+            flex: 1;
+            overflow-y: auto;
+            background-color: #000000;
+            padding-bottom: 20px;
+        }
+
+        /* スクロールバーのカスタマイズ (WebKit用) */
+        #content::-webkit-scrollbar {
+            width: 4px;
+        }
+        #content::-webkit-scrollbar-thumb {
+            background-color: #33b5e5;
+        }
+
+        /* セクションヘッダー */
+        .section-header {
+            font-size: 11px;
+            font-weight: bold;
+            color: #33b5e5;
+            padding: 16px 16px 6px 16px;
+            text-transform: uppercase;
+            border-bottom: 1px solid #1a1a1a;
+            margin-top: 8px;
+            letter-spacing: 1px;
+        }
+
+        /* 設定項目行 */
+        .setting-item {
+            display: -webkit-box;
+            display: -webkit-flex;
+            display: flex;
+            -webkit-box-align: center;
+            -webkit-align-items: center;
+            align-items: center;
+            padding: 14px 16px;
+            border-bottom: 1px solid #1a1a1a;
+            cursor: pointer;
+            position: relative;
+        }
+
+        /* Holo タップエフェクト (青い光) */
+        .setting-item:active {
+            background-color: rgba(0, 153, 204, 0.25);
+        }
+
+        .setting-icon-container {
+            width: 32px;
+            height: 32px;
+            margin-right: 16px;
+            display: -webkit-box;
+            display: -webkit-flex;
+            display: flex;
+            -webkit-box-align: center;
+            -webkit-align-items: center;
+            align-items: center;
+            -webkit-box-pack: center;
+            -webkit-justify-content: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .setting-icon {
+            width: 24px;
+            height: 24px;
+            fill: #cccccc;
+        }
+
+        .setting-info {
+            -webkit-box-flex: 1;
+            -webkit-flex: 1;
+            flex: 1;
+            display: -webkit-box;
+            display: -webkit-flex;
+            display: flex;
+            -webkit-box-orient: vertical;
+            -webkit-box-direction: normal;
+            -webkit-flex-direction: column;
+            flex-direction: column;
+        }
+
+        .setting-title {
+            font-size: 16px;
+            color: #ffffff;
+        }
+
+        .setting-summary {
+            font-size: 12px;
+            color: #999999;
+            margin-top: 2px;
+        }
+
+        .setting-widget {
+            margin-left: 12px;
+            flex-shrink: 0;
+        }
+
+        /* --- HOLO TOGGLE SWITCH --- */
+        .holo-switch {
+            width: 76px;
+            height: 24px;
+            background-color: #222222;
+            border: 1px solid #444444;
+            position: relative;
+            cursor: pointer;
+            overflow: hidden;
+            display: inline-block;
+        }
+
+        .holo-switch-inner {
+            width: 120px;
+            height: 100%;
+            position: absolute;
+            left: -44px;
+            top: 0;
+            display: -webkit-box;
+            display: -webkit-flex;
+            display: flex;
+            -webkit-transition: left 0.15s ease-out;
+            transition: left 0.15s ease-out;
+        }
+
+        .holo-switch.on .holo-switch-inner {
+            left: 0px;
+        }
+
+        .switch-on, .switch-off {
+            width: 44px;
+            height: 100%;
+            display: -webkit-box;
+            display: -webkit-flex;
+            display: flex;
+            -webkit-box-align: center;
+            -webkit-align-items: center;
+            align-items: center;
+            -webkit-box-pack: center;
+            -webkit-justify-content: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: bold;
+            color: #ffffff;
+        }
+
+        .switch-on {
+            background-color: #0099cc; /* Holo Blue */
+            box-shadow: inset -5px 0 5px rgba(0,0,0,0.2);
+            -webkit-box-shadow: inset -5px 0 5px rgba(0,0,0,0.2);
+        }
+
+        .switch-off {
+            background-color: #222222;
+        }
+
+        .switch-thumb {
+            width: 30px;
+            height: 100%;
+            background-color: #444444;
+            border-left: 1px solid #555555;
+            border-right: 1px solid #333333;
+            box-shadow: 0 0 4px rgba(0,0,0,0.5);
+            -webkit-box-shadow: 0 0 4px rgba(0,0,0,0.5);
+            z-index: 2;
+        }
+
+        /* キャラクター用特別スタイル */
+        .char-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background-color: #333;
+            background-size: cover;
+            background-position: center;
+            display: inline-block;
+            vertical-align: middle;
+        }
+
+        /* CSSフォールバック用のポーランドボール (ドイツ旗風) */
+        .char-fallback {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 1px solid #333;
+            background: -webkit-linear-gradient(top, #000000 33%, #FF0000 33%, #FF0000 66%, #FFCC00 66%);
+            background: linear-gradient(to bottom, #000000 33%, #FF0000 33%, #FF0000 66%, #FFCC00 66%);
+            display: inline-block;
+            position: relative;
+            box-shadow: inset -3px -3px 6px rgba(0,0,0,0.3);
+            -webkit-box-shadow: inset -3px -3px 6px rgba(0,0,0,0.3);
+        }
+
+        .holo-switch.on .holo-switch-inner {
+            left: 0px;
+        }
+
+        .switch-on, .switch-off {
+            width: 44px;
+            height: 100%;
+            display: -webkit-box;
+            display: -webkit-flex;
+            display: flex;
+            -webkit-box-align: center;
+            -webkit-align-items: center;
+            align-items: center;
+            -webkit-box-pack: center;
+            -webkit-justify-content: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: bold;
+            color: #ffffff;
+        }
+
+        .switch-on {
+            background-color: #0099cc; /* Holo Blue */
+            box-shadow: inset -5px 0 5px rgba(0,0,0,0.2);
+        }
+
+        .switch-off {
+            background-color: #222222;
+        }
+
+        .switch-thumb {
+            width: 30px;
+            height: 100%;
+            background-color: #444444;
+            border-left: 1px solid #555555;
+            border-right: 1px solid #333333;
+            box-shadow: 0 0 4px rgba(0,0,0,0.5);
+            z-index: 2;
+        }
+
+        /* キャラクター用特別スタイル */
+        .char-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background-color: #333;
+            background-size: cover;
+            background-position: center;
+            display: inline-block;
+            vertical-align: middle;
+        }
+
+        /* CSSフォールバック用のポーランドボール (ドイツ旗風) */
+        .char-fallback {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 1px solid #333;
+            background: linear-gradient(to bottom, #000000 33%, #FF0000 33%, #FF0000 66%, #FFCC00 66%);
+            display: inline-block;
+            position: relative;
+            box-shadow: inset -3px -3px 6px rgba(0,0,0,0.3);
+        }
+        /* ドイツボールの白い目 */
+        .char-fallback::before {
+            content: '';
+            position: absolute;
+            width: 8px;
+            height: 10px;
+            background: white;
+            border-radius: 50%;
+            top: 6px;
+            left: 6px;
+            box-shadow: 1px 0 0 rgba(0,0,0,0.1);
+        }
+        .char-fallback::after {
+            content: '';
+            position: absolute;
+            width: 8px;
+            height: 10px;
+            background: white;
+            border-radius: 50%;
+            top: 6px;
+            left: 16px;
+            box-shadow: 1px 0 0 rgba(0,0,0,0.1);
+        }
+        .char-fallback-eye-pupil1 {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: black;
+            border-radius: 50%;
+            top: 10px;
+            left: 9px;
+            z-index: 3;
+        }
+        .char-fallback-eye-pupil2 {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: black;
+            border-radius: 50%;
+            top: 10px;
+            left: 19px;
+            z-index: 3;
+        }
+
+        /* --- DIALOG OVERLAY & HOLO DIALOG --- */
+        #dialog-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.6);
+            z-index: 100;
+            display: none;
+            -webkit-box-pack: center;
+            -webkit-justify-content: center;
+            justify-content: center;
+            -webkit-box-align: center;
+            -webkit-align-items: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .holo-dialog {
+            width: 100%;
+            max-width: 320px;
+            background-color: #090c0e;
+            border: 2px solid #33b5e5; /* Holo Blue Border */
+            box-shadow: 0 0 15px rgba(0, 153, 204, 0.4);
+            -webkit-box-shadow: 0 0 15px rgba(0, 153, 204, 0.4);
+            display: -webkit-box;
+            display: -webkit-flex;
+            display: flex;
+            -webkit-box-orient: vertical;
+            -webkit-box-direction: normal;
+            -webkit-flex-direction: column;
+            flex-direction: column;
+        }
+
+        .dialog-header {
+            padding: 16px;
+            border-bottom: 2px solid #33b5e5;
+        }
+
+        .dialog-title {
+            font-size: 18px;
+            color: #33b5e5;
+            font-weight: normal;
+        }
+
+        .dialog-body {
+            padding: 16px;
+            color: #cccccc;
+            font-size: 14px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .dialog-footer {
+            padding: 8px;
+            display: -webkit-box;
+            display: -webkit-flex;
+            display: flex;
+            -webkit-box-pack: end;
+            -webkit-justify-content: flex-end;
+            justify-content: flex-end;
+            border-top: 1px solid #1a1a1a;
+        }
+
+        /* Holo ボタン */
+        .holo-button {
+            padding: 10px 20px;
+            background: transparent;
+            border: none;
+            color: #ffffff;
+            font-size: 14px;
+            text-transform: uppercase;
+            cursor: pointer;
+            margin-left: 8px;
+            font-weight: bold;
+        }
+
+        .holo-button:active {
+            background-color: rgba(0, 153, 204, 0.2);
+        }
+
+        /* --- SETTING DETAILED VIEWS (MODAL-LIKE SUB PAGES) --- */
+        .sub-page {
+            position: absolute;
+            top: 25px; /* 下のステータスバーの下 */
+            left: 100%;
+            width: 100%;
+            height: calc(100% - 25px);
+            background-color: #000000;
+            z-index: 50;
+            display: -webkit-box;
+            display: -webkit-flex;
+            display: flex;
+            -webkit-box-orient: vertical;
+            -webkit-box-direction: normal;
+            -webkit-flex-direction: column;
+            flex-direction: column;
+            -webkit-transition: left 0.25s ease-out;
+            transition: left 0.25s ease-out;
+        }
+
+        .sub-page.active {
+            left: 0;
+        }
+
+        /* 音量・輝度スライダー */
+        .holo-slider-container {
+            margin: 15px 0;
+        }
+
+        .slider-label {
+            font-size: 14px;
+            color: #999999;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .holo-slider {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 4px;
+            background: #333333;
+            outline: none;
+            margin: 15px 0;
+        }
+
+        .holo-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #33b5e5;
+            cursor: pointer;
+            box-shadow: 0 0 6px rgba(0, 153, 204, 0.8);
+            -webkit-box-shadow: 0 0 6px rgba(0, 153, 204, 0.8);
+        }
+
+        .dialog-header {
+            padding: 16px;
+            border-bottom: 2px solid #33b5e5;
+        }
+
+        .dialog-title {
+            font-size: 18px;
+            color: #33b5e5;
+            font-weight: normal;
+        }
+
+        .dialog-body {
+            padding: 16px;
+            color: #cccccc;
+            font-size: 14px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .dialog-footer {
+            padding: 8px;
+            display: -webkit-box;
+            display: -webkit-flex;
+            display: flex;
+            -webkit-box-pack: end;
+            -webkit-justify-content: flex-end;
+            justify-content: flex-end;
+            border-top: 1px solid #1a1a1a;
+        }
+
+        /* Holo ボタン */
+        .holo-button {
+            padding: 10px 20px;
+            background: transparent;
+            border: none;
+            color: #ffffff;
+            font-size: 14px;
+            text-transform: uppercase;
+            cursor: pointer;
+            margin-left: 8px;
+            font-weight: bold;
+        }
+
+        .holo-button:active {
+            background-color: rgba(0, 153, 204, 0.2);
+        }
+
+        /* --- SETTING DETAILED VIEWS (MODAL-LIKE SUB PAGES) --- */
+        .sub-page {
+            position: absolute;
+            top: 25px; /* 下のステータスバーの下 */
+            left: 100%;
+            width: 100%;
+            height: calc(100% - 25px);
+            background-color: #000000;
+            z-index: 50;
+            display: -webkit-box;
+            display: -webkit-flex;
+            display: flex;
+            -webkit-box-orient: vertical;
+            -webkit-box-direction: normal;
+            -webkit-flex-direction: column;
+            flex-direction: column;
+            transition: left 0.25s ease-out;
+        }
+
+        .sub-page.active {
+            left: 0;
+        }
+
+        /* 音量・輝度スライダー */
+        .holo-slider-container {
+            margin: 15px 0;
+        }
+
+        .slider-label {
+            font-size: 14px;
+            color: #999999;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .holo-slider {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 4px;
+            background: #333333;
+            outline: none;
+            margin: 15px 0;
+        }
+
+        .holo-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #33b5e5;
+            cursor: pointer;
+            box-shadow: 0 0 6px rgba(0, 153, 204, 0.8);
+        }
+
+        /* ストレージバーの再現 */
+        .storage-bar-wrapper {
+            background-color: #222;
+            height: 24px;
+            width: 100%;
+            margin: 12px 0;
+            display: -webkit-box;
+            display: -webkit-flex;
+            display: flex;
+            border: 1px solid #333;
+        }
+
+        .storage-segment {
+            height: 100%;
+        }
+
+        .storage-apps { background-color: #a4c639; width: 45%; } /* Android Green */
+        .storage-pics { background-color: #33b5e5; width: 20%; } /* Holo Blue */
+        .storage-audio { background-color: #aa66cc; width: 10%; } /* Purple */
+        .storage-misc { background-color: #999999; width: 5%; }
+        .storage-free { background-color: #333333; width: 20%; }
+
+        .storage-legend {
+            display: -webkit-box;
+            display: -webkit-flex;
+            display: flex;
+            -webkit-flex-wrap: wrap;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+
+        .legend-item {
+            display: -webkit-box;
+            display: -webkit-flex;
+            display: flex;
+            -webkit-box-align: center;
+            -webkit-align-items: center;
+            align-items: center;
+            font-size: 12px;
+            margin-right: 16px;
+            margin-bottom: 8px;
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            margin-right: 6px;
+        }
+
+        /* バッテリーグラフのシミュレーション */
+        .battery-graph-box {
+            border: 1px solid #333;
+            height: 150px;
+            position: relative;
+            background: #050505;
+            margin-top: 15px;
+            overflow: hidden;
+        }
+
+        .battery-grid {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-image: linear-gradient(rgba(51, 181, 229, 0.05) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(51, 181, 229, 0.05) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        .battery-line {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* --- TOAST NOTIFICATION --- */
+        #toast {
+            position: absolute;
+            bottom: 60px;
+            left: 50%;
+            -webkit-transform: translateX(-50%);
+            transform: translateX(-50%);
+            background-color: rgba(40, 40, 40, 0.9);
+            border: 1px solid #555555;
+            border-radius: 20px;
+            color: #ffffff;
+            padding: 8px 16px;
+            font-size: 13px;
+            z-index: 200;
+            display: none;
+            white-space: nowrap;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            text-align: center;
+        }
+
+        /* --- EASTER EGG SCREEN --- */
+        #easter-egg-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000000;
+            z-index: 1000;
+            display: none;
+            overflow: hidden;
+        }
+
+        #easter-egg-canvas {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        #easter-egg-back {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            -webkit-transform: translateX(-50%);
+            transform: translateX(-50%);
+            background-color: rgba(51, 181, 229, 0.2);
+            border: 2px solid #33b5e5;
+            color: #33b5e5;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: bold;
+            text-transform: uppercase;
+            cursor: pointer;
+            z-index: 1001;
+            outline: none;
+        }
+        #easter-egg-back:active {
+            background-color: #33b5e5;
+            color: #000;
+        }
+
+        /* 画面全体の輝度オーバーレイ */
+        #brightness-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: black;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 9999;
+        }
+    </style>
+</head>
+<body>
+
+<div id="phone-container">
+    <!-- 画面輝度調整用オーバーレイ -->
+    <div id="brightness-overlay"></div>
+
+    <!-- ステータスバー -->
+    <div id="statusbar">
+        <div class="status-left">
+            <!-- Wi-Fiステータス -->
+            <svg id="status-wifi" class="status-icon" viewBox="0 0 24 24">
+                <path d="M12,21L15.6,16.2C14.6,15.4 13.3,15 12,15C10.7,15 9.4,15.4 8.4,16.2L12,21M12,3C7.1,3 2.7,5 0,8.3L12,22.8L24,8.3C21.3,5 16.9,3 12,3M12,6C15.6,6 18.9,7.4 21.4,9.7L12,21.1L2.6,9.7C5.1,7.4 8.4,6 12,6M12,9C14.4,9 16.6,9.9 18.3,11.5L12,19.2L5.7,11.5C7.4,9.9 9.6,9 12,9Z"/>
+            </svg>
+            <!-- Bluetoothステータス -->
+            <svg id="status-bluetooth" class="status-icon" viewBox="0 0 24 24">
+                <path d="M14.88,16.29L13,18.17V14.41M13,9.59L14.88,11.47L13,13.25M17.71,7.71L12,2H11V9.17L6.41,4.59L5,6L10.59,11.59L5,17.17L6.41,18.59L11,14V21.17H12L17.71,15.46L13.25,11L17.71,7.71Z"/>
+            </svg>
+        </div>
+        <div class="status-right">
+            <!-- シグナル/電波 -->
+            <svg class="status-icon" viewBox="0 0 24 24">
+                <path d="M19.5,5.5V18.5H16.5V11.5H13.5V14.5H10.5V16.5H7.5V18.5H4.5V19.5H19.5M21,3L1,23H21V3Z"/>
+            </svg>
+            <!-- バッテリー -->
+            <svg class="status-icon" viewBox="0 0 24 24" style="transform: rotate(90deg);">
+                <path d="M16.67,4H15V2H9V4H7.33A1.33,1.33 0 0,0 6,5.33V20.67C6,21.4 6.6,22 7.33,22H16.67A1.33,1.33 0 0,0 18,20.67V5.33A1.33,1.33 0 0,0 16.67,4M16,20H8V6H16V20Z"/>
+            </svg>
+            <span id="clock" class="status-time">10:19</span>
+        </div>
+    </div>
+
+    <!-- アクションバー (メイン) -->
+    <div id="actionbar">
+        <div class="actionbar-icon">
+            <!-- コントロールスライダー風設定アイコン -->
+            <svg viewBox="0 0 24 24" style="width:24px; height:24px; fill:#33b5e5;">
+                <path d="M3,17V19H9V17H3M3,5V7H13V5H3M13,19V17H21V15H13V13H11V19H13M7,9V11H3V13H7V15H9V9H7M21,13V11H11V13H21M15,9H17V7H21V5H17V3H15V9Z"/>
+            </svg>
+        </div>
+        <div class="actionbar-title">設定</div>
+    </div>
+
+    <!-- 設定リスト -->
+    <div id="content">
+        <!-- 無線とネットワーク -->
+        <div class="section-header">無線とネットワーク</div>
+        
+        <!-- Wi-Fi -->
+        <div class="setting-item" id="item-wifi">
+            <div class="setting-icon-container">
+                <svg class="setting-icon" id="icon-wifi" viewBox="0 0 24 24">
+                    <path d="M12,21L15.6,16.2C14.6,15.4 13.3,15 12,15C10.7,15 9.4,15.4 8.4,16.2L12,21M12,3C7.1,3 2.7,5 0,8.3L12,22.8L24,8.3C21.3,5 16.9,3 12,3M12,6C15.6,6 18.9,7.4 21.4,9.7L12,21.1L2.6,9.7C5.1,7.4 8.4,6 12,6M12,9C14.4,9 16.6,9.9 18.3,11.5L12,19.2L5.7,11.5C7.4,9.9 9.6,9 12,9Z"/>
+                </svg>
+            </div>
+            <div class="setting-info">
+                <div class="setting-title">Wi-Fi</div>
+                <div class="setting-summary" id="wifi-summary">OFF</div>
+            </div>
+            <div class="setting-widget">
+                <div class="holo-switch" id="switch-wifi">
+                    <div class="holo-switch-inner">
+                        <div class="switch-on">ON</div>
+                        <div class="switch-thumb"></div>
+                        <div class="switch-off">OFF</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bluetooth -->
+        <div class="setting-item" id="item-bluetooth">
+            <div class="setting-icon-container">
+                <svg class="setting-icon" id="icon-bluetooth" viewBox="0 0 24 24">
+                    <path d="M14.88,16.29L13,18.17V14.41M13,9.59L14.88,11.47L13,13.25M17.71,7.71L12,2H11V9.17L6.41,4.59L5,6L10.59,11.59L5,17.17L6.41,18.59L11,14V21.17H12L17.71,15.46L13.25,11L17.71,7.71Z"/>
+                </svg>
+            </div>
+            <div class="setting-info">
+                <div class="setting-title">Bluetooth</div>
+                <div class="setting-summary" id="bluetooth-summary">OFF</div>
+            </div>
+            <div class="setting-widget">
+                <div class="holo-switch" id="switch-bluetooth">
+                    <div class="holo-switch-inner">
+                        <div class="switch-on">ON</div>
+                        <div class="switch-thumb"></div>
+                        <div class="switch-off">OFF</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- データ使用量 -->
+        <div class="setting-item" id="item-data-usage">
+            <div class="setting-icon-container">
+                <svg class="setting-icon" viewBox="0 0 24 24">
+                    <path d="M12,2C6.48,2 2,6.48 2,12C2,17.52 6.48,22 12,22C17.52,22 22,17.52 22,12C22,6.48 17.52,2 12,2M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M13,7H11V11H7V13H11V17H13V13H17V11H13V7Z"/>
+                </svg>
+            </div>
+            <div class="setting-info">
+                <div class="setting-title">データ使用量</div>
+                <div class="setting-summary">モバイルデータ通信制限を設定可能</div>
+            </div>
+        </div>
+
+        <!-- 端末設定 -->
+        <div class="section-header">端末</div>
+
+        <!-- 音声 -->
+        <div class="setting-item" id="item-sound">
+            <div class="setting-icon-container">
+                <svg class="setting-icon" viewBox="0 0 24 24">
+                    <path d="M14,3.23V5.29C16.89,6.15 19,8.83 19,12C19,15.17 16.89,17.85 14,18.71V20.77C18,19.86 21,16.28 21,12C21,7.72 18,4.14 14,3.23M16.5,12C16.5,10.23 15.5,8.71 14,7.97V16C15.5,15.29 16.5,13.77 16.5,12M11,21L6,16H2V8H6L11,3V21Z"/>
+                </svg>
+            </div>
+            <div class="setting-info">
+                <div class="setting-title">音声</div>
+                <div class="setting-summary">音量、通知音、操作音</div>
+            </div>
+        </div>
+
+        <!-- 画面 -->
+        <div class="setting-item" id="item-display">
+            <div class="setting-icon-container">
+                <svg class="setting-icon" viewBox="0 0 24 24">
+                    <path d="M12,18C11.11,18 10.26,17.8 9.5,17.45C11.56,16.5 13,14.42 13,12C13,9.58 11.56,7.5 9.5,6.55C10.26,6.2 11.11,6 12,6A6,6 0 0,1 18,12A6,6 0 0,1 12,18M20,8.69V4H15.31L12,0.69L8.69,4H4V8.69L0.69,12L4,15.31V20H8.69L12,23.31L15.31,20H20V15.31L23.31,12L20,8.69Z"/>
+                </svg>
+            </div>
+            <div class="setting-info">
+                <div class="setting-title">画面</div>
+                <div class="setting-summary">明るさ、スリープ時間</div>
+            </div>
+        </div>
+
+        <!-- ストレージ -->
+        <div class="setting-item" id="item-storage">
+            <div class="setting-icon-container">
+                <svg class="setting-icon" viewBox="0 0 24 24">
+                    <path d="M18,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V4A2,2 0 0,0 18,2M12,4A2,2 0 0,1 14,6A2,2 0 0,1 12,8A2,2 0 0,1 10,6A2,2 0 0,1 12,4M12,18A3,3 0 0,1 9,15A3,3 0 0,1 12,12A3,3 0 0,1 15,15A3,3 0 0,1 12,18Z"/>
+                </svg>
+            </div>
+            <div class="setting-info">
+                <div class="setting-title">ストレージ</div>
+                <div class="setting-summary">使用可能な空き領域の確認</div>
+            </div>
+        </div>
+
+        <!-- 電池 -->
+        <div class="setting-item" id="item-battery">
+            <div class="setting-icon-container">
+                <svg class="setting-icon" viewBox="0 0 24 24">
+                    <path d="M16.67,4H15V2H9V4H7.33A1.33,1.33 0 0,0 6,5.33V20.67C6,21.4 6.6,22 7.33,22H16.67A1.33,1.33 0 0,0 18,20.67V5.33A1.33,1.33 0 0,0 16.67,4M15,20H9V6H15V20Z"/>
+                </svg>
+            </div>
+            <div class="setting-info">
+                <div class="setting-title">電池</div>
+                <div class="setting-summary">バッテリー消費状況と残り時間</div>
+            </div>
+        </div>
+
+        <!-- キャラクター設定（特別追加） -->
+        <div class="section-header">キャラクター設定</div>
+
+        <!-- ドイッチュラント -->
+        <div class="setting-item" id="item-character">
+            <div class="setting-icon-container">
+                <!-- キャラクターの読み込み (エラー時はフォールバック発動) -->
+                <div id="char-icon" class="char-avatar" style="display:none;"></div>
+                <div id="char-fallback-icon" class="char-fallback">
+                    <div class="char-fallback-eye-pupil1"></div>
+                    <div class="char-fallback-eye-pupil2"></div>
+                </div>
+            </div>
+            <div class="setting-info">
+                <div class="setting-title">ドイッチュラント</div>
+                <div class="setting-summary">キャラの状態、イースターエッグのヒント</div>
+            </div>
+        </div>
+
+        <!-- システム -->
+        <div class="section-header">システム</div>
+
+        <!-- 端末情報 -->
+        <div class="setting-item" id="item-about">
+            <div class="setting-icon-container">
+                <svg class="setting-icon" viewBox="0 0 24 24">
+                    <path d="M11,9H13V7H11M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M11,17H13V11H11V17Z"/>
+                </svg>
+            </div>
+            <div class="setting-info">
+                <div class="setting-title">端末情報</div>
+                <div class="setting-summary">Androidバージョン、ビルド情報</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- --- SUB PAGES --- -->
+
+    <!-- Wi-Fi設定画面 -->
+    <div class="sub-page" id="page-wifi">
+        <div class="actionbar" style="height: 48px; background-color: #000; display:flex; align-items:center; padding:0 12px; border-bottom:2px solid #0099cc;">
+            <div class="holo-button btn-back" style="margin-left:0; padding:10px 10px;">◀</div>
+            <div class="actionbar-title">Wi-Fi</div>
+        </div>
+        <div style="padding: 16px; color:#cccccc;">
+            <div class="holo-switch" id="sub-switch-wifi" style="float: right;">
+                <div class="holo-switch-inner">
+                    <div class="switch-on">ON</div>
+                    <div class="switch-thumb"></div>
+                    <div class="switch-off">OFF</div>
+                </div>
+            </div>
+            <p style="font-size:16px; margin-bottom:20px;">Wi-Fiネットワーク</p>
+            <div id="wifi-networks-list">
+                <!-- 動的生成 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Bluetooth設定画面 -->
+    <div class="sub-page" id="page-bluetooth">
+        <div class="actionbar" style="height: 48px; background-color: #000; display:flex; align-items:center; padding:0 12px; border-bottom:2px solid #0099cc;">
+            <div class="holo-button btn-back" style="margin-left:0; padding:10px 10px;">◀</div>
+            <div class="actionbar-title">Bluetooth</div>
+        </div>
+        <div style="padding: 16px; color:#cccccc;">
+            <div class="holo-switch" id="sub-switch-bluetooth" style="float: right;">
+                <div class="holo-switch-inner">
+                    <div class="switch-on">ON</div>
+                    <div class="switch-thumb"></div>
+                    <div class="switch-off">OFF</div>
+                </div>
+            </div>
+            <p style="font-size:16px; margin-bottom:20px;">周辺のデバイス</p>
+            <div id="bluetooth-devices-list">
+                <!-- 動的生成 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 音量設定画面 -->
+    <div class="sub-page" id="page-sound">
+        <div class="actionbar" style="height: 48px; background-color: #000; display:flex; align-items:center; padding:0 12px; border-bottom:2px solid #0099cc;">
+            <div class="holo-button btn-back" style="margin-left:0; padding:10px 10px;">◀</div>
+            <div class="actionbar-title">音声設定</div>
+        </div>
+        <div style="padding: 20px;">
+            <div class="holo-slider-container">
+                <span class="slider-label">着信音の音量</span>
+                <input type="range" class="holo-slider" id="slider-ring" min="0" max="100" value="70">
+            </div>
+            <div class="holo-slider-container">
+                <span class="slider-label">メディア音量</span>
+                <input type="range" class="holo-slider" id="slider-media" min="0" max="100" value="50">
+            </div>
+            <div class="holo-slider-container">
+                <span class="slider-label">アラーム音量</span>
+                <input type="range" class="holo-slider" id="slider-alarm" min="0" max="100" value="80">
+            </div>
+            <p style="font-size:12px; color:#666666; margin-top:20px;">※スライダーを動かすとHolo調シンセ音が鳴ります</p>
+        </div>
+    </div>
+
+    <!-- 画面設定画面 -->
+    <div class="sub-page" id="page-display">
+        <div class="actionbar" style="height: 48px; background-color: #000; display:flex; align-items:center; padding:0 12px; border-bottom:2px solid #0099cc;">
+            <div class="holo-button btn-back" style="margin-left:0; padding:10px 10px;">◀</div>
+            <div class="actionbar-title">画面設定</div>
+        </div>
+        <div style="padding: 20px;">
+            <div class="holo-slider-container">
+                <span class="slider-label">明るさレベル</span>
+                <input type="range" class="holo-slider" id="slider-brightness" min="10" max="100" value="100">
+            </div>
+            <p style="font-size:14px; margin-top:20px;">画面回転： 自動回転ON</p>
+            <p style="font-size:14px; margin-top:15px;">スリープ： 1分間操作がない場合</p>
+        </div>
+    </div>
+
+    <!-- ストレージ画面 -->
+    <div class="sub-page" id="page-storage">
+        <div class="actionbar" style="height: 48px; background-color: #000; display:flex; align-items:center; padding:0 12px; border-bottom:2px solid #0099cc;">
+            <div class="holo-button btn-back" style="margin-left:0; padding:10px 10px;">◀</div>
+            <div class="actionbar-title">ストレージ</div>
+        </div>
+        <div style="padding: 20px;">
+            <span class="slider-label">本体メモリー (合計 16.00GB)</span>
+            <div class="storage-bar-wrapper">
+                <div class="storage-segment storage-apps"></div>
+                <div class="storage-pics"></div>
+                <div class="storage-audio"></div>
+                <div class="storage-misc"></div>
+                <div class="storage-free"></div>
+            </div>
+            <div class="storage-legend">
+                <div class="legend-item"><div class="legend-color storage-apps"></div>アプリ (7.2GB)</div>
+                <div class="legend-item"><div class="legend-color storage-pics"></div>画像・動画 (3.2GB)</div>
+                <div class="legend-item"><div class="legend-color storage-audio"></div>音楽・音声 (1.6GB)</div>
+                <div class="legend-item"><div class="legend-color storage-misc"></div>その他 (0.8GB)</div>
+                <div class="legend-item"><div class="legend-color storage-free"></div>空き容量 (3.2GB)</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 電池画面 -->
+    <div class="sub-page" id="page-battery">
+        <div class="actionbar" style="height: 48px; background-color: #000; display:flex; align-items:center; padding:0 12px; border-bottom:2px solid #0099cc;">
+            <div class="holo-button btn-back" style="margin-left:0; padding:10px 10px;">◀</div>
+            <div class="actionbar-title">電池</div>
+        </div>
+        <div style="padding: 20px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span class="slider-label" style="font-size:18px; color:#fff;">残り 84%</span>
+                <span class="slider-label">放電中 (電池使用)</span>
+            </div>
+            <div class="battery-graph-box">
+                <div class="battery-grid"></div>
+                <canvas id="battery-canvas" class="battery-line" width="300" height="150"></canvas>
+            </div>
+            <p style="font-size:13px; color:#999999; margin-top:15px;">画面： 65% 消費</p>
+            <p style="font-size:13px; color:#999999; margin-top:8px;">Wi-Fi： 15% 消費</p>
+            <p style="font-size:13px; color:#999999; margin-top:8px;">Bluetooth： 5% 消費</p>
+        </div>
+    </div>
+
+    <!-- キャラクター設定画面 -->
+    <div class="sub-page" id="page-character">
+        <div class="actionbar" style="height: 48px; background-color: #000; display:flex; align-items:center; padding:0 12px; border-bottom:2px solid #0099cc;">
+            <div class="holo-button btn-back" style="margin-left:0; padding:10px 10px;">◀</div>
+            <div class="actionbar-title">ドイッチュラント</div>
+        </div>
+        <div style="padding: 20px; text-align:center;">
+            <!-- メイン画像表示 -->
+            <div id="char-main-img" style="width: 140px; height: 140px; margin: 0 auto 20px auto; border-radius:50%; background-size:contain; background-position:center; background-repeat:no-repeat;"></div>
+            
+            <p style="font-size:18px; color:#33b5e5; margin-bottom:10px;">de2.png オペレーター</p>
+            <div style="background-color:#090c0e; border: 1px solid #1a1a1a; padding: 15px; text-align:left; border-radius:4px; font-size:13px; color:#ccc; line-height:1.6;">
+                <p>● <strong>ステータス:</strong> 稼働中</p>
+                <p>● <strong>機能:</strong> Holoエンジンの制御</p>
+                <p>● <strong>隠し機能:</strong> 設定の「端末情報」の「ビルド番号」を何回も連打すると...？ または私を何回かタップしてみてね！</p>
+            </div>
+            
+            <button class="holo-button" id="btn-touch-char" style="border: 1px solid #33b5e5; margin-top: 20px; width: 100%;">頭を撫でる</button>
+        </div>
+    </div>
+
+    <!-- 端末情報画面 -->
+    <div class="sub-page" id="page-about">
+        <div class="actionbar" style="height: 48px; background-color: #000; display:flex; align-items:center; padding:0 12px; border-bottom:2px solid #0099cc;">
+            <div class="holo-button btn-back" style="margin-left:0; padding:10px 10px;">◀</div>
+            <div class="actionbar-title">端末情報</div>
+        </div>
+        <div style="padding: 10px 0; overflow-y:auto; flex:1;">
+            <div class="setting-item" style="cursor:default;">
+                <div class="setting-info">
+                    <div class="setting-title" style="font-size:15px;">機種名</div>
+                    <div class="setting-summary">Holo Emulator Nexus</div>
+                </div>
+            </div>
+            <div class="setting-item" style="cursor:default;">
+                <div class="setting-info">
+                    <div class="setting-title" style="font-size:15px;">Androidバージョン</div>
+                    <div class="setting-summary">4.4.4 (KitKat)</div>
+                </div>
+            </div>
+            <div class="setting-item" style="cursor:default;">
+                <div class="setting-info">
+                    <div class="setting-title" style="font-size:15px;">カーネルバージョン</div>
+                    <div class="setting-summary">3.4.0-holo-g2026-chrome40</div>
+                </div>
+            </div>
+            <div class="setting-item" id="item-build">
+                <div class="setting-info">
+                    <div class="setting-title" style="font-size:15px;">ビルド番号</div>
+                    <div class="setting-summary">KTU84P.HloUI.20260708</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ダイアログ -->
+    <div id="dialog-overlay">
+        <div class="holo-dialog">
+            <div class="dialog-header">
+                <div class="dialog-title" id="dialog-title">タイトル</div>
+            </div>
+            <div class="dialog-body" id="dialog-body">
+                内容が入ります。
+            </div>
+            <div class="dialog-footer">
+                <button class="holo-button" id="dialog-btn-cancel">キャンセル</button>
+                <button class="holo-button" id="dialog-btn-ok">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- トースト -->
+    <div id="toast">開発者向けオプションが有効になりました！</div>
+
+    <!-- イースターエッグ画面 -->
+    <div id="easter-egg-screen">
+        <canvas id="easter-egg-canvas"></canvas>
+        <button id="easter-egg-back">設定に戻る</button>
+    </div>
+</div>
+
+<script>
+    // --- STREAMING_CHUNK: Polyfilling legacy features for Android 4 WebKit... ---
+    // Android 4.x の標準WebKit用 requestAnimationFrame / cancelAnimationFrame ポリフィル
+    var requestAnimationFrame = window.requestAnimationFrame || 
+                                window.webkitRequestAnimationFrame || 
+                                window.mozRequestAnimationFrame || 
+                                function(callback) { return setTimeout(callback, 16); };
+    
+    var cancelAnimationFrame = window.cancelAnimationFrame || 
+                               window.webkitCancelAnimationFrame || 
+                               window.mozCancelAnimationFrame || 
+                               clearTimeout;
+
+    var clockEl = document.getElementById('clock');
+    var switchWifi = document.getElementById('switch-wifi');
+    var switchBluetooth = document.getElementById('switch-bluetooth');
+    var subSwitchWifi = document.getElementById('sub-switch-wifi');
+    var subSwitchBluetooth = document.getElementById('sub-switch-bluetooth');
+
+    var wifiSummary = document.getElementById('wifi-summary');
+    var bluetoothSummary = document.getElementById('bluetooth-summary');
+
+    var statusWifi = document.getElementById('status-wifi');
+    var statusBluetooth = document.getElementById('status-bluetooth');
+
+    // キャライメージURL
+    var charImgUrl = "https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/pbhuB2/de2.png";
+
+    // --- Web Audio API によるレトロサウンド効果 ---
+    var audioCtx = null;
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+    }
+
+    function playBeep(freq, duration, type) {
+        try {
+            initAudio();
+            if (!audioCtx) return;
+            var osc = audioCtx.createOscillator();
+            var gainNode = audioCtx.createGain();
+            
+            osc.type = type || 'sine';
+            osc.frequency.value = freq || 800;
+            
+            gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+            
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration);
+        } catch(e) {
+            // オーディオ制限等の回避
+        }
+    }
+
+    function playTick() {
+        playBeep(1200, 0.05, 'triangle');
+    }
+
+    function playToggleSound() {
+        playBeep(900, 0.08, 'sine');
+        setTimeout(function() {
+            playBeep(1100, 0.08, 'sine');
+        }, 50);
+    }
+
+    // --- REALTIME CLOCK ---
+    function updateClock() {
+        var now = new Date();
+        var hrs = now.getHours();
+        var mins = now.getMinutes();
+        if (hrs < 10) hrs = "0" + hrs;
+        if (mins < 10) mins = "0" + mins;
+        clockEl.textContent = hrs + ":" + mins;
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // --- CHARACTER IMAGE INITIALIZATION & FALLBACK ---
+    var charIcon = document.getElementById('char-icon');
+    var charFallbackIcon = document.getElementById('char-fallback-icon');
+    var charMainImg = document.getElementById('char-main-img');
+
+    // 画像のプリロード
+    var tempImg = new Image();
+    tempImg.onload = function() {
+        // 画像読み込み成功時
+        charIcon.style.backgroundImage = "url('" + charImgUrl + "')";
+        charIcon.style.display = "inline-block";
+        charFallbackIcon.style.display = "none";
+        
+        charMainImg.style.backgroundImage = "url('" + charImgUrl + "')";
+    };
+    tempImg.onerror = function() {
+        // 読み込み失敗時(フォールバック)
+        charIcon.style.display = "none";
+        charFallbackIcon.style.display = "inline-block";
+        
+        // メイン画像エリアにもフォールバックを描画
+        charMainImg.innerHTML = "<div class='char-fallback' style='width:120px; height:120px;'><div class='char-fallback-eye-pupil1' style='width:6px; height:6px; top:36px; left:36px;'></div><div class='char-fallback-eye-pupil2' style='width:6px; height:6px; top:36px; left:76px;'></div></div>";
+        // CSSフォールバック用の目を追加
+        var fallbackBall = charMainImg.querySelector('.char-fallback');
+        fallbackBall.style.margin = "10px auto";
+    };
+    tempImg.src = charImgUrl;
+
+
+    // --- TOGGLE SWITCH FUNCTIONALITY ---
+    var wifiOn = false;
+    var bluetoothOn = false;
+
+    function setWifiState(state) {
+        wifiOn = state;
+        if (wifiOn) {
+            switchWifi.className = "holo-switch on";
+            subSwitchWifi.className = "holo-switch on";
+            wifiSummary.textContent = "Holo_HighSpeed_5G に接続されました";
+            statusWifi.className = "status-icon"; // 光る
+        } else {
+            switchWifi.className = "holo-switch";
+            subSwitchWifi.className = "holo-switch";
+            wifiSummary.textContent = "OFF";
+            statusWifi.className = "status-icon disabled"; // 暗い
+        }
+        updateWifiNetworkList();
+    }
+
+    function setBluetoothState(state) {
+        bluetoothOn = state;
+        if (bluetoothOn) {
+            switchBluetooth.className = "holo-switch on";
+            subSwitchBluetooth.className = "holo-switch on";
+            bluetoothSummary.textContent = "ドイッチュラント (de2.png) とペアリング済";
+            statusBluetooth.className = "status-icon";
+        } else {
+            switchBluetooth.className = "holo-switch";
+            subSwitchBluetooth.className = "holo-switch";
+            bluetoothSummary.textContent = "OFF";
+            statusBluetooth.className = "status-icon disabled";
+        }
+        updateBluetoothDevicesList();
+    }
+
+    // スイッチクリックイベント
+    switchWifi.onclick = function(e) {
+        e.stopPropagation();
+        setWifiState(!wifiOn);
+        playToggleSound();
+    };
+    subSwitchWifi.onclick = function(e) {
+        e.stopPropagation();
+        setWifiState(!wifiOn);
+        playToggleSound();
+    };
+
+    switchBluetooth.onclick = function(e) {
+        e.stopPropagation();
+        setBluetoothState(!bluetoothOn);
+        playToggleSound();
+    };
+    subSwitchBluetooth.onclick = function(e) {
+        e.stopPropagation();
+        setBluetoothState(!bluetoothOn);
+        playToggleSound();
+    };
+
+
+    // --- SUB PAGE ROUTING SYSTEM ---
+    var activePageStack = [];
+
+    function openSubPage(pageId) {
+        var page = document.getElementById(pageId);
+        if (page) {
+            page.className = "sub-page active";
+            activePageStack.push(page);
+            playTick();
+        }
+    }
+
+    function closeCurrentPage() {
+        var page = activePageStack.pop();
+        if (page) {
+            page.className = "sub-page";
+            playTick();
+        }
+    }
+
+    // クローズボタンの設定 (すべてのサブページに適用)
+    var backButtons = document.querySelectorAll('.btn-back');
+    for (var i = 0; i < backButtons.length; i++) {
+        backButtons[i].onclick = function() {
+            closeCurrentPage();
+        };
+    }
+
+    // リスト項目とのリンク
+    document.getElementById('item-wifi').onclick = function() { openSubPage('page-wifi'); };
+    document.getElementById('item-bluetooth').onclick = function() { openSubPage('page-bluetooth'); };
+    document.getElementById('item-sound').onclick = function() { openSubPage('page-sound'); };
+    document.getElementById('item-display').onclick = function() { openSubPage('page-display'); };
+    document.getElementById('item-storage').onclick = function() { openSubPage('page-storage'); };
+    document.getElementById('item-battery').onclick = function() { openSubPage('page-battery'); };
+    document.getElementById('item-character').onclick = function() { openSubPage('page-character'); };
+    document.getElementById('item-about').onclick = function() { openSubPage('page-about'); };
+
+
+    // --- DATA LIST GENERATION FOR SUBPAGES ---
+    var wifiList = document.getElementById('wifi-networks-list');
+    function updateWifiNetworkList() {
+        if (!wifiOn) {
+            wifiList.innerHTML = "<div style='color:#666666; text-align:center; padding: 40px 0;'>Wi-FiがOFFになっています。</div>";
+            return;
+        }
+        wifiList.innerHTML = "" +
+            "<div class='setting-item'>" +
+            "  <div class='setting-info'>" +
+            "    <div class='setting-title'>Holo_HighSpeed_5G</div>" +
+            "    <div class='setting-summary'>接続済み (セキュリティ: WPA2)</div>" +
+            "  </div>" +
+            "</div>" +
+            "<div class='setting-item'>" +
+            "  <div class='setting-info'>" +
+            "    <div class='setting-title'>PolandBall_Free_Wi-Fi</div>" +
+            "    <div class='setting-summary'>保存済み、セキュリティで保護</div>" +
+            "  </div>" +
+            "</div>" +
+            "<div class='setting-item'>" +
+            "  <div class='setting-info'>" +
+            "    <div class='setting-title'>Android_AP_Legacy</div>" +
+            "    <div class='setting-summary'>電波強度: 強</div>" +
+            "  </div>" +
+            "</div>";
+    }
+
+    var bluetoothList = document.getElementById('bluetooth-devices-list');
+    function updateBluetoothDevicesList() {
+        if (!bluetoothOn) {
+            bluetoothList.innerHTML = "<div style='color:#666666; text-align:center; padding: 40px 0;'>BluetoothがOFFになっています。</div>";
+            return;
+        }
+        bluetoothList.innerHTML = "" +
+            "<div class='setting-item'>" +
+            "  <div class='setting-info'>" +
+            "    <div class='setting-title'>ドイッチュラント (de2.png)</div>" +
+            "    <div class='setting-summary'>ペアリング済み</div>" +
+            "  </div>" +
+            "</div>" +
+            "<div class='setting-item'>" +
+            "  <div class='setting-info'>" +
+            "    <div class='setting-title'>Holo Smart Watch</div>" +
+            "    <div class='setting-summary'>タップして接続</div>" +
+            "  </div>" +
+            "</div>";
+    }
+
+
+    // --- AUDIO VOLUME INTERACTION ---
+    var sliders = ['slider-ring', 'slider-media', 'slider-alarm'];
+    for (var j = 0; j < sliders.length; j++) {
+        var slider = document.getElementById(sliders[j]);
+        if (slider) {
+            slider.oninput = function() {
+                var val = parseInt(this.value);
+                // 値に応じて周波数を変えてレトロ感あるビープ音
+                playBeep(300 + (val * 8), 0.04, 'sine');
+            };
+        }
+    }
+
+
+    // --- DISPLAY BRIGHTNESS OVERLAY CONTROL ---
+    var sliderBrightness = document.getElementById('slider-brightness');
+    var brightnessOverlay = document.getElementById('brightness-overlay');
+    sliderBrightness.oninput = function() {
+        var val = parseInt(this.value);
+        // 暗さは0%から90%まで
+        var darkFactor = (100 - val) / 100 * 0.8;
+        brightnessOverlay.style.opacity = darkFactor;
+    };
+
+
+    // --- BATTERY CANVAS GRAPH ---
+    var batteryCanvas = document.getElementById('battery-canvas');
+    if (batteryCanvas) {
+        var ctx = batteryCanvas.getContext('2d');
+        // グラデーションの線を描画
+        ctx.strokeStyle = "#33b5e5";
+        ctx.lineWidth = 3;
+        ctx.shadowColor = 'rgba(51, 181, 229, 0.5)';
+        ctx.shadowBlur = 8;
+        
+        ctx.beginPath();
+        ctx.moveTo(0, 30);
+        ctx.lineTo(50, 40);
+        ctx.lineTo(100, 65);
+        ctx.lineTo(150, 70);
+        ctx.lineTo(200, 95);
+        ctx.lineTo(250, 110);
+        ctx.lineTo(300, 115);
+        ctx.stroke();
+
+        // 塗りつぶし部分
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = "rgba(51, 181, 229, 0.08)";
+        ctx.lineTo(300, 150);
+        ctx.lineTo(0, 150);
+        ctx.closePath();
+        ctx.fill();
+    }
+
+
+    // --- TOAST FUNCTION ---
+    var toastTimeout;
+    function showToast(message) {
+        var toast = document.getElementById('toast');
+        toast.textContent = message;
+        toast.style.display = "block";
+        clearTimeout(toastTimeout);
+        toastTimeout = setTimeout(function() {
+            toast.style.display = "none";
+        }, 2000);
+    }
+
+
+    // --- BUILD NUMBER TAP (Developer Mode Easter Egg Trigger) ---
+    var buildTapCount = 0;
+    var devModeUnlocked = false;
+    document.getElementById('item-build').onclick = function() {
+        if (devModeUnlocked) {
+            showToast("すでにデベロッパーです。");
+            return;
+        }
+        buildTapCount++;
+        playBeep(600 + (buildTapCount * 100), 0.05, 'square');
+        if (buildTapCount >= 7) {
+            devModeUnlocked = true;
+            showToast("デベロッパー向けオプションが有効になりました！");
+            triggerEasterEgg();
+        } else if (buildTapCount >= 3) {
+            var left = 7 - buildTapCount;
+            showToast("デベロッパーになるまであと " + left + " 回です。");
+        }
+    };
+
+
+    // --- MAIN CHARACTER TAB DETECTOR & DIALOG INTERACTION ---
+    var charTapCount = 0;
+    document.getElementById('btn-touch-char').onclick = function() {
+        charTapCount++;
+        playBeep(1000 + (charTapCount * 80), 0.1, 'sine');
+        
+        var messages = [
+            "頭を撫でてくれてありがとう！(de2.png)",
+            "Holo UIへようこそ！この古いインターフェース、素敵でしょ？",
+            "もう一度ビルド番号をたくさんタップすると、すごいイースターエッグが出現するよ！",
+            "これ以上撫でると目が回るよー！",
+            "うわぁ、回り始めた！"
+        ];
+        
+        var msg = messages[(charTapCount - 1) % messages.length];
+        showToast(msg);
+
+        // キャラ画像をくるくる回転させる演出
+        var imgEl = document.getElementById('char-main-img');
+        imgEl.style.transition = "transform 0.5s ease-out";
+        imgEl.style.transform = "rotate(" + (charTapCount * 360) + "deg)";
+
+        if (charTapCount >= 5) {
+            setTimeout(function() {
+                triggerEasterEgg();
+            }, 800);
+        }
+    };
+
+
+    // --- EASTER EGG (JELLY BEAN FLYING GAME) ---
+    var eggScreen = document.getElementById('easter-egg-screen');
+    var eggCanvas = document.getElementById('easter-egg-canvas');
+    var eggCtx = eggCanvas.getContext('2d');
+    var eggAnimationId = null;
+    var entities = [];
+    var charImageObj = new Image();
+    charImageObj.src = charImgUrl;
+
+    // キャンバスリサイズ
+    function resizeEggCanvas() {
+        eggCanvas.width = eggScreen.clientWidth;
+        eggCanvas.height = eggScreen.clientHeight;
+    }
+
+    function triggerEasterEgg() {
+        eggScreen.style.display = "block";
+        resizeEggCanvas();
+        playBeep(440, 0.1, 'sine');
+        setTimeout(function() { playBeep(554, 0.1, 'sine'); }, 100);
+        setTimeout(function() { playBeep(659, 0.1, 'sine'); }, 200);
+        setTimeout(function() { playBeep(880, 0.25, 'sine'); }, 300);
+
+        // エンティティ生成
+        entities = [];
+        var numEntities = 15;
+        for (var k = 0; k < numEntities; k++) {
+            entities.push({
+                x: Math.random() * eggCanvas.width,
+                y: Math.random() * eggCanvas.height,
+                vx: (Math.random() - 0.5) * 6,
+                vy: (Math.random() - 0.5) * 6,
+                size: 40 + Math.random() * 40,
+                rot: Math.random() * Math.PI * 2,
+                vrot: (Math.random() - 0.5) * 0.05
+            });
+        }
+
+        eggAnimationId = requestAnimationFrame(updateEasterEgg);
+    }
+
+    function updateEasterEgg() {
+        eggCtx.clearRect(0, 0, eggCanvas.width, eggCanvas.height);
+        
+        // Android 4.x 互換のための放射状グラデーション描画
+        var grad = eggCtx.createRadialGradient(eggCanvas.width/2, eggCanvas.height/2, 10, eggCanvas.width/2, eggCanvas.height/2, eggCanvas.width);
+        grad.addColorStop(0, '#021a24');
+        grad.addColorStop(1, '#000000');
+        eggCtx.fillStyle = grad;
+        eggCtx.fillRect(0, 0, eggCanvas.width, eggCanvas.height);
+
+        // タイトルテキスト
+        eggCtx.fillStyle = "#33b5e5";
+        eggCtx.font = "bold 20px Roboto, sans-serif";
+        eggCtx.textAlign = "center";
+        eggCtx.fillText("HloUI & de2.png イースターエッグ", eggCanvas.width / 2, 40);
+        eggCtx.font = "14px Roboto, sans-serif";
+        eggCtx.fillStyle = "#999999";
+        eggCtx.fillText("タップ/スワイプで飛ばせます！", eggCanvas.width / 2, 65);
+
+        // 各キャラクター描画と更新
+        for (var i = 0; i < entities.length; i++) {
+            var ent = entities[i];
+            ent.x += ent.vx;
+            ent.y += ent.vy;
+            ent.rot += ent.vrot;
+
+            // 壁バウンス
+            if (ent.x - ent.size/2 < 0) { ent.x = ent.size/2; ent.vx *= -1; }
+            if (ent.x + ent.size/2 > eggCanvas.width) { ent.x = eggCanvas.width - ent.size/2; ent.vx *= -1; }
+            if (ent.y - ent.size/2 < 0) { ent.y = ent.size/2; ent.vy *= -1; }
+            if (ent.y + ent.size/2 > eggCanvas.height) { ent.y = eggCanvas.height - ent.size/2; ent.vy *= -1; }
+
+            eggCtx.save();
+            eggCtx.translate(ent.x, ent.y);
+            // WebKit互換の回転処理
+            eggCtx.rotate(ent.rot);
+            
+            // 描画
+            if (charImageObj.complete && charImageObj.naturalWidth !== 0) {
+                eggCtx.drawImage(charImageObj, -ent.size/2, -ent.size/2, ent.size, ent.size);
+            } else {
+                drawFallbackBall(eggCtx, ent.size);
+            }
+            eggCtx.restore();
+        }
+
+        eggAnimationId = requestAnimationFrame(updateEasterEgg);
+    }
+
+    // キャンバス内でのCSSフォールバックドイツボール再現
+    function drawFallbackBall(context, size) {
+        var r = size / 2;
+        // 影
+        context.shadowColor = 'rgba(0,0,0,0.5)';
+        context.shadowBlur = 6;
+        // 本体円
+        context.beginPath();
+        context.arc(0, 0, r, 0, Math.PI * 2);
+        context.clip();
+        context.shadowBlur = 0;
+
+        // ドイツ国旗三色
+        context.fillStyle = "#000000";
+        context.fillRect(-r, -r, size, size/3);
+        context.fillStyle = "#FF0000";
+        context.fillRect(-r, -r + size/3, size, size/3);
+        context.fillStyle = "#FFCC00";
+        context.fillRect(-r, -r + (size/3)*2, size, size/3);
+
+        // 目
+        context.fillStyle = "white";
+        context.beginPath();
+        context.arc(-r*0.35, -r*0.2, r*0.25, 0, Math.PI*2);
+        context.arc(r*0.35, -r*0.2, r*0.25, 0, Math.PI*2);
+        context.fill();
+
+        // 黒目
+        context.fillStyle = "black";
+        context.beginPath();
+        context.arc(-r*0.3, -r*0.2, r*0.08, 0, Math.PI*2);
+        context.arc(r*0.3, -r*0.2, r*0.08, 0, Math.PI*2);
+        context.fill();
+    }
+
+    // タップによる干渉
+    eggCanvas.addEventListener('touchstart', handleEggTouch);
+    eggCanvas.addEventListener('mousedown', handleEggTouch);
+
+    function handleEggTouch(e) {
+        e.preventDefault();
+        var clientX = e.clientX || (e.touches && e.touches[0].clientX);
+        var clientY = e.clientY || (e.touches && e.touches[0].clientY);
+        
+        var rect = eggCanvas.getBoundingClientRect();
+        var touchX = clientX - rect.left;
+        var touchY = clientY - rect.top;
+
+        for (var i = 0; i < entities.length; i++) {
+            var ent = entities[i];
+            var dx = ent.x - touchX;
+            var dy = ent.y - touchY;
+            var dist = Math.sqrt(dx*dx + dy*dy);
+            
+            if (dist < ent.size) {
+                // 弾き飛ばす
+                ent.vx = (dx / dist) * 15;
+                ent.vy = (dy / dist) * 15;
+                ent.vrot = (Math.random() - 0.5) * 0.4;
+                playBeep(800 + Math.random()*400, 0.08, 'sine');
+            }
+        }
+    }
+
+    document.getElementById('easter-egg-back').onclick = function() {
+        cancelAnimationFrame(eggAnimationId);
+        eggScreen.style.display = "none";
+        charTapCount = 0;
+        buildTapCount = 0;
+        playBeep(440, 0.1, 'sine');
+    };
+
+
+    // --- INITIALIZE DEFAULT VALUES ---
+    setWifiState(false);
+    setBluetoothState(false);
+
+</script>
+</body>
+</html>
