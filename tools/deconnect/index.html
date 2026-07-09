@@ -1,0 +1,2011 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+    <title>Deu2Connect - PeerDrop</title>
+
+    <!-- Google Fonts & Material Symbols -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+
+    <!-- PeerJS & QRCode (jsQR) Libraries -->
+    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+
+    <style>
+        :root {
+            --accent-primary: #3381FF;
+            --accent-active: #1A5FCC;
+            --card-radius: 24px;
+            --slider-height: 16px;
+            --toggle-width: 54px;
+            --toggle-height: 30px;
+            --toggle-knob-radius: 50%;
+            --toggle-knob-width: 22px;
+
+            /* Light Mode ベースカラー */
+            --bg-base: #F7F7F7;
+            --glass-bg: #FFFFFF;
+            --text-main: #000000;
+            --text-sub: #666666;
+            --bg-secondary: #EEEEEE;
+            --nav-bg: #FFFFFF;
+            --nav-icon-active: #000000;
+            
+            --m3-easing: cubic-bezier(0.32, 0.72, 0, 1);
+            --transition-smooth: 0.35s var(--m3-easing);
+            --card-padding: 24px;
+        }
+
+        /* ダークモード */
+        .dark-mode {
+            --bg-base: #121212;
+            --glass-bg: #1E1E1E;
+            --text-main: #FFFFFF;
+            --text-sub: #A1A1A6;
+            --bg-secondary: #2C2C2E;
+            --nav-bg: #1E1E1E;
+            --nav-icon-active: #FFFFFF;
+        }
+
+        /* 接続試行中（すりガラス＆グラデーション背景、テーマを崩さずに重ねる） */
+        body.connecting-state {
+            background: linear-gradient(135deg, #1e1b4b 0%, #0f172a 50%, #1e152a 100%) !important;
+        }
+        body.connecting-state:not(.dark-mode) {
+            background: linear-gradient(135deg, #e0e7ff 0%, #f1f5f9 50%, #fae8ff 100%) !important;
+        }
+
+        .connecting-state .glass-card {
+            background: rgba(255, 255, 255, 0.45) !important;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.3) !important;
+        }
+        .dark-mode.connecting-state .glass-card {
+            background: rgba(30, 30, 30, 0.45) !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        }
+
+        .connecting-state header, .connecting-state .bottom-nav-container {
+            background: rgba(255, 255, 255, 0.6) !important;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        .dark-mode.connecting-state header, .dark-mode.connecting-state .bottom-nav-container {
+            background: rgba(20, 20, 25, 0.6) !important;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', 'Noto Sans JP', sans-serif;
+            background: var(--bg-base);
+            color: var(--text-main);
+            transition: background var(--transition-smooth), color var(--transition-smooth);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        #app-viewport {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        header {
+            height: 64px;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--nav-bg);
+            transition: background var(--transition-smooth);
+            position: relative;
+            flex-shrink: 0;
+            z-index: 600;
+        }
+        .logo {
+            font-weight: 700;
+            font-size: 18px;
+            letter-spacing: -0.5px;
+            color: var(--text-main);
+            text-align: center;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .theme-toggle {
+            position: absolute;
+            right: 24px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: none;
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background var(--transition-smooth), transform 0.2s;
+        }
+        .theme-toggle:active {
+            transform: scale(0.9);
+        }
+
+        main {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 24px 20px 100px;
+            max-width: 720px;
+            width: 100%;
+            margin: 0 auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* フラットソリッドカード */
+        .glass-card {
+            background: var(--glass-bg);
+            border-radius: var(--card-radius);
+            padding: var(--card-padding);
+            margin-bottom: 20px;
+            box-shadow: none !important;
+            border: none !important;
+            transition: background-color var(--transition-smooth), border-radius var(--transition-smooth);
+        }
+
+        h2 { 
+            font-size: 18px; 
+            margin-top: 0; 
+            margin-bottom: 12px;
+            font-weight: 700; 
+            letter-spacing: -0.3px;
+        }
+        p {
+            font-size: 13.5px;
+            line-height: 1.5;
+            margin-top: 0;
+            margin-bottom: 16px;
+            color: var(--text-sub);
+        }
+
+        /* キャラクターエリア */
+        .character-box {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 20px;
+            background: var(--bg-secondary);
+            padding: 16px;
+            border-radius: var(--card-radius);
+        }
+        .character-img {
+            width: 64px;
+            height: 64px;
+            object-fit: contain;
+            transition: transform 0.3s var(--m3-easing);
+        }
+        .character-bubble {
+            flex: 1;
+            font-size: 13px;
+            font-weight: 600;
+            line-height: 1.4;
+        }
+
+        /* ------------------ UIコンポーネント設計 ------------------ */
+        .custom-list {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            margin-bottom: 16px;
+        }
+        .list-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 4px;
+            border-bottom: 1px solid var(--bg-secondary);
+        }
+        .list-item:last-child {
+            border-bottom: none;
+        }
+
+        /* ボタン */
+        .ai-btn {
+            border: none;
+            outline: none;
+            padding: 12px 24px;
+            border-radius: 14px;
+            font-weight: 600;
+            font-size: 14px;
+            color: white;
+            cursor: pointer;
+            background: var(--accent-primary);
+            transition: transform 0.2s, background-color var(--transition-smooth);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            justify-content: center;
+        }
+        .ai-btn:hover {
+            transform: scale(1.02);
+        }
+        .ai-btn:active {
+            background: var(--accent-active);
+            transform: scale(0.96);
+        }
+        .ai-btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-main);
+        }
+        .ai-btn-danger {
+            background: #FF3B30;
+            color: white;
+        }
+
+        /* インプットテキスト */
+        .glass-input-wrapper {
+            margin-bottom: 14px;
+            position: relative;
+        }
+        .glass-input {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: none;
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            font-size: 14px;
+            font-family: inherit;
+            box-sizing: border-box;
+            transition: background var(--transition-smooth);
+        }
+        .glass-input:focus {
+            outline: 2px solid var(--accent-primary);
+        }
+
+        /* QRコードスキャナーカメラプレビュー */
+        .qr-scanner-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 320px;
+            margin: 16px auto;
+            border-radius: 16px;
+            overflow: hidden;
+            background: #000;
+            display: none;
+            aspect-ratio: 4/3;
+        }
+        #qr-video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .qr-overlay-line {
+            position: absolute;
+            top: 50%;
+            left: 5%;
+            width: 90%;
+            height: 2px;
+            background: #FF3B30;
+            animation: qrScan 2s infinite linear;
+        }
+        @keyframes qrScan {
+            0% { top: 10%; }
+            50% { top: 90%; }
+            100% { top: 10%; }
+        }
+
+        /* ------------------ PeerDrop (ファイル送信) ------------------ */
+        .dropzone {
+            border: 2px dashed var(--text-sub);
+            border-radius: var(--card-radius);
+            padding: 32px 24px;
+            text-align: center;
+            cursor: pointer;
+            background: rgba(0, 0, 0, 0.01);
+            transition: background 0.2s, border-color 0.2s;
+            margin-bottom: 16px;
+        }
+        .dropzone:hover {
+            background: rgba(51, 129, 255, 0.05);
+            border-color: var(--accent-primary);
+        }
+        .dropzone span.material-symbols-outlined {
+            font-size: 48px;
+            color: var(--accent-primary);
+            margin-bottom: 8px;
+        }
+
+        /* ------------------ 共有ギャラリー ------------------ */
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 12px;
+            margin-top: 12px;
+        }
+        .gallery-item {
+            position: relative;
+            aspect-ratio: 1;
+            border-radius: 12px;
+            overflow: hidden;
+            background: var(--bg-secondary);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .gallery-item:hover {
+            transform: scale(1.03);
+        }
+        .gallery-item img, .gallery-item video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .gallery-item .delete-btn {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background: rgba(0,0,0,0.6);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        .gallery-item .delete-btn span {
+            font-size: 14px;
+        }
+
+        /* ------------------ リアルタイムビデオ転送 ------------------ */
+        .video-transfer-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .stream-viewers {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+        @media (min-width: 480px) {
+            .stream-viewers {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        .stream-card {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            overflow: hidden;
+            position: relative;
+            aspect-ratio: 4/3;
+        }
+        .stream-card video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            background: #000;
+        }
+        .stream-label {
+            position: absolute;
+            bottom: 8px;
+            left: 8px;
+            background: rgba(0,0,0,0.6);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        /* ------------------ 共有メモ ------------------ */
+        .memo-textarea {
+            width: 100%;
+            height: 180px;
+            font-family: inherit;
+            font-size: 14px;
+            padding: 16px;
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            border: none;
+            border-radius: var(--card-radius);
+            resize: vertical;
+            outline: none;
+            line-height: 1.5;
+            transition: background var(--transition-smooth);
+        }
+        .memo-textarea:focus {
+            outline: 2px solid var(--accent-primary);
+        }
+
+        /* ------------------ リモート共有フォルダ閲覧（ダウンロード機能） ------------------ */
+        .dir-explorer {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 16px;
+            margin-top: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .dir-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 4px;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            font-size: 13px;
+        }
+        .dir-item-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            flex: 1;
+        }
+        .dir-item-name {
+            font-weight: 600;
+            word-break: break-all;
+        }
+
+        /* ------------------ 下付き固定ナビゲーションバー ------------------ */
+        .bottom-nav-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 72px;
+            background: var(--nav-bg);
+            border-top: 1px solid var(--bg-secondary);
+            z-index: 500;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding-bottom: env(safe-area-inset-bottom);
+            transition: background-color var(--transition-smooth), border-color var(--transition-smooth);
+        }
+        .nav-item {
+            flex: 1;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-sub);
+            transition: color 0.25s var(--m3-easing);
+            position: relative;
+            gap: 4px;
+        }
+        .nav-item span.material-symbols-outlined {
+            font-size: 24px;
+            font-variation-settings: 'FILL' 0, 'wght' 400;
+            transition: font-variation-settings 0.2s, color 0.2s;
+        }
+        .nav-label {
+            font-size: 10px;
+            font-weight: 600;
+        }
+        .nav-item.active {
+            color: var(--nav-icon-active);
+        }
+        .nav-item.active span.material-symbols-outlined {
+            font-variation-settings: 'FILL' 1, 'wght' 700;
+        }
+
+        /* ビュー切り替え */
+        .view {
+            display: none;
+        }
+        .view.active {
+            display: block;
+            animation: viewIn 0.3s var(--m3-easing);
+        }
+        @keyframes viewIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* トースト通知 */
+        .toast {
+            position: fixed;
+            bottom: 84px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--text-main);
+            color: var(--glass-bg);
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s var(--m3-easing);
+            z-index: 2000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .toast.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* Jelly/Squishy インタラクション用アニメーション */
+        @keyframes squishy {
+            0% { transform: scale(1, 1); }
+            30% { transform: scale(1.06, 0.94); }
+            50% { transform: scale(0.97, 1.03); }
+            70% { transform: scale(1.01, 0.99); }
+            100% { transform: scale(1, 1); }
+        }
+        .squish-active {
+            animation: squishy 0.35s var(--m3-easing);
+        }
+
+        /* 接続状態表示バッジ */
+        .badge {
+            background: #FF3B30;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            transition: background 0.3s;
+        }
+        .badge.connected {
+            background: #34C759;
+        }
+
+        /* QRコード表示エリア */
+        .qr-display-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: white;
+            padding: 16px;
+            border-radius: 16px;
+            margin: 12px auto;
+            width: fit-content;
+        }
+        .qr-display-box img {
+            width: 180px;
+            height: 180px;
+        }
+
+        /* ダウンロード進行ダイアログ */
+        .dialog-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000; display: flex; align-items: center; justify-content: center;
+            opacity: 0; visibility: hidden; transition: all 0.3s var(--m3-easing);
+        }
+        .dialog-overlay.active { opacity: 1; visibility: visible; }
+        .glass-dialog {
+            background: var(--glass-bg);
+            border-radius: var(--card-radius);
+            padding: 24px; max-width: 420px; width: 90%; text-align: left;
+            transform: scale(0.9) translateY(20px); transition: all 0.4s var(--m3-easing);
+        }
+        .dialog-overlay.active .glass-dialog { transform: scale(1) translateY(0); }
+    </style>
+</head>
+<body>
+
+    <div id="app-viewport">
+        <!-- ヘッダー -->
+        <header>
+            <div class="logo">
+                <span class="material-symbols-outlined" style="color: var(--accent-primary)">swap_calls</span>
+                Deu2Connect
+            </div>
+            <button class="theme-toggle" id="theme-btn" title="テーマ切り替え">
+                <span class="material-symbols-outlined">light_mode</span>
+            </button>
+        </header>
+
+        <!-- メインコンテンツ -->
+        <main>
+            <!-- ドイツボールキャラクター演出 -->
+            <div class="character-box">
+                <img id="char-img" class="character-img" src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/newballs/germany/normal.png" alt="Germany Ball">
+                <div id="char-bubble" class="character-bubble">
+                    Deu2Connectへようこそ。接続先を探しています...。
+                </div>
+            </div>
+
+            <!-- ステータスカード -->
+            <div class="glass-card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span class="badge" id="conn-badge">
+                        <span class="material-symbols-outlined" style="font-size: 14px;">cloud_off</span>
+                        未接続 (試行中)
+                    </span>
+                    <span style="font-size: 11px; color: var(--text-sub);" id="my-peer-id-label">My ID: ロード中...</span>
+                </div>
+                <h2>接続設定</h2>
+                <p>
+                    このアプリは相手のPeerIDを指定することで、直接セキュアにP2P通信を行います。
+                    設定されたペアIDは、今後ずっと自動で再接続を試み続けます。
+                </p>
+
+                <!-- 接続先ID設定 -->
+                <div class="glass-input-wrapper">
+                    <input type="text" id="target-peer-id-input" class="glass-input" placeholder="相手のPeerIDを入力してください...">
+                </div>
+
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button class="ai-btn" onclick="applyTargetPeerID()">
+                        <span class="material-symbols-outlined">link</span>
+                        ペアリング開始
+                    </button>
+                    <button class="ai-btn ai-btn-secondary" onclick="toggleQRScanner()">
+                        <span class="material-symbols-outlined">qr_code_scanner</span>
+                        QRスキャン
+                    </button>
+                    <button class="ai-btn ai-btn-danger" id="reset-peer-btn" onclick="resetTargetPeerID()" style="display: none;">
+                        <span class="material-symbols-outlined">link_off</span>
+                        解除
+                    </button>
+                </div>
+
+                <!-- QRスキャナービュー -->
+                <div class="qr-scanner-wrapper" id="qr-scanner-wrapper">
+                    <video id="qr-video" playsinline></video>
+                    <div class="qr-overlay-line"></div>
+                </div>
+
+                <!-- 自分のQRコード表示 -->
+                <div style="margin-top: 16px; text-align: center;">
+                    <button class="preset-btn ai-btn-secondary" onclick="toggleMyQR()" style="border:none; padding: 8px 16px; border-radius: 8px; font-size:12px; cursor:pointer;">
+                        自分のQRコードを表示 / 非表示
+                    </button>
+                    <div id="my-qr-box" class="qr-display-box" style="display: none;">
+                        <div id="qr-code-placeholder"></div>
+                        <div style="font-size: 11px; color: #333; margin-top: 8px; font-weight: bold;">相手にスキャンさせてください</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================= HOME VIEW ================= -->
+            <section id="view-home" class="view active">
+                <!-- PeerDrop (ファイル送信) -->
+                <div class="glass-card">
+                    <h2>PeerDrop - 簡単ファイル転送</h2>
+                    <p>接続相手に瞬時に、サイズ制限なくP2P直通でファイルを送出します。</p>
+                    
+                    <div class="dropzone" id="file-dropzone" onclick="triggerFileSelect()">
+                        <span class="material-symbols-outlined">upload_file</span>
+                        <div style="font-weight: 700; font-size: 14px;">ここにファイルをドロップ、またはクリック</div>
+                        <input type="file" id="drop-file-input" style="display: none;" onchange="handleFileDropSelect(event)">
+                    </div>
+
+                    <!-- 送受信中インジケータ -->
+                    <div id="transfer-progress-box" style="display: none; background: var(--bg-secondary); padding:12px; border-radius:12px; margin-top:12px;">
+                        <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px;">
+                            <span id="transfer-status-text">送信中...</span>
+                            <span id="transfer-percent">0%</span>
+                        </div>
+                        <div style="height:8px; background:rgba(0,0,0,0.1); border-radius:4px; overflow:hidden;">
+                            <div id="transfer-bar" style="width:0%; height:100%; background:var(--accent-primary);"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- クイック共有メモ -->
+                <div class="glass-card">
+                    <h2>共有メモ</h2>
+                    <p>接続中の端末間でリアルタイムに同期されるメモパッドです。入力内容は相手の画面にも即座に反映されます。</p>
+                    <textarea class="memo-textarea" id="memo-pad" placeholder="ここに書き込むと相手とリアルタイムに共有されます..." oninput="sendMemo(this.value)"></textarea>
+                </div>
+            </section>
+
+            <!-- ================= GALLERY VIEW ================= -->
+            <section id="view-gallery" class="view">
+                <div class="glass-card">
+                    <h2>共有ギャラリー</h2>
+                    <p>
+                        IndexedDBに保存されたローカル・ギャラリーです。
+                        ピア接続が確立している時は、画像/動画を追加・削除すると、相手のライブラリともリアルタイムに相互同期されます。
+                    </p>
+
+                    <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+                        <button class="ai-btn" onclick="triggerGalleryAdd()">
+                            <span class="material-symbols-outlined">add_photo_alternate</span>
+                            メディアを追加
+                        </button>
+                        <input type="file" id="gallery-file-input" accept="image/*,video/*" style="display: none;" onchange="handleGalleryAdd(event)">
+                    </div>
+
+                    <div class="gallery-grid" id="gallery-container">
+                        <!-- 動的に追加される -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- ================= COMPONENT (STREAM & FILE) VIEW ================= -->
+            <section id="view-components" class="view">
+                <!-- リアルタイム配信 -->
+                <div class="glass-card">
+                    <h2>リアルタイム動画配信</h2>
+                    <p>カメラおよびマイクのメディアストリームを、相手の端末にリアルタイム（音あり）で送信・再生させます。</p>
+                    
+                    <div class="video-transfer-wrapper">
+                        <div class="stream-viewers">
+                            <!-- 自分のカメラ -->
+                            <div class="stream-card">
+                                <video id="local-video" autoplay playsinline muted></video>
+                                <span class="stream-label">自分 (ローカル)</span>
+                            </div>
+                            <!-- 相手のカメラ -->
+                            <div class="stream-card">
+                                <video id="remote-video" autoplay playsinline></video>
+                                <span class="stream-label">相手 (リモート)</span>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; gap: 8px; margin-top: 12px;">
+                            <button class="ai-btn" id="start-stream-btn" onclick="toggleStream()">
+                                <span class="material-symbols-outlined">videocam</span>
+                                配信を開始する
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Directory Access API -->
+                <div class="glass-card">
+                    <h2>リモート・ファイル共有ダウンロード (Directory Access)</h2>
+                    <p>
+                        自分の指定フォルダを共有・公開し、相手の端末にブラウズさせたり、逆に相手が公開した共有フォルダ内のファイルをP2P経由で相互に直接ダウンロードできます。
+                    </p>
+                    
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;">
+                        <button class="ai-btn" onclick="mountLocalDirectory()">
+                            <span class="material-symbols-outlined">folder_open</span>
+                            自分の公開フォルダを選択
+                        </button>
+                    </div>
+
+                    <!-- 相手の公開ファイルリスト -->
+                    <div style="margin-top: 16px;">
+                        <h3 style="font-size: 14.5px; font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+                            <span class="material-symbols-outlined" style="color: var(--accent-primary)">cloud_download</span>
+                            相手の公開フォルダ内ファイル一覧
+                        </h3>
+                        <div class="dir-explorer" id="dir-explorer">
+                            <div style="color: var(--text-sub); text-align: center; padding: 20px 0; font-size:12px;" id="dir-explorer-empty">
+                                相手が公開している共有フォルダがないか、または未接続です。
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- 下付き固定ナビゲーションバー -->
+        <div class="bottom-nav-container">
+            <div class="nav-item active" data-view="view-home" onclick="switchView('view-home')">
+                <span class="material-symbols-outlined">swap_horiz</span>
+                <span class="nav-label">PeerDrop</span>
+            </div>
+            <div class="nav-item" data-view="view-gallery" onclick="switchView('view-gallery')">
+                <span class="material-symbols-outlined">photo_library</span>
+                <span class="nav-label">ギャラリー</span>
+            </div>
+            <div class="nav-item" data-view="view-components" onclick="switchView('view-components')">
+                <span class="material-symbols-outlined">stream</span>
+                <span class="nav-label">配信/ファイル</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ダウンロード処理用インフォメーションダイアログ -->
+    <div class="dialog-overlay" id="download-dialog">
+        <div class="glass-dialog" style="max-width: 400px; width: 90%;">
+            <h2 id="download-dialog-title">ファイルを要求中...</h2>
+            <p id="download-dialog-desc">P2Pデータチャネルを介してファイルを転送しています。ブラウザのダウンロード処理が完了するまでお待ちください。</p>
+            <div style="height:8px; background:rgba(0,0,0,0.1); border-radius:4px; overflow:hidden; margin-bottom:16px;">
+                <div id="download-dialog-bar" style="width:0%; height:100%; background:var(--accent-primary); transition: width 0.1s;"></div>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 8px;">
+                <button class="ai-btn ai-btn-secondary" onclick="closeDownloadDialog()">閉じる</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- トースト通知 -->
+    <div class="toast" id="toast-message"></div>
+
+    <script>
+        /**
+         * Deu2Connect - P2P Engine & Core System
+         */
+
+        // IndexedDB初期化
+        const DB_NAME = 'Deu2GalleryDB';
+        const STORE_NAME = 'media';
+        let dbInstance = null;
+
+        function initIndexedDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, 1);
+                request.onupgradeneeded = (e) => {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains(STORE_NAME)) {
+                        db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+                    }
+                };
+                request.onsuccess = (e) => {
+                    dbInstance = e.target.result;
+                    resolve(dbInstance);
+                };
+                request.onerror = (e) => reject(e);
+            });
+        }
+
+        // IndexedDB 操作
+        async function saveMediaToLocal(id, type, blob, name) {
+            return new Promise((resolve, reject) => {
+                const tx = dbInstance.transaction(STORE_NAME, 'readwrite');
+                const store = tx.objectStore(STORE_NAME);
+                store.put({ id, type, blob, name, timestamp: Date.now() });
+                tx.oncomplete = () => resolve();
+                tx.onerror = (e) => reject(e);
+            });
+        }
+
+        async function getMediaList() {
+            return new Promise((resolve, reject) => {
+                const tx = dbInstance.transaction(STORE_NAME, 'readonly');
+                const store = tx.objectStore(STORE_NAME);
+                const req = store.getAll();
+                req.onsuccess = () => resolve(req.result || []);
+                req.onerror = (e) => reject(e);
+            });
+        }
+
+        async function deleteMediaFromLocal(id) {
+            return new Promise((resolve, reject) => {
+                const tx = dbInstance.transaction(STORE_NAME, 'readwrite');
+                const store = tx.objectStore(STORE_NAME);
+                store.delete(id);
+                tx.oncomplete = () => resolve();
+                tx.onerror = (e) => reject(e);
+            });
+        }
+
+
+        // キャラクター変更・吹き出し変更
+        const CHAR_NORMAL = "https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/newballs/germany/normal.png";
+        const CHAR_HAHA = "https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/newballs/germany/fronthaha.png";
+
+        function updateCharacter(imgSrc, text) {
+            const imgEl = document.getElementById('char-img');
+            const bubbleEl = document.getElementById('char-bubble');
+            imgEl.src = imgSrc;
+            bubbleEl.textContent = text;
+        }
+
+        // UI切り替えとテーマ管理 (状態永続化)
+        const themeBtn = document.getElementById('theme-btn');
+        const themeIcon = themeBtn.querySelector('span');
+        const toast = document.getElementById('toast-message');
+
+        function setTheme(isDark) {
+            document.body.classList.toggle('dark-mode', isDark);
+            themeIcon.textContent = isDark ? 'dark_mode' : 'light_mode';
+            localStorage.setItem('deu2_theme', isDark ? 'dark' : 'light');
+        }
+
+        // 初期ロードでのテーマ決定（勝手に変更されないようLocalStorageを最優先）
+        const savedTheme = localStorage.getItem('deu2_theme');
+        if (savedTheme) {
+            setTheme(savedTheme === 'dark');
+        } else {
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+            setTheme(prefersDark.matches);
+        }
+
+        themeBtn.addEventListener('click', () => {
+            setTheme(!document.body.classList.contains('dark-mode'));
+        });
+
+        // ナビゲーションビュー
+        const navItems = document.querySelectorAll('.nav-item');
+        const views = document.querySelectorAll('.view');
+
+        function switchView(viewId) {
+            navItems.forEach(n => {
+                n.classList.remove('active');
+                if (n.getAttribute('data-view') === viewId) {
+                    n.classList.add('active');
+                }
+            });
+            views.forEach(v => {
+                v.classList.remove('active');
+                if (v.id === viewId) {
+                    v.classList.add('active');
+                }
+            });
+        }
+
+        // トースト通知
+        function showToast(msg) {
+            toast.textContent = msg;
+            toast.classList.add('active');
+            setTimeout(() => {
+                toast.classList.remove('active');
+            }, 2300);
+        }
+
+        // バウンド演出
+        document.addEventListener('mousedown', (e) => {
+            const target = e.target.closest('.glass-card, .ai-btn, .nav-item');
+            if (target) {
+                target.classList.remove('squish-active');
+                void target.offsetWidth; // reflow
+                target.classList.add('squish-active');
+                setTimeout(() => {
+                    target.classList.remove('squish-active');
+                }, 350);
+            }
+        });
+
+
+        // ================= P2P SYSTEM (PeerJS) =================
+        let peer = null;
+        let dataConn = null;
+        let mediaCall = null;
+        let localStream = null;
+
+        // 永続化されたPeerID & 接続先PeerIDの管理
+        let mySavedPeerID = localStorage.getItem('deu2_my_peer_id') || "";
+        let targetPeerID = localStorage.getItem('deu2_target_peer_id') || "";
+        let autoReconnectInterval = null;
+
+        // PeerJS初期設定
+        function initPeer() {
+            // 保存されたPeerIDが存在する場合はそのIDを固定で利用して初期化。存在しない場合はPeerJSが自動生成し、open時に即座に保存する。
+            if (mySavedPeerID) {
+                peer = new Peer(mySavedPeerID, { debug: 1 });
+            } else {
+                peer = new Peer({ debug: 1 });
+            }
+
+            peer.on('open', (id) => {
+                mySavedPeerID = id;
+                localStorage.setItem('deu2_my_peer_id', id);
+                
+                document.getElementById('my-peer-id-label').textContent = `My ID: ${id}`;
+                updateMyQR(id);
+                showToast(`Peerエンジンの準備完了: ${id}`);
+                
+                // 初回あるいは保持された接続ターゲットがあれば自動再接続を開始
+                startAutoConnection();
+            });
+
+            peer.on('connection', (conn) => {
+                // 外部からの接続要求
+                setupDataConnection(conn);
+            });
+
+            peer.on('call', (call) => {
+                showToast("ビデオ着信がありました");
+                call.answer(localStream || undefined);
+                setupMediaCall(call);
+            });
+
+            peer.on('error', (err) => {
+                console.error("PeerJSエラー:", err);
+                if (err.type === 'peer-unavailable') {
+                    // 対象が存在しない場合
+                } else if (err.type === 'unavailable-id') {
+                    showToast("保存されたIDがすでに他端末で使用中、または無効です。新規生成します。");
+                    localStorage.removeItem('deu2_my_peer_id');
+                    mySavedPeerID = "";
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                } else {
+                    showToast(`通信エラーが発生しました: ${err.type}`);
+                }
+            });
+        }
+
+        // ターゲットPeerIDの適用
+        function applyTargetPeerID() {
+            const val = document.getElementById('target-peer-id-input').value.trim();
+            if (!val) {
+                showToast("PeerIDを入力してください");
+                return;
+            }
+            targetPeerID = val;
+            localStorage.setItem('deu2_target_peer_id', targetPeerID);
+            
+            showToast(`ペアIDを [${targetPeerID}] にロックしました`);
+            document.getElementById('reset-peer-btn').style.display = 'inline-flex';
+            
+            // 再接続プロセスを開始
+            stopAutoConnection();
+            startAutoConnection();
+        }
+
+        // ターゲットPeerIDの解除
+        function resetTargetPeerID() {
+            targetPeerID = "";
+            localStorage.removeItem('deu2_target_peer_id');
+            document.getElementById('target-peer-id-input').value = "";
+            document.getElementById('reset-peer-btn').style.display = 'none';
+            stopAutoConnection();
+            
+            if (dataConn) {
+                dataConn.close();
+            }
+            updateConnectionUI(false);
+            showToast("接続設定をクリアしました");
+        }
+
+        // 自動再接続管理
+        function startAutoConnection() {
+            if (!targetPeerID) {
+                document.getElementById('reset-peer-btn').style.display = 'none';
+                return;
+            }
+            document.getElementById('target-peer-id-input').value = targetPeerID;
+            document.getElementById('reset-peer-btn').style.display = 'inline-flex';
+
+            attemptConnection();
+
+            // 10秒おきに再試行する（自動接続バックグラウンドループ）
+            if (autoReconnectInterval) clearInterval(autoReconnectInterval);
+            autoReconnectInterval = setInterval(() => {
+                if (!dataConn || !dataConn.open) {
+                    attemptConnection();
+                }
+            }, 10000);
+        }
+
+        function stopAutoConnection() {
+            if (autoReconnectInterval) {
+                clearInterval(autoReconnectInterval);
+                autoReconnectInterval = null;
+            }
+        }
+
+        function attemptConnection() {
+            if (!peer || peer.destroyed) return;
+            if (dataConn && dataConn.open) return;
+
+            updateConnectionUI(false); // 接続試行状態へ
+            
+            const conn = peer.connect(targetPeerID, {
+                reliable: true
+            });
+            setupDataConnection(conn);
+        }
+
+        function updateConnectionUI(connected) {
+            const badge = document.getElementById('conn-badge');
+            if (connected) {
+                badge.className = "badge connected";
+                badge.innerHTML = `<span class="material-symbols-outlined" style="font-size: 14px;">cloud_done</span> 接続済み`;
+                document.body.classList.remove('connecting-state');
+                updateCharacter(CHAR_HAHA, "接続が完了しました！いつでもデータをやり取りできます。");
+            } else {
+                badge.className = "badge";
+                badge.innerHTML = `<span class="material-symbols-outlined" style="font-size: 14px;">sync</span> 未接続 (接続試行中)`;
+                
+                // 接続ターゲットがある場合は、背景をぼかしグラデーションへ（テーマは維持される）
+                if (targetPeerID) {
+                    document.body.classList.add('connecting-state');
+                    updateCharacter(CHAR_NORMAL, `接続先 [ ${targetPeerID} ] へ自動再接続を試みています...。`);
+                } else {
+                    document.body.classList.remove('connecting-state');
+                    updateCharacter(CHAR_NORMAL, "ペアする端末を登録してください。");
+                }
+            }
+        }
+
+        // 接続設定とイベントリスナ
+        function setupDataConnection(conn) {
+            dataConn = conn;
+
+            dataConn.on('open', () => {
+                showToast("データチャンネルが確立しました");
+                updateConnectionUI(true);
+                
+                // メモ同期
+                const memoVal = document.getElementById('memo-pad').value;
+                if (memoVal) {
+                    sendMemo(memoVal);
+                }
+
+                // ギャラリー同期開始
+                syncGalleryState();
+
+                // 自分のマウント済みファイルリストがあれば、接続相手に直ちに公開一覧を送信
+                if (localPublicFiles.length > 0) {
+                    sendMountedFileList();
+                }
+            });
+
+            dataConn.on('data', (data) => {
+                handleReceivedData(data);
+            });
+
+            dataConn.on('close', () => {
+                showToast("接続が切断されました。再接続を試みます。");
+                updateConnectionUI(false);
+                
+                // 相手の公開ファイル一覧リストを空に戻す
+                document.getElementById('dir-explorer').innerHTML = `
+                    <div style="color: var(--text-sub); text-align: center; padding: 20px 0; font-size:12px;" id="dir-explorer-empty">
+                        相手が公開している共有フォルダがないか、または未接続です。
+                    </div>
+                `;
+                
+                attemptConnection();
+            });
+
+            dataConn.on('error', (err) => {
+                console.error("データ接続エラー:", err);
+            });
+        }
+
+
+        // ================= データ送受信ハンドラ =================
+        function handleReceivedData(msg) {
+            if (!msg || !msg.type) return;
+
+            switch (msg.type) {
+                case 'memo':
+                    const memoPad = document.getElementById('memo-pad');
+                    if (memoPad.value !== msg.value) {
+                        memoPad.value = msg.value;
+                    }
+                    break;
+
+                case 'file-meta':
+                    startFileReceiver(msg);
+                    break;
+
+                case 'file-chunk':
+                    receiveFileChunk(msg);
+                    break;
+
+                case 'gallery-sync-req':
+                    sendGalleryCatalog();
+                    break;
+
+                case 'gallery-catalog':
+                    reconcileGallery(msg.catalog);
+                    break;
+
+                case 'gallery-request-item':
+                    sendGalleryItem(msg.id);
+                    break;
+
+                case 'gallery-item':
+                    receiveGalleryItem(msg);
+                    break;
+
+                case 'gallery-delete':
+                    doDeleteMedia(msg.id, false);
+                    break;
+
+                // --- 新仕様: リモートDirectory Access ＆ ダウンロード要求対応 ---
+                case 'remote-dir-list':
+                    // 相手の端末から送られた公開ファイルリストをビューにレンダリングする
+                    renderRemoteDirList(msg.files);
+                    break;
+
+                case 'remote-file-request':
+                    // 接続相手から「このファイルを送信してくれ」と要求された時の処理
+                    handleRemoteFileRequest(msg.fileName);
+                    break;
+
+                case 'remote-file-response-start':
+                    // リモートダウンロード開始用メタ受信
+                    startRemoteDownloadReceiver(msg);
+                    break;
+
+                case 'remote-file-response-chunk':
+                    // リモートダウンロードのチャンク受信
+                    receiveRemoteDownloadChunk(msg);
+                    break;
+            }
+        }
+
+        // 共有メモの送信
+        function sendMemo(val) {
+            if (dataConn && dataConn.open) {
+                dataConn.send({
+                    type: 'memo',
+                    value: val
+                });
+            }
+        }
+
+
+        // ================= PeerDrop ファイル送信(チャンク分割) =================
+        const CHUNK_SIZE = 16384; // 16KB
+
+        function triggerFileSelect() {
+            document.getElementById('drop-file-input').click();
+        }
+
+        function handleFileDropSelect(e) {
+            const file = e.target.files[0];
+            if (file) {
+                sendFile(file);
+            }
+        }
+
+        // ドラッグ＆ドロップ対応
+        const dropzone = document.getElementById('file-dropzone');
+        dropzone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropzone.style.borderColor = 'var(--accent-primary)';
+            dropzone.style.background = 'rgba(51, 129, 255, 0.08)';
+        });
+        dropzone.addEventListener('dragleave', () => {
+            dropzone.style.borderColor = 'var(--text-sub)';
+            dropzone.style.background = 'rgba(0, 0, 0, 0.01)';
+        });
+        dropzone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropzone.style.borderColor = 'var(--text-sub)';
+            dropzone.style.background = 'rgba(0, 0, 0, 0.01)';
+            const file = e.dataTransfer.files[0];
+            if (file) {
+                sendFile(file);
+            }
+        });
+
+        // チャンクに分割してファイルをP2P送信
+        function sendFile(file) {
+            if (!dataConn || !dataConn.open) {
+                showToast("接続相手がいません。先にペアリングを行ってください。");
+                return;
+            }
+
+            const fileId = crypto.randomUUID();
+            const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+            
+            showToast(`${file.name} の送信を開始します。`);
+            
+            const progressBox = document.getElementById('transfer-progress-box');
+            const progressText = document.getElementById('transfer-status-text');
+            const progressPercent = document.getElementById('transfer-percent');
+            const progressBar = document.getElementById('transfer-bar');
+            
+            progressBox.style.display = 'block';
+            progressText.textContent = `送信中: ${file.name}`;
+            
+            dataConn.send({
+                type: 'file-meta',
+                fileId: fileId,
+                name: file.name,
+                mimeType: file.type,
+                size: file.size,
+                totalChunks: totalChunks
+            });
+
+            let currentChunk = 0;
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                dataConn.send({
+                    type: 'file-chunk',
+                    fileId: fileId,
+                    chunkIndex: currentChunk,
+                    data: e.target.result
+                });
+
+                currentChunk++;
+                const percent = Math.floor((currentChunk / totalChunks) * 100);
+                progressPercent.textContent = `${percent}%`;
+                progressBar.style.width = `${percent}%`;
+
+                if (currentChunk < totalChunks) {
+                    readNextChunk();
+                } else {
+                    showToast("送信が完了しました！");
+                    setTimeout(() => { progressBox.style.display = 'none'; }, 2000);
+                }
+            };
+
+            function readNextChunk() {
+                const start = currentChunk * CHUNK_SIZE;
+                const end = Math.min(start + CHUNK_SIZE, file.size);
+                const blob = file.slice(start, end);
+                reader.readAsArrayBuffer(blob);
+            }
+
+            readNextChunk();
+        }
+
+        // ファイル受信側のバッファ
+        let receivedFiles = {};
+
+        function startFileReceiver(meta) {
+            receivedFiles[meta.fileId] = {
+                name: meta.name,
+                mimeType: meta.mimeType,
+                size: meta.size,
+                totalChunks: meta.totalChunks,
+                chunks: [],
+                receivedCount: 0
+            };
+
+            const progressBox = document.getElementById('transfer-progress-box');
+            const progressText = document.getElementById('transfer-status-text');
+            const progressPercent = document.getElementById('transfer-percent');
+            const progressBar = document.getElementById('transfer-bar');
+
+            progressBox.style.display = 'block';
+            progressText.textContent = `受信中: ${meta.name}`;
+            progressPercent.textContent = `0%`;
+            progressBar.style.width = `0%`;
+        }
+
+        function receiveFileChunk(data) {
+            const fileObj = receivedFiles[data.fileId];
+            if (!fileObj) return;
+
+            fileObj.chunks[data.chunkIndex] = data.data;
+            fileObj.receivedCount++;
+
+            const percent = Math.floor((fileObj.receivedCount / fileObj.totalChunks) * 100);
+            const progressPercent = document.getElementById('transfer-percent');
+            const progressBar = document.getElementById('transfer-bar');
+
+            progressPercent.textContent = `${percent}%`;
+            progressBar.style.width = `${percent}%`;
+
+            if (fileObj.receivedCount === fileObj.totalChunks) {
+                const blob = new Blob(fileObj.chunks, { type: fileObj.mimeType });
+                const url = URL.createObjectURL(blob);
+
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = fileObj.name;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+
+                showToast(`ファイル [${fileObj.name}] を受信しました！`);
+                
+                if (fileObj.mimeType.startsWith('image/') || fileObj.mimeType.startsWith('video/')) {
+                    saveMediaToLocal(crypto.randomUUID(), fileObj.mimeType, blob, fileObj.name)
+                        .then(() => renderGallery());
+                }
+
+                setTimeout(() => {
+                    document.getElementById('transfer-progress-box').style.display = 'none';
+                }, 2000);
+
+                delete receivedFiles[data.fileId];
+            }
+        }
+
+
+        // ================= 共有ギャラリー & 同期システム =================
+        function triggerGalleryAdd() {
+            document.getElementById('gallery-file-input').click();
+        }
+
+        async function handleGalleryAdd(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const id = crypto.randomUUID();
+            await saveMediaToLocal(id, file.type, file, file.name);
+            showToast("ギャラリーにメディアを追加しました");
+            renderGallery();
+
+            if (dataConn && dataConn.open) {
+                sendGalleryItemDirect(id, file.type, file, file.name);
+            }
+        }
+
+        async function renderGallery() {
+            const list = await getMediaList();
+            const container = document.getElementById('gallery-container');
+            container.innerHTML = "";
+
+            if (list.length === 0) {
+                container.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: var(--text-sub); font-size: 13px; padding: 20px 0;">ライブラリは空です</div>`;
+                return;
+            }
+
+            list.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'gallery-item';
+                
+                const url = URL.createObjectURL(item.blob);
+                
+                if (item.type.startsWith('video/')) {
+                    const video = document.createElement('video');
+                    video.src = url;
+                    video.muted = true;
+                    video.playsInline = true;
+                    video.loop = true;
+                    video.onmouseover = () => video.play();
+                    video.onmouseout = () => video.pause();
+                    div.appendChild(video);
+                } else {
+                    const img = document.createElement('img');
+                    img.src = url;
+                    div.appendChild(img);
+                }
+
+                div.addEventListener('click', (e) => {
+                    if (e.target.closest('.delete-btn')) return;
+                    openMediaDetail(item, url);
+                });
+
+                const delBtn = document.createElement('button');
+                delBtn.className = 'delete-btn';
+                delBtn.innerHTML = `<span class="material-symbols-outlined">delete</span>`;
+                delBtn.onclick = () => doDeleteMedia(item.id, true);
+                div.appendChild(delBtn);
+
+                container.appendChild(div);
+            });
+        }
+
+        function openMediaDetail(item, url) {
+            const detailOverlay = document.createElement('div');
+            detailOverlay.className = "dialog-overlay active";
+            detailOverlay.id = "media-detail-overlay";
+
+            const dialog = document.createElement('div');
+            dialog.className = "glass-dialog";
+            dialog.style.maxWidth = "500px";
+
+            let mediaTag = "";
+            if (item.type.startsWith('video/')) {
+                mediaTag = `<video src="${url}" controls autoplay style="width:100%; border-radius:12px; margin-bottom:12px;"></video>`;
+            } else {
+                mediaTag = `<img src="${url}" style="width:100%; max-height:400px; object-fit:contain; border-radius:12px; margin-bottom:12px;">`;
+            }
+
+            dialog.innerHTML = `
+                <h2>${item.name}</h2>
+                ${mediaTag}
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="font-size:11px; color:var(--text-sub);">タイプ: ${item.type}</span>
+                    <button class="ai-btn ai-btn-secondary" onclick="closeMediaDetail()">閉じる</button>
+                </div>
+            `;
+
+            detailOverlay.appendChild(dialog);
+            document.body.appendChild(detailOverlay);
+        }
+
+        window.closeMediaDetail = function() {
+            const overlay = document.getElementById('media-detail-overlay');
+            if (overlay) overlay.remove();
+        };
+
+        async function doDeleteMedia(id, notifyPeer) {
+            await deleteMediaFromLocal(id);
+            renderGallery();
+            showToast("メディアを削除しました");
+
+            if (notifyPeer && dataConn && dataConn.open) {
+                dataConn.send({
+                    type: 'gallery-delete',
+                    id: id
+                });
+            }
+        }
+
+        function syncGalleryState() {
+            if (dataConn && dataConn.open) {
+                dataConn.send({ type: 'gallery-sync-req' });
+            }
+        }
+
+        async function sendGalleryCatalog() {
+            const list = await getMediaList();
+            const catalog = list.map(item => ({
+                id: item.id,
+                name: item.name,
+                type: item.type,
+                timestamp: item.timestamp
+            }));
+            dataConn.send({
+                type: 'gallery-catalog',
+                catalog: catalog
+            });
+        }
+
+        async function reconcileGallery(peerCatalog) {
+            const localList = await getMediaList();
+            const localIds = localList.map(i => i.id);
+
+            peerCatalog.forEach(pItem => {
+                if (!localIds.includes(pItem.id)) {
+                    dataConn.send({
+                        type: 'gallery-request-item',
+                        id: pItem.id
+                    });
+                }
+            });
+
+            const peerIds = peerCatalog.map(p => p.id);
+            localList.forEach(lItem => {
+                if (!peerIds.includes(lItem.id)) {
+                    sendGalleryItemDirect(lItem.id, lItem.type, lItem.blob, lItem.name);
+                }
+            });
+        }
+
+        function sendGalleryItemDirect(id, type, blob, name) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                dataConn.send({
+                    type: 'gallery-item',
+                    id: id,
+                    mediaType: type,
+                    name: name,
+                    buffer: e.target.result
+                });
+            };
+            reader.readAsArrayBuffer(blob);
+        }
+
+        async function sendGalleryItem(id) {
+            const list = await getMediaList();
+            const item = list.find(i => i.id === id);
+            if (item) {
+                sendGalleryItemDirect(item.id, item.type, item.blob, item.name);
+            }
+        }
+
+        async function receiveGalleryItem(msg) {
+            const blob = new Blob([msg.buffer], { type: msg.mediaType });
+            await saveMediaToLocal(msg.id, msg.mediaType, blob, msg.name);
+            renderGallery();
+            showToast(`ギャラリーアイテム [${msg.name}] を同期しました`);
+        }
+
+
+        // ================= リアルタイムビデオ転送 (マイク音声付き) =================
+        let isStreaming = false;
+
+        async function toggleStream() {
+            const startBtn = document.getElementById('start-stream-btn');
+            
+            if (!isStreaming) {
+                try {
+                    localStream = await navigator.mediaDevices.getUserMedia({
+                        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
+                        audio: true
+                    });
+                    document.getElementById('local-video').srcObject = localStream;
+                    
+                    showToast("カメラを起動しました");
+                    startBtn.innerHTML = `<span class="material-symbols-outlined">videocam_off</span> 配信を終了する`;
+                    startBtn.className = "ai-btn ai-btn-danger";
+                    isStreaming = true;
+
+                    if (dataConn && dataConn.open) {
+                        const call = peer.call(targetPeerID, localStream);
+                        setupMediaCall(call);
+                        showToast("相手への映像同期送信を開始しました");
+                    }
+                } catch (err) {
+                    console.error("メディア取得失敗:", err);
+                    showToast("カメラまたはマイクのパーミッションが拒否されました");
+                }
+            } else {
+                if (localStream) {
+                    localStream.getTracks().forEach(track => track.stop());
+                    localStream = null;
+                }
+                document.getElementById('local-video').srcObject = null;
+                document.getElementById('remote-video').srcObject = null;
+
+                if (mediaCall) {
+                    mediaCall.close();
+                    mediaCall = null;
+                }
+
+                startBtn.innerHTML = `<span class="material-symbols-outlined">videocam</span> 配信を開始する`;
+                startBtn.className = "ai-btn";
+                isStreaming = false;
+                showToast("ビデオ配信を停止しました");
+            }
+        }
+
+        function setupMediaCall(call) {
+            mediaCall = call;
+            mediaCall.on('stream', (remoteStream) => {
+                document.getElementById('remote-video').srcObject = remoteStream;
+                showToast("相手の映像・音声を同期表示中");
+            });
+            mediaCall.on('close', () => {
+                document.getElementById('remote-video').srcObject = null;
+                showToast("ストリーム通信が終了しました");
+            });
+            mediaCall.on('error', (err) => {
+                console.error("メディアコールエラー:", err);
+            });
+        }
+
+
+        // ================= Directory Access API & リモート相互ファイルダウンロードシステム =================
+        let localDirHandle = null;
+        let localPublicFiles = []; // 公開ファイルハンドル一覧
+        let incomingRemoteFiles = {}; // リモートからのダウンロード制御用
+
+        // 1. ローカルディレクトリをマウント（自分の共有フォルダの選択）
+        async function mountLocalDirectory() {
+            try {
+                if (typeof window.showDirectoryPicker !== 'function') {
+                    showToast("お使いのブラウザは Directory Access API に対応していません (Chrome, Edge推奨)");
+                    return;
+                }
+
+                localDirHandle = await window.showDirectoryPicker({
+                    mode: 'readonly'
+                });
+
+                showToast(`フォルダ [${localDirHandle.name}] を共有にマウントしました`);
+                await scanLocalMountedDirectory();
+            } catch (err) {
+                console.error(err);
+                showToast("ディレクトリのアクセスが拒否されました。");
+            }
+        }
+
+        // 2. マウントしたフォルダの中身をスキャンして相手にリストを自動公開
+        async function scanLocalMountedDirectory() {
+            if (!localDirHandle) return;
+
+            localPublicFiles = [];
+            try {
+                for await (const entry of localDirHandle.values()) {
+                    if (entry.kind === 'file') {
+                        const file = await entry.getFile();
+                        localPublicFiles.push({
+                            name: entry.name,
+                            size: file.size,
+                            type: file.type,
+                            handle: entry // 直接のハンドルオブジェクトをキープ
+                        });
+                    }
+                }
+
+                showToast(`公開用ファイル ${localPublicFiles.length} 件をスキャン完了しました`);
+                
+                // 接続中なら相手に即時公開リストを転送
+                sendMountedFileList();
+
+            } catch (err) {
+                console.error(err);
+                showToast("フォルダ内スキャンに失敗しました");
+            }
+        }
+
+        // 3. 自分のマウントされたファイル一覧を相手に送信
+        function sendMountedFileList() {
+            if (dataConn && dataConn.open) {
+                // ハンドル情報は送信できないため除外し、メタデータのみをリスト化して送出
+                const fileListToSend = localPublicFiles.map(file => ({
+                    name: file.name,
+                    size: file.size,
+                    type: file.type
+                }));
+                dataConn.send({
+                    type: 'remote-dir-list',
+                    files: fileListToSend
+                });
+            }
+        }
+
+        // 4. 相手から届いたファイルリストを画面に描画（ダウンロード専用ファイルビュー）
+        function renderRemoteDirList(files) {
+            const explorer = document.getElementById('dir-explorer');
+            explorer.innerHTML = "";
+
+            if (!files || files.length === 0) {
+                explorer.innerHTML = `<div style="color:var(--text-sub); text-align:center; padding:20px; font-size:12px;">公開されているファイルがありません</div>`;
+                return;
+            }
+
+            files.forEach(file => {
+                const row = document.createElement('div');
+                row.className = 'dir-item';
+
+                // ファイルサイズを見やすくフォーマット
+                const displaySize = formatBytes(file.size);
+
+                row.innerHTML = `
+                    <div class="dir-item-info" onclick="requestRemoteFile('${file.name}')">
+                        <span class="material-symbols-outlined" style="color: var(--accent-primary)">cloud_download</span>
+                        <div>
+                            <span class="dir-item-name">${file.name}</span>
+                            <div style="font-size:11px; color:var(--text-sub); margin-top:2px;">サイズ: ${displaySize}</div>
+                        </div>
+                    </div>
+                    <button class="ai-btn" style="padding: 6px 12px; font-size: 11px; border-radius: 8px;" onclick="requestRemoteFile('${file.name}')">
+                        取得
+                    </button>
+                `;
+                explorer.appendChild(row);
+            });
+        }
+
+        // バイト数フォーマットヘルパー
+        function formatBytes(bytes, decimals = 2) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const dm = decimals < 0 ? 0 : decimals;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+        }
+
+        // 5. 相手に対して特定のファイルをダウンロードしたいと要求する
+        function requestRemoteFile(fileName) {
+            if (!dataConn || !dataConn.open) {
+                showToast("接続が切断されているため、ダウンロードできません。");
+                return;
+            }
+            showToast(`ファイル [${fileName}] の取得要求を送信しました...`);
+            
+            // ダイアログを開いてロード待機にする
+            openDownloadDialog(`ファイル [${fileName}] を要求中`);
+
+            dataConn.send({
+                type: 'remote-file-request',
+                fileName: fileName
+            });
+        }
+
+        // 6. 接続相手から特定ファイルを要求された時、そのファイルを読み込みチャンク転送（ホスト側処理）
+        async function handleRemoteFileRequest(fileName) {
+            const targetFile = localPublicFiles.find(f => f.name === fileName);
+            if (!targetFile) {
+                showToast(`要求されたファイル [${fileName}] が共有リスト内にありません。`);
+                return;
+            }
+
+            try {
+                const file = await targetFile.handle.getFile();
+                const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+                const fileId = crypto.randomUUID();
+
+                // ダウンロード転送開始メタを送信
+                dataConn.send({
+                    type: 'remote-file-response-start',
+                    fileId: fileId,
+                    name: file.name,
+                    mimeType: file.type,
+                    size: file.size,
+                    totalChunks: totalChunks
+                });
+
+                let currentChunk = 0;
+                const reader = new FileReader();
+
+                reader.onload = function(e) {
+                    dataConn.send({
+                        type: 'remote-file-response-chunk',
+                        fileId: fileId,
+                        chunkIndex: currentChunk,
+                        data: e.target.result
+                    });
+
+                    currentChunk++;
+                    if (currentChunk < totalChunks) {
+                        readNextChunk();
+                    } else {
+                        showToast(`ファイル [${file.name}] の送信完了`);
+                    }
+                };
+
+                function readNextChunk() {
+                    const start = currentChunk * CHUNK_SIZE;
+                    const end = Math.min(start + CHUNK_SIZE, file.size);
+                    const blob = file.slice(start, end);
+                    reader.readAsArrayBuffer(blob);
+                }
+
+                readNextChunk();
+
+            } catch (err) {
+                console.error("リモートファイル送信に失敗しました:", err);
+                showToast("ファイル送信（ダウンロード対応）に失敗しました。");
+            }
+        }
+
+        // 7. リモートファイルのダウンロードデータを受信（クライアント側処理）
+        function startRemoteDownloadReceiver(meta) {
+            incomingRemoteFiles[meta.fileId] = {
+                name: meta.name,
+                mimeType: meta.mimeType,
+                size: meta.size,
+                totalChunks: meta.totalChunks,
+                chunks: [],
+                receivedCount: 0
+            };
+            
+            // 進捗バー表示の更新
+            document.getElementById('download-dialog-title').textContent = `ダウンロード中: ${meta.name}`;
+            document.getElementById('download-dialog-desc').textContent = `${formatBytes(meta.size)} のP2Pダウンロードを実行中です。`;
+            document.getElementById('download-dialog-bar').style.width = `0%`;
+        }
+
+        function receiveRemoteDownloadChunk(data) {
+            const fileObj = incomingRemoteFiles[data.fileId];
+            if (!fileObj) return;
+
+            fileObj.chunks[data.chunkIndex] = data.data;
+            fileObj.receivedCount++;
+
+            const percent = Math.floor((fileObj.receivedCount / fileObj.totalChunks) * 100);
+            document.getElementById('download-dialog-bar').style.width = `${percent}%`;
+
+            if (fileObj.receivedCount === fileObj.totalChunks) {
+                // すべてのチャンクの受領完了、ブラウザでダウンロード発火
+                const blob = new Blob(fileObj.chunks, { type: fileObj.mimeType });
+                const url = URL.createObjectURL(blob);
+
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = fileObj.name;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+
+                showToast(`ダウンロードが完了しました: ${fileObj.name}`);
+                closeDownloadDialog();
+                delete incomingRemoteFiles[data.fileId];
+            }
+        }
+
+        // ダウンロード進捗ダイアログ
+        function openDownloadDialog(title) {
+            document.getElementById('download-dialog-title').textContent = title;
+            document.getElementById('download-dialog-desc').textContent = "P2Pチャネル接続を仲介し、ファイルを安全にロードしています。";
+            document.getElementById('download-dialog-bar').style.width = '0%';
+            document.getElementById('download-dialog').classList.add('active');
+        }
+
+        function closeDownloadDialog() {
+            document.getElementById('download-dialog').classList.remove('active');
+        }
+
+
+        // ================= QRコード＆スキャナー =================
+        let qrScanning = false;
+        let qrVideoTrack = null;
+
+        function toggleQRScanner() {
+            const scannerWrapper = document.getElementById('qr-scanner-wrapper');
+            if (!qrScanning) {
+                navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+                .then((stream) => {
+                    qrScanning = true;
+                    scannerWrapper.style.display = 'block';
+                    const video = document.getElementById('qr-video');
+                    video.srcObject = stream;
+                    qrVideoTrack = stream.getVideoTracks()[0];
+                    video.setAttribute("playsinline", true);
+                    video.play();
+                    requestAnimationFrame(scanQRCodeLoop);
+                })
+                .catch((err) => {
+                    console.error("QRカメラーエラー:", err);
+                    showToast("背面カメラの取得に失敗しました");
+                });
+            } else {
+                stopQRScanner();
+            }
+        }
+
+        function stopQRScanner() {
+            const scannerWrapper = document.getElementById('qr-scanner-wrapper');
+            if (qrVideoTrack) {
+                qrVideoTrack.stop();
+                qrVideoTrack = null;
+            }
+            const video = document.getElementById('qr-video');
+            video.srcObject = null;
+            scannerWrapper.style.display = 'none';
+            qrScanning = false;
+        }
+
+        function scanQRCodeLoop() {
+            if (!qrScanning) return;
+
+            const video = document.getElementById('qr-video');
+            if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                const canvas = document.createElement("canvas");
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                const ctx = canvas.getContext("2d");
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                    inversionAttempts: "dontInvert",
+                });
+
+                if (code) {
+                    const scannedId = code.data;
+                    document.getElementById('target-peer-id-input').value = scannedId;
+                    showToast(`QRコード検出しました: ${scannedId}`);
+                    stopQRScanner();
+                    applyTargetPeerID();
+                    return;
+                }
+            }
+            requestAnimationFrame(scanQRCodeLoop);
+        }
+
+        function toggleMyQR() {
+            const box = document.getElementById('my-qr-box');
+            if (box.style.display === 'none') {
+                box.style.display = 'flex';
+            } else {
+                box.style.display = 'none';
+            }
+        }
+
+        function updateMyQR(myId) {
+            const placeholder = document.getElementById('qr-code-placeholder');
+            placeholder.innerHTML = "";
+            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(myId)}`;
+            const img = document.createElement('img');
+            img.src = qrUrl;
+            img.alt = "My PeerID QR Code";
+            placeholder.appendChild(img);
+        }
+
+
+        // ================= アプリケーション起動・初期設定 =================
+        window.onload = async () => {
+            // IndexedDB 準備
+            await initIndexedDB();
+            
+            // ギャラリーの初回描画
+            renderGallery();
+
+            // P2P初期化 (永続化されたPeerIDを利用して確立)
+            initPeer();
+
+            // 定期的な同期ループ
+            setInterval(() => {
+                if (dataConn && dataConn.open) {
+                    syncGalleryState();
+                    // 定期的にマウントファイルの公開状況をアップデートする
+                    if (localPublicFiles.length > 0) {
+                        sendMountedFileList();
+                    }
+                }
+            }, 30000);
+        };
+    </script>
+</body>
+</html>
