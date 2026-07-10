@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+  <title>{{ page.title | default: site.title }}</title>
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="{{ site.baseurl }}/manifest.json">
+  <meta name="theme-color" content="#3381FF">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+  <style>
+    /* ========== テーマ設定 ========== */
+    :root {
+      --accent-primary: #3381FF;
+      --accent-glow: rgba(51, 129, 255, 0.15);
+      --ptz-card-radius: 32px;
+
+      /* Light Mode */
+      --bg-base: #F3F5F9;
+      --glass-bg: #FFFFFF;
+      --text-main: #1C1C1E;
+      --text-sub: #636366;
+      --bg-secondary: #E5E5EA;
+      --border-subtle: rgba(0, 0, 0, 0.04);
+      
+      --m3-easing: cubic-bezier(0.34, 1.56, 0.64, 1.2);
+      --transition-smooth: 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* Dark Mode */
+    .dark-mode {
+      --bg-base: #0A0A0C;
+      --glass-bg: #16161A;
+      --text-main: #F2F2F7;
+      --text-sub: #AEAEB2;
+      --bg-secondary: #2C2C2E;
+      --border-subtle: rgba(255, 255, 255, 0.04);
+      --accent-glow: rgba(51, 129, 255, 0.3);
+    }
+
+    /* ========== グローバルスタイル ========== */
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', 'Noto Sans JP', sans-serif;
+      background-color: var(--bg-base);
+      color: var(--text-main);
+      transition: background-color var(--transition-smooth), color var(--transition-smooth);
+      overflow-x: hidden;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ========== メインコンテンツ ========== */
+    main {
+      flex-grow: 1;
+      width: 100%;
+    }
+
+    /* ========== ナビゲーションメニュー（FAB代替） ========== */
+    .nav-menu-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 999;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 12px;
+    }
+
+    .nav-menu {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      background: var(--glass-bg);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      padding: 8px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+      max-height: 0;
+      overflow: hidden;
+      opacity: 0;
+      transition: max-height 0.3s var(--m3-easing), opacity 0.3s;
+      pointer-events: none;
+    }
+
+    .nav-menu.show {
+      max-height: 300px;
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .dark-mode .nav-menu {
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+    }
+
+    .nav-menu a,
+    .nav-menu button {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      background: transparent;
+      border: none;
+      color: var(--text-main);
+      text-decoration: none;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      border-radius: 8px;
+      transition: background var(--transition-smooth);
+      white-space: nowrap;
+    }
+
+    .nav-menu a:hover,
+    .nav-menu button:hover {
+      background: var(--bg-secondary);
+    }
+
+    .nav-menu a:active,
+    .nav-menu button:active {
+      transform: scale(0.95);
+    }
+
+    .nav-menu .material-symbols-outlined {
+      font-size: 20px;
+    }
+
+    .fab-button {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      border: none;
+      background: linear-gradient(135deg, var(--accent-primary) 0%, #1A5FCC 100%);
+      color: #FFFFFF;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      box-shadow: 0 8px 20px rgba(51, 129, 255, 0.35);
+      transition: transform 0.3s var(--m3-easing), box-shadow 0.3s;
+    }
+
+    .fab-button:hover {
+      transform: scale(1.08);
+      box-shadow: 0 12px 28px rgba(51, 129, 255, 0.5);
+    }
+
+    .fab-button:active {
+      transform: scale(0.92);
+    }
+
+    /* ========== レスポンシブ ========== */
+    @media (max-width: 768px) {
+      .nav-menu-container {
+        bottom: 16px;
+        right: 16px;
+      }
+
+      .fab-button {
+        width: 48px;
+        height: 48px;
+        font-size: 24px;
+      }
+    }
+
+    /* ========== ユーティリティ ========== */
+    .material-symbols-outlined {
+      font-variation-settings:
+        'FILL' 0,
+        'wght' 400,
+        'GRAD' 0,
+        'opsz' 24
+    }
+  </style>
+</head>
+<body>
+
+  <!-- メインコンテンツ -->
+  <main>
+    {{ content }}
+  </main>
+
+  <!-- ナビゲーションメニュー（FAB代替） -->
+  <div class="nav-menu-container">
+    <nav class="nav-menu" id="nav-menu">
+      <a href="{{ '/' | relative_url }}" title="ホーム">
+        <span class="material-symbols-outlined">home</span>
+        <span>ホーム</span>
+      </a>
+      <a href="{{ 'applist' | relative_url }}" title="アプリ">
+        <span class="material-symbols-outlined">article</span>
+        <span>アプリ</span>
+      </a>
+      <hr style="margin: 4px 0; border: none; border-top: 1px solid var(--border-subtle);">
+      <button id="menu-theme-toggle" title="ダークモード切り替え">
+        <span class="material-symbols-outlined" id="menu-theme-icon">dark_mode</span>
+        <span id="menu-theme-text">ダークモードに変更</span>
+      </button>
+    </nav>
+    <button class="fab-button" id="fab-button" title="メニューを開く">
+      <span class="material-symbols-outlined">sports_esports</span>
+    </button>
+  </div>
+
+  <!-- Service Worker登録 -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('{{ site.baseurl }}/sw.js')
+          .then(function(registration) {
+            console.log('ServiceWorker registration successful:', registration.scope);
+          })
+          .catch(function(err) {
+            console.log('ServiceWorker registration failed:', err);
+          });
+      });
+    }
+  </script>
+
+  <!-- テーマ・メニュー管理スクリプト -->
+  <script>
+    const fabButton = document.getElementById('fab-button');
+    const navMenu = document.getElementById('nav-menu');
+    const menuThemeToggle = document.getElementById('menu-theme-toggle');
+    const menuThemeIcon = document.getElementById('menu-theme-icon');
+    const menuThemeText = document.getElementById('menu-theme-text');
+
+    // テーマ管理関数
+    function setTheme(isDark) {
+      document.documentElement.classList.toggle('dark-mode', isDark);
+      menuThemeIcon.textContent = isDark ? 'light_mode' : 'dark_mode';
+      menuThemeText.textContent = isDark ? 'ライトモードに変更' : 'ダークモードに変更';
+      localStorage.setItem('pbhub-theme', isDark ? 'dark' : 'light');
+    }
+
+    // 初期テーマ設定
+    function initTheme() {
+      const saved = localStorage.getItem('pbhub-theme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const isDark = saved === 'dark' || (!saved && prefersDark);
+      setTheme(isDark);
+    }
+
+    // メニュー開閉
+    function toggleMenu() {
+      navMenu.classList.toggle('show');
+    }
+
+    function closeMenu() {
+      navMenu.classList.remove('show');
+    }
+
+    // イベントリスナー
+    menuThemeToggle.addEventListener('click', () => {
+      setTheme(!document.documentElement.classList.contains('dark-mode'));
+    });
+
+    fabButton.addEventListener('click', toggleMenu);
+
+    // メニュー外クリックで閉じる
+    document.addEventListener('click', (e) => {
+      if (!navMenu.contains(e.target) && !fabButton.contains(e.target)) {
+        closeMenu();
+      }
+    });
+
+    // メニュー項目クリックで閉じる
+    navMenu.querySelectorAll('a').forEach(link => {
+      link.addEventListener('click', closeMenu);
+    });
+
+    // 初期化
+    initTheme();
+  </script>
+
+</body>
+</html>
