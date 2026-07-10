@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+    <title>PBhub ver</title>
+
+    <!-- Google Fonts & Material Symbols -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+
+    <style>
+        :root {
+            --accent-primary: #3381FF;
+            --accent-active: #1A5FCC;
+            
+            /* PTZ 規格初期値 */
+            --ptz-card-radius: 24px;
+            --ptz-slider-height: 16px;
+            --ptz-toggle-width: 54px;
+            --ptz-toggle-height: 30px;
+            --ptz-toggle-knob-radius: 50%;
+            --ptz-toggle-knob-width: 22px;
+
+            /* Light Mode ベースカラー */
+            --bg-base: #F7F7F7;
+            --glass-bg: #FFFFFF;
+            --text-main: #000000;
+            --text-sub: #666666;
+            --bg-secondary: #EEEEEE;
+            
+            --m3-easing: cubic-bezier(0.32, 0.72, 0, 1);
+            --transition-smooth: 0.35s var(--m3-easing);
+            --card-padding: 24px;
+        }
+
+        /* ダークモード */
+        .dark-mode {
+            --bg-base: #121212;
+            --glass-bg: #1E1E1E;
+            --text-main: #FFFFFF;
+            --text-sub: #A1A1A6;
+            --bg-secondary: #2C2C2E;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', 'Noto Sans JP', sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            transition: background-color var(--transition-smooth), color var(--transition-smooth);
+            overflow-x: hidden;
+            overflow-y: auto; /* 全体スクロール有効化 */
+            min-height: 100vh;
+            width: 100vw;
+        }
+
+        #app-viewport {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* ヘッダー（中央タイトル(Version)固定配置） */
+        header {
+            height: 64px;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--glass-bg);
+            transition: background-color var(--transition-smooth);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            flex-shrink: 0;
+        }
+        .logo-title {
+            font-weight: 700;
+            font-size: 18px;
+            letter-spacing: -0.5px;
+            color: var(--text-main);
+            text-align: center;
+        }
+        .theme-toggle {
+            position: absolute;
+            right: 24px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: none;
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background var(--transition-smooth), transform 0.2s;
+        }
+        .theme-toggle:active {
+            transform: scale(0.9);
+        }
+
+        /* メインコンテンツ（適正幅、マージン設定、ナビバー余白削除） */
+        main {
+            flex-grow: 1;
+            padding: 24px 20px 60px;
+            max-width: 680px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        /* フラットソリッドカード（枠線なし、影なし。PTZ角丸対応） */
+        .glass-card {
+            background: var(--glass-bg);
+            border-radius: var(--ptz-card-radius);
+            padding: var(--card-padding);
+            margin-bottom: 24px;
+            box-shadow: none !important;
+            border: none !important;
+            transition: background-color var(--transition-smooth), border-radius var(--transition-smooth);
+        }
+
+        h2 { 
+            font-size: 18px; 
+            margin-top: 0; 
+            margin-bottom: 12px;
+            font-weight: 700; 
+            letter-spacing: -0.3px;
+        }
+        p {
+            font-size: 13.5px;
+            line-height: 1.5;
+            margin-top: 0;
+            margin-bottom: 16px;
+            color: var(--text-sub);
+        }
+
+        /* ポーランドボールロゴ */
+        .pb-brand {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin: 16px 0 24px 0;
+        }
+        .pb-brand-text {
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: -1px;
+        }
+        .pb-brand-text span.brand-ball {
+            color: var(--text-main);
+            transition: color var(--transition-smooth);
+        }
+        .pb-brand-text span.brand-hub {
+            color: var(--accent-primary);
+        }
+
+        /* リストコンポーネント */
+        .custom-list {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            margin-bottom: 16px;
+        }
+        .list-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 4px;
+            border-bottom: 1px solid var(--bg-secondary);
+        }
+        .list-item:last-child {
+            border-bottom: none;
+        }
+        .list-item-title {
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .list-item-desc {
+            font-size: 12px;
+            color: var(--text-sub);
+            margin-top: 4px;
+        }
+        .list-item-meta {
+            font-weight: 700;
+            font-size: 13px;
+            text-align: right;
+        }
+
+        /* アクションボタン */
+        .ai-btn {
+            border: none;
+            outline: none;
+            padding: 12px 24px;
+            border-radius: 14px;
+            font-weight: 600;
+            font-size: 14px;
+            color: white;
+            cursor: pointer;
+            background: var(--accent-primary);
+            transition: transform 0.2s, background-color var(--transition-smooth);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            justify-content: center;
+            text-decoration: none;
+        }
+        .ai-btn:hover {
+            transform: scale(1.02);
+        }
+        .ai-btn:active {
+            background: var(--accent-active);
+            transform: scale(0.96);
+        }
+        .ai-btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-main);
+        }
+
+        /* カードの間に挟まれるポーランドボールエリア */
+        .inter-ball-divider {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin: 28px 0;
+            position: relative;
+        }
+        .ball-sprite-container {
+            width: 140px;
+            height: 140px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            cursor: pointer;
+            transition: transform 0.2s ease-out;
+        }
+        .ball-sprite-container:hover {
+            transform: scale(1.05);
+        }
+        
+        /* イギリス（高さ違い）を含め、ボール円形部分のベース基準を統一 */
+        .ball-avatar {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            filter: drop-shadow(0 8px 12px rgba(0,0,0,0.08));
+            animation: bounceIdle 4s ease-in-out infinite;
+            pointer-events: none; /* コンテナ全体でのクリック検知用 */
+        }
+        
+        .dark-mode .ball-avatar {
+            filter: drop-shadow(0 8px 12px rgba(0,0,0,0.35));
+        }
+
+        /* アニメーションのオフセットを変化させるため、複数のidleアニメを用意 */
+        .anim-delay-1 { animation: bounceIdle 4.2s ease-in-out infinite; animation-delay: -1.5s; }
+        .anim-delay-2 { animation: bounceIdle 3.8s ease-in-out infinite; animation-delay: -0.7s; }
+
+        @keyframes bounceIdle {
+            0% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-8px) rotate(0.5deg); }
+            100% { transform: translateY(0px) rotate(0deg); }
+        }
+
+        .ball-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-sub);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            background: var(--bg-secondary);
+            padding: 4px 12px;
+            border-radius: 12px;
+            margin-top: 8px;
+            user-select: none;
+            transition: background var(--transition-smooth);
+        }
+
+        /* 触感風アニメーション */
+        @keyframes squishy {
+            0% { transform: scale(1, 1); }
+            30% { transform: scale(1.12, 0.88); }
+            50% { transform: scale(0.92, 1.08); }
+            70% { transform: scale(1.03, 0.97); }
+            100% { transform: scale(1, 1); }
+        }
+        .squish-active {
+            animation: squishy 0.38s var(--m3-easing) !important;
+        }
+
+        /* トースト通知 */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--text-main);
+            color: var(--glass-bg);
+            padding: 12px 24px;
+            border-radius: 14px;
+            font-size: 13px;
+            font-weight: 600;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s var(--m3-easing);
+            z-index: 2000;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        }
+        .toast.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* バッジ表示 */
+        .badge {
+            background: var(--accent-primary);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 700;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app-viewport">
+        <!-- ヘッダー（中央ロゴ「(Version)」固定配置） -->
+        <header>
+            <div class="logo-title">(Version)</div>
+            <button class="theme-toggle" id="theme-btn" title="テーマ切り替え">
+                <span class="material-symbols-outlined">light_mode</span>
+            </button>
+        </header>
+
+        <main>
+            <!-- メインブランドロゴ -->
+            <div class="pb-brand">
+                <div class="pb-brand-text">
+                    <span class="brand-ball" id="brand-word-pb">Polandball</span><span class="brand-hub">Hub</span>
+                </div>
+            </div>
+
+            <!-- カード間のキャラクター（1体目）: OS風メインインジケータ -->
+            <div class="inter-ball-divider">
+                <div class="ball-sprite-container" id="ball-main-container" onclick="rollSpecificBall('ball-main', 'tag-main')">
+                    <img id="ball-main" class="ball-avatar" src="" alt="Polandball">
+                </div>
+                <div id="tag-main" class="ball-label">ポルスカ</div>
+            </div>
+
+            <!-- メインカード 1: バージョン情報 -->
+            <div class="glass-card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <span class="badge">LATEST</span>
+                    <span style="font-size: 12px; color: var(--text-sub);">Released: 2026.07.11</span>
+                </div>
+                <h2 style="font-size: 24px; margin-bottom: 6px; letter-spacing: -0.5px;">ver 3.0_2026.711.PBH</h2>
+                <p>
+                    最新のシステムアップデート。描画コアエンジンのブラッシュアップにより、各国のボールアセット（特殊アスペクト比アセットを含む）がより自然な縮尺でフラットにロードされるようになりました。
+                </p>
+                
+                <div style="margin-top: 18px; display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button class="ai-btn" onclick="triggerUpdateCheck()">
+                        <span class="material-symbols-outlined">cached</span>
+                        アップデートを確認
+                    </button>
+                    <a href="https://github.com/PolandBallHub-Operator" target="_blank" class="ai-btn ai-btn-secondary">
+                        <span class="material-symbols-outlined">open_in_new</span>
+                        GitHubで見る
+                    </a>
+                </div>
+            </div>
+
+            <!-- カード間のキャラクター（2体目） -->
+            <div class="inter-ball-divider">
+                <div class="ball-sprite-container" id="ball-second-container" onclick="rollSpecificBall('ball-second', 'tag-second')">
+                    <img id="ball-second" class="ball-avatar anim-delay-1" src="" alt="Polandball">
+                </div>
+                <div id="tag-second" class="ball-label">ロード中...</div>
+            </div>
+
+            <!-- メインカード 2: 最新アップデート内容 -->
+            <div class="glass-card">
+                <h2>最新機能・修正点</h2>
+                <p>本リリースの主な改善履歴です。カード間をタップすると色々な国のポーランドボールたちが現れます。</p>
+                
+                <div class="custom-list">
+                    <div class="list-item">
+                        <div>
+                            <div class="list-item-title">軽量データ通信の最適化</div>
+                            <div class="list-item-desc">無駄なリクエストをバイパスし、生のGitHubアセットから画像を直接ロード。</div>
+                        </div>
+                        <div class="list-item-meta" style="color: var(--accent-primary);">NEW</div>
+                    </div>
+
+                    <div class="list-item">
+                        <div>
+                            <div class="list-item-title">国名 & 表情パターンの完全連動</div>
+                            <div class="list-item-desc">germany, japan, poland等、全9種類の国と表情をシームレスに適用。</div>
+                        </div>
+                        <div class="list-item-meta" style="color: var(--text-sub);">FIX</div>
+                    </div>
+
+                    <div class="list-item">
+                        <div>
+                            <div class="list-item-title">イギリスアスペクト比対応</div>
+                            <div class="list-item-desc">縦長素材（england472x600）もボールの直径基準が同一になるよう等倍レンダリング。</div>
+                        </div>
+                        <div class="list-item-meta" style="color: var(--text-sub);">FIX</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- カード間のキャラクター（3体目） -->
+            <div class="inter-ball-divider">
+                <div class="ball-sprite-container" id="ball-third-container" onclick="rollSpecificBall('ball-third', 'tag-third')">
+                    <img id="ball-third" class="ball-avatar anim-delay-2" src="" alt="Polandball">
+                </div>
+                <div id="tag-third" class="ball-label">ロード中...</div>
+            </div>
+
+            <!-- メインカード 3: 公式リポジトリソース情報 -->
+            <div class="glass-card">
+                <h2>アセット情報</h2>
+                <p>アプリが直接通信する公開リソース。変更履歴やバグ報告はこちらから。</p>
+                <div class="custom-list">
+                    <div class="list-item">
+                        <div>
+                            <div class="list-item-title">アセット先 URL</div>
+                            <div class="list-item-desc" style="word-break: break-all; color: var(--accent-primary);">https://github.com/PolandBallHub-Operator/pbimagesPublic</div>
+                        </div>
+                    </div>
+                </div>
+                <div style="margin-top: 14px;">
+                    <button class="ai-btn ai-btn-secondary" style="width: 100%;" onclick="copyRepoUrl()">
+                        <span class="material-symbols-outlined">content_copy</span>
+                        リポジトリURLをコピー
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- トースト通知 -->
+    <div class="toast" id="toast-message">コピーしました</div>
+
+    <script>
+        /**
+         * PBhub ver - Engine Script (Xiaomi OS Version Style)
+         */
+
+        const themeBtn = document.getElementById('theme-btn');
+        const themeIcon = themeBtn.querySelector('span');
+        const toast = document.getElementById('toast-message');
+
+        // 指定の国名リスト（ライヒタングル等メーカー外は除外、ポルスカは「poland」としてロード）
+        const countries = [
+            { id: 'poland', display: 'ポルスカ' },
+            { id: 'japan', display: '日本' },
+            { id: 'germany', display: 'ドイツ' },
+            { id: 'china', display: '中国' },
+            { id: 'italy', display: 'イタリア' },
+            { id: 'sierraleone', display: 'シエラレオネ' },
+            { id: 'russia', display: 'ロシア' },
+            { id: 'france', display: 'フランス' },
+            { id: 'england472x600', display: 'イギリス' }
+        ];
+
+        // 指定の表情リスト
+        const faces = [
+            { file: 'normal.png', name: '通常' },
+            { file: 'happy.png', name: 'ハッピー' },
+            { file: 'anger.png', name: '怒り' },
+            { file: 'dissatisfaction.png', name: '不満' },
+            { file: 'itome.png', name: '糸目' },
+            { file: 'lol.png', name: '大爆笑' },
+            { file: 'plot.png', name: '悪巧み' },
+            { file: 'smile.png', name: '笑顔' },
+            { file: 'surprise.png', name: '驚き' }
+        ];
+
+        // ランダムなボールのパスを取得
+        function getRandomBall() {
+            const country = countries[Math.floor(Math.random() * countries.length)];
+            const face = faces[Math.floor(Math.random() * faces.length)];
+            
+            const url = `https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/${country.id}/${face.file}`;
+            const label = `${country.display} (${face.name})`;
+            
+            return { url, label };
+        }
+
+        // 特定のボール要素を再抽選・アニメーション
+        function rollSpecificBall(imgId, tagId) {
+            const imgEl = document.getElementById(imgId);
+            const tagEl = document.getElementById(tagId);
+            
+            if (!imgEl || !tagEl) return;
+
+            // コンテナ部分を取得してSquishyアニメを再生
+            const container = imgEl.parentElement;
+            if (container) {
+                container.classList.remove('squish-active');
+                void container.offsetWidth; // 強制リフロー
+                container.classList.add('squish-active');
+            }
+
+            // 新たなボールアセットを設定（XiaomiOSのアップデートタップ演出）
+            const data = getRandomBall();
+            
+            imgEl.style.opacity = '0.4';
+            const nextImg = new Image();
+            nextImg.onload = function() {
+                imgEl.src = data.url;
+                imgEl.style.opacity = '1';
+                tagEl.textContent = data.label;
+            };
+            nextImg.onerror = function() {
+                // Fallback禁止指示により直接描画を試行
+                imgEl.src = data.url;
+                imgEl.style.opacity = '1';
+                tagEl.textContent = data.label;
+            };
+            nextImg.src = data.url;
+        }
+
+        // 初期化ですべてのボールをバラバラにロード
+        function initAllBalls() {
+            rollSpecificBall('ball-main', 'tag-main');
+            rollSpecificBall('ball-second', 'tag-second');
+            rollSpecificBall('ball-third', 'tag-third');
+        }
+
+        // アップデート確認風インタラクション
+        function triggerUpdateCheck() {
+            showToast('お使いのバージョンは最新です');
+            // アップデートの確認をタップした際に全ボールをポヨンと変更
+            initAllBalls();
+        }
+
+        // リポジトリURLコピー
+        function copyRepoUrl() {
+            const url = "https://github.com/PolandBallHub-Operator/pbimagesPublic";
+            
+            const tempInput = document.createElement("input");
+            tempInput.value = url;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand("copy");
+            document.body.removeChild(tempInput);
+
+            showToast('リポジトリURLをコピーしました！');
+        }
+
+        // トースト通知表示
+        function showToast(msg) {
+            toast.textContent = msg;
+            toast.classList.add('active');
+            setTimeout(() => {
+                toast.classList.remove('active');
+            }, 2300);
+        }
+
+        // テーマ切替
+        function setTheme(isDark) {
+            document.body.classList.toggle('dark-mode', isDark);
+            themeIcon.textContent = isDark ? 'dark_mode' : 'light_mode';
+            
+            // ロゴのPolandball（白/黒）文字を連動
+            const pbWord = document.getElementById('brand-word-pb');
+            if (pbWord) {
+                pbWord.style.color = isDark ? '#FFFFFF' : '#000000';
+            }
+        }
+
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+        setTheme(prefersDark.matches);
+
+        themeBtn.addEventListener('click', () => {
+            setTheme(!document.body.classList.contains('dark-mode'));
+        });
+
+        // ページロード時初期化
+        window.onload = () => {
+            initAllBalls();
+        };
+    </script>
+</body>
+</html>
