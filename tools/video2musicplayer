@@ -1,0 +1,1767 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+    <title>FranceBall Background Media Engine</title>
+
+    <!-- Google Fonts & Material Symbols -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+
+    <style>
+        /* デフォルトテーマ */
+        :root {
+            --accent-primary: #3381FF;
+            --accent-active: #1A5FCC;
+            
+            /* PTZ 規格初期値 */
+            --ptz-theme-name: "France Blue Theme";
+            --ptz-card-radius: 24px;
+            --ptz-slider-height: 16px;
+            --ptz-toggle-width: 54px;
+            --ptz-toggle-height: 30px;
+            --ptz-toggle-knob-radius: 50%;
+            --ptz-toggle-knob-width: 22px;
+            --ptz-blur-intensity: 0px;
+
+            /* Light Mode ベースカラー */
+            --bg-base: #F7F7F7;
+            --glass-bg: #FFFFFF;
+            --text-main: #000000;
+            --text-sub: #666666;
+            --bg-secondary: #EEEEEE;
+            --nav-bg: #FFFFFF;
+            --nav-icon-active: #000000;
+            
+            --m3-easing: cubic-bezier(0.32, 0.72, 0, 1);
+            --transition-smooth: 0.35s var(--m3-easing);
+            --card-padding: 24px;
+        }
+
+        /* ダークモード */
+        .dark-mode {
+            --bg-base: #121212;
+            --glass-bg: #1E1E1E;
+            --text-main: #FFFFFF;
+            --text-sub: #A1A1A6;
+            --bg-secondary: #2C2C2E;
+            --nav-bg: #1E1E1E;
+            --nav-icon-active: #FFFFFF;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', 'Noto Sans JP', sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            transition: background-color var(--transition-smooth), color var(--transition-smooth);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* アプリ全体のコンテナ */
+        #app-viewport {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+        }
+
+        /* ヘッダー */
+        header {
+            height: 64px;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--glass-bg);
+            transition: background-color var(--transition-smooth);
+            position: relative;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+        .logo {
+            font-weight: 700;
+            font-size: 18px;
+            letter-spacing: -0.5px;
+            color: var(--text-main);
+            text-align: center;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .logo img {
+            width: 24px;
+            height: 24px;
+        }
+        .theme-toggle {
+            position: absolute;
+            right: 24px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: none;
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background var(--transition-smooth), transform 0.2s;
+        }
+        .theme-toggle:active {
+            transform: scale(0.9);
+        }
+
+        /* メインコンテンツ */
+        main {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 24px 20px 100px;
+            max-width: 720px;
+            width: 100%;
+            margin: 0 auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* フラットソリッドカード */
+        .glass-card {
+            background: var(--glass-bg);
+            border-radius: var(--ptz-card-radius);
+            padding: var(--card-padding);
+            margin-bottom: 20px;
+            box-shadow: none !important;
+            border: none !important;
+            transition: background-color var(--transition-smooth), border-radius var(--transition-smooth);
+        }
+
+        h2 { 
+            font-size: 18px; 
+            margin-top: 0; 
+            margin-bottom: 12px;
+            font-weight: 700; 
+            letter-spacing: -0.3px;
+        }
+        p {
+            font-size: 13.5px;
+            line-height: 1.5;
+            margin-top: 0;
+            margin-bottom: 16px;
+            color: var(--text-sub);
+        }
+
+        /* リストコンポーネント */
+        .custom-list {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            margin-bottom: 16px;
+        }
+        .list-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 4px;
+            border-bottom: 1px solid var(--bg-secondary);
+        }
+        .list-item:last-child {
+            border-bottom: none;
+        }
+        .list-item-title {
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .list-item-desc {
+            font-size: 12px;
+            color: var(--text-sub);
+        }
+
+        /* スライダー */
+        .slider-wrapper {
+            margin: 16px 0;
+        }
+        .slider-label-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        .thick-slider-container {
+            position: relative;
+            width: 100%;
+            height: var(--ptz-slider-height);
+            background: var(--bg-secondary);
+            border-radius: calc(var(--ptz-slider-height) / 2);
+            overflow: hidden;
+            cursor: pointer;
+            transition: height var(--transition-smooth);
+        }
+        .thick-slider-fill {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 50%;
+            background: var(--accent-primary);
+            transition: background-color var(--transition-smooth), width 0.1s ease-out;
+        }
+        .thick-slider-input {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+            margin: 0;
+        }
+
+        /* トグル */
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 4px;
+        }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: var(--ptz-toggle-width);
+            height: var(--ptz-toggle-height);
+            transition: width var(--transition-smooth), height var(--transition-smooth);
+        }
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--bg-secondary);
+            transition: var(--transition-smooth);
+            border-radius: calc(var(--ptz-toggle-height) / 2);
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: var(--ptz-toggle-knob-width);
+            width: var(--ptz-toggle-knob-width);
+            left: 4px;
+            bottom: calc((var(--ptz-toggle-height) - var(--ptz-toggle-knob-width)) / 2);
+            background: white;
+            transition: var(--transition-smooth);
+            border-radius: var(--ptz-toggle-knob-radius);
+        }
+        input:checked + .slider {
+            background: var(--accent-primary);
+        }
+        input:checked + .slider:before {
+            transform: translateX(calc(var(--ptz-toggle-width) - var(--ptz-toggle-knob-width) - 8px));
+        }
+
+        /* ボタン */
+        .ai-btn {
+            border: none;
+            outline: none;
+            padding: 12px 24px;
+            border-radius: 14px;
+            font-weight: 600;
+            font-size: 14px;
+            color: white;
+            cursor: pointer;
+            background: var(--accent-primary);
+            transition: transform 0.2s, background-color var(--transition-smooth);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            justify-content: center;
+        }
+        .ai-btn:hover {
+            transform: scale(1.02);
+        }
+        .ai-btn:active {
+            background: var(--accent-active);
+            transform: scale(0.96);
+        }
+        .ai-btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-main);
+        }
+
+        /* インプット */
+        .glass-input-wrapper {
+            margin-bottom: 14px;
+        }
+        .glass-input {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: none;
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            font-size: 14px;
+            font-family: inherit;
+            box-sizing: border-box;
+            transition: background var(--transition-smooth);
+        }
+        .glass-input:focus {
+            outline: 2px solid var(--accent-primary);
+        }
+
+        /* ナビゲーションバー */
+        .bottom-nav-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 72px;
+            background: var(--nav-bg);
+            border-top: 1px solid var(--bg-secondary);
+            z-index: 500;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding-bottom: env(safe-area-inset-bottom);
+            transition: background-color var(--transition-smooth), border-color var(--transition-smooth);
+        }
+        .nav-item {
+            flex: 1;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-sub);
+            transition: color 0.25s var(--m3-easing);
+            position: relative;
+            gap: 4px;
+        }
+        .nav-item span.material-symbols-outlined {
+            font-size: 24px;
+            font-variation-settings: 'FILL' 0, 'wght' 400;
+            transition: font-variation-settings 0.2s, color 0.2s;
+        }
+        .nav-label {
+            font-size: 10px;
+            font-weight: 600;
+        }
+        .nav-item.active {
+            color: var(--nav-icon-active);
+        }
+        .nav-item.active span.material-symbols-outlined {
+            font-variation-settings: 'FILL' 1, 'wght' 700;
+        }
+
+        /* ビュー切り替え */
+        .view {
+            display: none;
+        }
+        .view.active {
+            display: block;
+            animation: viewIn 0.3s var(--m3-easing);
+        }
+        @keyframes viewIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* PTZ関連 */
+        .ptz-dropzone {
+            border: 2px dashed var(--text-sub);
+            border-radius: var(--ptz-card-radius);
+            padding: 24px;
+            text-align: center;
+            cursor: pointer;
+            background: rgba(0, 0, 0, 0.02);
+            transition: background 0.2s, border-color 0.2s;
+            margin-bottom: 16px;
+        }
+        .dark-mode .ptz-dropzone {
+            background: rgba(255, 255, 255, 0.02);
+        }
+        .ptz-dropzone:hover {
+            background: rgba(51, 129, 255, 0.05);
+            border-color: var(--accent-primary);
+        }
+        .json-textarea {
+            width: 100%;
+            height: 220px;
+            font-family: monospace;
+            font-size: 12.5px;
+            padding: 16px;
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            border: none;
+            border-radius: var(--ptz-card-radius);
+            resize: vertical;
+            outline: none;
+            line-height: 1.4;
+            transition: background var(--transition-smooth);
+        }
+        .preset-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .preset-btn {
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            border: none;
+            padding: 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        /* フランスボール顔出しキャラクタースタイル */
+        #franceball-character {
+            position: fixed;
+            bottom: 72px; /* ナビバーのすぐ上 */
+            right: -15px;
+            width: 90px;
+            height: 90px;
+            z-index: 490;
+            cursor: pointer;
+            transition: transform 0.4s var(--m3-easing);
+            display: flex;
+            align-items: flex-end;
+            justify-content: flex-end;
+        }
+        #franceball-character:hover {
+            transform: translate(-10px, -5px) rotate(-5deg);
+        }
+        #franceball-img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            pointer-events: auto;
+        }
+        /* フキダシ */
+        #franceball-bubble {
+            position: fixed;
+            bottom: 160px;
+            right: 20px;
+            background: var(--glass-bg);
+            color: var(--text-main);
+            border-radius: 18px;
+            padding: 14px 18px;
+            width: 220px;
+            font-size: 12px;
+            line-height: 1.5;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+            z-index: 600;
+            display: none;
+            animation: popBubble 0.3s var(--m3-easing);
+            border: 1px solid var(--bg-secondary);
+        }
+        @keyframes popBubble {
+            from { opacity: 0; transform: scale(0.9) translateY(10px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        /* メディアプレイヤーUIの追加スタイル */
+        .player-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        .player-thumbnail-box {
+            width: 80px;
+            height: 80px;
+            border-radius: 16px;
+            background: var(--bg-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+        .player-thumbnail-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .player-info {
+            flex-grow: 1;
+        }
+        .player-info-title {
+            font-weight: 700;
+            font-size: 16px;
+            margin-bottom: 4px;
+            color: var(--text-main);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 220px;
+        }
+        .player-info-status {
+            font-size: 11px;
+            color: var(--accent-primary);
+            font-weight: 600;
+        }
+        .player-controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 24px;
+            margin: 20px 0;
+        }
+        .ctrl-btn {
+            background: none;
+            border: none;
+            color: var(--text-main);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.2s, transform 0.1s;
+        }
+        .ctrl-btn:active {
+            transform: scale(0.9);
+        }
+        .ctrl-btn span {
+            font-size: 32px;
+        }
+        .ctrl-btn.play-pause span {
+            font-size: 56px;
+            color: var(--accent-primary);
+        }
+        .search-box-container {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        /* ------------------ トースト通知 ------------------ */
+        .toast {
+            position: fixed;
+            bottom: 84px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--text-main);
+            color: var(--glass-bg);
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s var(--m3-easing);
+            z-index: 2000;
+        }
+        .toast.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* ------------------ ダイアログ ------------------ */
+        .dialog-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000; display: flex; align-items: center; justify-content: center;
+            opacity: 0; visibility: hidden; transition: all 0.3s var(--m3-easing);
+        }
+        .dialog-overlay.active { opacity: 1; visibility: visible; }
+        .glass-dialog {
+            background: var(--glass-bg);
+            border-radius: var(--ptz-card-radius);
+            padding: 24px; max-width: 380px; width: 90%; text-align: center;
+            transform: scale(0.9) translateY(20px); transition: all 0.4s var(--m3-easing);
+        }
+        .dialog-overlay.active .glass-dialog { transform: scale(1) translateY(0); }
+
+        .badge {
+            background: var(--accent-primary);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 700;
+            display: inline-block;
+        }
+
+        /* クリップボード等のコンポーネント */
+        .share-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 12px;
+            margin-top: 10px;
+        }
+        .share-code {
+            font-family: monospace;
+            font-weight: 700;
+            font-size: 16px;
+            color: var(--accent-primary);
+        }
+
+        /* サムネイルプレビュー選択用 */
+        .thumb-select-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .thumb-select-item {
+            aspect-ratio: 1;
+            border-radius: 8px;
+            background: var(--bg-secondary);
+            cursor: pointer;
+            overflow: hidden;
+            border: 2px solid transparent;
+        }
+        .thumb-select-item.active {
+            border-color: var(--accent-primary);
+        }
+        .thumb-select-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app-viewport">
+        <!-- ヘッダー -->
+        <header>
+            <div class="logo">
+                <img src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/france/lol.png" alt="FranceBall">
+                <span>BG Movie Player</span>
+            </div>
+            <button class="theme-toggle" id="theme-btn" title="テーマ切り替え">
+                <span class="material-symbols-outlined">light_mode</span>
+            </button>
+        </header>
+
+        <!-- メインコンテンツ -->
+        <main>
+            <!-- 1. ホームビュー -->
+            <section id="view-home" class="view active">
+                <div class="glass-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span class="badge" id="current-theme-badge">Engine Online</span>
+                        <span style="font-size: 11px; color: var(--text-sub);">バックグラウンド高音質再生</span>
+                    </div>
+                    <h2>動画からバックグラウンド音声生成</h2>
+                    <p>
+                        動画ファイルをアップロード、または動画のウェブ直リンクURLを入力するだけで、無理やり「音声ファイル（mp3扱い）」として変換ロード。バックグラウンドやロック画面でも音が止まることなく楽しめます！
+                    </p>
+
+                    <!-- ファイルインポート部 -->
+                    <div class="ptz-dropzone" onclick="triggerVideoFileInput()">
+                        <span class="material-symbols-outlined" style="font-size: 40px; color: var(--accent-primary); margin-bottom: 8px;">video_file</span>
+                        <div style="font-weight: 700; font-size: 14px;">ここに動画ファイルをドロップ、またはクリック</div>
+                        <div style="font-size: 12px; color: var(--text-sub); margin-top: 4px;">端末内の動画を音声としてローカル保存します</div>
+                        <input type="file" id="video-file-input" accept="video/*" style="display: none;" onchange="handleVideoFileSelect(event)">
+                    </div>
+
+                    <!-- URLから登録 -->
+                    <div class="glass-input-wrapper">
+                        <label style="font-size: 12px; font-weight: 700; display: block; margin-bottom: 6px;">ウェブ上の動画URLを入力</label>
+                        <div style="display: flex; gap: 8px;">
+                            <input type="text" id="video-url-input" class="glass-input" placeholder="https://example.com/video.mp4" style="margin-bottom:0;">
+                            <button class="ai-btn" onclick="addVideoFromUrl()" style="flex-shrink:0;">
+                                <span class="material-symbols-outlined">add</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card">
+                    <h2>動画共有ツール</h2>
+                    <p>他のユーザーと動画リンク、またはプリセット構成を共有するための簡易共有コードを生成できます。</p>
+                    <div class="glass-input-wrapper">
+                        <div style="display: flex; gap: 8px;">
+                            <input type="text" id="share-code-input" class="glass-input" placeholder="共有コードを入力して読込..." style="margin-bottom:0;">
+                            <button class="ai-btn" onclick="loadSharedVideo()">読み込む</button>
+                        </div>
+                    </div>
+
+                    <!-- 生成された共有コード表示領域 -->
+                    <div id="share-display-area" style="display:none;">
+                        <div class="share-item">
+                            <div>
+                                <div style="font-size:11px; color:var(--text-sub);">共有コード</div>
+                                <div class="share-code" id="generated-share-code">XXXXXX</div>
+                            </div>
+                            <button class="preset-btn" onclick="copyShareCode()" style="margin:0; padding:6px 12px;">コピー</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2. 保存・プレイヤービュー (元 view-components) -->
+            <section id="view-components" class="view">
+                <!-- メディアプレイヤー（音声扱いのシークなど） -->
+                <div class="glass-card">
+                    <div class="player-header">
+                        <div class="player-thumbnail-box" onclick="openThumbnailDialog()">
+                            <img id="player-thumb-img" src="https://placehold.co/150x150/3381FF/ffffff?text=FranceBall" alt="Thumbnail">
+                            <div style="position: absolute; bottom: 0; width: 100%; background: rgba(0,0,0,0.5); color: #fff; font-size: 8px; text-align: center; padding: 2px 0;">サムネ変更</div>
+                        </div>
+                        <div class="player-info">
+                            <div class="player-info-title" id="player-title">未再生</div>
+                            <div class="player-info-status" id="player-status">再生リストから曲を選択してください</div>
+                        </div>
+                    </div>
+
+                    <!-- 進行シークバー (太いスライダーをシーク用に活用) -->
+                    <div class="slider-wrapper">
+                        <div class="slider-label-row">
+                            <span id="player-time-current">0:00</span>
+                            <span id="player-time-duration">0:00</span>
+                        </div>
+                        <div class="thick-slider-container" id="progress-container">
+                            <div class="thick-slider-fill" id="progress-fill" style="width: 0%;"></div>
+                            <input type="range" class="thick-slider-input" id="player-progress" min="0" max="100" value="0" oninput="seekPlayer(this.value)">
+                        </div>
+                    </div>
+
+                    <!-- プレイヤー操作ボタン -->
+                    <div class="player-controls">
+                        <button class="ctrl-btn" onclick="toggleLoop()" id="loop-btn" title="ループ切替">
+                            <span class="material-symbols-outlined" id="loop-icon" style="color: var(--text-sub);">repeat</span>
+                        </button>
+                        <button class="ctrl-btn" onclick="prevTrack()" title="前の動画">
+                            <span class="material-symbols-outlined">skip_previous</span>
+                        </button>
+                        <button class="ctrl-btn play-pause" id="play-pause-btn" onclick="togglePlayPause()" title="再生/一時停止">
+                            <span class="material-symbols-outlined">play_circle</span>
+                        </button>
+                        <button class="ctrl-btn" onclick="nextTrack()" title="次の動画">
+                            <span class="material-symbols-outlined">skip_next</span>
+                        </button>
+                        <button class="ctrl-btn" onclick="deleteCurrentTrack()" title="現在の動画を削除" style="color:#FF3B30;">
+                            <span class="material-symbols-outlined">delete</span>
+                        </button>
+                    </div>
+
+                    <!-- 音量コントロール (太いブルースライダー) -->
+                    <div class="slider-wrapper">
+                        <div class="slider-label-row">
+                            <span>音量レベル</span>
+                            <span id="val-vol">100%</span>
+                        </div>
+                        <div class="thick-slider-container" id="slider-vol-container">
+                            <div class="thick-slider-fill" id="slider-vol-fill" style="width: 100%;"></div>
+                            <input type="range" class="thick-slider-input" min="0" max="100" value="100" oninput="updateThickSlider('slider-vol-fill', 'val-vol', this.value, '%'); setVolume(this.value);">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 動画リスト＆検索 -->
+                <div class="glass-card">
+                    <h2>保存リスト</h2>
+                    <div class="search-box-container">
+                        <input type="text" id="search-input" class="glass-input" placeholder="タイトルで検索..." oninput="renderVideoList()" style="margin-bottom:0;">
+                    </div>
+                    <div class="custom-list" id="saved-video-list">
+                        <!-- 動的に保存ビデオが追加されます -->
+                        <div style="text-align: center; color: var(--text-sub); padding: 20px 0; font-size: 13px;">
+                            登録されている動画がありません。<br>ホームタブから追加してください。
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. PTZ設定ビュー -->
+            <section id="view-ptz" class="view">
+                <div class="glass-card">
+                    <h2>PTZ.json 連携マネージャー</h2>
+                    <p>このアプリケーション全体を完全にカスタマイズできる規格「PTZ.json」の管理・インポート＆エクスポートパネルです。</p>
+
+                    <!-- ドラッグ＆ドロップ ゾーン -->
+                    <div class="ptz-dropzone" id="ptz-drop-area" onclick="triggerFileInput()">
+                        <span class="material-symbols-outlined" style="font-size: 40px; color: var(--accent-primary); margin-bottom: 8px;">upload_file</span>
+                        <div style="font-weight: 700; font-size: 14px;">ここに PTZ.json をドロップ、またはクリック</div>
+                        <div style="font-size: 12px; color: var(--text-sub); margin-top: 4px;">手元の構成ファイルを一発適用します</div>
+                        <input type="file" id="ptz-file-input" accept=".json" style="display: none;" onchange="handleFileSelect(event)">
+                    </div>
+
+                    <div style="margin-bottom: 12px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                            <span style="font-weight: 700; font-size: 13px;">PTZ.json コードエディタ</span>
+                            <div style="display: flex; gap: 6px;">
+                                <button class="preset-btn" style="padding: 4px 8px; margin: 0;" onclick="copyJsonToClipboard()">コピー</button>
+                                <button class="preset-btn" style="padding: 4px 8px; margin: 0; background: var(--accent-primary); color: white;" onclick="downloadJsonFile()">保存 (.json)</button>
+                            </div>
+                        </div>
+                        <textarea class="json-textarea" id="ptz-code-area" oninput="validateAndApplyJson(this.value)"></textarea>
+                        <div id="json-error-msg" style="color: #FF3B30; font-size: 12px; margin-top: 6px; display: none; font-weight: 600;"></div>
+                    </div>
+
+                    <div style="margin-top: 16px;">
+                        <button class="ai-btn" style="width: 100%;" onclick="applyJsonFromTextArea()">
+                            <span class="material-symbols-outlined">done_all</span>
+                            変更を今すぐ強制適用
+                        </button>
+                    </div>
+                </div>
+
+                <div class="glass-card">
+                    <h2>プリセット・テーマ</h2>
+                    <p>PTZ.jsonのワンタップ・プリセットです。好みの方向性に即座に切り替えます。</p>
+                    <div class="preset-grid">
+                        <button class="preset-btn" onclick="loadPreset('default')">Default Blue</button>
+                        <button class="preset-btn" onclick="loadPreset('sharpPurple')">Sharp Purple (角丸0)</button>
+                        <button class="preset-btn" onclick="loadPreset('chunkyRose')">Chunky Rose (極厚)</button>
+                        <button class="preset-btn" onclick="loadPreset('minimalGray')">Minimal Monochrome</button>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- フランスボールキャラクタ（画面下部からひょっこり顔を出す） -->
+        <div id="franceball-character" onclick="clickFranceBall()">
+            <img id="franceball-img" src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/france/lol.png" alt="FranceBall Icon">
+        </div>
+        <!-- フランスボールのフキダシ -->
+        <div id="franceball-bubble">
+            <div style="font-weight: 700; margin-bottom: 4px; color: var(--accent-primary);">フランスボールの助言:</div>
+            <div id="franceball-text">ボンジュール！ IndexedDBの容量制限には注意するんね。ブラウザにもよるけどあんまり大容量ビデオを入れすぎると、動作が重くなるんよ！</div>
+        </div>
+
+        <!-- 下付き固定ナビゲーションバー（アクティブ時黒・白アイコン。枠線なし） -->
+        <div class="bottom-nav-container">
+            <div class="nav-item active" data-view="view-home" onclick="switchView('view-home')">
+                <span class="material-symbols-outlined">home</span>
+                <span class="nav-label">ホーム</span>
+            </div>
+            <div class="nav-item" data-view="view-components" onclick="switchView('view-components')">
+                <span class="material-symbols-outlined">play_circle</span>
+                <span class="nav-label">保存・再生</span>
+            </div>
+            <div class="nav-item" data-view="view-ptz" onclick="switchView('view-ptz')">
+                <span class="material-symbols-outlined">settings_ethernet</span>
+                <span class="nav-label">PTZ設定</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 隠しオーディオ要素 (無理やり音声ファイル扱いで再生するための要) -->
+    <audio id="hidden-audio" playsinline></audio>
+
+    <!-- サムネイル変更ダイアログ -->
+    <div class="dialog-overlay" id="thumbnail-dialog">
+        <div class="glass-dialog" style="max-width: 420px;">
+            <h2 style="margin-bottom:8px;">サムネイル画像を設定</h2>
+            <p>この動画のカスタムサムネイルを設定するんね。</p>
+            
+            <div style="display: flex; flex-direction: column; gap: 12px; align-items: stretch; text-align: left;">
+                <!-- カスタム画像アップロード -->
+                <button class="ai-btn ai-btn-secondary" onclick="triggerThumbFileInput()" style="width: 100%;">
+                    <span class="material-symbols-outlined">upload</span>
+                    端末から画像をアップロード
+                </button>
+                <input type="file" id="thumb-file-input" accept="image/*" style="display:none;" onchange="handleThumbFileSelect(event)">
+
+                <div style="font-size:12px; font-weight:700; margin-top: 8px;">または、プリセットから選択するんね：</div>
+                <div class="thumb-select-grid">
+                    <div class="thumb-select-item" onclick="selectPresetThumb('france')">
+                        <img src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/france/lol.png" alt="France">
+                    </div>
+                    <div class="thumb-select-item" onclick="selectPresetThumb('default')">
+                        <img src="https://placehold.co/150x150/3381FF/ffffff?text=Video" alt="Blue">
+                    </div>
+                    <div class="thumb-select-item" onclick="selectPresetThumb('red')">
+                        <img src="https://placehold.co/150x150/FF3B30/ffffff?text=Audio" alt="Red">
+                    </div>
+                    <div class="thumb-select-item" onclick="selectPresetThumb('sunset')">
+                        <img src="https://placehold.co/150x150/FF9500/ffffff?text=Sunset" alt="Orange">
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top: 24px; display: flex; gap: 8px; justify-content: flex-end;">
+                <button class="ai-btn ai-btn-secondary" onclick="closeThumbnailDialog()">閉じる</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 説明用カスタムダイアログ -->
+    <div class="dialog-overlay" id="main-dialog">
+        <div class="glass-dialog">
+            <span class="material-symbols-outlined" style="font-size: 44px; color: var(--accent-primary);">verified_user</span>
+            <h2 style="margin-top: 12px;">ボンジュール！</h2>
+            <p style="margin-bottom: 20px;">
+                FranceBall BG Playerへようこそ！<br>
+                動画を「音声ファイル」としてシームレスにバックグラウンド再生できる高音質メディアハブです。<br>右下の僕をタップすると、いつでも容量制限などの軽い助言をするんね！
+            </p>
+            <button class="ai-btn" style="width: 100%; justify-content: center;" onclick="closeDialog()">理解しました</button>
+        </div>
+    </div>
+
+    <!-- トースト通知 -->
+    <div class="toast" id="toast-message">メッセージ</div>
+
+    <!-- Firebase configuration & Firestore imports -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Firebaseの連携準備
+        let db = null;
+        let auth = null;
+        let userId = null;
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'franceball-bg-player';
+
+        async function initFirebase() {
+            if (typeof __firebase_config !== 'undefined') {
+                try {
+                    const firebaseConfig = JSON.parse(__firebase_config);
+                    const app = initializeApp(firebaseConfig);
+                    db = getFirestore(app);
+                    auth = getAuth(app);
+
+                    // Auth Before Queries
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                    userId = auth.currentUser?.uid || crypto.randomUUID();
+                    console.log("Firebase initialized. User ID:", userId);
+                } catch (e) {
+                    console.error("Firebase init failed:", e);
+                }
+            }
+        }
+
+        window.firebaseShareVideo = async function(title, videoUrl) {
+            if (!db || !userId) {
+                showToast("クラウド機能が有効ではありません(ローカルのみ対応中)");
+                return null;
+            }
+            try {
+                // RULE 1: Strict Paths
+                const shareId = "share-" + Math.floor(100000 + Math.random() * 900000);
+                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'shares', shareId);
+                await setDoc(docRef, {
+                    shareId: shareId,
+                    title: title,
+                    videoUrl: videoUrl,
+                    userId: userId,
+                    createdAt: Date.now()
+                });
+                return shareId;
+            } catch (error) {
+                console.error("Error writing to Firestore:", error);
+                return null;
+            }
+        };
+
+        window.firebaseLoadSharedVideo = async function(shareId) {
+            if (!db) {
+                showToast("クラウド機能が有効ではありません");
+                return null;
+            }
+            try {
+                // RULE 1 & 2: Simple query
+                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'shares', shareId);
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
+                    return docSnap.data();
+                } else {
+                    return null;
+                }
+            } catch (error) {
+                console.error("Error reading from Firestore:", error);
+                return null;
+            }
+        };
+
+        // DOMの準備が整い次第Firebase初期化
+        window.addEventListener('DOMContentLoaded', () => {
+            initFirebase();
+        });
+    </script>
+
+    <script>
+        /**
+         * FranceBall Background Media Customizer - Core Engine
+         */
+
+        const viewport = document.getElementById('app-viewport');
+        const themeBtn = document.getElementById('theme-btn');
+        const themeIcon = themeBtn.querySelector('span');
+        const toast = document.getElementById('toast-message');
+        const ptzCodeArea = document.getElementById('ptz-code-area');
+        const jsonErrorMsg = document.getElementById('json-error-msg');
+        const hiddenAudio = document.getElementById('hidden-audio');
+        const playPauseBtn = document.getElementById('play-pause-btn');
+
+        // IndexedDB初期化
+        let dbInstance = null;
+        const dbName = "FranceBallMediaDB";
+        const dbVersion = 1;
+
+        function initIndexedDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(dbName, dbVersion);
+                request.onupgradeneeded = function(e) {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains('videos')) {
+                        db.createObjectStore('videos', { keyPath: 'id', autoIncrement: true });
+                    }
+                };
+                request.onsuccess = function(e) {
+                    dbInstance = e.target.result;
+                    resolve(dbInstance);
+                };
+                request.onerror = function(e) {
+                    console.error("IndexedDB Error:", e);
+                    reject(e);
+                };
+            });
+        }
+
+        // フランスボールの助言リスト
+        const franceBallQuotes = [
+            "ボンジュール！動画ファイルをそのまま音声プレイヤーとして再生できるよう、裏技を仕込んでるんね！",
+            "IndexedDBの容量がいっぱいになると、ブラウザに勝手にデータを削除されることがあるから、※容量には本当に注意してね！",
+            "サムネイルは、フランスボール画像やお好みのカラーに変更可能なんよ。オシャレにするんね！",
+            "共有ツールを使えば、動画の直リンクURLをコードにして友達と一瞬で共有できるんよ！シルブプレ！",
+            "バックグラウンド再生するときは、一度画面内で再生ボタンを押してから、スマホをロックするかホーム画面に戻るんね！",
+            "白いカードの中に更に灰色のカードを入れるのは美しくないから絶対ダメなんよ！僕のUIルールなんね。"
+        ];
+
+        function clickFranceBall() {
+            const bubble = document.getElementById('franceball-bubble');
+            const textElement = document.getElementById('franceball-text');
+            const randomQuote = franceBallQuotes[Math.floor(Math.random() * franceBallQuotes.length)];
+            textElement.textContent = randomQuote;
+            
+            if (bubble.style.display === 'block') {
+                bubble.style.display = 'none';
+            } else {
+                bubble.style.display = 'block';
+                // 4秒後に自動消滅
+                setTimeout(() => {
+                    bubble.style.display = 'none';
+                }, 5000);
+            }
+        }
+
+        // ビデオ再生ステート
+        let playlist = [];
+        let currentIndex = -1;
+        let isLooping = false;
+
+        // デフォルトPTZオブジェクト
+        let currentPtz = {
+            "themeName": "France Blue Theme",
+            "accentColor": "#3381FF",
+            "cardRadius": 24,
+            "sliderHeight": 16,
+            "toggleWidth": 54,
+            "toggleHeight": 30,
+            "toggleKnobRadius": 50,
+            "toggleKnobWidth": 22,
+            "blurIntensity": 0,
+            "bgLight": "#F7F7F7",
+            "bgDark": "#121212"
+        };
+
+        const presets = {
+            default: {
+                "themeName": "France Blue Theme",
+                "accentColor": "#3381FF",
+                "cardRadius": 24,
+                "sliderHeight": 16,
+                "toggleWidth": 54,
+                "toggleHeight": 30,
+                "toggleKnobRadius": 50,
+                "toggleKnobWidth": 22,
+                "blurIntensity": 0,
+                "bgLight": "#F7F7F7",
+                "bgDark": "#121212"
+            },
+            sharpPurple: {
+                "themeName": "Sharp Purple Theme",
+                "accentColor": "#8B5CF6",
+                "cardRadius": 0,
+                "sliderHeight": 12,
+                "toggleWidth": 50,
+                "toggleHeight": 26,
+                "toggleKnobRadius": 0,
+                "toggleKnobWidth": 18,
+                "blurIntensity": 0,
+                "bgLight": "#FFFFFF",
+                "bgDark": "#1C1C1E"
+            },
+            chunkyRose: {
+                "themeName": "Chunky Rose Theme",
+                "accentColor": "#E11D48",
+                "cardRadius": 32,
+                "sliderHeight": 24,
+                "toggleWidth": 64,
+                "toggleHeight": 36,
+                "toggleKnobRadius": 50,
+                "toggleKnobWidth": 28,
+                "blurIntensity": 0,
+                "bgLight": "#FFF1F2",
+                "bgDark": "#1A0B0E"
+            },
+            minimalGray: {
+                "themeName": "Minimal Monochrome Theme",
+                "accentColor": "#444444",
+                "cardRadius": 12,
+                "sliderHeight": 14,
+                "toggleWidth": 46,
+                "toggleHeight": 24,
+                "toggleKnobRadius": 50,
+                "toggleKnobWidth": 16,
+                "blurIntensity": 0,
+                "bgLight": "#F3F4F6",
+                "bgDark": "#0F0F10"
+            }
+        };
+
+        // --- PTZ適用のコア関数 ---
+        function applyPtz(ptz) {
+            currentPtz = { ...currentPtz, ...ptz };
+
+            const root = document.documentElement;
+            root.style.setProperty('--accent-primary', currentPtz.accentColor);
+            root.style.setProperty('--accent-active', adjustColorBrightness(currentPtz.accentColor, -15));
+            root.style.setProperty('--ptz-card-radius', `${currentPtz.cardRadius}px`);
+            root.style.setProperty('--ptz-slider-height', `${currentPtz.sliderHeight}px`);
+            root.style.setProperty('--ptz-toggle-width', `${currentPtz.toggleWidth}px`);
+            root.style.setProperty('--ptz-toggle-height', `${currentPtz.toggleHeight}px`);
+            root.style.setProperty('--ptz-toggle-knob-radius', isNaN(currentPtz.toggleKnobRadius) ? currentPtz.toggleKnobRadius : `${currentPtz.toggleKnobRadius}%`);
+            root.style.setProperty('--ptz-toggle-knob-width', `${currentPtz.toggleKnobWidth}px`);
+            
+            root.style.setProperty('--bg-base', document.body.classList.contains('dark-mode') ? currentPtz.bgDark : currentPtz.bgLight);
+
+            document.getElementById('current-theme-badge').textContent = currentPtz.themeName || "PTZ Config";
+            ptzCodeArea.value = JSON.stringify(currentPtz, null, 2);
+        }
+
+        function adjustColorBrightness(hex, percent) {
+            let R = parseInt(hex.substring(1, 3), 16);
+            let G = parseInt(hex.substring(3, 5), 16);
+            let B = parseInt(hex.substring(5, 7), 16);
+            R = parseInt(R * (100 + percent) / 100);
+            G = parseInt(G * (100 + percent) / 100);
+            B = parseInt(B * (100 + percent) / 100);
+            R = (R < 255) ? R : 255; G = (G < 255) ? G : 255; B = (B < 255) ? B : 255;
+            const rHex = ((R.toString(16).length == 1) ? "0" + R.toString(16) : R.toString(16));
+            const gHex = ((G.toString(16).length == 1) ? "0" + G.toString(16) : G.toString(16));
+            const bHex = ((B.toString(16).length == 1) ? "0" + B.toString(16) : B.toString(16));
+            return "#" + rHex + gHex + bHex;
+        }
+
+        // --- ビデオ・ファイル操作 ---
+        function triggerVideoFileInput() {
+            document.getElementById('video-file-input').click();
+        }
+
+        async function handleVideoFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            showToast("動画を音声化して登録中...");
+            
+            // IndexedDBへ保存
+            const videoData = {
+                title: file.name.replace(/\.[^/.]+$/, ""), // 拡張子削除
+                blob: file,
+                thumbnail: "https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/france/lol.png", // デフォルトでフランスボール
+                addedAt: Date.now()
+            };
+
+            const tx = dbInstance.transaction('videos', 'readwrite');
+            const store = tx.objectStore('videos');
+            store.add(videoData);
+
+            tx.oncomplete = function() {
+                showToast("保存完了！『保存・再生』タブを確認するんね！");
+                loadVideosFromDB();
+            };
+            tx.onerror = function(e) {
+                showToast("エラー：容量制限に達した可能性があります。");
+                console.error(e);
+            };
+        }
+
+        // ウェブ上の動画URLを登録
+        function addVideoFromUrl() {
+            const urlInput = document.getElementById('video-url-input');
+            const url = urlInput.value.trim();
+            if (!url) {
+                showToast("URLを入力してください");
+                return;
+            }
+
+            // タイトルを推測
+            let title = "Webビデオ " + new Date().toLocaleTimeString();
+            try {
+                const parsedUrl = new URL(url);
+                const pathParts = parsedUrl.pathname.split('/');
+                const lastPart = pathParts[pathParts.length - 1];
+                if (lastPart) title = decodeURIComponent(lastPart);
+            } catch(e) {}
+
+            const videoData = {
+                title: title,
+                url: url, // 外部URL
+                thumbnail: "https://placehold.co/150x150/3381FF/ffffff?text=Web+Video",
+                addedAt: Date.now()
+            };
+
+            const tx = dbInstance.transaction('videos', 'readwrite');
+            const store = tx.objectStore('videos');
+            store.add(videoData);
+
+            tx.oncomplete = function() {
+                showToast("Webビデオ保存完了！");
+                urlInput.value = "";
+                loadVideosFromDB();
+            };
+        }
+
+        // Firebase共有コード発行
+        async function loadVideosFromDB() {
+            if (!dbInstance) return;
+            const tx = dbInstance.transaction('videos', 'readonly');
+            const store = tx.objectStore('videos');
+            const request = store.getAll();
+
+            request.onsuccess = function(e) {
+                playlist = e.target.result;
+                renderVideoList();
+            };
+        }
+
+        // リスト表示
+        function renderVideoList() {
+            const listContainer = document.getElementById('saved-video-list');
+            const searchQuery = document.getElementById('search-input').value.toLowerCase();
+            
+            const filteredPlaylist = playlist.filter(video => video.title.toLowerCase().includes(searchQuery));
+
+            if (filteredPlaylist.length === 0) {
+                listContainer.innerHTML = `
+                    <div style="text-align: center; color: var(--text-sub); padding: 20px 0; font-size: 13px;">
+                        検索条件に合う動画がありません。
+                    </div>
+                `;
+                return;
+            }
+
+            listContainer.innerHTML = "";
+            filteredPlaylist.forEach((video, index) => {
+                const originalIndex = playlist.findIndex(v => v.id === video.id);
+                
+                const item = document.createElement('div');
+                item.className = "list-item";
+                item.style.cursor = "pointer";
+                
+                // アイテムのクリックで再生
+                item.innerHTML = `
+                    <div style="display:flex; align-items:center; gap:12px; flex-grow:1;" onclick="playTrack(${originalIndex})">
+                        <img src="${video.thumbnail}" style="width:40px; height:40px; border-radius:8px; object-fit:cover;">
+                        <div>
+                            <div class="list-item-title">${escapeHTML(video.title)}</div>
+                            <div class="list-item-desc">${video.blob ? "ローカル保存済 (音声再生可能)" : "Webリンク動画"}</div>
+                        </div>
+                    </div>
+                    <div style="display:flex; gap: 8px; align-items:center;">
+                        <button class="preset-btn" style="margin:0; padding:6px; background:none; color:var(--accent-primary);" onclick="generateShareCode(${originalIndex})" title="共有コードを作成">
+                            <span class="material-symbols-outlined" style="font-size:20px;">share</span>
+                        </button>
+                    </div>
+                `;
+                listContainer.appendChild(item);
+            });
+        }
+
+        // --- バックグラウンド・音声化再生コアロジック ---
+        let objectUrlToRevoke = null;
+
+        function playTrack(index) {
+            if (index < 0 || index >= playlist.length) return;
+            currentIndex = index;
+            const track = playlist[index];
+
+            // プレイヤー表示の更新
+            document.getElementById('player-title').textContent = track.title;
+            document.getElementById('player-status').textContent = track.blob ? "ローカルソース音声変換再生中" : "Webストリーミング再生中";
+            document.getElementById('player-thumb-img').src = track.thumbnail;
+
+            // 以前のObjectURLを解放してメモリリークを防ぐ
+            if (objectUrlToRevoke) {
+                URL.revokeObjectURL(objectUrlToRevoke);
+                objectUrlToRevoke = null;
+            }
+
+            // 無理やり音声ファイル扱いで再生
+            if (track.blob) {
+                // BlobからオブジェクトURLを作成し、オーディオ要素にセット！
+                objectUrlToRevoke = URL.createObjectURL(track.blob);
+                hiddenAudio.src = objectUrlToRevoke;
+            } else if (track.url) {
+                hiddenAudio.src = track.url;
+            }
+
+            hiddenAudio.load();
+            hiddenAudio.play()
+                .then(() => {
+                    updatePlayPauseUI(true);
+                    showToast(`「${track.title}」をバックグラウンド音声モードで再生中`);
+                })
+                .catch(e => {
+                    console.error("Playback failed:", e);
+                    showToast("再生に失敗しました。ファイル形式またはブラウザの制限を確認してください。");
+                });
+
+            // メディアセッションを設定（ロック画面用表示など）
+            if ('mediaSession' in navigator) {
+                navigator.mediaSession.metadata = new MediaMetadata({
+                    title: track.title,
+                    artist: "FranceBall BG Engine",
+                    album: "バックグラウンド動画ハブ",
+                    artwork: [
+                        { src: track.thumbnail, sizes: '256x256', type: 'image/png' }
+                    ]
+                });
+
+                navigator.mediaSession.setActionHandler('play', () => hiddenAudio.play());
+                navigator.mediaSession.setActionHandler('pause', () => hiddenAudio.pause());
+                navigator.mediaSession.setActionHandler('previoustrack', () => prevTrack());
+                navigator.mediaSession.setActionHandler('nexttrack', () => nextTrack());
+            }
+
+            switchView('view-components');
+        }
+
+        function togglePlayPause() {
+            if (currentIndex === -1) {
+                if (playlist.length > 0) {
+                    playTrack(0);
+                } else {
+                    showToast("再生するビデオがありません。追加してください。");
+                }
+                return;
+            }
+
+            if (hiddenAudio.paused) {
+                hiddenAudio.play();
+                updatePlayPauseUI(true);
+            } else {
+                hiddenAudio.pause();
+                updatePlayPauseUI(false);
+            }
+        }
+
+        function updatePlayPauseUI(isPlaying) {
+            const icon = playPauseBtn.querySelector('span');
+            if (isPlaying) {
+                icon.textContent = 'pause_circle';
+            } else {
+                icon.textContent = 'play_circle';
+            }
+        }
+
+        function setVolume(val) {
+            hiddenAudio.volume = val / 100;
+        }
+
+        // シーク処理
+        function seekPlayer(percent) {
+            if (!hiddenAudio.duration) return;
+            const time = (percent / 100) * hiddenAudio.duration;
+            hiddenAudio.currentTime = time;
+        }
+
+        // 進捗の定期更新
+        hiddenAudio.addEventListener('timeupdate', () => {
+            if (!hiddenAudio.duration) return;
+            
+            const current = hiddenAudio.currentTime;
+            const duration = hiddenAudio.duration;
+            const percent = (current / duration) * 100;
+
+            document.getElementById('progress-fill').style.width = `${percent}%`;
+            document.getElementById('player-progress').value = percent;
+
+            document.getElementById('player-time-current').textContent = formatTime(current);
+            document.getElementById('player-time-duration').textContent = formatTime(duration);
+        });
+
+        hiddenAudio.addEventListener('ended', () => {
+            if (isLooping) {
+                hiddenAudio.currentTime = 0;
+                hiddenAudio.play();
+            } else {
+                nextTrack();
+            }
+        });
+
+        function toggleLoop() {
+            isLooping = !isLooping;
+            const icon = document.getElementById('loop-icon');
+            if (isLooping) {
+                icon.style.color = "var(--accent-primary)";
+                showToast("1曲ループON");
+            } else {
+                icon.style.color = "var(--text-sub)";
+                showToast("ループOFF");
+            }
+        }
+
+        function prevTrack() {
+            if (playlist.length === 0) return;
+            let index = currentIndex - 1;
+            if (index < 0) index = playlist.length - 1;
+            playTrack(index);
+        }
+
+        function nextTrack() {
+            if (playlist.length === 0) return;
+            let index = currentIndex + 1;
+            if (index >= playlist.length) index = 0;
+            playTrack(index);
+        }
+
+        // 現在再生中のトラックをIndexedDBから削除
+        function deleteCurrentTrack() {
+            if (currentIndex === -1) return;
+            const track = playlist[currentIndex];
+            if (!confirm(`「${track.title}」を削除してもよろしいですか？`)) return;
+
+            const tx = dbInstance.transaction('videos', 'readwrite');
+            const store = tx.objectStore('videos');
+            store.delete(track.id);
+
+            tx.oncomplete = function() {
+                showToast("削除が完了しました");
+                currentIndex = -1;
+                document.getElementById('player-title').textContent = "未再生";
+                document.getElementById('player-status').textContent = "再生リストから曲を選択してください";
+                hiddenAudio.src = "";
+                updatePlayPauseUI(false);
+                loadVideosFromDB();
+            };
+        }
+
+        function formatTime(seconds) {
+            if (isNaN(seconds)) return "0:00";
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+        }
+
+        function escapeHTML(str) {
+            return str.replace(/[&<>'"]/g, 
+                tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+            );
+        }
+
+        // --- 共有コードの送信・読み込み ---
+        async function generateShareCode(index) {
+            const track = playlist[index];
+            if (!track.url) {
+                showToast("ローカルに保存されたファイルは、メタデータの都合上リンクでの共有ができません。エクスポート機能をご活用ください。Webリンク動画は共有可能です！");
+                return;
+            }
+
+            showToast("共有コードを生成中...");
+            if (window.firebaseShareVideo) {
+                const code = await window.firebaseShareVideo(track.title, track.url);
+                if (code) {
+                    document.getElementById('share-display-area').style.display = 'block';
+                    document.getElementById('generated-share-code').textContent = code;
+                    switchView('view-home');
+                } else {
+                    showToast("共有コードの生成に失敗しました");
+                }
+            } else {
+                showToast("クラウド機能がまだ利用可能になっていません。");
+            }
+        }
+
+        function copyShareCode() {
+            const code = document.getElementById('generated-share-code').textContent;
+            const dummy = document.createElement("textarea");
+            document.body.appendChild(dummy);
+            dummy.value = code;
+            dummy.select();
+            document.execCommand('copy');
+            document.body.removeChild(dummy);
+            showToast("共有コードをコピーしました！他のユーザーに教えてあげてください。");
+        }
+
+        async function loadSharedVideo() {
+            const codeInput = document.getElementById('share-code-input');
+            const code = codeInput.value.trim();
+            if (!code) {
+                showToast("共有コードを入力してください");
+                return;
+            }
+
+            showToast("共有コードから動画をロード中...");
+            if (window.firebaseLoadSharedVideo) {
+                const data = await window.firebaseLoadSharedVideo(code);
+                if (data) {
+                    // IndexedDBへ登録
+                    const videoData = {
+                        title: "[共有] " + data.title,
+                        url: data.videoUrl,
+                        thumbnail: "https://placehold.co/150x150/FF3B30/ffffff?text=Shared+Video",
+                        addedAt: Date.now()
+                    };
+
+                    const tx = dbInstance.transaction('videos', 'readwrite');
+                    const store = tx.objectStore('videos');
+                    store.add(videoData);
+
+                    tx.oncomplete = function() {
+                        showToast("動画リンクをインポートしました！『保存・再生』タブへどうぞ！");
+                        codeInput.value = "";
+                        loadVideosFromDB();
+                    };
+                } else {
+                    showToast("共有コードが見つかりません");
+                }
+            } else {
+                showToast("クラウドサービスに接続されていません。");
+            }
+        }
+
+        // --- サムネイル変更システム ---
+        function openThumbnailDialog() {
+            if (currentIndex === -1) {
+                showToast("先に再生リストから曲を選択してください");
+                return;
+            }
+            document.getElementById('thumbnail-dialog').classList.add('active');
+        }
+        function closeThumbnailDialog() {
+            document.getElementById('thumbnail-dialog').classList.remove('active');
+        }
+        function triggerThumbFileInput() {
+            document.getElementById('thumb-file-input').click();
+        }
+
+        function handleThumbFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                updateCurrentTrackThumbnail(e.target.result);
+                closeThumbnailDialog();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function selectPresetThumb(type) {
+            let url = "";
+            if (type === 'france') {
+                url = "https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/france/lol.png";
+            } else if (type === 'default') {
+                url = "https://placehold.co/150x150/3381FF/ffffff?text=Video";
+            } else if (type === 'red') {
+                url = "https://placehold.co/150x150/FF3B30/ffffff?text=Audio";
+            } else if (type === 'sunset') {
+                url = "https://placehold.co/150x150/FF9500/ffffff?text=Sunset";
+            }
+            updateCurrentTrackThumbnail(url);
+            closeThumbnailDialog();
+        }
+
+        function updateCurrentTrackThumbnail(thumbnailUrl) {
+            if (currentIndex === -1) return;
+            const track = playlist[currentIndex];
+            
+            const tx = dbInstance.transaction('videos', 'readwrite');
+            const store = tx.objectStore('videos');
+            
+            track.thumbnail = thumbnailUrl;
+            store.put(track);
+
+            tx.oncomplete = function() {
+                showToast("サムネイルを変更しました");
+                document.getElementById('player-thumb-img').src = thumbnailUrl;
+                loadVideosFromDB();
+            };
+        }
+
+        // --- 従来のPTZ.jsonインポート/エクスポート対応 ---
+        function triggerFileInput() {
+            document.getElementById('ptz-file-input').click();
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            readFile(file);
+        }
+
+        function readFile(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                if (validateAndApplyJson(text)) {
+                    showToast(`${file.name} を正しく適用しました！`);
+                } else {
+                    showToast('読み込んだJSONファイルにエラーがあります');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function validateAndApplyJson(textVal) {
+            try {
+                const parsed = JSON.parse(textVal);
+                jsonErrorMsg.style.display = 'none';
+                applyPtz(parsed);
+                return true;
+            } catch (e) {
+                jsonErrorMsg.textContent = `JSON構文エラー: ${e.message}`;
+                jsonErrorMsg.style.display = 'block';
+                return false;
+            }
+        }
+
+        function applyJsonFromTextArea() {
+            if (validateAndApplyJson(ptzCodeArea.value)) {
+                showToast('PTZ.json 変更が手動適用されました');
+            } else {
+                showToast('エラー箇所を修正してください');
+            }
+        }
+
+        function loadPreset(key) {
+            if (presets[key]) {
+                applyPtz(presets[key]);
+                showToast(`プリセット [${presets[key].themeName}] をロードしました`);
+            }
+        }
+
+        function copyJsonToClipboard() {
+            ptzCodeArea.select();
+            document.execCommand('copy');
+            showToast('PTZ.json をクリップボードにコピーしました！');
+        }
+
+        function downloadJsonFile() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(ptzCodeArea.value);
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `${currentPtz.themeName.toLowerCase().replace(/\s+/g, '_')}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+            showToast('PTZ.json ファイルのダウンロードを開始しました');
+        }
+
+        // --- 太いブルースライダー用の同期関数 ---
+        function updateThickSlider(fillId, labelId, val, unit) {
+            const label = document.getElementById(labelId);
+            const fill = document.getElementById(fillId);
+            if (label) label.textContent = `${val}${unit}`;
+            if (fill) {
+                const input = fill.nextElementSibling;
+                if (input) {
+                    const min = parseFloat(input.min) || 0;
+                    const max = parseFloat(input.max) || 100;
+                    const percent = ((val - min) / (max - min)) * 100;
+                    fill.style.width = `${percent}%`;
+                }
+            }
+        }
+
+        // --- ビュー切り替え機構 ---
+        const navItems = document.querySelectorAll('.nav-item');
+        const views = document.querySelectorAll('.view');
+
+        function switchView(viewId) {
+            navItems.forEach(n => {
+                n.classList.remove('active');
+                if (n.getAttribute('data-view') === viewId) {
+                    n.classList.add('active');
+                }
+            });
+
+            views.forEach(v => {
+                v.classList.remove('active');
+                if (v.id === viewId) {
+                    v.classList.add('active');
+                }
+            });
+        }
+
+        function openOverviewDialog() {
+            document.getElementById('main-dialog').classList.add('active');
+        }
+        function closeDialog() {
+            document.getElementById('main-dialog').classList.remove('active');
+        }
+
+        function showToast(msg) {
+            toast.textContent = msg;
+            toast.classList.add('active');
+            setTimeout(() => {
+                toast.classList.remove('active');
+            }, 3000);
+        }
+
+        function setTheme(isDark) {
+            document.body.classList.toggle('dark-mode', isDark);
+            themeIcon.textContent = isDark ? 'dark_mode' : 'light_mode';
+            const root = document.documentElement;
+            root.style.setProperty('--bg-base', isDark ? currentPtz.bgDark : currentPtz.bgLight);
+        }
+
+        themeBtn.addEventListener('click', () => {
+            setTheme(!document.body.classList.contains('dark-mode'));
+        });
+
+        // 触感ジェリー風バウンド演出
+        document.addEventListener('mousedown', (e) => {
+            const target = e.target.closest('.glass-card, .ai-btn, .nav-item, .preset-btn');
+            if (target) {
+                target.classList.remove('squish-active');
+                void target.offsetWidth;
+                target.classList.add('squish-active');
+                setTimeout(() => {
+                    target.classList.remove('squish-active');
+                }, 350);
+            }
+        });
+
+        // 初期ロード
+        window.onload = async () => {
+            await initIndexedDB();
+            applyPtz(currentPtz);
+            updateThickSlider('slider-vol-fill', 'val-vol', 100, '%');
+            loadVideosFromDB();
+        };
+    </script>
+</body>
+</html>
