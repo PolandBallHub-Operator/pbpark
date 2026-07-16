@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
-    <title>PB天気</title>
+    <title>PB Weather App</title>
 
     <!-- Google Fonts & Material Symbols -->
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
@@ -11,1556 +11,1803 @@
 
     <style>
         :root {
-            --ai-grad-primary: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #3b82f6 100%);
-            --ai-grad-active: linear-gradient(135deg, #f43f5e 0%, #8b5cf6 50%, #0ea5e9 100%);
-            --glass-bg: rgba(255, 255, 255, 0.4);
-            --glass-border: rgba(255, 255, 255, 0.5);
-            --glass-blur: 25px;
-            --text-main: #1d1d1f;
-            --text-sub: #48484a;
-            --bg-base: #f5f5f7;
+            --accent-primary: #3381FF;
+            --accent-active: #1A5FCC;
+            
+            /* Light Mode Tokens */
+            --bg-base: #F7F7F7;
+            --glass-bg: #FFFFFF;
+            --text-main: #000000;
+            --text-sub: #555555;
+            --bg-secondary: #EEEEEE;
+            
             --m3-easing: cubic-bezier(0.32, 0.72, 0, 1);
-            --transition-smooth: 0.5s var(--m3-easing);
+            --transition-smooth: 0.4s var(--m3-easing);
+            --card-padding: 20px;
+
+            /* Dynamic Weather Colors default */
+            --weather-grad-1: #e0f2fe;
+            --weather-grad-2: #bae6fd;
         }
 
         .dark-mode {
-            --glass-bg: rgba(28, 28, 30, 0.4);
-            --glass-border: rgba(255, 255, 255, 0.1);
-            --text-main: #f5f5f7;
-            --text-sub: #a1a1a6;
-            --bg-base: #000000;
+            /* Dark Mode Tokens */
+            --bg-base: #0a0f1d;
+            --glass-bg: #161b26;
+            --text-main: #FFFFFF;
+            --text-sub: #8e9aa8;
+            --bg-secondary: #242b3d;
+
+            --weather-grad-1: #0f172a;
+            --weather-grad-2: #1e293b;
         }
 
         body {
             margin: 0;
             padding: 0;
             font-family: 'Plus Jakarta Sans', 'Noto Sans JP', sans-serif;
-            background-color: var(--bg-base);
+            background: linear-gradient(135deg, var(--weather-grad-1) 0%, var(--weather-grad-2) 100%);
             color: var(--text-main);
-            transition: background-color var(--transition-smooth);
+            transition: background var(--transition-smooth), color var(--transition-smooth);
             overflow: hidden;
             height: 100vh;
             width: 100vw;
             touch-action: none;
         }
 
-        /* --- Scroll & Overscroll Container --- */
-        #app-viewport {
-            height: 100vh;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-            perspective: 1200px;
-            scroll-behavior: smooth;
-        }
-
-        /* --- Fluid Background --- */
-        .liquid-bg {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            z-index: -1; overflow: hidden; filter: blur(80px); opacity: 0.8;
-            pointer-events: none;
-        }
-        .liquid-blob {
-            position: absolute;
-            background: var(--ai-grad-primary);
-            border-radius: 50%;
-            width: 600px; height: 600px;
-            mix-blend-mode: multiply;
-            animation: blobFlow 20s infinite alternate ease-in-out;
-            will-change: transform;
-        }
-        .dark-mode .liquid-blob { mix-blend-mode: screen; opacity: 0.5; }
-
-        @keyframes blobFlow {
-            0% { transform: translate(-10%, -10%) scale(1); border-radius: 60% 40% 30% 70%/60% 30% 70% 40%; }
-            50% { transform: translate(20%, 10%) scale(1.1); border-radius: 30% 60% 70% 40%/50% 60% 30% 60%; }
-            100% { transform: translate(-5%, 20%) scale(0.9); border-radius: 60% 40% 30% 70%/60% 30% 70% 40%; }
-        }
-
-        /* Weather Canvas Overlay behind UI cards but on top of blobs */
-        #weather-canvas {
+        /* --- Dynamic Environment Background effects --- */
+        #dynamic-bg-container {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            z-index: -1;
+            z-index: 1;
             pointer-events: none;
+            overflow: hidden;
         }
 
-        /* --- Header --- */
+        /* Environment Animation Effects */
+        .weather-effect {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            opacity: 0;
+            transition: opacity 1s ease-in-out;
+        }
+        .weather-effect.active {
+            opacity: 0.6;
+        }
+
+        /* Clouds */
+        .cloud-moving {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 100px;
+            filter: blur(20px);
+            animation: drift 40s linear infinite;
+        }
+        @keyframes drift {
+            from { transform: translateX(-150px); }
+            to { transform: translateX(calc(100vw + 150px)); }
+        }
+
+        /* Rain */
+        .rain-drop {
+            position: absolute;
+            background: linear-gradient(transparent, #3381ff);
+            width: 2px;
+            height: 40px;
+            opacity: 0.7;
+            animation: fall 1.2s linear infinite;
+        }
+        @keyframes fall {
+            0% { transform: translateY(-100px) rotate(15deg); }
+            100% { transform: translateY(100vh) rotate(15deg); }
+        }
+
+        /* Snow */
+        .snow-flake {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            opacity: 0.8;
+            animation: snowfall 4s linear infinite;
+        }
+        @keyframes snowfall {
+            0% { transform: translateY(-10px) translateX(0); }
+            50% { transform: translateY(50vh) translateX(20px); }
+            100% { transform: translateY(100vh) translateX(-10px); }
+        }
+
+        /* Sunray */
+        .sunray {
+            position: absolute;
+            top: -100px; right: -100px;
+            width: 400px; height: 400px;
+            background: radial-gradient(circle, rgba(253,224,71,0.3) 0%, transparent 70%);
+            animation: pulse-sun 8s ease-in-out infinite alternate;
+        }
+        @keyframes pulse-sun {
+            0% { transform: scale(1); opacity: 0.5; }
+            100% { transform: scale(1.2); opacity: 0.8; }
+        }
+
+        /* --- Scroll Container --- */
+        #app-viewport {
+            height: 100vh;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            scroll-behavior: smooth;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* --- Header (Centered Title, Transparent, No Border/Shadow) --- */
         header {
             position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-            height: 72px; padding: 0 32px;
+            height: 72px; padding: 0 24px;
             display: flex; align-items: center; justify-content: space-between;
-            background: var(--glass-bg);
-            backdrop-filter: blur(var(--glass-blur));
-            border-bottom: 1px solid var(--glass-border);
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            transition: background-color var(--transition-smooth);
+            border-bottom: none !important;
         }
-        .logo-container {
+        .dark-mode header {
+            background: rgba(10, 15, 29, 0.3);
+        }
+        
+        .header-title-container {
             display: flex;
+            flex-direction: column;
             align-items: center;
-            gap: 10px;
+            flex-grow: 1;
+            text-align: center;
         }
+        
         .logo {
-            font-weight: 700; font-size: 20px; letter-spacing: -0.5px;
-            background: var(--ai-grad-primary);
-            -webkit-background-clip: text; -webkit-fill-color: transparent;
-        }
-        .header-actions {
+            font-weight: 700; font-size: 19px; letter-spacing: -0.5px;
+            color: var(--text-main);
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 6px;
+        }
+
+        .header-btn {
+            width: 44px; height: 44px; border-radius: 50%;
+            border: none; background: var(--glass-bg);
+            color: var(--text-main); cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: background var(--transition-smooth), transform 0.2s;
+            box-shadow: none;
+        }
+        .header-btn:hover {
+            transform: scale(1.05);
+        }
+        .header-btn:active {
+            transform: scale(0.95);
         }
 
         /* --- Main Layout --- */
         main {
-            padding: 100px 24px 150px;
-            max-width: 900px; margin: 0 auto;
+            padding: 96px 16px 60px;
+            max-width: 800px; margin: 0 auto;
             min-height: 100%;
             transition: opacity 0.3s ease, transform 0.3s var(--m3-easing);
+            box-sizing: border-box;
         }
 
-        /* --- Glass Card & Animations --- */
+        /* --- Flat Solid Card (No Shadow, No Border) --- */
         .glass-card {
             background: var(--glass-bg);
-            backdrop-filter: blur(var(--glass-blur)) saturate(180%);
-            border: 1px solid var(--glass-border);
-            border-radius: 32px;
-            padding: 28px;
-            margin-bottom: 24px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.05);
-            transform-style: preserve-3d;
-            transition: transform 0.1s ease-out, box-shadow 0.3s ease;
-            will-change: transform;
-        }
-        .glass-card:hover {
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            border-radius: 24px;
+            padding: var(--card-padding);
+            margin-bottom: 16px;
+            box-shadow: none !important;
+            border: none !important;
+            transform-style: flat;
+            transition: background-color var(--transition-smooth);
+            position: relative;
         }
 
-        h2 { font-size: 22px; margin-top: 0; font-weight: 700; }
-        h3 { font-size: 16px; margin: 0 0 12px 0; font-weight: 600; opacity: 0.9; }
+        /* STRICT RULE COMPLIANCE:
+           No gray nested cards inside .glass-card! 
+           Therefore, detail grid cells have NO background or border,
+           using typography, space, and simple text keys to distinguish data.
+        */
+        .flat-info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-top: 10px;
+        }
+        @media (min-width: 600px) {
+            .flat-info-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+        .flat-info-cell {
+            padding: 8px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .flat-info-label {
+            font-size: 12px;
+            color: var(--text-sub);
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .flat-info-value {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-main);
+        }
 
-        /* --- Squishy Effect --- */
+        h2 { 
+            font-size: 20px; 
+            margin-top: 0; 
+            margin-bottom: 8px; 
+            font-weight: 700; 
+        }
+        p {
+            font-size: 14px;
+            line-height: 1.45;
+            margin-top: 0;
+            margin-bottom: 12px;
+            color: var(--text-sub);
+        }
+
+        /* --- Interaction: Jelly/Squishy Effect --- */
         @keyframes squishy {
             0% { transform: scale(1, 1); }
-            30% { transform: scale(1.15, 0.85); }
-            50% { transform: scale(0.9, 1.1); }
-            70% { transform: scale(1.05, 0.95); }
+            30% { transform: scale(1.08, 0.92); }
+            50% { transform: scale(0.95, 1.05); }
+            70% { transform: scale(1.02, 0.98); }
             100% { transform: scale(1, 1); }
         }
         .squish-active {
-            animation: squishy 0.5s var(--m3-easing);
+            animation: squishy 0.4s var(--m3-easing);
         }
 
-        /* --- Buttons & Badges --- */
+        /* --- Primary Buttons (#3381FF base) --- */
         .ai-btn {
             border: none; outline: none;
-            padding: 12px 24px; border-radius: 16px;
+            padding: 12px 24px; border-radius: 14px;
             font-weight: 600; font-size: 15px;
             color: white; cursor: pointer;
-            background: var(--ai-grad-primary);
-            background-size: 200% 200%;
-            transition: all 0.5s var(--m3-easing);
-            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+            background: var(--accent-primary);
+            transition: transform 0.2s, background-color 0.2s;
             display: inline-flex; align-items: center; gap: 8px;
+            box-shadow: none;
         }
-        .ai-btn:hover { transform: translateY(-2px) scale(1.02); }
+        .ai-btn:hover { transform: scale(1.02); }
         .ai-btn:active {
-            background: var(--ai-grad-active);
-            transform: scale(0.92);
+            background: var(--accent-active);
+            transform: scale(0.95);
         }
-        .ai-btn-danger {
-            background: linear-gradient(135deg, #ef4444 0%, #f43f5e 100%);
-            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
-        }
-
-        .ai-badge {
-            display: inline-flex;
-            align-items: center;
-            padding: 6px 12px;
-            border-radius: 12px;
-            font-size: 13px;
-            font-weight: 600;
-            background: rgba(255, 255, 255, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.3);
+        .ai-btn-secondary {
+            background: var(--bg-secondary);
             color: var(--text-main);
         }
 
         /* --- Inputs --- */
-        .glass-input-wrapper { margin-bottom: 20px; position: relative; }
+        .glass-input-wrapper { margin-bottom: 14px; }
         .glass-input {
-            width: 100%; padding: 16px 20px;
-            border-radius: 18px; border: 1px solid var(--glass-border);
-            background: var(--glass-bg);
-            backdrop-filter: blur(var(--glass-blur));
-            color: var(--text-main); font-size: 16px;
-            box-sizing: border-box; transition: all 0.3s var(--m3-easing);
-            padding-right: 50px;
+            width: 100%; padding: 14px 18px;
+            border-radius: 14px; border: none;
+            background: var(--bg-secondary);
+            color: var(--text-main); font-size: 15px;
+            box-sizing: border-box; transition: background 0.3s var(--m3-easing);
         }
         .glass-input:focus {
-            outline: none; border-color: #a855f7;
-            background: rgba(255, 255, 255, 0.5);
-            box-shadow: 0 0 0 4px rgba(168, 85, 247, 0.1);
+            outline: 2px solid var(--accent-primary);
         }
 
-        /* --- Toggles --- */
+        /* --- Toggles (#3381FF) --- */
         .toggle-row {
             display: flex; align-items: center; justify-content: space-between;
             padding: 12px 0;
-            border-bottom: 1px solid rgba(128,128,128,0.1);
         }
-        .toggle-row:last-child { border-bottom: none; }
         .switch {
-            position: relative; display: inline-block; width: 54px; height: 30px;
+            position: relative; display: inline-block; width: 50px; height: 28px;
         }
         .switch input { opacity: 0; width: 0; height: 0; }
         .slider {
             position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
-            background: var(--glass-bg); backdrop-filter: blur(var(--glass-blur));
-            border: 1px solid var(--glass-border); transition: .4s var(--m3-easing);
+            background: var(--bg-secondary);
+            transition: .3s var(--m3-easing);
             border-radius: 34px;
         }
         .slider:before {
             position: absolute; content: "";
-            height: 22px; width: 22px; left: 4px; bottom: 3px;
-            background: white; transition: .4s var(--m3-easing);
-            border-radius: 50%; box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            height: 20px; width: 20px; left: 4px; bottom: 4px;
+            background: white; transition: .3s var(--m3-easing);
+            border-radius: 50%;
         }
-        input:checked + .slider { background: var(--ai-grad-primary); border-color: transparent; }
-        input:checked + .slider:before { transform: translateX(24px); }
+        input:checked + .slider { background: var(--accent-primary); }
+        input:checked + .slider:before { transform: translateX(22px); }
 
-        /* --- Navigation --- */
-        .nav-container {
-            position: fixed; bottom: 40px; left: 50%;
-            transform: translateX(-50%); z-index: 500;
-        }
-        .nav-rail {
-            display: flex; align-items: center; gap: 8px;
-            background: var(--glass-bg); backdrop-filter: blur(var(--glass-blur)) saturate(150%);
-            padding: 8px; border-radius: 40px; border: 1px solid var(--glass-border);
-            box-shadow: 0 15px 45px rgba(0,0,0,0.15);
-        }
-        .nav-item {
-            width: 56px; height: 56px;
-            display: flex; align-items: center; justify-content: center;
-            cursor: pointer; border-radius: 28px; color: var(--text-sub);
-            transition: all 0.4s var(--m3-easing);
-            position: relative;
-        }
-        .nav-item.active {
-            background: var(--ai-grad-primary); color: white;
-            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
-            transform: scale(1.1);
-        }
-
-        /* --- Dialog --- */
-        .dialog-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.4); backdrop-filter: blur(15px);
-            z-index: 1000; display: flex; align-items: center; justify-content: center;
-            opacity: 0; visibility: hidden; transition: all 0.4s var(--m3-easing);
-        }
-        .dialog-overlay.active { opacity: 1; visibility: visible; }
-        .glass-dialog {
-            background: var(--glass-bg); backdrop-filter: blur(40px) saturate(200%);
-            border: 1px solid var(--glass-border); border-radius: 36px;
-            padding: 32px; max-width: 420px; width: 90%; text-align: center;
-            transform: scale(0.8) translateY(40px); transition: all 0.5s var(--m3-easing);
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
-        }
-        .dialog-overlay.active .glass-dialog { transform: scale(1) translateY(0); }
-
-        /* --- View Management --- */
-        .view { display: none; }
-        .view.active { display: block; animation: viewIn 0.5s var(--m3-easing); }
-        @keyframes viewIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* --- Utility --- */
-        .theme-toggle {
-            width: 48px; height: 48px; border-radius: 24px;
-            border: 1px solid var(--glass-border); background: var(--glass-bg);
-            color: var(--text-main); cursor: pointer;
-            display: flex; align-items: center; justify-content: center;
-            transition: transform 0.3s;
-        }
-        .theme-toggle:active { transform: scale(0.9); }
-        
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        @media (max-width: 650px) { .grid { grid-template-columns: 1fr; } }
-
-        /* --- Polandball Features & UI Elements --- */
-        .hero-layout {
-            display: grid;
-            grid-template-columns: 1.2fr 0.8fr;
-            gap: 24px;
+        /* --- PB App Banner --- */
+        .pb-banner {
+            background: linear-gradient(90deg, #ff4e50 0%, #f9d423 100%);
+            color: #000;
+            border-radius: 18px;
+            padding: 16px;
+            margin-bottom: 16px;
+            cursor: pointer;
+            display: flex;
             align-items: center;
+            justify-content: space-between;
+            font-weight: 700;
+            font-size: 14px;
+            transition: transform 0.2s;
         }
-        @media (max-width: 650px) {
-            .hero-layout { grid-template-columns: 1fr; text-align: center; }
+        .pb-banner:hover {
+            transform: scale(1.02);
+        }
+        .pb-banner-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
-        .ball-display {
+        /* Polandball Container */
+        .pb-container {
             display: flex;
             flex-direction: column;
+            align-items: center;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .pb-ball-wrapper {
+            position: relative;
+            width: 140px;
+            height: 140px;
+            display: flex;
             align-items: center;
             justify-content: center;
-            position: relative;
         }
-
-        .pb-image {
-            max-width: 150px;
+        .pb-ball-img {
             width: 100%;
             height: auto;
-            filter: drop-shadow(0 10px 15px rgba(0,0,0,0.15));
-            animation: idleFloat 4s ease-in-out infinite alternate;
+            max-height: 130px;
+            object-fit: contain;
+            filter: drop-shadow(0px 8px 16px rgba(0,0,0,0.15));
         }
-
-        @keyframes idleFloat {
-            0% { transform: translateY(0px) rotate(0deg); }
-            100% { transform: translateY(-8px) rotate(2deg); }
-        }
-
-        /* Speech Bubble */
-        .speech-bubble {
-            position: relative;
-            background: rgba(255, 255, 255, 0.85);
-            border: 1px solid rgba(0, 0, 0, 0.08);
-            border-radius: 18px;
-            padding: 12px 16px;
-            color: #111;
+        
+        /* Interactive dialogue cloud */
+        .pb-bubble {
+            background: var(--glass-bg);
+            color: var(--text-main);
+            border-radius: 20px;
+            padding: 12px 20px;
             font-size: 14px;
             font-weight: 600;
-            margin-bottom: 12px;
-            max-width: 220px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+            max-width: 80%;
+            margin-top: 14px;
+            position: relative;
             line-height: 1.4;
-            display: block;
+            transition: background var(--transition-smooth);
         }
-        .dark-mode .speech-bubble {
-            background: rgba(30, 30, 35, 0.9);
-            color: #fff;
-            border-color: rgba(255,255,255,0.1);
-        }
-        .speech-bubble::after {
+        .pb-bubble::after {
             content: '';
             position: absolute;
-            bottom: -8px;
+            top: -8px;
             left: 50%;
             transform: translateX(-50%);
-            border-width: 8px 8px 0;
+            border-width: 0 8px 8px 8px;
             border-style: solid;
-            border-color: rgba(255, 255, 255, 0.85) transparent;
-            display: block;
-            width: 0;
-        }
-        .dark-mode .speech-bubble::after {
-            border-color: rgba(30, 30, 35, 0.9) transparent;
+            border-color: transparent transparent var(--glass-bg) transparent;
+            transition: border-color var(--transition-smooth);
         }
 
-        /* Horizontal Scroll List (Hourly) */
-        .forecast-scroll {
-            display: flex;
-            gap: 16px;
-            overflow-x: auto;
-            padding-bottom: 12px;
-            scroll-snap-type: x mandatory;
-            -webkit-overflow-scrolling: touch;
-        }
-        .forecast-scroll::-webkit-scrollbar {
-            height: 6px;
-        }
-        .forecast-scroll::-webkit-scrollbar-thumb {
-            background: rgba(128,128,128,0.2);
-            border-radius: 3px;
-        }
-
-        .hourly-card {
-            flex: 0 0 75px;
-            scroll-snap-align: start;
-            background: rgba(255, 255, 255, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.25);
-            border-radius: 16px;
-            padding: 12px 8px;
-            text-align: center;
+        /* --- Weather Display Blocks --- */
+        .current-weather-hero {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 6px;
+            padding: 10px 0;
+            position: relative;
         }
-        .dark-mode .hourly-card {
-            background: rgba(255, 255, 255, 0.05);
-            border-color: rgba(255, 255, 255, 0.05);
+        .temp-main-display {
+            font-size: 72px;
+            font-weight: 700;
+            line-height: 1;
+            margin: 12px 0;
+            letter-spacing: -2px;
+        }
+        .weather-desc-sub {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-sub);
+            margin-bottom: 6px;
         }
 
-        /* Daily List */
-        .daily-row {
+        /* Hourly Weather Scroller */
+        .hourly-scroller {
+            display: flex;
+            overflow-x: auto;
+            padding: 8px 0;
+            gap: 16px;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+        .hourly-scroller::-webkit-scrollbar {
+            display: none;
+        }
+        .hourly-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 55px;
+            text-align: center;
+        }
+        .hourly-time {
+            font-size: 12px;
+            color: var(--text-sub);
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+        .hourly-temp {
+            font-size: 15px;
+            font-weight: 700;
+            margin-top: 6px;
+        }
+        .hourly-pop {
+            font-size: 11px;
+            font-weight: 700;
+            color: #3381FF;
+            margin-top: 2px;
+        }
+
+        /* Weekly Weather List */
+        .weekly-list {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        .weekly-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 15px;
+        }
+        .weekly-day {
+            font-weight: 600;
+            width: 90px;
+        }
+        .weekly-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-grow: 1;
+        }
+        .weekly-pop {
+            font-size: 12px;
+            font-weight: 700;
+            color: #3381FF;
+            width: 45px;
+        }
+        .weekly-temps {
+            font-weight: 700;
+            text-align: right;
+            width: 80px;
+        }
+
+        /* City Swipe Dots Indicator */
+        .city-dots {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .city-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--text-sub);
+            opacity: 0.3;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .city-dot.active {
+            opacity: 1;
+            background: var(--accent-primary);
+            width: 18px;
+            border-radius: 4px;
+        }
+
+        /* Multi-city overview container */
+        .multi-city-card {
+            padding: 16px;
+        }
+        .city-comparison-row {
             display: flex;
             align-items: center;
             justify-content: space-between;
             padding: 12px 0;
-            border-bottom: 1px solid rgba(128, 128, 128, 0.1);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            cursor: pointer;
         }
-        .daily-row:last-child {
+        .dark-mode .city-comparison-row {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .city-comparison-row:last-child {
             border-bottom: none;
         }
-        .daily-day {
-            font-weight: 600;
-            width: 100px;
-        }
-        .daily-weather {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex: 1;
-            justify-content: center;
-        }
-        .daily-temp {
-            font-weight: 700;
-            text-align: right;
-            width: 100px;
-        }
 
-        /* Cities Hub */
-        .city-card {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
+        /* --- Dialog Overlay --- */
+        .dialog-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6);
+            z-index: 1000; display: flex; align-items: center; justify-content: center;
+            opacity: 0; visibility: hidden; transition: all 0.3s var(--m3-easing);
+            backdrop-filter: blur(5px);
+        }
+        .dialog-overlay.active { opacity: 1; visibility: visible; }
+        
+        .glass-dialog {
             background: var(--glass-bg);
-            border: 1px solid var(--glass-border);
-            border-radius: 20px;
-            padding: 16px 20px;
-            margin-bottom: 12px;
-            cursor: pointer;
-            transition: all 0.3s;
+            border-radius: 28px;
+            padding: 24px; max-width: 420px; width: 90%;
+            transform: scale(0.9) translateY(20px); transition: all 0.4s var(--m3-easing);
+            max-height: 80vh;
+            overflow-y: auto;
+            text-align: left;
+            box-shadow: none !important;
+            border: none !important;
         }
-        .city-card.active-city {
-            background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(168, 85, 247, 0.15) 100%);
-            border-color: #a855f7;
-        }
-        .city-card:hover {
-            transform: scale(1.01);
-        }
-        .city-card .city-info {
-            display: flex;
-            flex-direction: column;
-        }
-        .city-card .city-meta {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
+        .dialog-overlay.active .glass-dialog { transform: scale(1) translateY(0); }
 
-        /* Search Results Drawer */
-        .search-results {
-            background: var(--glass-bg);
-            backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border);
-            border-radius: 18px;
-            margin-top: 8px;
+        .search-results-list {
+            margin-top: 12px;
             max-height: 200px;
             overflow-y: auto;
-            display: none;
-            position: absolute;
-            width: 100%;
-            z-index: 10;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
         }
-        .search-item {
-            padding: 12px 20px;
+        .search-result-item {
+            padding: 12px;
             cursor: pointer;
-            border-bottom: 1px solid rgba(128,128,128,0.1);
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
             transition: background 0.2s;
         }
-        .search-item:hover {
-            background: rgba(255,255,255,0.2);
-        }
-        .dark-mode .search-item:hover {
-            background: rgba(255,255,255,0.1);
+        .search-result-item:hover {
+            background: var(--bg-secondary);
         }
 
-        .buddy-select-btn {
-            background: rgba(255, 255, 255, 0.3);
-            border: 1px solid var(--glass-border);
-            padding: 4px 10px;
-            border-radius: 10px;
-            font-size: 11px;
-            cursor: pointer;
-            font-weight: bold;
-            color: var(--text-main);
-            transition: 0.2s;
-        }
-        .buddy-select-btn:hover {
-            background: var(--ai-grad-primary);
-            color: white;
-        }
-
-        /* Loading shimmer */
-        .shimmer {
-            background: linear-gradient(90deg, rgba(255,255,255,0.1) 25%, rgba(255,255,255,0.3) 37%, rgba(255,255,255,0.1) 63%);
-            background-size: 400px 100%;
-            animation: shimmer 1.4s ease infinite;
-        }
-        @keyframes shimmer {
-            0% { background-position: -200px 0; }
-            100% { background-position: 200px 0; }
-        }
-
-        .weather-grid-specs {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
-            margin-top: 16px;
-        }
-        .spec-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            background: rgba(255, 255, 255, 0.15);
-            padding: 10px 14px;
-            border-radius: 14px;
-            font-size: 14px;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-        .dark-mode .spec-item {
-            background: rgba(0,0,0,0.25);
-        }
-
-        .toast-notification {
+        /* --- Toast Alert --- */
+        .toast {
             position: fixed;
-            top: 24px;
+            bottom: 30px;
             left: 50%;
-            transform: translateX(-50%) translateY(-100px);
-            background: var(--glass-bg);
-            backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border);
-            color: var(--text-main);
+            transform: translateX(-50%) translateY(20px);
+            background: var(--text-main);
+            color: var(--glass-bg);
             padding: 12px 24px;
-            border-radius: 20px;
-            z-index: 1000;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            border-radius: 16px;
+            font-size: 13px;
             font-weight: 600;
-            transition: transform 0.4s var(--m3-easing);
-            pointer-events: none;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s var(--m3-easing);
+            z-index: 2000;
         }
-        .toast-notification.active {
+        .toast.active {
+            opacity: 1;
+            visibility: visible;
             transform: translateX(-50%) translateY(0);
         }
 
+        .m3-select {
+            width: 100%;
+            padding: 14px 18px;
+            border-radius: 14px;
+            border: none;
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            font-size: 15px;
+            font-family: inherit;
+            margin-bottom: 14px;
+            outline: none;
+        }
+        
+        .m3-select:focus {
+            outline: 2px solid var(--accent-primary);
+        }
+
+        /* --- API Source Badge --- */
+        .source-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+            color: var(--text-sub);
+            font-weight: 600;
+            margin-top: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
     </style>
 </head>
 <body>
 
-    <div class="liquid-bg">
-        <div class="liquid-blob" id="blob-1" style="left: -10%; top: -10%;"></div>
-        <div class="liquid-blob" id="blob-2" style="right: -10%; bottom: -10%; background: var(--ai-grad-active); animation-delay: -5s;"></div>
+    <!-- Dynamic Weather Animations and Gradients -->
+    <div id="dynamic-bg-container">
+        <div id="effect-clear" class="weather-effect">
+            <div class="sunray"></div>
+        </div>
+        <div id="effect-cloudy" class="weather-effect">
+            <div class="cloud-moving" style="top: 10%; width: 250px; height: 100px; animation-duration: 45s;"></div>
+            <div class="cloud-moving" style="top: 25%; width: 180px; height: 80px; animation-duration: 30s; animation-delay: -10s;"></div>
+        </div>
+        <div id="effect-rain" class="weather-effect"></div>
+        <div id="effect-snow" class="weather-effect"></div>
     </div>
 
-    <!-- Weather Animations Canvas -->
-    <canvas id="weather-canvas"></canvas>
-
+    <!-- Top Bar -->
     <header>
-        <div class="logo-container">
-            <span class="material-symbols-outlined" style="background: var(--ai-grad-primary); -webkit-background-clip: text; -webkit-fill-color: transparent; font-weight: bold;">public</span>
-            <div class="logo">PB天気</div>
+        <button class="header-btn" id="add-city-btn" title="都市を追加">
+            <span class="material-symbols-outlined">add</span>
+        </button>
+        <div class="header-title-container">
+            <div class="logo" id="current-location-title">読み込み中...</div>
+            <div style="font-size: 11px; font-weight: 600; opacity: 0.7; margin-top: 1px;" id="current-city-idx-lbl">0 / 0</div>
         </div>
-        <div class="header-actions">
-            <!-- Fast Switch Buddy Buddy -->
-            <button class="theme-toggle" id="buddy-fast-toggle" title="ボールの切替">
-                <span class="material-symbols-outlined">face</span>
-            </button>
-            <button class="theme-toggle" id="theme-btn">
-                <span class="material-symbols-outlined">light_mode</span>
-            </button>
-        </div>
+        <button class="header-btn" id="settings-btn" title="設定">
+            <span class="material-symbols-outlined">settings</span>
+        </button>
     </header>
-
-    <!-- App Toast -->
-    <div id="app-toast" class="toast-notification">
-        <span class="material-symbols-outlined" id="toast-icon">info</span>
-        <span id="toast-msg">メッセージ</span>
-    </div>
 
     <div id="app-viewport">
         <main id="main-content">
             
-            <!-- 1. Home Dashboard View -->
-            <section id="view-home" class="view active">
-                <!-- Main Weather Card -->
-                <div class="glass-card tilt-card" id="weather-hero-card">
-                    <div class="hero-layout">
-                        <!-- Left Side: Basic Weather -->
-                        <div id="hero-weather-details">
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <h1 id="hero-city-name" style="margin: 0; font-size: 32px; font-weight: 700; letter-spacing: -1px;">東京</h1>
-                                <span class="ai-badge" id="hero-buddy-badge">Japanball</span>
-                            </div>
-                            <p id="hero-weather-desc" style="margin: 4px 0 16px 0; font-weight: 500; font-size: 16px; opacity: 0.8; display: flex; align-items: center; gap: 6px;">
-                                <span class="material-symbols-outlined" id="desc-icon" style="vertical-align: middle;">wb_sunny</span>
-                                <span id="desc-text">読込中...</span>
-                            </p>
+            <!-- Shared Link Read-Only Mode Banner -->
+            <div class="pb-banner" id="banner-mode-toggle" style="display: none;">
+                <div class="pb-banner-title">
+                    <span class="material-symbols-outlined">explore</span>
+                    <span id="banner-text">PB weather appを使うんよ！ (通常モードを有効化)</span>
+                </div>
+                <span class="material-symbols-outlined">save</span>
+            </div>
 
-                            <div style="display: flex; align-items: baseline; gap: 8px;">
-                                <span id="hero-temp" style="font-size: 64px; font-weight: 700; letter-spacing: -2px; background: var(--ai-grad-primary); -webkit-background-clip: text; -webkit-fill-color: transparent;">--°C</span>
-                                <span id="hero-temp-feels" style="font-size: 16px; font-weight: 500; opacity: 0.7;">体感 --°</span>
-                            </div>
+            <!-- Dots representing multiple cities -->
+            <div class="city-dots" id="city-dots-container"></div>
 
-                            <!-- Spec Metrics Grid -->
-                            <div class="weather-grid-specs">
-                                <div class="spec-item">
-                                    <span class="material-symbols-outlined" style="color: #6366f1;">humidity_percentage</span>
-                                    <div>
-                                        <div style="font-size: 11px; opacity: 0.6;">湿度</div>
-                                        <div id="spec-humidity" style="font-weight: bold;">--%</div>
-                                    </div>
-                                </div>
-                                <div class="spec-item">
-                                    <span class="material-symbols-outlined" style="color: #a855f7;">air</span>
-                                    <div>
-                                        <div style="font-size: 11px; opacity: 0.6;">風速</div>
-                                        <div id="spec-wind" style="font-weight: bold;">-- m/s</div>
-                                    </div>
-                                </div>
-                                <div class="spec-item">
-                                    <span class="material-symbols-outlined" style="color: #f43f5e;">light_mode</span>
-                                    <div>
-                                        <div style="font-size: 11px; opacity: 0.6;">最大UV</div>
-                                        <div id="spec-uv" style="font-weight: bold;">--</div>
-                                    </div>
-                                </div>
-                                <div class="spec-item">
-                                    <span class="material-symbols-outlined" style="color: #3b82f6;">cloud</span>
-                                    <div>
-                                        <div style="font-size: 11px; opacity: 0.6;">雲量</div>
-                                        <div id="spec-clouds" style="font-weight: bold;">--%</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Right Side: Polandball Interactive Reaction -->
-                        <div class="ball-display">
-                            <div class="speech-bubble" id="ball-speech">ドイツさん、何してるの？</div>
-                            <img src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/japan/happy.png" alt="Polandball Reaction" class="pb-image" id="pb-reaction-img" onerror="handleImageError(this)">
-                            <div style="margin-top: 14px; text-align: center;">
-                                <button class="buddy-select-btn" onclick="toggleHeroBuddy(event)">
-                                    相棒をチェンジ 
-                                </button>
-                            </div>
-                        </div>
+            <!-- Main Swipe Viewport Container (Handles touch swipes for mobile) -->
+            <div id="weather-details-pane">
+                
+                <!-- Polandball Display block (Permanently ON - Toggle Option Removed) -->
+                <div class="pb-container" id="pb-display-block">
+                    <div class="pb-ball-wrapper">
+                        <!-- Flag sphere with no fallback -->
+                        <img id="pb-ball-image" class="pb-ball-img" src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/poland/normal.png" alt="Polandball">
+                    </div>
+                    <div class="pb-bubble" id="pb-speech-bubble">
+                        Kurwa! Weather is loading desu!
                     </div>
                 </div>
 
-                <!-- Hourly Forecast Card (24h) -->
-                <div class="glass-card tilt-card">
-                    <h3>24時間予報 (今日)</h3>
-                    <div class="forecast-scroll" id="hourly-scroll-container">
-                        <!-- Instantiated Dynamically -->
-                        <div style="padding: 20px; text-align: center; width: 100%; opacity: 0.5;">天気データをロードしています...</div>
-                    </div>
-                </div>
-
-                <!-- Weekly Forecast Card -->
-                <div class="glass-card tilt-card">
-                    <h3>1週間の天気予報</h3>
-                    <div id="weekly-forecast-container">
-                        <!-- Instantiated Dynamically -->
-                        <div style="padding: 20px; text-align: center; opacity: 0.5;">天気データをロードしています...</div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- 2. Hub / City Management View -->
-            <section id="view-hub" class="view">
-                <div class="glass-card tilt-card">
-                    <h2>世界の都市を追加 & 管理</h2>
-                    <p style="color: var(--text-sub); margin-bottom: 20px;">Open-Meteoの高速ジオコーディングを使用して新しい都市を検索できます。</p>
-                    
-                    <!-- Search Input -->
-                    <div class="glass-input-wrapper">
-                        <input type="text" id="city-search-input" class="glass-input" placeholder="都市名を入力... (例: パリ, ニューヨーク)">
-                        <span class="material-symbols-outlined" style="position: absolute; right: 16px; top: 16px; opacity: 0.5;">search</span>
+                <!-- Basic weather overview card -->
+                <div class="glass-card" style="text-align: center;">
+                    <div class="current-weather-hero">
+                        <div class="weather-desc-sub" id="weather-text-primary">晴れ</div>
+                        <span id="weather-hero-icon" class="material-symbols-outlined" style="font-size: 72px; color: var(--accent-primary);">wb_sunny</span>
+                        <div class="temp-main-display" id="temp-value-display">--°</div>
+                        <div style="font-weight: 600; font-size: 15px;" id="temp-extremes-display">最高: --° / 最低: --°</div>
                         
-                        <!-- Auto-suggest Dropdown -->
-                        <div class="search-results" id="search-suggest-results">
-                            <!-- Populated in JS -->
-                        </div>
-                    </div>
-
-                    <!-- City Management List -->
-                    <div style="margin-top: 28px;">
-                        <h3 style="margin-bottom: 16px;">保存済みの都市一覧</h3>
-                        <div id="saved-cities-list">
-                            <!-- Populated Dynamically -->
+                        <!-- Open-Meteo Credit display - Only visible under viewer mode -->
+                        <div class="source-badge" id="openmeteo-credit-badge" style="display: none;">
+                            <span class="material-symbols-outlined" style="font-size: 14px;">database</span>
+                            Source by Open-Meteo
                         </div>
                     </div>
                 </div>
-            </section>
 
-            <!-- 3. Settings View -->
-            <section id="view-settings" class="view">
-                <div class="glass-card tilt-card">
-                    <h2>アプリケーション環境設定</h2>
-                    <p style="color: var(--text-sub); margin-bottom: 24px;">気象シミュレータとインターフェースの動作を高度にチューニングします。</p>
+                <!-- Dynamic Warning Alert banner (Hidden if empty) -->
+                <div class="glass-card" id="alert-card-container" style="display: none; background: rgba(239, 68, 68, 0.15); border-left: 4px solid #ef4444 !important;">
+                    <h2 style="color: #ef4444; display: flex; align-items: center; gap: 8px;">
+                        <span class="material-symbols-outlined">warning</span>
+                        気象アラート
+                    </h2>
+                    <p id="alert-card-text" style="color: var(--text-main); margin-bottom: 0;">大雨または強風の警戒情報があります。</p>
+                </div>
 
-                    <div class="toggle-row">
-                        <div>
-                            <div style="font-weight: 600;">気象背景アニメーション</div>
-                            <div style="font-size: 13px; color: var(--text-sub);">背景キャンバスに降雨・降雪などのエフェクトを描画します。</div>
-                        </div>
-                        <label class="switch">
-                            <input type="checkbox" id="setting-weather-anim" checked>
-                            <span class="slider"></span>
-                        </label>
-                    </div>
-
-                    <div class="toggle-row">
-                        <div>
-                            <div style="font-weight: 600;">グラフィック超解像ブラー (HD Blur)</div>
-                            <div style="font-size: 13px; color: var(--text-sub);">高度なグラデーションと高精度バックドロップブラーを適用します。</div>
-                        </div>
-                        <label class="switch">
-                            <input type="checkbox" id="setting-hd-blur" checked>
-                            <span class="slider"></span>
-                        </label>
-                    </div>
-
-                    <div class="toggle-row">
-                        <div>
-                            <div style="font-weight: 600;">ボールのセリフ (ユーモアボイス)</div>
-                            <div style="font-size: 13px; color: var(--text-sub);">ポーランドボールならではのコミカルなセリフを表示します。</div>
-                        </div>
-                        <label class="switch">
-                            <input type="checkbox" id="setting-funny-speech" checked>
-                            <span class="slider"></span>
-                        </label>
-                    </div>
-
-                    <div class="toggle-row">
-                        <div>
-                            <div style="font-weight: 600;">触覚フィードバック (疑似Haptic)</div>
-                            <div style="font-size: 13px; color: var(--text-sub);">カードクリックやナビゲーション時にプルプル跳ねる弾性演出を行います。</div>
-                        </div>
-                        <label class="switch">
-                            <input type="checkbox" id="setting-haptic" checked>
-                            <span class="slider"></span>
-                        </label>
-                    </div>
-
-                    <div style="margin-top: 32px; text-align: center;">
-                        <button class="ai-btn ai-btn-danger" style="width: 100%; justify-content: center;" onclick="resetToDefaultCities()">
-                            <span class="material-symbols-outlined">restart_alt</span>
-                            都市リストをデフォルトに初期化
-                        </button>
+                <!-- Hourly forecast card -->
+                <div class="glass-card">
+                    <h2>24時間天気予報</h2>
+                    <div class="hourly-scroller" id="hourly-scroller-container">
+                        <!-- Hourly forecast elements populated by JS -->
                     </div>
                 </div>
-            </section>
+
+                <!-- Weekly forecast card -->
+                <div class="glass-card">
+                    <h2>週間天気予報</h2>
+                    <div class="weekly-list" id="weekly-forecast-list">
+                        <!-- Weekly row items populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Detailed Weather Variables card -->
+                <div class="glass-card">
+                    <h2>気象詳細データ</h2>
+                    <div class="flat-info-grid">
+                        <div class="flat-info-cell">
+                            <div class="flat-info-label">
+                                <span class="material-symbols-outlined" style="font-size: 16px;">device_thermostat</span>
+                                体感温度
+                            </div>
+                            <div class="flat-info-value" id="val-realfeel">--°C</div>
+                        </div>
+                        <div class="flat-info-cell">
+                            <div class="flat-info-label">
+                                <span class="material-symbols-outlined" style="font-size: 16px;">airwave</span>
+                                空気質 (AQI)
+                            </div>
+                            <div class="flat-info-value" id="val-aqi">--</div>
+                        </div>
+                        <div class="flat-info-cell">
+                            <div class="flat-info-label">
+                                <span class="material-symbols-outlined" style="font-size: 16px;">air</span>
+                                風速・風向
+                            </div>
+                            <div class="flat-info-value" id="val-wind">-- m/s</div>
+                        </div>
+                        <div class="flat-info-cell">
+                            <div class="flat-info-label">
+                                <span class="material-symbols-outlined" style="font-size: 16px;">humidity_percentage</span>
+                                湿度
+                            </div>
+                            <div class="flat-info-value" id="val-humidity">--%</div>
+                        </div>
+                        <div class="flat-info-cell">
+                            <div class="flat-info-label">
+                                <span class="material-symbols-outlined" style="font-size: 16px;">light_mode</span>
+                                UV指数
+                            </div>
+                            <div class="flat-info-value" id="val-uv">--</div>
+                        </div>
+                        <div class="flat-info-cell">
+                            <div class="flat-info-label">
+                                <span class="material-symbols-outlined" style="font-size: 16px;">compress</span>
+                                気圧
+                            </div>
+                            <div class="flat-info-value" id="val-pressure">-- hPa</div>
+                        </div>
+                        <div class="flat-info-cell">
+                            <div class="flat-info-label">
+                                <span class="material-symbols-outlined" style="font-size: 16px;">sunny</span>
+                                日の出
+                            </div>
+                            <div class="flat-info-value" id="val-sunrise">--:--</div>
+                        </div>
+                        <div class="flat-info-cell">
+                            <div class="flat-info-label">
+                                <span class="material-symbols-outlined" style="font-size: 16px;">sunny_snowing</span>
+                                日の入り
+                            </div>
+                            <div class="flat-info-value" id="val-sunset">--:--</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Multi-city registration summary card -->
+                <div class="glass-card multi-city-card">
+                    <h2>登録都市一覧</h2>
+                    <p>タップで都市を切り替えます（スワイプまたは下記のリスト選択）</p>
+                    <div id="comparison-list-container">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+
+                <!-- Share Link button -->
+                <div style="text-align: center; margin-top: 12px; margin-bottom: 24px;">
+                    <button class="ai-btn" id="share-location-btn">
+                        <span class="material-symbols-outlined">share</span>
+                        この天気のリンクを共有する
+                    </button>
+                </div>
+
+            </div>
         </main>
     </div>
 
-    <!-- Bottom Navigation Bar -->
-    <div class="nav-container">
-        <nav class="nav-rail">
-            <div class="nav-item active" data-view="view-home">
-                <span class="material-symbols-outlined">home</span>
-            </div>
-            <div class="nav-item" data-view="view-hub">
-                <span class="material-symbols-outlined">hub</span>
-            </div>
-            <div class="nav-item" data-view="view-settings">
+    <!-- Settings Dialog -->
+    <div class="dialog-overlay" id="settings-dialog">
+        <div class="glass-dialog">
+            <h2 style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
                 <span class="material-symbols-outlined">settings</span>
+                アプリ設定
+            </h2>
+            
+            <p style="font-weight: 700; margin-bottom: 6px; font-size: 13px;">温度単位</p>
+            <select class="m3-select" id="settings-unit-temp">
+                <option value="celsius">摂氏 (℃)</option>
+                <option value="fahrenheit">華氏 (℉)</option>
+            </select>
+
+            <p style="font-weight: 700; margin-bottom: 6px; font-size: 13px;">風速単位</p>
+            <select class="m3-select" id="settings-unit-wind">
+                <option value="ms">メートル毎秒 (m/s)</option>
+                <option value="kmh">キロメートル毎時 (km/h)</option>
+                <option value="mph">マイル毎時 (mph)</option>
+                <option value="kn">ノット (kn)</option>
+                <option value="bft">ビューフォート風力階級</option>
+            </select>
+
+            <p style="font-weight: 700; margin-bottom: 6px; font-size: 13px;">気圧単位</p>
+            <select class="m3-select" id="settings-unit-press">
+                <option value="hpa">ヘクトパスカル (hPa)</option>
+                <option value="mbar">ミリバール (mbar)</option>
+                <option value="mmhg">水銀柱ミリメートル (mmHg)</option>
+                <option value="inhg">水銀柱インチ (inHg)</option>
+                <option value="atm">標準大気圧 (atm)</option>
+            </select>
+
+            <div class="toggle-row">
+                <span>夜間の自動更新 (23:00~7:00)</span>
+                <label class="switch">
+                    <input type="checkbox" id="settings-night-update" checked>
+                    <span class="slider"></span>
+                </label>
             </div>
-        </nav>
+
+            <div class="toggle-row">
+                <span>重大な気象アラートの通知</span>
+                <label class="switch">
+                    <input type="checkbox" id="settings-weather-alerts" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <div class="toggle-row">
+                <span>セマンティックダークモード</span>
+                <label class="switch">
+                    <input type="checkbox" id="settings-darkmode">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <button class="ai-btn" style="width: 100%; justify-content: center; margin-top: 20px;" id="close-settings-btn">保存して閉じる</button>
+        </div>
     </div>
 
-    <!-- Liquid Dialog (System Status / Startup info) -->
-    <div class="dialog-overlay" id="main-dialog">
+    <!-- Add City Dialog -->
+    <div class="dialog-overlay" id="add-city-dialog">
         <div class="glass-dialog">
-            <span class="material-symbols-outlined" style="font-size: 56px; background: var(--ai-grad-primary); -webkit-background-clip: text; -webkit-fill-color: transparent;">public</span>
-            <h2 style="margin-top: 16px;" id="dialog-title">ポーランドボール天気</h2>
-            <p style="color: var(--text-sub);" id="dialog-desc">日本の「Japanball」とドイツの「Germanyball」が各都市のリアルタイム天気をコミカルな表情とローカル名言でお知らせします！</p>
-            <div style="margin-top: 32px;">
-                <button class="ai-btn" style="width: 100%; justify-content: center;" onclick="closeDialog()">始める！</button>
+            <h2 style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                <span class="material-symbols-outlined">add_location</span>
+                都市の追加
+            </h2>
+            <p>世界の都市を検索して最大20件まで登録できます。</p>
+            
+            <div class="glass-input-wrapper">
+                <input type="text" class="glass-input" id="city-search-input" placeholder="都市名を英語または日本語で入力...">
+            </div>
+
+            <div class="search-results-list" id="search-results-list">
+                <!-- Search matching list items -->
+            </div>
+
+            <div style="display: flex; gap: 12px; margin-top: 16px;">
+                <button class="ai-btn ai-btn-secondary" style="flex: 1; justify-content: center;" id="close-add-city-btn">キャンセル</button>
             </div>
         </div>
     </div>
 
+    <!-- Toast message alert container -->
+    <div class="toast" id="toast-msg"></div>
+
     <script>
-        /**
-         * AImonet Polandball Weather Pro Engine
-         * 1. 3D Card Tilt with Preserved Vectors
-         * 2. Squishy Elastic Animation & Material Feel
-         * 3. Dynamic Weather Particles on HTML5 Canvas
-         * 4. Multi-city Database Sync with Open-Meteo Geocoding / Forecast API
-         * 5. Adaptive Polandball Reaction Mechanics with custom asset paths
-         */
-
-        const viewport = document.getElementById('app-viewport');
-        const mainContent = document.getElementById('main-content');
-        const themeBtn = document.getElementById('theme-btn');
-        const themeIcon = themeBtn.querySelector('span');
-
-        // --- Polandball Asset Base URL & Mapping ---
-        const PB_BASE_URL = "https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/";
-
-        // Standard Weather Mapping to Polandball Expression Files
-        // Expressions listed by user: anger.png, dissatisfaction.png, happy.png, itome.png, lol.png, normal.png, plot.png, smile.png
-        const EXPRESSIONS = {
-            CLEAR: "happy.png",
-            CLOUDY: "normal.png",
-            OVERCAST: "itome.png",
-            RAIN: "dissatisfaction.png",
-            SNOW: "lol.png",
-            HEAVY_RAIN: "anger.png",
-            FOGGY: "itome.png",
-            STORM: "anger.png"
+        // Core state architecture
+        let appState = {
+            isPBMode: true, // Polandball is permanently ON
+            isViewMode: false, // Viewer (Read-only) mode
+            cities: [
+                { name: '東京', lat: 35.6895, lon: 139.6917, countryCode: 'JP' }
+            ],
+            currentIdx: 0,
+            weatherData: {},
+            settings: {
+                tempUnit: 'celsius', // celsius or fahrenheit
+                windUnit: 'ms',      // ms, kmh, mph, kn, bft
+                pressUnit: 'hpa',    // hpa, mbar, mmhg, inhg, atm
+                nightUpdate: true,
+                weatherAlerts: true,
+                darkMode: false
+            }
         };
 
-        // Custom funny comments matching expressions and buddies
-        const SPEECH_LIBRARY = {
-            germany: {
-                CLEAR: [
-                    "Es ist wunderschön, ja! Perfect for working!",
-                    "Kein Regen. Time to clean up the workspace!",
-                    "Sonne! Let's go drink a cold Pilsner under the sun!"
-                ],
-                CLOUDY: [
-                    "Grau... just like the bureaucracy. Efficient.",
-                    "Cloudy. But regulations mandate outdoor inspection.",
-                    "Keine Panik! We have procedures for overcast days."
-                ],
-                OVERCAST: [
-                    "Es ist dunkel... Time for some serious industrial planning.",
-                    "Optimal lighting for precision manufacturing, ja."
-                ],
-                RAIN: [
-                    "Es regnet. Verdammt, my carefully scheduled stroll is ruined!",
-                    "Watering the grass without paperwork? Unacceptable nature!",
-                    "Scheiße, this rain is not compliance-friendly."
-                ],
-                SNOW: [
-                    "Schnee! Excellent temperature for high-efficiency cooling.",
-                    "Winter gear activated. Clean the pavement immediately!"
-                ],
-                HEAVY_RAIN: [
-                    "Heavy rain! Alarm! The drainage must follow DIN standards!",
-                    "Emergency! Activate flood control protocol Z-9!"
-                ],
-                FOGGY: [
-                    "Foggy... Visibility is low. Drive exactly 30 km/h.",
-                    "I cannot see France... Maybe for the best."
-                ],
-                STORM: [
-                    "Blitz und Donner! Back to the bunker to calculate tax!"
-                ]
+        // DOM selections
+        const appViewport = document.getElementById('app-viewport');
+        const toastEl = document.getElementById('toast-msg');
+
+        // Country maps to Polandball images & names
+        const countryPBMap = {
+            'JP': { name: 'japan' },
+            'CN': { name: 'china' },
+            'GB': { name: 'england472x600' },
+            'FR': { name: 'france' },
+            'DE': { name: 'germany' },
+            'IT': { name: 'italy' },
+            'KR': { name: 'korea' },
+            'PL': { name: 'poland' },
+            'RU': { name: 'russia' },
+            'SL': { name: 'sierraleone' },
+            'US': { name: 'usa' }
+        };
+
+        // Polandball weather messages
+        const pbExpressions = {
+            clear: 'happy.png',
+            clouds: 'normal.png',
+            rain: 'dissatisfaction.png',
+            thunderstorm: 'anger.png',
+            snow: 'smile.png',
+            extreme: 'lol.png',
+            fog: 'itome.png'
+        };
+
+        const pbQuotes = {
+            'japan': {
+                clear: '今日は快晴です！お寿司を食べて日向ぼっこするんよ。',
+                clouds: '雲が多いんよ。アニメを見るにはもってこいの日なんよ。',
+                rain: '雨が降ってるね… 傘を持つのを忘れないでほしいんよ。',
+                thunderstorm: '雷だ！、怖いんよ！学校はあるかな？',
+                snow: '雪 だよー！コタツとみかんの季節がやってきたんよ！友達とあそぼう！',
+                extreme: '暑すぎるんよ！エアコンを全開にするんよ！',
+                fog: '霧だね。前が見えないから気をつけて歩くんよ。'
             },
-            japan: {
-                CLEAR: [
-                    "お日様ぽかぽか！お花見がしたいですねー！",
-                    "快晴です！お布団を干す絶好のチャンスです！",
-                    "天晴れ！今日は残業を切り上げてお祭りに行きましょう！"
-                ],
-                CLOUDY: [
-                    "曇り空ですね。のんびり緑茶でも飲みましょうか。",
-                    "ちょっとどんより。猫になって日向ぼっこしたいです。",
-                    "まぁ、雨が降らないだけマシです。お茶会しましょう！"
-                ],
-                OVERCAST: [
-                    "曇天なり。和歌でも詠みたくなる雰囲気ですね…",
-                    "日差しが遮られています。紫外線対策はバッチリです！"
-                ],
-                RAIN: [
-                    "あ、雨です…お気に入りの傘を持って出かけましょう！",
-                    "ジメジメしますね…こんな日はお家でゲームか漫画です！",
-                    "雨粒ぽつぽつ。てるてる坊主を作らなくちゃ！"
-                ],
-                SNOW: [
-                    "雪だー！こたつの中でみかんを食べるのが至福です！",
-                    "寒いです！雪だるま作って遊んでいいですか？"
-                ],
-                HEAVY_RAIN: [
-                    "大雨注意！川の様子を見に行ってはダメですよ、絶対に！",
-                    "ザーザー降りです！お家でぬくぬく雨宿りしましょう！"
-                ],
-                FOGGY: [
-                    "霧深き日ですね。なんだか神秘的な雰囲気かも？",
-                    "前が見えません！お狐様が現れそうな天気です。"
-                ],
-                STORM: [
-                    "キャーッ！雷様におへそを取られちゃいます！早く隠れて！"
-                ]
+            'poland': {
+                clear: 'ポーランドは快晴の空なら飛べる気がするんよ！',
+                clouds: 'どんよりした雲なんよ。心配なんよ。',
+                rain: '雨が降ってきたんよ。またずぶ濡れなんよ。',
+                thunderstorm: 'おのれ雷！電気代が高くて困るのにこれ以上ビリビリさせないでなんよ！',
+                snow: '白い雪なんよ！ロシアに凍らされる前に対策するんよ！',
+                extreme: 'めちゃくちゃに暑いんよ！溶けちゃうんよ！',
+                fog: '霧なんよ。世界がぼやけて見えるんよ。'
+            },
+            'usa': {
+                clear: 'FREEDOM! 最高の太陽だぜ！たくさんの肉を用意するんよ！',
+                clouds: '曇りだな。ハンバーガーを食べながら映画鑑賞の準備なんよ！',
+                rain: '雨かよ、せっかくの洗車が台無しなんよ。でも気合で乗り切るぜ！',
+                thunderstorm: 'おい、ド派手な稲妻だ！ロックスターのライブみたいで最高なんよ！',
+                snow: '雪だな！スキー場に行って大暴れしてやるぜ、ナンバーワンなんよ！',
+                extreme: 'ガチで暑いんよ！クーラーを極限まで冷やしてアイスを貪るんよ！',
+                fog: 'ミステリアスな霧だな。ゾンビ映画の始まりみたいでワクワクするんよ！'
+            },
+            'germany': {
+                clear: '快晴だ。天気が良くてもルールを守って仕事を続けるんよ。',
+                clouds: '曇り。家でプレッツェルでも焼きますかね',
+                rain: '雨か。ビールとソーセージがあれば悪天候でも問題ないんよ。',
+                thunderstorm: '雷。落雷対策は万全なんよ。',
+                snow: '雪。道路の除雪計画をただちに実行するんよ。',
+                extreme: 'この暑さは想定外なんよ。水分補給は体を守るんよ。',
+                fog: '視界が悪い霧。移動は電車がいいんね。'
+            },
+            'england472x600': {
+                clear: '実によいお天気。紅茶とスコーンを用意してのんびりするんよ。',
+                clouds: 'いつも通りの曇り空なんよ。これがイギリスの標準仕様なんよ。',
+                rain: 'いつもの紅茶色の空から雨なんよ。傘をさすのも紳士の嗜みなんよ。',
+                thunderstorm: '少し騒がしい嵐なんよ。でも動じずにティータイムを貫くんよ。',
+                snow: '雪が降るとロンドンの街並みが美しくなってロマンチックなんよ。',
+                extreme: '紳士にはちょっと刺激が強すぎる暑さなんよ…おのれ。',
+                fog: '名物の濃霧なんよ。ミステリー小説の主役になった気分なんよ。'
+            },
+            'russia': {
+                clear: '太陽がまぶしい！',
+                clouds: '曇り空。この程度の暗さはいつものこと、問題ないんよ。',
+                rain: '雨が降っても平気なんよ。ドリンクを飲めば体は温まるんよ。',
+                thunderstorm: '激しい嵐！天気の神様が起こってるんよ！',
+                snow: '待ってました、極寒の雪！これこそ本物の天気なんよ！シベリアなんよ！',
+                extreme: 'ありえない暑さなんよ。雪原が恋しくて泣きそうなんよ。',
+                fog: '冷たい霧なんよ。熊を怒らせないように静かに進むんよ。'
+            },
+            'china': {
+                clear: '良い天気アル！たくさん働いて商売繁盛アル！',
+                clouds: '曇り空アル。お茶でも飲んで一息つくのも悪くないアル。',
+                rain: '雨でも傘をさして配達を頑張るアル。強靭な精神なんよ。',
+                thunderstorm: 'ものすごい雷アル！龍が暴れているに違いないアル。',
+                snow: '雪が綺麗アルね。春節のように賑やかに過ごすアルよ！',
+                extreme: '暑すぎて餃子が焼けそうアル！涼しいところで休むアル。',
+                fog: '霧アルか、大気も色々混ざってて目視困難アル。気をつけるアル。'
             }
         };
 
-        // --- Preset Cities Store ---
-        let defaultCities = [
-            { name: "東京", country: "日本", lat: 35.6762, lon: 139.6503, buddy: "japan", isDefault: true },
-            { name: "ミュンヘン", country: "ドイツ", lat: 48.1351, lon: 11.5820, buddy: "germany", isDefault: true }
-        ];
-
-        let state = {
-            cities: [],
-            activeCityIndex: 0,
-            weatherData: null,
-            preferences: {
-                hdBlur: true,
-                weatherAnim: true,
-                funnySpeech: true,
-                haptic: true
-            }
+        // Fallback quotes if dynamic match is not found
+        const fallbackQuotes = {
+            clear: 'とってもいい天気なんよ！太陽がまぶしいんよ！',
+            clouds: 'どんより曇り空なんよ。少し寂しい気分なんよ。',
+            rain: '雨がザアザアなんよ。お家の中でゆっくり過ごすんよ！',
+            thunderstorm: '雷ピカピカで恐ろしいんよ！クワバラ、クワバラなんよ！',
+            snow: '雪がしんしんと降るんよ！雪合戦をするんよ！',
+            extreme: 'めちゃくちゃ暑いんよ！干からびてボールになっちゃうんよ！',
+            fog: '真っ白な霧なんよ。迷子にならないように気をつけてなんよ！'
         };
 
-        // --- Initialize Storage ---
-        function loadState() {
-            const saved = localStorage.getItem("aimonet_pbweather_state");
-            if (saved) {
-                try {
-                    const parsed = JSON.parse(saved);
-                    state.cities = parsed.cities || defaultCities;
-                    state.activeCityIndex = parsed.activeCityIndex !== undefined ? parsed.activeCityIndex : 0;
-                    if (parsed.preferences) state.preferences = { ...state.preferences, ...parsed.preferences };
-                } catch (e) {
-                    state.cities = [...defaultCities];
-                    state.activeCityIndex = 0;
+        // Responsive Swipe System for multiple cities
+        let touchStartX = 0;
+        let touchEndX = 0;
+
+        appViewport.addEventListener('touchstart', (e) => {
+            const isScroller = e.target.closest('.hourly-scroller') || e.target.closest('.search-results-list') || e.target.closest('.glass-dialog');
+            if (isScroller) return;
+            touchStartX = e.changedTouches[0].screenX;
+        }, { passive: true });
+
+        appViewport.addEventListener('touchend', (e) => {
+            const isScroller = e.target.closest('.hourly-scroller') || e.target.closest('.search-results-list') || e.target.closest('.glass-dialog');
+            if (isScroller) return;
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipeGesture();
+        }, { passive: true });
+
+        function handleSwipeGesture() {
+            const threshold = 70;
+            if (touchStartX - touchEndX > threshold) {
+                // Swipe Left -> Next City
+                if (appState.currentIdx < appState.cities.length - 1) {
+                    changeCityIndex(appState.currentIdx + 1);
+                } else {
+                    showToast('最後の登録都市です');
+                }
+            } else if (touchEndX - touchStartX > threshold) {
+                // Swipe Right -> Prev City
+                if (appState.currentIdx > 0) {
+                    changeCityIndex(appState.currentIdx - 1);
+                } else {
+                    showToast('最初の登録都市です');
+                }
+            }
+        }
+
+        // PB Banner Action (Transitions reader-only mode -> localstorage full personalized mode)
+        document.getElementById('banner-mode-toggle').addEventListener('click', () => {
+            if (appState.isViewMode) {
+                // End Read-Only viewer mode, transition to Full Local mode
+                appState.isViewMode = false;
+                
+                // Save current parameters directly to localStorage
+                saveToLocalStorage();
+                
+                // Hide banner
+                document.getElementById('banner-mode-toggle').style.display = 'none';
+                document.getElementById('openmeteo-credit-badge').style.display = 'none';
+                
+                showToast('通常モードになりました！都市データが保存されました。');
+                
+                // Sync State URI to eliminate 'view=1' segment
+                saveStateToQuery();
+                updateUI();
+            }
+        });
+
+        // Dialog Overlays Toggle
+        function toggleOverlay(id, show) {
+            const el = document.getElementById(id);
+            if (show) {
+                el.classList.add('active');
+            } else {
+                el.classList.remove('active');
+            }
+        }
+
+        document.getElementById('settings-btn').addEventListener('click', () => {
+            // Load current state settings to dialog inputs
+            document.getElementById('settings-unit-temp').value = appState.settings.tempUnit;
+            document.getElementById('settings-unit-wind').value = appState.settings.windUnit;
+            document.getElementById('settings-unit-press').value = appState.settings.pressUnit;
+            document.getElementById('settings-night-update').checked = appState.settings.nightUpdate;
+            document.getElementById('settings-weather-alerts').checked = appState.settings.weatherAlerts;
+            document.getElementById('settings-darkmode').checked = appState.settings.darkMode;
+            toggleOverlay('settings-dialog', true);
+        });
+
+        document.getElementById('close-settings-btn').addEventListener('click', () => {
+            // Save inputs to appState
+            appState.settings.tempUnit = document.getElementById('settings-unit-temp').value;
+            appState.settings.windUnit = document.getElementById('settings-unit-wind').value;
+            appState.settings.pressUnit = document.getElementById('settings-unit-press').value;
+            appState.settings.nightUpdate = document.getElementById('settings-night-update').checked;
+            appState.settings.weatherAlerts = document.getElementById('settings-weather-alerts').checked;
+            appState.settings.darkMode = document.getElementById('settings-darkmode').checked;
+            
+            // Apply theme changes immediately
+            document.body.classList.toggle('dark-mode', appState.settings.darkMode);
+
+            toggleOverlay('settings-dialog', false);
+            showToast('設定を保存しました！');
+            updateUI();
+            
+            if (!appState.isViewMode) {
+                saveToLocalStorage();
+                saveStateToQuery();
+            }
+        });
+
+        document.getElementById('add-city-btn').addEventListener('click', () => {
+            if (appState.isViewMode) {
+                showToast('閲覧モード中は都市を追加できません。バナーから通常モードを有効化してください！');
+                return;
+            }
+            document.getElementById('city-search-input').value = '';
+            document.getElementById('search-results-list').innerHTML = '';
+            toggleOverlay('add-city-dialog', true);
+        });
+
+        document.getElementById('close-add-city-btn').addEventListener('click', () => {
+            toggleOverlay('add-add-city-dialog', false);
+            toggleOverlay('add-city-dialog', false);
+        });
+
+        // Auto search cities via Open-Meteo Geocoding
+        let searchTimeout;
+        document.getElementById('city-search-input').addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
+            const query = e.target.value.trim();
+            if (query.length < 2) return;
+
+            searchTimeout = setTimeout(() => {
+                fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=5&language=ja&format=json`)
+                    .then(res => res.json())
+                    .then(data => {
+                        const resultsContainer = document.getElementById('search-results-list');
+                        resultsContainer.innerHTML = '';
+                        if (!data.results || data.results.length === 0) {
+                            resultsContainer.innerHTML = '<div style="padding:10px; font-size:13px; color:var(--text-sub);">見つかりませんでした。</div>';
+                            return;
+                        }
+
+                        data.results.forEach(city => {
+                            const countryLabel = city.country ? `, ${city.country}` : '';
+                            const adminLabel = city.admin1 ? ` (${city.admin1})` : '';
+                            const item = document.createElement('div');
+                            item.className = 'search-result-item';
+                            item.textContent = `${city.name}${adminLabel}${countryLabel}`;
+                            item.addEventListener('click', () => {
+                                addNewCity({
+                                    name: city.name,
+                                    lat: city.latitude,
+                                    lon: city.longitude,
+                                    countryCode: city.country_code ? city.country_code.toUpperCase() : 'PL'
+                                });
+                                toggleOverlay('add-city-dialog', false);
+                            });
+                            resultsContainer.appendChild(item);
+                        });
+                    })
+                    .catch(() => {
+                        showToast('検索に失敗しました。');
+                    });
+            }, 350);
+        });
+
+        // Add new city logic
+        function addNewCity(cityObj) {
+            if (appState.cities.length >= 20) {
+                showToast('都市は最大20件まで登録できます。');
+                return;
+            }
+            // Check duplicates
+            const isDup = appState.cities.some(c => Math.abs(c.lat - cityObj.lat) < 0.05 && Math.abs(c.lon - cityObj.lon) < 0.05);
+            if (isDup) {
+                showToast('すでに登録されています。');
+                return;
+            }
+
+            appState.cities.push(cityObj);
+            appState.currentIdx = appState.cities.length - 1;
+            showToast(`${cityObj.name} を追加したんよ！`);
+            
+            if (!appState.isViewMode) {
+                saveToLocalStorage();
+                saveStateToQuery();
+            }
+            fetchWeatherForIndex(appState.currentIdx);
+        }
+
+        // Change current selected city Index
+        function changeCityIndex(idx) {
+            if (idx < 0 || idx >= appState.cities.length) return;
+            appState.currentIdx = idx;
+            fetchWeatherForIndex(idx);
+        }
+
+        // Load weather data via Open Meteo Forecast & Air Quality API
+        function fetchWeatherForIndex(idx) {
+            const city = appState.cities[idx];
+            if (!city) return;
+
+            document.getElementById('current-location-title').textContent = '更新中...';
+
+            const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,rain,showers,snowfall,weather_code,cloud_cover,pressure_msl,wind_speed_10m,wind_direction_10m&hourly=temperature_2m,relative_humidity_2m,precipitation_probability,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,uv_index_max,precipitation_probability_max&timezone=auto`;
+            const aqiUrl = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${city.lat}&longitude=${city.lon}&current=european_aqi,pm2_5,pm10&timezone=auto`;
+
+            Promise.all([
+                fetch(weatherUrl).then(res => res.json()),
+                fetch(aqiUrl).then(res => res.json()).catch(() => null) // Air Quality optional
+            ])
+            .then(([weather, airQuality]) => {
+                appState.weatherData[idx] = {
+                    weather: weather,
+                    air: airQuality
+                };
+                updateUI();
+                if (!appState.isViewMode) {
+                    saveStateToQuery();
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                document.getElementById('current-location-title').textContent = '取得エラー';
+                showToast('データの取得に失敗したんよ！');
+            });
+        }
+
+        // Converter utility for weather outputs
+        function convertTemp(cVal) {
+            if (appState.settings.tempUnit === 'fahrenheit') {
+                return Math.round((cVal * 9/5) + 32) + '°F';
+            }
+            return Math.round(cVal) + '°C';
+        }
+
+        function convertWind(msVal) {
+            switch (appState.settings.windUnit) {
+                case 'kmh':
+                    return Math.round(msVal * 3.6) + ' km/h';
+                case 'mph':
+                    return Math.round(msVal * 2.237) + ' mph';
+                case 'kn':
+                    return Math.round(msVal * 1.944) + ' kn';
+                case 'bft':
+                    // Beaufort Wind Scale Conversion
+                    if (msVal < 0.3) return 'F0 (静穏)';
+                    if (msVal < 1.6) return 'F1 (きつ風)';
+                    if (msVal < 3.4) return 'F2 (軽風)';
+                    if (msVal < 5.5) return 'F3 (軟風)';
+                    if (msVal < 8.0) return 'F4 (和風)';
+                    if (msVal < 10.8) return 'F5 (疾風)';
+                    if (msVal < 13.9) return 'F6 (雄風)';
+                    if (msVal < 17.2) return 'F7 (強風)';
+                    return 'F8以上 (暴風)';
+                default:
+                    return msVal.toFixed(1) + ' m/s';
+            }
+        }
+
+        function convertPressure(hpaVal) {
+            switch (appState.settings.pressUnit) {
+                case 'mbar':
+                    return Math.round(hpaVal) + ' mbar';
+                case 'mmhg':
+                    return Math.round(hpaVal * 0.75) + ' mmHg';
+                case 'inhg':
+                    return (hpaVal * 0.0295).toFixed(2) + ' inHg';
+                case 'atm':
+                    return (hpaVal * 0.000987).toFixed(3) + ' atm';
+                default:
+                    return Math.round(hpaVal) + ' hPa';
+            }
+        }
+
+        // Get readable weather text and symbol
+        function parseWeatherCode(code) {
+            const mappings = {
+                0: { text: '快晴', icon: 'wb_sunny', key: 'clear' },
+                1: { text: '晴れ', icon: 'wb_sunny', key: 'clear' },
+                2: { text: '晴れ後曇り', icon: 'cloud_queue', key: 'clouds' },
+                3: { text: '曇り', icon: 'cloud', key: 'clouds' },
+                45: { text: '霧', icon: 'blur_on', key: 'fog' },
+                48: { text: '霧', icon: 'blur_on', key: 'fog' },
+                51: { text: '霧雨', icon: 'water_drop', key: 'rain' },
+                53: { text: '霧雨', icon: 'water_drop', key: 'rain' },
+                55: { text: '霧雨', icon: 'water_drop', key: 'rain' },
+                61: { text: '小雨', icon: 'rainy', key: 'rain' },
+                63: { text: '雨', icon: 'rainy', key: 'rain' },
+                65: { text: '激しい雨', icon: 'rainy_heavy', key: 'rain' },
+                71: { text: '小雪', icon: 'ac_unit', key: 'snow' },
+                73: { text: '雪', icon: 'ac_unit', key: 'snow' },
+                75: { text: '大雪', icon: 'ac_unit', key: 'snow' },
+                77: { text: '細雪', icon: 'ac_unit', key: 'snow' },
+                80: { text: 'にわか雨', icon: 'rainy', key: 'rain' },
+                81: { text: 'にわか雨', icon: 'rainy', key: 'rain' },
+                82: { text: '豪雨', icon: 'rainy_heavy', key: 'rain' },
+                85: { text: 'にわか雪', icon: 'ac_unit', key: 'snow' },
+                86: { text: '激しいにわか雪', icon: 'ac_unit', key: 'snow' },
+                95: { text: '雷雨', icon: 'thunderstorm', key: 'thunderstorm' },
+                96: { text: '雷雨', icon: 'thunderstorm', key: 'thunderstorm' },
+                99: { text: '激しい雷雨', icon: 'thunderstorm', key: 'thunderstorm' }
+            };
+            return mappings[code] || { text: '不明', icon: 'help_outline', key: 'clouds' };
+        }
+
+        // Render Dynamic UI environment colors and shapes
+        function applyDynamicBackground(weatherKey) {
+            // Remove active flag on all effects
+            document.querySelectorAll('.weather-effect').forEach(el => el.classList.remove('active'));
+
+            const root = document.documentElement;
+
+            if (weatherKey === 'clear') {
+                document.getElementById('effect-clear').classList.add('active');
+                if (!appState.settings.darkMode) {
+                    root.style.setProperty('--weather-grad-1', '#fef08a'); // Warm sun
+                    root.style.setProperty('--weather-grad-2', '#bae6fd');
+                }
+            } else if (weatherKey === 'clouds' || weatherKey === 'fog') {
+                document.getElementById('effect-cloudy').classList.add('active');
+                if (!appState.settings.darkMode) {
+                    root.style.setProperty('--weather-grad-1', '#e2e8f0'); // Cool gray
+                    root.style.setProperty('--weather-grad-2', '#cbd5e1');
+                }
+            } else if (weatherKey === 'rain' || weatherKey === 'thunderstorm') {
+                const rainContainer = document.getElementById('effect-rain');
+                rainContainer.classList.add('active');
+                rainContainer.innerHTML = '';
+                // Generate rain drops dynamically
+                for (let i = 0; i < 30; i++) {
+                    const drop = document.createElement('div');
+                    drop.className = 'rain-drop';
+                    drop.style.left = Math.random() * 100 + 'vw';
+                    drop.style.animationDelay = Math.random() * 2 + 's';
+                    drop.style.animationDuration = (0.8 + Math.random() * 0.5) + 's';
+                    rainContainer.appendChild(drop);
+                }
+                if (!appState.settings.darkMode) {
+                    root.style.setProperty('--weather-grad-1', '#94a3b8'); // Dark rainy sky
+                    root.style.setProperty('--weather-grad-2', '#475569');
+                }
+            } else if (weatherKey === 'snow') {
+                const snowContainer = document.getElementById('effect-snow');
+                snowContainer.classList.add('active');
+                snowContainer.innerHTML = '';
+                // Generate snowflakes
+                for (let i = 0; i < 20; i++) {
+                    const flake = document.createElement('div');
+                    flake.className = 'snow-flake';
+                    flake.style.left = Math.random() * 100 + 'vw';
+                    flake.style.width = (3 + Math.random() * 5) + 'px';
+                    flake.style.height = flake.style.width;
+                    flake.style.animationDelay = Math.random() * 3 + 's';
+                    flake.style.animationDuration = (3 + Math.random() * 3) + 's';
+                    snowContainer.appendChild(flake);
+                }
+                if (!appState.settings.darkMode) {
+                    root.style.setProperty('--weather-grad-1', '#e2e8f0'); // Crisp snow
+                    root.style.setProperty('--weather-grad-2', '#94a3b8');
+                }
+            }
+        }
+
+        // Construct Dialogue for Polandball
+        function updatePolandballDialogue(countryCode, weatherKey) {
+            const pbData = countryPBMap[countryCode] || { name: 'poland' };
+            const pbName = pbData.name;
+            const pbBallImg = document.getElementById('pb-ball-image');
+            const pbBubble = document.getElementById('pb-speech-bubble');
+
+            // Image path
+            const exprFilename = pbExpressions[weatherKey] || 'normal.png';
+            pbBallImg.src = `https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/${pbName}/${exprFilename}`;
+
+            // Speech text
+            let speech = '';
+            if (pbQuotes[pbName] && pbQuotes[pbName][weatherKey]) {
+                speech = pbQuotes[pbName][weatherKey];
+            } else {
+                speech = fallbackQuotes[weatherKey] || 'こんにちはなんよ！';
+            }
+
+            pbBubble.innerHTML = speech;
+        }
+
+        // Main rendering engine
+        function updateUI() {
+            const idx = appState.currentIdx;
+            const data = appState.weatherData[idx];
+            const city = appState.cities[idx];
+
+            if (!city) return;
+
+            document.getElementById('current-city-idx-lbl').textContent = `${idx + 1} / ${appState.cities.length}`;
+
+            // Handle Viewer / Share mode displays
+            const banner = document.getElementById('banner-mode-toggle');
+            const creditBadge = document.getElementById('openmeteo-credit-badge');
+            if (appState.isViewMode) {
+                banner.style.display = 'flex';
+                creditBadge.style.display = 'inline-flex';
+            } else {
+                banner.style.display = 'none';
+                creditBadge.style.display = 'none';
+            }
+
+            if (!data) {
+                document.getElementById('current-location-title').textContent = city.name;
+                return;
+            }
+
+            const wCurrent = data.weather.current;
+            const wDaily = data.weather.daily;
+            const wHourly = data.weather.hourly;
+
+            const parsedW = parseWeatherCode(wCurrent.weather_code);
+
+            // Set Center Title
+            document.getElementById('current-location-title').textContent = city.name;
+
+            // Apply environment backgrounds
+            applyDynamicBackground(parsedW.key);
+
+            // Update main hero stats
+            document.getElementById('weather-text-primary').textContent = parsedW.text;
+            document.getElementById('weather-hero-icon').textContent = parsedW.icon;
+            document.getElementById('temp-value-display').textContent = convertTemp(wCurrent.temperature_2m);
+            document.getElementById('temp-extremes-display').textContent = `最高: ${convertTemp(wDaily.temperature_2m_max[0])} / 最低: ${convertTemp(wDaily.temperature_2m_min[0])}`;
+
+            // Warn alerts
+            const isAlertActive = appState.settings.weatherAlerts && (wCurrent.rain > 5 || wCurrent.wind_speed_10m > 10 || parsedW.key === 'thunderstorm');
+            const alertContainer = document.getElementById('alert-card-container');
+            const alertText = document.getElementById('alert-card-text');
+            if (isAlertActive) {
+                alertContainer.style.display = 'block';
+                if (wCurrent.rain > 5) {
+                    alertText.textContent = '現在、豪雨警報。不要不急の外出を控え、安全を確保するんよ！';
+                } else if (wCurrent.wind_speed_10m > 10) {
+                    alertText.textContent = '強風警報が発令中なんよ！飛ばされやすいものに注意してほしいんよ！';
+                } else {
+                    alertText.textContent = '雷雨警報。急な落雷や突風に注意するんよ！';
                 }
             } else {
-                state.cities = [...defaultCities];
-                state.activeCityIndex = 0;
+                alertContainer.style.display = 'none';
             }
-            applyPreferencesUI();
-        }
 
-        function saveState() {
-            localStorage.setItem("aimonet_pbweather_state", JSON.stringify({
-                cities: state.cities,
-                activeCityIndex: state.activeCityIndex,
-                preferences: state.preferences
-            }));
-        }
+            // Render detailed metrics
+            document.getElementById('val-realfeel').textContent = convertTemp(wCurrent.apparent_temperature);
+            document.getElementById('val-humidity').textContent = wCurrent.relative_humidity_2m + '%';
+            document.getElementById('val-wind').textContent = convertWind(wCurrent.wind_speed_10m);
+            document.getElementById('val-uv').textContent = wDaily.uv_index_max[0].toFixed(1);
+            document.getElementById('val-pressure').textContent = convertPressure(wCurrent.pressure_msl);
 
-        function applyPreferencesUI() {
-            document.getElementById("setting-hd-blur").checked = state.preferences.hdBlur;
-            document.getElementById("setting-weather-anim").checked = state.preferences.weatherAnim;
-            document.getElementById("setting-funny-speech").checked = state.preferences.funnySpeech;
-            document.getElementById("setting-haptic").checked = state.preferences.haptic;
-            applyHDEffects();
-        }
-
-        function applyHDEffects() {
-            const container = document.body;
-            if (state.preferences.hdBlur) {
-                document.documentElement.style.setProperty('--glass-blur', '25px');
+            // Air Quality processing
+            const aqiEl = document.getElementById('val-aqi');
+            if (data.air && data.air.current) {
+                const europeanAqi = data.air.current.european_aqi;
+                let aqiLabel = '快適';
+                if (europeanAqi > 50) aqiLabel = '普通';
+                if (europeanAqi > 100) aqiLabel = 'やや不健康';
+                if (europeanAqi > 150) aqiLabel = '深刻';
+                aqiEl.innerHTML = `${europeanAqi} <span style="font-size:12px; font-weight:600;">(${aqiLabel})</span>`;
             } else {
-                document.documentElement.style.setProperty('--glass-blur', '4px');
+                aqiEl.textContent = '取得不可';
+            }
+
+            // Sunrise & Sunset
+            const optTime = { hour: '2-digit', minute: '2-digit' };
+            const sunriseStr = new Date(wDaily.sunrise[0]).toLocaleTimeString('ja-JP', optTime);
+            const sunsetStr = new Date(wDaily.sunset[0]).toLocaleTimeString('ja-JP', optTime);
+            document.getElementById('val-sunrise').textContent = sunriseStr;
+            document.getElementById('val-sunset').textContent = sunsetStr;
+
+            // Render hourly items (Next 24h)
+            const scroller = document.getElementById('hourly-scroller-container');
+            scroller.innerHTML = '';
+            
+            const nowHour = new Date().getHours();
+            for (let i = 0; i < 24; i++) {
+                const idxHr = nowHour + i;
+                if (!wHourly.temperature_2m[idxHr]) continue;
+
+                const timeObj = new Date(wHourly.time[idxHr]);
+                const displayHr = timeObj.getHours() + ':00';
+                const hourlyCode = parseWeatherCode(wHourly.weather_code[idxHr]);
+
+                const item = document.createElement('div');
+                item.className = 'hourly-item';
+                item.innerHTML = `
+                    <div class="hourly-time">${displayHr}</div>
+                    <span class="material-symbols-outlined" style="font-size: 24px; color: var(--accent-primary);">${hourlyCode.icon}</span>
+                    <div class="hourly-temp">${convertTemp(wHourly.temperature_2m[idxHr])}</div>
+                    <div class="hourly-pop">${wHourly.precipitation_probability[idxHr]}%</div>
+                `;
+                scroller.appendChild(item);
+            }
+
+            // Render Weekly forecast list (7 days)
+            const weeklyContainer = document.getElementById('weekly-forecast-list');
+            weeklyContainer.innerHTML = '';
+
+            const daysJapanese = ['日', '月', '火', '水', '木', '金', '土'];
+            for (let i = 0; i < 7; i++) {
+                const dateObj = new Date(wDaily.time[i]);
+                const dayName = i === 0 ? '今日' : daysJapanese[dateObj.getDay()] + '曜日';
+                const dailyCode = parseWeatherCode(wDaily.weather_code[i]);
+
+                const row = document.createElement('div');
+                row.className = 'weekly-row';
+                row.innerHTML = `
+                    <div class="weekly-day">${dayName}</div>
+                    <div class="weekly-info">
+                        <span class="material-symbols-outlined" style="font-size: 20px; color: var(--accent-primary);">${dailyCode.icon}</span>
+                        <span style="font-size:13px; font-weight:600; color:var(--text-sub);">${dailyCode.text}</span>
+                    </div>
+                    <div class="weekly-pop">${wDaily.precipitation_probability_max[i]}%</div>
+                    <div class="weekly-temps">${convertTemp(wDaily.temperature_2m_max[i])} / ${convertTemp(wDaily.temperature_2m_min[i])}</div>
+                `;
+                weeklyContainer.appendChild(row);
+            }
+
+            // Update registered cities comparison list
+            const comparisonList = document.getElementById('comparison-list-container');
+            comparisonList.innerHTML = '';
+            appState.cities.forEach((c, index) => {
+                const cData = appState.weatherData[index];
+                let tempStr = '--';
+                let descStr = '読み込み中';
+                if (cData && cData.weather) {
+                    tempStr = convertTemp(cData.weather.current.temperature_2m);
+                    descStr = parseWeatherCode(cData.weather.current.weather_code).text;
+                }
+
+                const cRow = document.createElement('div');
+                cRow.className = 'city-comparison-row';
+                if (index === appState.currentIdx) {
+                    cRow.style.fontWeight = '700';
+                    cRow.style.color = 'var(--accent-primary)';
+                }
+                cRow.innerHTML = `
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span class="material-symbols-outlined" style="font-size:18px;">location_on</span>
+                        <span>${c.name}</span>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <span style="font-size:13px; color:var(--text-sub);">${descStr}</span>
+                        <span style="font-size:16px; font-weight:700;">${tempStr}</span>
+                        ${appState.cities.length > 1 && !appState.isViewMode ? `<span class="material-symbols-outlined" style="color:#ef4444; font-size:18px;" onclick="removeCity(${index}, event)">delete</span>` : ''}
+                    </div>
+                `;
+                cRow.addEventListener('click', (e) => {
+                    if (e.target.closest('.material-symbols-outlined')) return; // Avoid triggering select on delete
+                    changeCityIndex(index);
+                });
+                comparisonList.appendChild(cRow);
+            });
+
+            // Rebuild pagination dots
+            const dotsContainer = document.getElementById('city-dots-container');
+            dotsContainer.innerHTML = '';
+            appState.cities.forEach((_, index) => {
+                const dot = document.createElement('div');
+                dot.className = `city-dot ${index === idx ? 'active' : ''}`;
+                dot.addEventListener('click', () => {
+                    changeCityIndex(index);
+                });
+                dotsContainer.appendChild(dot);
+            });
+
+            // Update Polandball Expressions
+            updatePolandballDialogue(city.countryCode, parsedW.key);
+        }
+
+        // Save current user settings to LocalStorage
+        function saveToLocalStorage() {
+            if (appState.isViewMode) return; // STRICT GUARDRAIL: Do not modify local storage under viewer mode
+            try {
+                localStorage.setItem('pb_weather_cities', JSON.stringify(appState.cities));
+                localStorage.setItem('pb_weather_settings', JSON.stringify(appState.settings));
+                localStorage.setItem('pb_weather_currentIdx', appState.currentIdx);
+            } catch (err) {
+                console.warn('LocalStorage save failed:', err);
             }
         }
 
-        // --- Image Error Fallback Handler ---
-        function handleImageError(img) {
-            console.warn("Polandball image load failed, retrying with raw placeholder ball...");
-            // Just in case github is blocked or has a temporary raw-content issue, use a clean responsive SVG styling fallback internally
-            img.style.border = "2px dashed var(--glass-border)";
-            img.style.borderRadius = "50%";
-            img.style.padding = "5px";
+        // Load custom settings from LocalStorage
+        function loadFromLocalStorage() {
+            try {
+                const savedCities = localStorage.getItem('pb_weather_cities');
+                const savedSettings = localStorage.getItem('pb_weather_settings');
+                const savedIdx = localStorage.getItem('pb_weather_currentIdx');
+
+                if (savedCities) {
+                    appState.cities = JSON.parse(savedCities);
+                }
+                if (savedSettings) {
+                    appState.settings = JSON.parse(savedSettings);
+                    document.body.classList.toggle('dark-mode', appState.settings.darkMode);
+                }
+                if (savedIdx) {
+                    const idxVal = parseInt(savedIdx);
+                    if (idxVal >= 0 && idxVal < appState.cities.length) {
+                        appState.currentIdx = idxVal;
+                    }
+                }
+            } catch (err) {
+                console.warn('LocalStorage load failed:', err);
+            }
         }
 
-        // --- Toast System ---
-        function showToast(msg, icon = "info") {
-            const toast = document.getElementById("app-toast");
-            document.getElementById("toast-icon").textContent = icon;
-            document.getElementById("toast-msg").textContent = msg;
-            toast.classList.add("active");
+        // Delete a city from register list
+        window.removeCity = function(idx, event) {
+            if (event) event.stopPropagation();
+            if (appState.isViewMode) {
+                showToast('閲覧モード中は削除できません。');
+                return;
+            }
+            if (appState.cities.length <= 1) return;
+
+            const deletedCity = appState.cities[idx];
+            appState.cities.splice(idx, 1);
+            
+            // Adjust index pointing
+            if (appState.currentIdx >= appState.cities.length) {
+                appState.currentIdx = appState.cities.length - 1;
+            } else if (appState.currentIdx > idx) {
+                appState.currentIdx--;
+            }
+
+            delete appState.weatherData[idx];
+            
+            // Shift weather data cached pointers
+            const newCache = {};
+            appState.cities.forEach((_, i) => {
+                const originalIdx = i >= idx ? i + 1 : i;
+                if (appState.weatherData[originalIdx]) {
+                    newCache[i] = appState.weatherData[originalIdx];
+                }
+            });
+            appState.weatherData = newCache;
+
+            showToast(`${deletedCity.name} を削除したんよ！`);
+            saveToLocalStorage();
+            updateUI();
+            saveStateToQuery();
+        };
+
+        // Sync appState state variables with URL params
+        function saveStateToQuery() {
+            try {
+                const serialisedCities = appState.cities.map(c => `${c.name}:${c.lat}:${c.lon}:${c.countryCode}`).join(';');
+                const params = new URLSearchParams();
+                params.set('cities', serialisedCities);
+                params.set('cur', appState.currentIdx);
+                
+                // Keep view state attached if active
+                if (appState.isViewMode) {
+                    params.set('view', '1');
+                }
+                
+                params.set('theme', appState.settings.darkMode ? 'dark' : 'light');
+                params.set('temp', appState.settings.tempUnit);
+                params.set('wind', appState.settings.windUnit);
+                params.set('press', appState.settings.pressUnit);
+
+                window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`);
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        // Share clipboard handler
+        document.getElementById('share-location-btn').addEventListener('click', () => {
+            // Force save settings before serializing
+            const serialisedCities = appState.cities.map(c => `${c.name}:${c.lat}:${c.lon}:${c.countryCode}`).join(';');
+            const params = new URLSearchParams();
+            params.set('cities', serialisedCities);
+            params.set('cur', appState.currentIdx);
+            params.set('view', '1'); // FORCE VIEW MODE FOR SHARED LINKS
+            params.set('theme', appState.settings.darkMode ? 'dark' : 'light');
+            params.set('temp', appState.settings.tempUnit);
+            params.set('wind', appState.settings.windUnit);
+            params.set('press', appState.settings.pressUnit);
+
+            const shareUrl = window.location.origin + window.location.pathname + '?' + params.toString();
+
+            const textarea = document.createElement('textarea');
+            textarea.value = shareUrl;
+            textarea.style.position = 'fixed';
+            document.body.appendChild(textarea);
+            textarea.select();
+
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    showToast('閲覧用のお天気共有リンクをコピーしたんよ！');
+                } else {
+                    showToast('コピーできませんでした。');
+                }
+            } catch (err) {
+                showToast('コピーに失敗しました。');
+            }
+            document.body.removeChild(textarea);
+        });
+
+        function showToast(msg) {
+            toastEl.textContent = msg;
+            toastEl.classList.add('active');
             setTimeout(() => {
-                toast.classList.remove("active");
+                toastEl.classList.remove('active');
             }, 3000);
         }
 
-        // --- Open-Meteo Weather Codes Mapper ---
-        function interpretWeather(code) {
-            // Returns { label: "...", icon: "...", category: "CLEAR|CLOUDY|RAIN|SNOW..." }
-            if (code === 0) return { label: "快晴", icon: "wb_sunny", category: "CLEAR" };
-            if (code === 1 || code === 2) return { label: "晴れ時々曇り", icon: "wb_cloudy", category: "CLEAR" };
-            if (code === 3) return { label: "曇り", icon: "cloud", category: "CLOUDY" };
-            if (code === 45 || code === 48) return { label: "霧", icon: "foggy", category: "FOGGY" };
-            if (code >= 51 && code <= 55) return { label: "霧雨", icon: "grain", category: "RAIN" };
-            if (code >= 61 && code <= 65) return { label: "小雨 / 普通の雨", icon: "umbrella", category: "RAIN" };
-            if (code >= 66 && code <= 67) return { label: "霙 (みぞれ)", icon: "weather_mix", category: "SNOW" };
-            if (code >= 71 && code <= 77) return { label: "雪", icon: "ac_unit", category: "SNOW" };
-            if (code >= 80 && code <= 82) return { label: "にわか雨", icon: "rainy", category: "RAIN" };
-            if (code >= 85 && code <= 86) return { label: "豪雪", icon: "severe_cold", category: "SNOW" };
-            if (code >= 95 && code <= 99) return { label: "雷雨 / 嵐", icon: "thunderstorm", category: "STORM" };
-            return { label: "不明な空", icon: "device_unknown", category: "CLOUDY" };
-        }
-
-        // --- Weather Background Particle Engine ---
-        const canvas = document.getElementById("weather-canvas");
-        const ctx = canvas.getContext("2d");
-        let particles = [];
-        let animFrameId = null;
-
-        function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-        }
-        window.addEventListener('resize', resizeCanvas);
-        resizeCanvas();
-
-        class RainParticle {
-            constructor() { this.reset(); }
-            reset() {
-                this.x = Math.random() * canvas.width;
-                this.y = Math.random() * -canvas.height;
-                this.length = Math.random() * 20 + 15;
-                this.speed = Math.random() * 12 + 10;
-                this.opacity = Math.random() * 0.3 + 0.1;
-                this.weight = Math.random() * 1.5 + 0.5;
-            }
-            update() {
-                this.y += this.speed;
-                this.x += (this.speed * 0.05); // slight wind
-                if (this.y > canvas.height) { this.reset(); }
-            }
-            draw() {
-                ctx.beginPath();
-                ctx.strokeStyle = `rgba(156, 163, 175, ${this.opacity})`;
-                ctx.lineWidth = this.weight;
-                ctx.moveTo(this.x, this.y);
-                ctx.lineTo(this.x + (this.speed * 0.05), this.y + this.length);
-                ctx.stroke();
-            }
-        }
-
-        class SnowParticle {
-            constructor() { this.reset(); }
-            reset() {
-                this.x = Math.random() * canvas.width;
-                this.y = Math.random() * -canvas.height;
-                this.size = Math.random() * 4 + 1;
-                this.speed = Math.random() * 1.5 + 0.5;
-                this.opacity = Math.random() * 0.5 + 0.2;
-                this.swing = Math.random() * 2;
-                this.swingSpeed = Math.random() * 0.02 + 0.005;
-            }
-            update() {
-                this.y += this.speed;
-                this.swing += this.swingSpeed;
-                this.x += Math.sin(this.swing) * 0.5;
-                if (this.y > canvas.height) { this.reset(); }
-            }
-            draw() {
-                ctx.beginPath();
-                ctx.fillStyle = `rgba(255, 255, 255, ${this.opacity})`;
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        }
-
-        class SparkleParticle {
-            constructor() { this.reset(); }
-            reset() {
-                this.x = Math.random() * canvas.width;
-                this.y = Math.random() * canvas.height;
-                this.size = Math.random() * 3 + 1;
-                this.opacity = Math.random() * 0.4 + 0.1;
-                this.speed = Math.random() * 0.3 + 0.1;
-                this.fade = Math.random() * 0.005 + 0.002;
-            }
-            update() {
-                this.y -= this.speed;
-                this.opacity -= this.fade;
-                if (this.opacity <= 0) { this.reset(); }
-            }
-            draw() {
-                ctx.beginPath();
-                ctx.fillStyle = `rgba(251, 191, 36, ${this.opacity})`;
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        }
-
-        function initParticles(category) {
-            particles = [];
-            if (!state.preferences.weatherAnim) return;
-
-            let count = 0;
-            if (category === "RAIN" || category === "STORM") {
-                count = 70;
-                for (let i = 0; i < count; i++) particles.push(new RainParticle());
-            } else if (category === "SNOW") {
-                count = 60;
-                for (let i = 0; i < count; i++) particles.push(new SnowParticle());
-            } else if (category === "CLEAR") {
-                count = 25;
-                for (let i = 0; i < count; i++) particles.push(new SparkleParticle());
-            }
-        }
-
-        function animateParticles() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            // Render specific atmosphere depending on weather code category
-            if (state.preferences.weatherAnim && particles.length > 0) {
-                particles.forEach(p => {
-                    p.update();
-                    p.draw();
-                });
-            }
-            animFrameId = requestAnimationFrame(animateParticles);
-        }
-
-        // --- Fetch & Hydrate Weather Dashboard ---
-        async function loadActiveCityWeather() {
-            if (state.cities.length === 0) return;
-            const city = state.cities[state.activeCityIndex];
-
-            // Setup loading shimmer on texts
-            document.getElementById("hero-city-name").textContent = city.name;
-            document.getElementById("hero-buddy-badge").textContent = city.buddy === "japan" ? "Japanball" : "Germanyball";
-            document.getElementById("desc-text").textContent = "気圧調整中...";
-            document.getElementById("hero-temp").textContent = "--°C";
-
-            const url = `https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,rain,showers,snowfall,weather_code,cloud_cover,wind_speed_10m&hourly=temperature_2m,weather_code,uv_index&daily=weather_code,temperature_2m_max,temperature_2m_min,uv_index_max&timezone=auto`;
-
+        // Parse URL State on initialization
+        function loadStateFromQuery() {
             try {
-                const response = await fetch(url);
-                if (!response.ok) throw new Error("気象サーバー接続エラー");
-                const data = await response.json();
-                state.weatherData = data;
+                const params = new URLSearchParams(window.location.search);
+                const qCities = params.get('cities');
+                const qCur = params.get('cur');
+                const qView = params.get('view');
+                const qTheme = params.get('theme');
+                const qTemp = params.get('temp');
+                const qWind = params.get('wind');
+                const qPress = params.get('press');
 
-                // Render Hero Section
-                const current = data.current;
-                const weatherInfo = interpretWeather(current.weather_code);
-                
-                document.getElementById("desc-text").textContent = weatherInfo.label;
-                document.getElementById("desc-icon").textContent = weatherInfo.icon;
-                document.getElementById("hero-temp").textContent = `${Math.round(current.temperature_2m)}°`;
-                document.getElementById("hero-temp-feels").textContent = `体感 ${Math.round(current.apparent_temperature)}°`;
-                
-                document.getElementById("spec-humidity").textContent = `${current.relative_humidity_2m}%`;
-                document.getElementById("spec-wind").textContent = `${current.wind_speed_10m} m/s`;
-                document.getElementById("spec-clouds").textContent = `${current.cloud_cover}%`;
+                // Check for read-only share view parameter
+                if (qView === '1') {
+                    appState.isViewMode = true;
+                    console.log('Opened in Share-only View Mode. LocalStorage updates suspended.');
+                }
 
-                // UV calculation from forecast
-                const daily = data.daily;
-                document.getElementById("spec-uv").textContent = daily.uv_index_max[0] ? daily.uv_index_max[0].toFixed(1) : "--";
+                if (qCities) {
+                    const parsed = qCities.split(';').map(block => {
+                        const [name, lat, lon, countryCode] = block.split(':');
+                        return {
+                            name: decodeURIComponent(name),
+                            lat: parseFloat(lat),
+                            lon: parseFloat(lon),
+                            countryCode: countryCode || 'PL'
+                        };
+                    });
+                    if (parsed.length > 0) appState.cities = parsed;
+                }
 
-                // Setup weather particle animations
-                initParticles(weatherInfo.category);
+                if (qCur) {
+                    const parsedCur = parseInt(qCur);
+                    if (parsedCur >= 0 && parsedCur < appState.cities.length) appState.currentIdx = parsedCur;
+                }
 
-                // Update Polandball Expressions & Speech
-                updatePolandballUI(city.buddy, weatherInfo.category);
+                if (qTheme) {
+                    appState.settings.darkMode = qTheme === 'dark';
+                    document.body.classList.toggle('dark-mode', appState.settings.darkMode);
+                }
 
-                // Render Hourly Forecast scroll view
-                renderHourlyForecast(data.hourly);
-
-                // Render 7-Day Forecast list
-                renderWeeklyForecast(data.daily);
+                if (qTemp) appState.settings.tempUnit = qTemp;
+                if (qWind) appState.settings.windUnit = qWind;
+                if (qPress) appState.settings.pressUnit = qPress;
 
             } catch (err) {
-                console.error(err);
-                showToast("天気の取得に失敗しました", "error");
-                document.getElementById("desc-text").textContent = "データ取得失敗";
+                console.warn('URLパラメータのパースに失敗しました。', err);
             }
         }
 
-        // --- Render Sub-Components ---
-        function updatePolandballUI(buddy, weatherCategory) {
-            const imgEl = document.getElementById("pb-reaction-img");
-            const bubbleEl = document.getElementById("ball-speech");
-
-            // Match current category or fallback to CLEAR
-            const exprFile = EXPRESSIONS[weatherCategory] || EXPRESSIONS.CLEAR;
-            const fullUrl = `${PB_BASE_URL}${buddy}/${exprFile}`;
-            imgEl.src = fullUrl;
-
-            // Update dialogue speech bubble
-            if (state.preferences.funnySpeech) {
-                const dialogues = SPEECH_LIBRARY[buddy][weatherCategory] || SPEECH_LIBRARY[buddy].CLEAR;
-                const randomMsg = dialogues[Math.floor(Math.random() * dialogues.length)];
-                bubbleEl.textContent = randomMsg;
-                bubbleEl.style.display = "block";
-            } else {
-                bubbleEl.style.display = "none";
+        // Night update protocol
+        function checkNightUpdate() {
+            const currentHour = new Date().getHours();
+            if (appState.settings.nightUpdate && (currentHour >= 23 || currentHour < 7)) {
+                console.log("Night-mode automatic updating sequence started.");
+                fetchWeatherForIndex(appState.currentIdx);
             }
         }
 
-        function renderHourlyForecast(hourly) {
-            const container = document.getElementById("hourly-scroll-container");
-            container.innerHTML = "";
-
-            // Limit to next 24 elements
-            for (let i = 0; i < 24; i++) {
-                const timeString = hourly.time[i].split("T")[1]; // Get HH:MM
-                const temp = Math.round(hourly.temperature_2m[i]);
-                const code = hourly.weather_code[i];
-                const weatherInfo = interpretWeather(code);
-
-                const div = document.createElement("div");
-                div.className = "hourly-card";
-                div.innerHTML = `
-                    <span style="font-size: 11px; opacity: 0.6; font-weight:600;">${timeString}</span>
-                    <span class="material-symbols-outlined" style="font-size: 24px; color: #a855f7;">${weatherInfo.icon}</span>
-                    <span style="font-size: 15px; font-weight:700;">${temp}°</span>
-                `;
-                container.appendChild(div);
-            }
-        }
-
-        function renderWeeklyForecast(daily) {
-            const container = document.getElementById("weekly-forecast-container");
-            container.innerHTML = "";
-
-            const daysJp = ["日", "月", "火", "水", "木", "金", "土"];
-
-            for (let i = 0; i < daily.time.length; i++) {
-                const date = new Date(daily.time[i]);
-                const dayLabel = i === 0 ? "今日" : `${date.getMonth() + 1}/${date.getDate()}(${daysJp[date.getDay()]})`;
-                const weatherInfo = interpretWeather(daily.weather_code[i]);
-                const minT = Math.round(daily.temperature_2m_min[i]);
-                const maxT = Math.round(daily.temperature_2m_max[i]);
-
-                const row = document.createElement("div");
-                row.className = "daily-row";
-                row.innerHTML = `
-                    <div class="daily-day">${dayLabel}</div>
-                    <div class="daily-weather">
-                        <span class="material-symbols-outlined" style="font-size: 20px; color: #6366f1;">${weatherInfo.icon}</span>
-                        <span style="font-size: 13px; opacity:0.8;">${weatherInfo.label}</span>
-                    </div>
-                    <div class="daily-temp">${maxT}° <span style="opacity: 0.5; font-size:13px; font-weight:normal;">/ ${minT}°</span></div>
-                `;
-                container.appendChild(row);
-            }
-        }
-
-        // --- Toggle Active Buddy Interactive Feature ---
-        function toggleHeroBuddy(event) {
-            if (event) event.stopPropagation();
-            const activeCity = state.cities[state.activeCityIndex];
-            activeCity.buddy = activeCity.buddy === "japan" ? "germany" : "japan";
-            saveState();
-            
-            showToast(`相棒を ${activeCity.buddy === "japan" ? "Japanball" : "Germanyball"} に切り替えました！`, "face");
-            loadActiveCityWeather();
-        }
-
-        // --- Hub View Component: Search & Add Cities ---
-        const searchInput = document.getElementById("city-search-input");
-        const suggestResults = document.getElementById("search-suggest-results");
-
-        let debounceTimer;
-        searchInput.addEventListener("input", () => {
-            clearTimeout(debounceTimer);
-            const query = searchInput.value.trim();
-            if (query.length < 2) {
-                suggestResults.style.display = "none";
-                return;
-            }
-
-            debounceTimer = setTimeout(async () => {
-                const geocodeUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=5&language=ja&format=json`;
-                try {
-                    const response = await fetch(geocodeUrl);
-                    if (!response.ok) return;
-                    const data = await response.json();
-                    
-                    if (data.results && data.results.length > 0) {
-                        displaySuggestions(data.results);
-                    } else {
-                        suggestResults.innerHTML = `<div style="padding: 12px 20px; opacity:0.5; font-size:14px;">都市が見つかりません。</div>`;
-                        suggestResults.style.display = "block";
-                    }
-                } catch (e) {
-                    console.error("Geocoding fetch failed: ", e);
-                }
-            }, 300);
-        });
-
-        // Hide suggestions when clicking outside
-        document.addEventListener("click", (e) => {
-            if (!searchInput.contains(e.target) && !suggestResults.contains(e.target)) {
-                suggestResults.style.display = "none";
-            }
-        });
-
-        function displaySuggestions(results) {
-            suggestResults.innerHTML = "";
-            results.forEach(item => {
-                const div = document.createElement("div");
-                div.className = "search-item";
-                const countryText = item.country ? ` (${item.country})` : "";
-                div.textContent = `${item.name}${countryText}`;
-                div.addEventListener("click", () => {
-                    addNewCity(item.name, item.country || "世界", item.latitude, item.longitude);
-                    suggestResults.style.display = "none";
-                    searchInput.value = "";
-                });
-                suggestResults.appendChild(div);
-            });
-            suggestResults.style.display = "block";
-        }
-
-        function addNewCity(name, country, lat, lon) {
-            // Pick ball automatically by location hint (Germany/Europe -> Germanyball, rest -> Japanball)
-            let defaultBuddy = "japan";
-            if (country.toLowerCase().includes("germany") || country.includes("ドイツ") || country.includes("ドイツ連邦") || country.includes("Europe") || country.includes("ヨーロッパ")) {
-                defaultBuddy = "germany";
-            }
-
-            // Check if city already exists
-            const exists = state.cities.some(c => Math.abs(c.lat - lat) < 0.1 && Math.abs(c.lon - lon) < 0.1);
-            if (exists) {
-                showToast(`${name} は既に追加されています。`, "warning");
-                return;
-            }
-
-            state.cities.push({
-                name: name,
-                country: country,
-                lat: lat,
-                lon: lon,
-                buddy: defaultBuddy,
-                isDefault: false
-            });
-            
-            // Switch to new city immediately
-            state.activeCityIndex = state.cities.length - 1;
-            saveState();
-            renderCitiesHub();
-            showToast(`${name} を追加しました！`, "add_location");
-            
-            // Switch View back to Home to display
-            switchView("view-home");
-            loadActiveCityWeather();
-        }
-
-        function removeCity(index, event) {
-            event.stopPropagation();
-            const cityName = state.cities[index].name;
-            state.cities.splice(index, 1);
-
-            // Bounds protection
-            if (state.activeCityIndex >= state.cities.length) {
-                state.activeCityIndex = Math.max(0, state.cities.length - 1);
-            }
-            saveState();
-            renderCitiesHub();
-            showToast(`${cityName} を削除しました`, "delete");
-
-            loadActiveCityWeather();
-        }
-
-        function renderCitiesHub() {
-            const listEl = document.getElementById("saved-cities-list");
-            listEl.innerHTML = "";
-
-            state.cities.forEach((city, index) => {
-                const isActive = index === state.activeCityIndex;
-                const card = document.createElement("div");
-                card.className = `city-card ${isActive ? 'active-city' : ''}`;
-                
-                // Construct standard display
-                card.innerHTML = `
-                    <div class="city-info" onclick="selectActiveCity(${index})">
-                        <span style="font-weight: 700; font-size: 18px;">${city.name}</span>
-                        <span style="font-size: 12px; opacity: 0.6;">${city.country} (緯度:${city.lat.toFixed(2)} 経度:${city.lon.toFixed(2)})</span>
-                    </div>
-                    <div class="city-meta">
-                        <span class="ai-badge" style="cursor: pointer;" onclick="toggleBuddyOnHub(${index}, event)">
-                            ${city.buddy === "japan" ? "Japanball" : "Germanyball"}
-                        </span>
-                        ${!city.isDefault ? `
-                            <button class="theme-toggle" style="background: rgba(239, 68, 68, 0.1); color: #ef4444; border-color: rgba(239, 68, 68, 0.2);" onclick="removeCity(${index}, event)">
-                                <span class="material-symbols-outlined" style="font-size: 18px;">delete</span>
-                            </button>
-                        ` : ''}
-                    </div>
-                `;
-                listEl.appendChild(card);
-            });
-        }
-
-        function selectActiveCity(index) {
-            state.activeCityIndex = index;
-            saveState();
-            renderCitiesHub();
-            loadActiveCityWeather();
-            showToast(`${state.cities[index].name} の天気を表示中`, "pin_drop");
-            switchView("view-home");
-        }
-
-        function toggleBuddyOnHub(index, event) {
-            event.stopPropagation();
-            const city = state.cities[index];
-            city.buddy = city.buddy === "japan" ? "germany" : "japan";
-            saveState();
-            renderCitiesHub();
-            if (index === state.activeCityIndex) {
-                loadActiveCityWeather();
-            }
-            showToast(`${city.name} の相棒を変更しました`, "face");
-        }
-
-        function resetToDefaultCities() {
-            state.cities = [...defaultCities];
-            state.activeCityIndex = 0;
-            saveState();
-            renderCitiesHub();
-            loadActiveCityWeather();
-            showToast("都市データベースをリセットしました", "restore");
-        }
-
-        // --- App Nav & Interaction Hooks ---
-        function switchView(viewId) {
-            const navItems = document.querySelectorAll('.nav-item');
-            const views = document.querySelectorAll('.view');
-            
-            navItems.forEach(item => {
-                item.classList.remove('active');
-                if (item.getAttribute('data-view') === viewId) {
-                    item.classList.add('active');
-                }
-            });
-
-            views.forEach(v => {
-                v.classList.remove('active');
-                if (v.id === viewId) {
-                    v.classList.add('active');
-                    viewport.scrollTo({ top: 0, behavior: 'smooth' });
-                }
-            });
-        }
-
-        // Card Tilt Implementation
-        function initTilt() {
-            const cards = document.querySelectorAll('.tilt-card');
-            cards.forEach(card => {
-                card.addEventListener('mousemove', (e) => {
-                    const rect = card.getBoundingClientRect();
-                    const x = e.clientX - rect.left;
-                    const y = e.clientY - rect.top;
-                    
-                    const centerX = rect.width / 2;
-                    const centerY = rect.height / 2;
-                    
-                    const rotateX = (y - centerY) / 12;
-                    const rotateY = (centerX - x) / 12;
-                    
-                    card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.01, 1.01, 1.01)`;
-                });
-
-                card.addEventListener('mouseleave', () => {
-                    card.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)`;
-                });
-            });
-        }
-
-        // Squishy click effects trigger
-        document.addEventListener('mousedown', (e) => {
-            if (!state.preferences.haptic) return;
-            const target = e.target.closest('.glass-card, .ai-btn, .nav-item, .city-card');
-            if (target) {
-                target.classList.remove('squish-active');
-                void target.offsetWidth; // Trigger reflow
-                target.classList.add('squish-active');
-                
-                setTimeout(() => {
-                    target.classList.remove('squish-active');
-                }, 500);
-            }
-        });
-
-        // App Viewport Swapping Logic
-        const navItems = document.querySelectorAll('.nav-item');
-        navItems.forEach(item => {
-            item.addEventListener('click', () => {
-                const viewId = item.getAttribute('data-view');
-                switchView(viewId);
-            });
-        });
-
-        // Fast Header Toggle Buddy Buddy
-        document.getElementById('buddy-fast-toggle').addEventListener('click', (e) => {
-            toggleHeroBuddy(e);
-        });
-
-        // Settings Toggles Action Handlers
-        document.getElementById("setting-hd-blur").addEventListener("change", (e) => {
-            state.preferences.hdBlur = e.target.checked;
-            saveState();
-            applyHDEffects();
-            showToast("グラフィック設定を更新しました", "settings");
-        });
-
-        document.getElementById("setting-weather-anim").addEventListener("change", (e) => {
-            state.preferences.weatherAnim = e.target.checked;
-            saveState();
-            if (state.weatherData) {
-                const weatherInfo = interpretWeather(state.weatherData.current.weather_code);
-                initParticles(weatherInfo.category);
-            }
-            showToast("背景アニメーションを変更しました", "settings");
-        });
-
-        document.getElementById("setting-funny-speech").addEventListener("change", (e) => {
-            state.preferences.funnySpeech = e.target.checked;
-            saveState();
-            if (state.weatherData) {
-                const weatherInfo = interpretWeather(state.weatherData.current.weather_code);
-                updatePolandballUI(state.cities[state.activeCityIndex].buddy, weatherInfo.category);
-            }
-            showToast("セリフ設定を変更しました", "settings");
-        });
-
-        document.getElementById("setting-haptic").addEventListener("change", (e) => {
-            state.preferences.haptic = e.target.checked;
-            saveState();
-            showToast("フィードバック設定を変更しました", "settings");
-        });
-
-        // Theme Toggle Logic
-        function setTheme(isDark) {
-            document.body.classList.toggle('dark-mode', isDark);
-            themeIcon.textContent = isDark ? 'dark_mode' : 'light_mode';
-        }
-
-        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
-        setTheme(prefersDark.matches);
-
-        themeBtn.addEventListener('click', () => {
-            setTheme(!document.body.classList.contains('dark-mode'));
-        });
-
-        // Parallax Vector Blob Shift
-        window.addEventListener('mousemove', (e) => {
-            const moveX = (e.clientX / window.innerWidth - 0.5) * 40;
-            const moveY = (e.clientY / window.innerHeight - 0.5) * 40;
-            document.getElementById('blob-1').style.transform = `translate(${moveX}px, ${moveY}px)`;
-            document.getElementById('blob-2').style.transform = `translate(${-moveX * 1.5}px, ${-moveY * 1.5}px)`;
-        });
-
-        // Modal Dialog controls
-        window.openDialog = () => document.getElementById('main-dialog').classList.add('active');
-        window.closeDialog = () => document.getElementById('main-dialog').classList.remove('active');
-
-        // Main Entrance
+        // App Initial Launch Sequence
         window.onload = () => {
-            loadState();
-            renderCitiesHub();
-            loadActiveCityWeather();
-            initTilt();
-            animateParticles();
+            // First load from localStorage to establish standard context
+            loadFromLocalStorage();
 
-            // Open intro dialog on first launch only
-            if (!localStorage.getItem("aimonet_pbweather_visited")) {
-                openDialog();
-                localStorage.setItem("aimonet_pbweather_visited", "true");
-            }
+            // Next parse query strings to override values if they are loaded from a shared URL
+            loadStateFromQuery();
+            
+            // Pre-fetch all city cards to build local memory
+            appState.cities.forEach((_, i) => {
+                fetchWeatherForIndex(i);
+            });
+
+            // Nighttime updating loop (every 30 mins)
+            setInterval(checkNightUpdate, 30 * 60 * 1000);
         };
     </script>
 </body>
