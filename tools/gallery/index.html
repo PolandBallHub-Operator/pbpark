@@ -1,0 +1,2302 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+    <title>iDB Photo - ローカル大容量ギャラリー & 編集</title>
+
+    <!-- Google Fonts & Material Symbols -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+
+    <style>
+        /* デフォルトカラーテーマ（ブルー系） */
+        :root {
+            --accent-primary: #3381FF;
+            --accent-active: #1A5FCC;
+            
+            --ptz-card-radius: 20px;
+            --ptz-slider-height: 14px;
+            --ptz-toggle-width: 52px;
+            --ptz-toggle-height: 28px;
+            --ptz-toggle-knob-radius: 50%;
+            --ptz-toggle-knob-width: 20px;
+
+            /* Light Mode ベースカラー */
+            --bg-base: #F5F6F8;
+            --glass-bg: #FFFFFF;
+            --text-main: #1D1D1F;
+            --text-sub: #86868B;
+            --bg-secondary: #E8E8ED;
+            --nav-bg: #FFFFFF;
+            --nav-icon-active: #1D1D1F;
+            
+            --m3-easing: cubic-bezier(0.32, 0.72, 0, 1);
+            --transition-smooth: 0.3s var(--m3-easing);
+            --card-padding: 20px;
+        }
+
+        /* ダークモード */
+        .dark-mode {
+            --bg-base: #0E0E10;
+            --glass-bg: #1C1C1E;
+            --text-main: #F5F5F7;
+            --text-sub: #8E8E93;
+            --bg-secondary: #2C2C2E;
+            --nav-bg: #1C1C1E;
+            --nav-icon-active: #FFFFFF;
+        }
+
+        /* 画像編集画面用：黄色テーマ */
+        .yellow-theme {
+            --accent-primary: #EAB308; /* Yellow 500 */
+            --accent-active: #CA8A04;  /* Yellow 600 */
+        }
+
+        /* Material Symbolsの描画・レンダリングバグ防止対策 */
+        .material-symbols-outlined {
+            font-family: 'Material Symbols Outlined' !important;
+            font-weight: normal;
+            font-style: normal;
+            font-size: 24px;
+            line-height: 1;
+            letter-spacing: normal;
+            text-transform: none;
+            display: inline-block;
+            white-space: nowrap;
+            word-wrap: normal;
+            direction: ltr;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            text-rendering: optimizeLegibility;
+            font-feature-settings: 'liga';
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', 'Noto Sans JP', sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            transition: background-color var(--transition-smooth), color var(--transition-smooth);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        #app-viewport {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        /* ヘッダー */
+        header {
+            height: 64px;
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--glass-bg);
+            transition: background-color var(--transition-smooth);
+            position: relative;
+            flex-shrink: 0;
+            border-bottom: 1px solid var(--bg-secondary);
+        }
+        .logo {
+            font-weight: 700;
+            font-size: 18px;
+            letter-spacing: -0.3px;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .theme-toggle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: none;
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background var(--transition-smooth), transform 0.2s;
+        }
+        .theme-toggle:active {
+            transform: scale(0.9);
+        }
+
+        /* メインコンテンツエリア */
+        main {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 20px 16px 100px;
+            max-width: 720px;
+            width: 100%;
+            margin: 0 auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .glass-card {
+            background: var(--glass-bg);
+            border-radius: var(--ptz-card-radius);
+            padding: var(--card-padding);
+            margin-bottom: 16px;
+            box-shadow: none !important;
+            border: none !important;
+            transition: background-color var(--transition-smooth), border-radius var(--transition-smooth);
+            position: relative;
+        }
+
+        /* リストデザイン */
+        .custom-list {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-bottom: 12px;
+        }
+        .list-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 8px;
+            border-bottom: 1px solid var(--bg-secondary);
+        }
+        .list-item:last-child {
+            border-bottom: none;
+        }
+        .list-item-title {
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .list-item-desc {
+            font-size: 12px;
+            color: var(--text-sub);
+            margin-top: 2px;
+        }
+
+        h2 { 
+            font-size: 18px; 
+            margin-top: 0; 
+            margin-bottom: 10px;
+            font-weight: 700; 
+            letter-spacing: -0.3px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        p {
+            font-size: 13px;
+            line-height: 1.5;
+            margin-top: 0;
+            margin-bottom: 14px;
+            color: var(--text-sub);
+        }
+
+        /* ボタン */
+        .ai-btn {
+            border: none;
+            outline: none;
+            padding: 10px 18px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 13.5px;
+            color: white;
+            cursor: pointer;
+            background: var(--accent-primary);
+            transition: transform 0.2s, background-color var(--transition-smooth);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            justify-content: center;
+        }
+        .ai-btn:hover {
+            transform: scale(1.02);
+        }
+        .ai-btn:active {
+            background: var(--accent-active);
+            transform: scale(0.96);
+        }
+        .ai-btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-main);
+        }
+
+        /* 入力エリア */
+        .glass-input-wrapper {
+            margin-bottom: 12px;
+            position: relative;
+        }
+        .glass-input {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 10px;
+            border: none;
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            font-size: 14px;
+            font-family: inherit;
+            box-sizing: border-box;
+            transition: background var(--transition-smooth), outline 0.2s;
+        }
+        .glass-input:focus {
+            outline: 2px solid var(--accent-primary);
+        }
+
+        /* スライダー */
+        .slider-wrapper {
+            margin: 14px 0;
+        }
+        .slider-label-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: var(--text-sub);
+        }
+        .thick-slider-container {
+            position: relative;
+            width: 100%;
+            height: var(--ptz-slider-height);
+            background: var(--bg-secondary);
+            border-radius: calc(var(--ptz-slider-height) / 2);
+            overflow: hidden;
+            cursor: pointer;
+            transition: height var(--transition-smooth);
+        }
+        .thick-slider-fill {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 50%;
+            background: var(--accent-primary);
+            transition: background-color var(--transition-smooth), width 0.1s ease-out;
+        }
+        .thick-slider-input {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+            margin: 0;
+        }
+
+        /* トグルスイッチ */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: var(--ptz-toggle-width);
+            height: var(--ptz-toggle-height);
+            transition: width var(--transition-smooth), height var(--transition-smooth);
+        }
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--bg-secondary);
+            transition: var(--transition-smooth);
+            border-radius: calc(var(--ptz-toggle-height) / 2);
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: var(--ptz-toggle-knob-width);
+            width: var(--ptz-toggle-knob-width);
+            left: 4px;
+            bottom: calc((var(--ptz-toggle-height) - var(--ptz-toggle-knob-width)) / 2);
+            background: white;
+            transition: var(--transition-smooth);
+            border-radius: var(--ptz-toggle-knob-radius);
+        }
+        input:checked + .slider {
+            background: var(--accent-primary);
+        }
+        input:checked + .slider:before {
+            transform: translateX(calc(var(--ptz-toggle-width) - var(--ptz-toggle-knob-width) - 8px));
+        }
+
+        /* 画像ギャラリー・アルバムのグリッド */
+        .photo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 12px;
+            margin-top: 10px;
+        }
+        .photo-card {
+            aspect-ratio: 1;
+            border-radius: 14px;
+            overflow: hidden;
+            position: relative;
+            cursor: pointer;
+            background: var(--bg-secondary);
+            transition: transform 0.2s ease;
+        }
+        .photo-card:active {
+            transform: scale(0.96);
+        }
+        .photo-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .photo-card-info {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(transparent, rgba(0,0,0,0.7));
+            padding: 8px;
+            color: white;
+            font-size: 11px;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            overflow: hidden;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .photo-card-info span {
+            font-weight: 500;
+        }
+
+        /* アルバムリスト表示 */
+        .album-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 12px;
+            margin-top: 10px;
+        }
+        .album-card {
+            background: var(--glass-bg);
+            border-radius: 16px;
+            padding: 16px;
+            cursor: pointer;
+            position: relative;
+            border: 1px solid var(--bg-secondary) !important;
+            transition: transform 0.2s, background var(--transition-smooth);
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .album-card:active {
+            transform: scale(0.96);
+        }
+        .album-icon {
+            font-size: 32px;
+            color: var(--accent-primary);
+        }
+        .album-title {
+            font-weight: 700;
+            font-size: 14px;
+            margin-top: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .album-count {
+            font-size: 11px;
+            color: var(--text-sub);
+        }
+        .album-lock-badge {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            color: var(--text-sub);
+        }
+
+        /* マスコット */
+        .mascot-container {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 16px;
+            background: var(--bg-secondary);
+            padding: 12px 16px;
+            border-radius: 16px;
+        }
+        .mascot-img {
+            width: 60px;
+            height: 60px;
+            object-fit: contain;
+            border-radius: 50%;
+            background: white;
+            padding: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        .mascot-bubble {
+            flex-grow: 1;
+            position: relative;
+            background: var(--glass-bg);
+            padding: 12px 14px;
+            border-radius: 12px;
+            font-size: 12px;
+            line-height: 1.4;
+            font-weight: 500;
+        }
+        .mascot-bubble::before {
+            content: '';
+            position: absolute;
+            left: -8px;
+            top: 50%;
+            transform: translateY(-50%);
+            border-width: 6px 8px 6px 0;
+            border-style: solid;
+            border-color: transparent var(--glass-bg) transparent transparent;
+        }
+
+        /* 画像編集画面 */
+        .editor-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            margin-top: 8px;
+        }
+        .canvas-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 100%;
+            background: #222;
+            border-radius: 14px;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            touch-action: none;
+            aspect-ratio: 4/3;
+        }
+        #editor-canvas {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            display: block;
+        }
+        #mask-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        .editor-tools {
+            width: 100%;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+        }
+
+        /* ナビゲーションバー */
+        .bottom-nav-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 72px;
+            background: var(--nav-bg);
+            border-top: 1px solid var(--bg-secondary);
+            z-index: 500;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding-bottom: env(safe-area-inset-bottom);
+            transition: background-color var(--transition-smooth), border-color var(--transition-smooth);
+        }
+        .nav-item {
+            flex: 1;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-sub);
+            transition: color 0.25s var(--m3-easing);
+            position: relative;
+            gap: 4px;
+        }
+        .nav-item span.material-symbols-outlined {
+            font-size: 24px;
+            font-variation-settings: 'FILL' 0, 'wght' 400;
+            transition: font-variation-settings 0.2s, color 0.2s;
+        }
+        .nav-label {
+            font-size: 10px;
+            font-weight: 600;
+        }
+        .nav-item.active {
+            color: var(--nav-icon-active);
+        }
+        .nav-item.active span.material-symbols-outlined {
+            font-variation-settings: 'FILL' 1, 'wght' 700;
+        }
+
+        /* 各種ビュー */
+        .view {
+            display: none;
+        }
+        .view.active {
+            display: block;
+            animation: viewIn 0.3s var(--m3-easing);
+        }
+        @keyframes viewIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* バウンドアニメーション */
+        @keyframes squishy {
+            0% { transform: scale(1, 1); }
+            30% { transform: scale(1.04, 0.96); }
+            50% { transform: scale(0.98, 1.02); }
+            70% { transform: scale(1.01, 0.99); }
+            100% { transform: scale(1, 1); }
+        }
+        .squish-active {
+            animation: squishy 0.3s var(--m3-easing);
+        }
+
+        /* トースト */
+        .toast {
+            position: fixed;
+            bottom: 84px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--text-main);
+            color: var(--glass-bg);
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s var(--m3-easing);
+            z-index: 2000;
+        }
+        .toast.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* ダイアログ（汎用） */
+        .dialog-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000; display: flex; align-items: center; justify-content: center;
+            opacity: 0; visibility: hidden; transition: all 0.3s var(--m3-easing);
+        }
+        .dialog-overlay.active { opacity: 1; visibility: visible; }
+        
+        .glass-dialog {
+            background: var(--glass-bg);
+            border-radius: var(--ptz-card-radius);
+            padding: 24px; max-width: 380px; width: 90%; text-align: left;
+            transform: scale(0.9) translateY(20px); transition: all 0.4s var(--m3-easing);
+        }
+        .dialog-overlay.active .glass-dialog { transform: scale(1) translateY(0); }
+        .dialog-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .dialog-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: 18px;
+        }
+
+        .badge {
+            background: var(--accent-primary);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 700;
+            display: inline-block;
+        }
+
+        /* 大画面表示用のオーバーレイレイアウト */
+        .fullscreen-viewer-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.98);
+            z-index: 1500;
+            display: none;
+            flex-direction: column;
+            justify-content: space-between;
+            color: white;
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        .fullscreen-viewer-overlay.active {
+            display: flex;
+            animation: viewerIn 0.3s var(--m3-easing);
+        }
+        @keyframes viewerIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* 大画面ヘッダー */
+        .viewer-header {
+            height: 64px;
+            padding: 0 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
+            z-index: 10;
+        }
+        .viewer-back-btn {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        /* 大画面画像エリア */
+        .viewer-body {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 12px;
+            overflow: hidden;
+            position: relative;
+        }
+        .viewer-image {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            transition: transform 0.25s ease;
+        }
+
+        /* 大画面フッターコントロール */
+        .viewer-footer {
+            background: linear-gradient(to top, rgba(0,0,0,0.95), transparent);
+            padding: 16px 20px;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .viewer-info-pane {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .viewer-title-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            justify-content: space-between;
+        }
+        .viewer-image-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin: 0;
+            border: none;
+            background: transparent;
+            color: white;
+            border-bottom: 1px dashed rgba(255,255,255,0.4);
+            padding: 2px 4px;
+            outline: none;
+            flex-grow: 1;
+            max-width: 70%;
+        }
+        .viewer-album-selector {
+            background: #2c2c2e;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 6px 12px;
+            font-size: 13px;
+            outline: none;
+        }
+        .viewer-actions-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+        .viewer-btn-group {
+            display: flex;
+            gap: 8px;
+        }
+        .viewer-action-btn {
+            background: rgba(255,255,255,0.15);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 10px 16px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: background 0.2s;
+        }
+        .viewer-action-btn:active {
+            background: rgba(255,255,255,0.3);
+        }
+        .viewer-action-btn.danger {
+            background: rgba(255, 59, 48, 0.2);
+            color: #FF453A;
+        }
+        .viewer-action-btn.danger:active {
+            background: rgba(255, 59, 48, 0.4);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app-viewport">
+        <!-- ヘッダー -->
+        <header>
+            <div class="logo">
+                <span class="material-symbols-outlined" style="color: var(--accent-primary)">photo_library</span>
+                <span>iDB Photo</span>
+            </div>
+            <div class="header-controls">
+                <button class="theme-toggle" id="theme-btn" title="テーマ切り替え">
+                    <span class="material-symbols-outlined">light_mode</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- メインコンテンツ -->
+        <main>
+            <!-- 1. ギャラリービュー -->
+            <section id="view-gallery" class="view active">
+                <!-- マスコット案内ゾーン -->
+                <div class="mascot-container">
+                    <img class="mascot-img" src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/pbhuB2/jpn2.png" alt="Mascot">
+                    <div class="mascot-bubble" id="mascot-bubble-text">
+                        ようこそ！「iDB Photo」へ！IndexedDBで超高速にたくさんの写真をブラウザに格納できるよ。
+                    </div>
+                </div>
+
+                <div class="glass-card">
+                    <h2>
+                        <span class="material-symbols-outlined" style="font-size: 20px;">search</span>
+                        ギャラリー検索 & 追加
+                    </h2>
+                    
+                    <!-- 検索バー -->
+                    <div class="glass-input-wrapper">
+                        <input type="text" class="glass-input" id="search-input" placeholder="写真名で検索..." oninput="filterPhotos()">
+                    </div>
+
+                    <!-- アルバムクイックフィルタ -->
+                    <div style="display:flex; gap: 6px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 12px;" id="quick-album-filters">
+                        <button class="ai-btn" style="padding: 6px 12px; font-size: 12px;" onclick="selectFilterAlbum('all')" id="filter-btn-all">すべて</button>
+                    </div>
+
+                    <!-- アップロードボタン -->
+                    <div style="display: flex; gap: 8px;">
+                        <button class="ai-btn" onclick="triggerPhotoUpload()">
+                            <span class="material-symbols-outlined">cloud_upload</span>
+                            写真を追加
+                        </button>
+                        <input type="file" id="photo-file-input" style="display: none;" accept="image/*" multiple onchange="handlePhotoSelect(event)">
+                    </div>
+                </div>
+
+                <!-- 写真一覧カード -->
+                <div class="glass-card">
+                    <h2 style="justify-content: space-between;">
+                        <span>写真一覧 <span id="gallery-count-badge" class="badge">0枚</span></span>
+                        <span style="font-size: 12px; font-weight: normal; color: var(--text-sub);" id="current-filter-label">すべて表示中</span>
+                    </h2>
+                    
+                    <div class="photo-grid" id="photo-grid-list">
+                        <!-- 写真が動的に配置されます -->
+                    </div>
+                    
+                    <div id="no-photos-msg" style="text-align: center; padding: 40px 10px; color: var(--text-sub); display: none;">
+                        <span class="material-symbols-outlined" style="font-size: 48px; color: var(--text-sub);">add_photo_alternate</span>
+                        <p style="margin-top: 10px;">写真が登録されていません。上のボタンから追加してみましょう！</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2. アルバム＆フォルダビュー -->
+            <section id="view-albums" class="view">
+                <div class="glass-card">
+                    <h2>
+                        <span class="material-symbols-outlined" style="font-size: 20px;">folder_open</span>
+                        フォルダ & アルバム管理
+                    </h2>
+                    <p>
+                        フォルダごとに写真を分類して保存できます。セキュリティが必要な場合は、パスワードロックをかけることが可能です。
+                    </p>
+                    <button class="ai-btn" onclick="openCreateAlbumDialog()">
+                        <span class="material-symbols-outlined">create_new_folder</span>
+                        新規アルバム作成
+                    </button>
+                </div>
+
+                <div class="glass-card">
+                    <h2>作成済みアルバム</h2>
+                    <div class="album-grid" id="album-grid-list">
+                        <!-- 動的にアルバムが表示されます -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. 画像編集 & Magic Eraser ビュー -->
+            <section id="view-editor" class="view">
+                <div class="glass-card" style="border-top: 3px solid var(--accent-primary) !important;">
+                    <h2>
+                        <span class="material-symbols-outlined" style="font-size: 20px;">edit</span>
+                        画像編集 & Magic Eraser
+                    </h2>
+                    <p id="editor-intro-text">
+                        編集する画像を選択してください。この画面は黄色い警告/クリエイティブテーマに自動変更されます。<br>
+                        <strong>Magic Eraser (非AI消しゴム):</strong> 画像上の不要な箇所を赤く塗りつぶし、下の「消去」を押すと、周囲のテクスチャを自然に吸い上げ消去します。
+                    </p>
+                    
+                    <div class="editor-container" id="editor-active-container" style="display: none;">
+                        <!-- キャンバス領域 -->
+                        <div class="canvas-wrapper" id="canvas-container">
+                            <canvas id="editor-canvas"></canvas>
+                        </div>
+
+                        <!-- 調整ツールバー（スライダー） -->
+                        <div style="width:100%; margin-top: 8px;">
+                            <!-- 消しゴムブラシサイズ -->
+                            <div class="slider-wrapper">
+                                <div class="slider-label-row">
+                                    <span>消しゴムブラシサイズ</span>
+                                    <span id="brush-size-label">15px</span>
+                                </div>
+                                <div class="thick-slider-container">
+                                    <div class="thick-slider-fill" id="brush-size-fill" style="width: 30%;"></div>
+                                    <input type="range" class="thick-slider-input" min="5" max="50" value="15" oninput="updateBrushSize(this.value)">
+                                </div>
+                            </div>
+
+                            <!-- 明るさ -->
+                            <div class="slider-wrapper">
+                                <div class="slider-label-row">
+                                    <span>明るさ (Brightness)</span>
+                                    <span id="val-brightness">100%</span>
+                                </div>
+                                <div class="thick-slider-container">
+                                    <div class="thick-slider-fill" id="slider-brightness-fill" style="width: 50%;"></div>
+                                    <input type="range" class="thick-slider-input" min="50" max="150" value="100" oninput="applyAdjustments()">
+                                </div>
+                            </div>
+
+                            <!-- 彩度 -->
+                            <div class="slider-wrapper">
+                                <div class="slider-label-row">
+                                    <span>彩度 (Saturation)</span>
+                                    <span id="val-saturation">100%</span>
+                                </div>
+                                <div class="thick-slider-container">
+                                    <div class="thick-slider-fill" id="slider-saturation-fill" style="width: 50%;"></div>
+                                    <input type="range" class="thick-slider-input" min="0" max="200" value="100" oninput="applyAdjustments()">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- アクションボタン -->
+                        <div class="editor-tools">
+                            <button class="ai-btn" style="background: #EAB308;" onclick="executeMagicEraser()">
+                                <span class="material-symbols-outlined">auto_fix_high</span>
+                                Magic Eraser 実行
+                            </button>
+                            <button class="ai-btn ai-btn-secondary" onclick="resetBrushDraw()">
+                                <span class="material-symbols-outlined">restart_alt</span>
+                                マスク消去
+                            </button>
+                            <button class="ai-btn ai-btn-secondary" onclick="rotateImage90()">
+                                <span class="material-symbols-outlined">rotate_90_degrees_ccw</span>
+                                90°回転
+                            </button>
+                            <button class="ai-btn" onclick="saveEditedImage()">
+                                <span class="material-symbols-outlined">save</span>
+                                保存
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 画像未選択時の状態 -->
+                    <div id="editor-empty-state" style="text-align: center; padding: 40px 10px;">
+                        <span class="material-symbols-outlined" style="font-size: 48px; color: var(--text-sub);">photo_filter</span>
+                        <p style="margin-top: 10px;">編集する画像をギャラリーの写真一覧からタップして選んでください。</p>
+                        <button class="ai-btn" onclick="switchView('view-gallery')">ギャラリーに戻る</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 4. アプリ情報ビュー -->
+            <section id="view-info" class="view">
+                <div class="glass-card">
+                    <h2>このアプリについて</h2>
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <img src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/pbhuB2/jpn2.png" style="width: 100px; height: 100px; object-fit: contain; background: white; border-radius: 50%; padding: 6px;" alt="Mascot Large">
+                        <h3 style="margin-top: 12px; margin-bottom: 4px;">iDB Photo</h3>
+                        <span class="badge">v1.3 - Dynamic Fullscreen Edition</span>
+                    </div>
+
+                    <p>
+                        iDB Photoはブラウザローカル内蔵の非リレーショナルデータベース「IndexedDB」技術を用いて構築されています。
+                        クラウドストレージを介さないため、オフラインでも大量のフル解像度写真を高速に読み書き可能です。
+                    </p>
+
+                    <div class="custom-list">
+                        <div class="list-item">
+                            <div>
+                                <div class="list-item-title">プライバシー第一主義</div>
+                                <div class="list-item-desc">写真は他サーバーに一切送信されません</div>
+                            </div>
+                        </div>
+                        <div class="list-item">
+                            <div>
+                                <div class="list-item-title">セキュリティ保護</div>
+                                <div class="list-item-desc">フォルダごとのパスワード暗号化</div>
+                            </div>
+                        </div>
+                        <div class="list-item">
+                            <div>
+                                <div class="list-item-title">消しゴム技術</div>
+                                <div class="list-item-desc">近接ピクセルのテクスチャ再構成アルゴリズム</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button class="ai-btn" style="width: 100%;" onclick="clearAllAppData()">
+                        <span class="material-symbols-outlined">delete_forever</span>
+                        アプリの全データを初期化
+                    </button>
+                </div>
+            </section>
+        </main>
+
+        <!-- 下付き固定ナビゲーションバー -->
+        <div class="bottom-nav-container">
+            <div class="nav-item active" data-view="view-gallery" onclick="switchView('view-gallery')">
+                <span class="material-symbols-outlined">photo_library</span>
+                <span class="nav-label">ギャラリー</span>
+            </div>
+            <div class="nav-item" data-view="view-albums" onclick="switchView('view-albums')">
+                <span class="material-symbols-outlined">folder</span>
+                <span class="nav-label">フォルダ</span>
+            </div>
+            <div class="nav-item" data-view="view-editor" onclick="switchView('view-editor')">
+                <span class="material-symbols-outlined">edit</span>
+                <span class="nav-label">画像編集</span>
+            </div>
+            <div class="nav-item" data-view="view-info" onclick="switchView('view-info')">
+                <span class="material-symbols-outlined">info</span>
+                <span class="nav-label">情報</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 大画面表示用オーバーレイコンテナ -->
+    <div id="fullscreen-viewer" class="fullscreen-viewer-overlay">
+        <!-- 上部ヘッダー -->
+        <div class="viewer-header">
+            <button class="viewer-back-btn" onclick="closeFullscreenViewer()">
+                <span class="material-symbols-outlined">arrow_back</span>
+                <span>ギャラリーに戻る</span>
+            </button>
+            <div style="font-size: 14px; font-weight: 500; color: #8E8E93;" id="viewer-index-label">1 / 1</div>
+        </div>
+
+        <!-- 中央大画像表示エリア -->
+        <div class="viewer-body">
+            <img id="viewer-active-image" class="viewer-image" src="" alt="大画面プレビュー">
+        </div>
+
+        <!-- 下部コントロールパネル -->
+        <div class="viewer-footer">
+            <div class="viewer-info-pane">
+                <div class="viewer-title-row">
+                    <input type="text" id="viewer-photo-title" class="viewer-image-title" value="" onchange="updateViewerPhotoName()">
+                    <select id="viewer-album-select" class="viewer-album-selector" onchange="updateViewerPhotoAlbum()">
+                        <!-- アルバム選択肢が動的挿入されます -->
+                    </select>
+                </div>
+            </div>
+            <div class="viewer-actions-row">
+                <div class="viewer-btn-group">
+                    <button class="viewer-action-btn" onclick="triggerViewerShare()">
+                        <span class="material-symbols-outlined">share</span>
+                        <span>共有</span>
+                    </button>
+                    <button class="viewer-action-btn" onclick="sendViewerPhotoToEditor()">
+                        <span class="material-symbols-outlined">edit</span>
+                        <span>編集</span>
+                    </button>
+                </div>
+                <button class="viewer-action-btn danger" onclick="deleteViewerPhoto()">
+                    <span class="material-symbols-outlined">delete</span>
+                    <span>削除</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 共通ダイアログモーダル -->
+    <div class="dialog-overlay" id="custom-dialog-overlay">
+        <div class="glass-dialog">
+            <div class="dialog-title" id="dialog-title-text">
+                <span class="material-symbols-outlined" id="dialog-icon" style="color: var(--accent-primary)">info</span>
+                <span>タイトル</span>
+            </div>
+            <div id="dialog-content-area">
+                <!-- 動的生成用のカスタムフォーム -->
+            </div>
+            <div class="dialog-buttons" id="dialog-buttons-area">
+                <button class="ai-btn ai-btn-secondary" onclick="closeCustomDialog()">キャンセル</button>
+                <button class="ai-btn" id="dialog-confirm-btn">確定</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- トースト通知 -->
+    <div class="toast" id="toast-message">メッセージ</div>
+
+    <script>
+        /**
+         * iDB Photo - Main Logic Setup & Interactive Engine
+         */
+
+        const toast = document.getElementById('toast-message');
+        const themeBtn = document.getElementById('theme-btn');
+        const themeIcon = themeBtn.querySelector('span');
+
+        // アプリケーションステート
+        let currentView = 'view-gallery';
+        let db;
+        let selectedFilterAlbumId = 'all';
+        let allPhotos = [];
+        let allAlbums = [];
+        let sessionUnlockedAlbums = new Set(); // 今セッションで解除済みのアルバムID
+        
+        // 現在プレビュー中の写真オブジェクト
+        let currentViewerPhoto = null;
+
+        // 編集対象のオリジナル画像
+        let editingImageSrc = null; 
+        let editingImageName = "edit_img";
+        let editingPhotoId = null; 
+
+        // Canvas描画コンテキスト
+        let originalImageObj = new Image();
+        let editorCanvas = document.getElementById('editor-canvas');
+        let editorCtx = editorCanvas.getContext('2d');
+        let brushSize = 15;
+        let isDrawing = false;
+        let lastX = 0;
+        let lastY = 0;
+
+        // マスクデータ（描画パス保持用）
+        let maskPoints = [];
+
+        // キャラクターのカスタムセリフ集
+        const mascotQuotes = [
+            "フォルダにロックをかけると、自分以外の人が写真を見られなくなるよ！安全第一！",
+            "Magic Eraserを使うときは、消したい箇所を少しはみ出るくらい赤くなぞるのがコツだよ！",
+            "IndexedDBはブラウザだけの安全な保管庫！誰にも秘密の写真でも大丈夫だよ！",
+            "カラー編集で彩度を0にすると、渋いモノクロ写真が作れるんだ！試してみてね！",
+            "写真はいつでも共有ボタンからエクスポートして友達に送れるよ！"
+        ];
+
+        // IndexedDB初期化
+        function initDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open("iDBPhotoDB", 2);
+
+                request.onupgradeneeded = function(event) {
+                    const upgradeDb = event.target.result;
+                    
+                    // 写真ストア
+                    if (!upgradeDb.objectStoreNames.contains("photos")) {
+                        const photoStore = upgradeDb.createObjectStore("photos", { keyPath: "id", autoIncrement: true });
+                        photoStore.createIndex("albumId", "albumId", { unique: false });
+                        photoStore.createIndex("name", "name", { unique: false });
+                    }
+                    
+                    // アルバムストア
+                    if (!upgradeDb.objectStoreNames.contains("albums")) {
+                        const albumStore = upgradeDb.createObjectStore("albums", { keyPath: "id" });
+                        albumStore.createIndex("name", "name", { unique: false });
+                    }
+                };
+
+                request.onsuccess = function(event) {
+                    db = event.target.result;
+                    resolve(db);
+                };
+
+                request.onerror = function(event) {
+                    reject("IndexedDBの起動に失敗しました: " + event.target.errorCode);
+                };
+            });
+        }
+
+        // --- IndexedDB データ操作ヘルパー ---
+        function getPhotosFromDB() {
+            return new Promise((resolve) => {
+                const transaction = db.transaction(["photos"], "readonly");
+                const store = transaction.objectStore("photos");
+                const request = store.getAll();
+                request.onsuccess = function() {
+                    resolve(request.result);
+                };
+            });
+        }
+
+        function savePhotoToDB(photoObj) {
+            return new Promise((resolve) => {
+                const transaction = db.transaction(["photos"], "readwrite");
+                const store = transaction.objectStore("photos");
+                const request = store.put(photoObj);
+                request.onsuccess = function() {
+                    resolve(request.result);
+                };
+            });
+        }
+
+        function deletePhotoFromDB(id) {
+            return new Promise((resolve) => {
+                const transaction = db.transaction(["photos"], "readwrite");
+                const store = transaction.objectStore("photos");
+                const request = store.delete(id);
+                request.onsuccess = function() {
+                    resolve();
+                };
+            });
+        }
+
+        function getAlbumsFromDB() {
+            return new Promise((resolve) => {
+                const transaction = db.transaction(["albums"], "readonly");
+                const store = transaction.objectStore("albums");
+                const request = store.getAll();
+                request.onsuccess = function() {
+                    resolve(request.result);
+                };
+            });
+        }
+
+        function saveAlbumToDB(albumObj) {
+            return new Promise((resolve) => {
+                const transaction = db.transaction(["albums"], "readwrite");
+                const store = transaction.objectStore("albums");
+                const request = store.put(albumObj);
+                request.onsuccess = function() {
+                    resolve();
+                };
+            });
+        }
+
+        function deleteAlbumFromDB(id) {
+            return new Promise((resolve) => {
+                const transaction = db.transaction(["albums", "photos"], "readwrite");
+                // アルバム本体の削除
+                transaction.objectStore("albums").delete(id);
+                
+                // アルバムに属する写真を'all'（未分類）に変更
+                const photoStore = transaction.objectStore("photos");
+                const index = photoStore.index("albumId");
+                const request = index.openCursor(IDBKeyRange.only(id));
+                request.onsuccess = function(event) {
+                    const cursor = event.target.result;
+                    if (cursor) {
+                        const updateData = cursor.value;
+                        updateData.albumId = "all";
+                        cursor.update(updateData);
+                        cursor.continue();
+                    }
+                };
+                transaction.oncomplete = function() {
+                    resolve();
+                };
+            });
+        }
+
+        async function loadInitialData() {
+            allAlbums = await getAlbumsFromDB();
+            
+            // 初回起動時、未分類フォルダを作成
+            if (allAlbums.length === 0) {
+                const defaultAlbums = [
+                    { id: "all", name: "未分類", isLocked: false, password: "" },
+                    { id: "favorites", name: "お気に入り", isLocked: false, password: "" }
+                ];
+                for (const album of defaultAlbums) {
+                    await saveAlbumToDB(album);
+                }
+                allAlbums = defaultAlbums;
+            }
+
+            allPhotos = await getPhotosFromDB();
+            
+            updateGalleryUI();
+            updateAlbumUI();
+            refreshQuickFilters();
+        }
+
+        function switchView(viewId) {
+            currentView = viewId;
+            const navItems = document.querySelectorAll('.nav-item');
+            const views = document.querySelectorAll('.view');
+
+            navItems.forEach(n => {
+                n.classList.remove('active');
+                if (n.getAttribute('data-view') === viewId) {
+                    n.classList.add('active');
+                }
+            });
+
+            views.forEach(v => {
+                v.classList.remove('active');
+                if (v.id === viewId) {
+                    v.classList.add('active');
+                }
+            });
+
+            // 編集（Magic Eraser）ビューのみテーマを黄色（警告＆クリエイティブ）に変更
+            if (viewId === 'view-editor') {
+                document.body.classList.add('yellow-theme');
+            } else {
+                document.body.classList.remove('yellow-theme');
+            }
+
+            // マスコットにランダムお喋り
+            if (viewId === 'view-gallery') {
+                const randomQuote = mascotQuotes[Math.floor(Math.random() * mascotQuotes.length)];
+                document.getElementById('mascot-bubble-text').textContent = randomQuote;
+            }
+        }
+
+        // --- ダイアログ生成ヘルパー ---
+        function showCustomDialog({ title, icon = 'info', contentHtml, confirmText = '確定', onConfirm, onCancel }) {
+            const overlay = document.getElementById('custom-dialog-overlay');
+            const titleText = document.getElementById('dialog-title-text');
+            const iconEl = document.getElementById('dialog-icon');
+            const contentArea = document.getElementById('dialog-content-area');
+            const confirmBtn = document.getElementById('dialog-confirm-btn');
+
+            iconEl.textContent = icon;
+            titleText.querySelector('span').textContent = title;
+            contentArea.innerHTML = contentHtml;
+            confirmBtn.textContent = confirmText;
+
+            // クローンを作って古いイベントリスナを破棄
+            const newConfirmBtn = confirmBtn.cloneNode(true);
+            confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+
+            newConfirmBtn.addEventListener('click', () => {
+                if (onConfirm) {
+                    const result = onConfirm();
+                    if (result === false) return; // 継続処理を拒否された場合は閉じない
+                }
+                closeCustomDialog();
+            });
+
+            overlay.classList.add('active');
+        }
+
+        function closeCustomDialog() {
+            document.getElementById('custom-dialog-overlay').classList.remove('active');
+        }
+
+        function triggerPhotoUpload() {
+            document.getElementById('photo-file-input').click();
+        }
+
+        function handlePhotoSelect(event) {
+            const files = event.target.files;
+            if (!files || files.length === 0) return;
+
+            Array.from(files).forEach(file => {
+                const reader = new FileReader();
+                reader.onload = async function(e) {
+                    const dataUrl = e.target.result;
+                    const newPhoto = {
+                        name: file.name.substring(0, file.name.lastIndexOf('.')) || file.name,
+                        dataUrl: dataUrl,
+                        albumId: selectedFilterAlbumId === 'all' ? 'all' : selectedFilterAlbumId,
+                        createdAt: new Date().getTime()
+                    };
+                    await savePhotoToDB(newPhoto);
+                    showToast(`${newPhoto.name} を保存しました！`);
+                    
+                    // 再読み込み
+                    allPhotos = await getPhotosFromDB();
+                    updateGalleryUI();
+                    updateAlbumUI();
+                };
+                reader.readAsDataURL(file);
+            });
+            event.target.value = ''; // Reset input
+        }
+
+        // ギャラリー更新
+        function updateGalleryUI() {
+            const grid = document.getElementById('photo-grid-list');
+            const countBadge = document.getElementById('gallery-count-badge');
+            const noPhotosMsg = document.getElementById('no-photos-msg');
+            const searchVal = document.getElementById('search-input').value.toLowerCase();
+
+            grid.innerHTML = '';
+
+            // フィルター処理
+            let filtered = allPhotos;
+            if (selectedFilterAlbumId !== 'all') {
+                filtered = allPhotos.filter(p => p.albumId === selectedFilterAlbumId);
+            }
+
+            if (searchVal) {
+                filtered = filtered.filter(p => p.name.toLowerCase().includes(searchVal));
+            }
+
+            // 枚数バッジ
+            countBadge.textContent = `${filtered.length}枚`;
+
+            if (filtered.length === 0) {
+                noPhotosMsg.style.display = 'block';
+                return;
+            } else {
+                noPhotosMsg.style.display = 'none';
+            }
+
+            // カード生成
+            filtered.forEach(photo => {
+                // 所属アルバムのロック状態確認
+                const parentAlbum = allAlbums.find(a => a.id === photo.albumId);
+                const isLockedAlbum = parentAlbum && parentAlbum.isLocked;
+                const isUnlocked = isLockedAlbum ? sessionUnlockedAlbums.has(photo.albumId) : true;
+
+                const card = document.createElement('div');
+                card.className = 'photo-card';
+                card.onclick = () => openFullscreenPhoto(photo);
+
+                if (isLockedAlbum && !isUnlocked) {
+                    // ロック中の場合プレースホルダー
+                    card.innerHTML = `
+                        <div style="display:flex; flex-direction:column; justify-content:center; align-items:center; height:100%; color:var(--text-sub);">
+                            <span class="material-symbols-outlined" style="font-size:32px;">lock</span>
+                            <span style="font-size:10px; margin-top:4px;">暗号化保護中</span>
+                        </div>
+                        <div class="photo-card-info">
+                            <span>ロック中</span>
+                        </div>
+                    `;
+                } else {
+                    card.innerHTML = `
+                        <img src="${photo.dataUrl}" alt="${photo.name}" onerror="this.src='https://placehold.co/150x150/EEEEEE/333333?text=Error'">
+                        <div class="photo-card-info">
+                            <span>${photo.name}</span>
+                            ${photo.albumId !== 'all' ? '<span class="material-symbols-outlined" style="font-size:12px;">folder</span>' : ''}
+                        </div>
+                    `;
+                }
+
+                grid.appendChild(card);
+            });
+        }
+
+        // 大画面で画像を開く（ダイアログ完全排除）
+        function openFullscreenPhoto(photo) {
+            // 所属フォルダがロック中の場合はまずパスワード確認
+            const parentAlbum = allAlbums.find(a => a.id === photo.albumId);
+            if (parentAlbum && parentAlbum.isLocked && !sessionUnlockedAlbums.has(photo.albumId)) {
+                promptAlbumPassword(parentAlbum).then(success => {
+                    if (success) openFullscreenPhoto(photo);
+                });
+                return;
+            }
+
+            currentViewerPhoto = photo;
+
+            // 各種DOM取得＆マッピング
+            const viewer = document.getElementById('fullscreen-viewer');
+            const activeImage = document.getElementById('viewer-active-image');
+            const titleInput = document.getElementById('viewer-photo-title');
+            const albumSelect = document.getElementById('viewer-album-select');
+            const indexLabel = document.getElementById('viewer-index-label');
+
+            // 1. 画像URLを設定
+            activeImage.src = photo.dataUrl;
+
+            // 2. タイトルのマッピング
+            titleInput.value = photo.name;
+
+            // 3. インデックスラベルのマッピング
+            let filtered = allPhotos;
+            if (selectedFilterAlbumId !== 'all') {
+                filtered = allPhotos.filter(p => p.albumId === selectedFilterAlbumId);
+            }
+            const currentIdx = filtered.findIndex(p => p.id === photo.id);
+            if (currentIdx !== -1) {
+                indexLabel.textContent = `${currentIdx + 1} / ${filtered.length}`;
+            }
+
+            // 4. アルバムセレクターの選択肢構築
+            albumSelect.innerHTML = `<option value="all" ${photo.albumId === 'all' ? 'selected' : ''}>未分類</option>`;
+            allAlbums.forEach(alb => {
+                if (alb.id !== 'all') {
+                    albumSelect.innerHTML += `<option value="${alb.id}" ${photo.albumId === alb.id ? 'selected' : ''}>${alb.name}</option>`;
+                }
+            });
+
+            // 大画面を表示
+            viewer.classList.add('active');
+        }
+
+        function closeFullscreenViewer() {
+            document.getElementById('fullscreen-viewer').classList.remove('active');
+            currentViewerPhoto = null;
+        }
+
+        // 大画面内でのタイトル変更
+        async function updateViewerPhotoName() {
+            if (!currentViewerPhoto) return;
+            const newName = document.getElementById('viewer-photo-title').value;
+            if (newName && newName !== currentViewerPhoto.name) {
+                currentViewerPhoto.name = newName;
+                await savePhotoToDB(currentViewerPhoto);
+                allPhotos = await getPhotosFromDB();
+                updateGalleryUI();
+                showToast("画像名を保存しました");
+            }
+        }
+
+        // 大画面内でのフォルダ移動
+        async function updateViewerPhotoAlbum() {
+            if (!currentViewerPhoto) return;
+            const newAlbumId = document.getElementById('viewer-album-select').value;
+            if (newAlbumId !== currentViewerPhoto.albumId) {
+                currentViewerPhoto.albumId = newAlbumId;
+                await savePhotoToDB(currentViewerPhoto);
+                allPhotos = await getPhotosFromDB();
+                updateGalleryUI();
+                
+                // 現在のアルバムフィルタから外れた場合はビューアーを閉じる
+                if (selectedFilterAlbumId !== 'all' && selectedFilterAlbumId !== newAlbumId) {
+                    closeFullscreenViewer();
+                    showToast("写真を移動しました");
+                } else {
+                    showToast("所属フォルダを移動しました");
+                }
+            }
+        }
+
+        // 大画面から共有を実行
+        function triggerViewerShare() {
+            if (!currentViewerPhoto) return;
+            sharePhoto(currentViewerPhoto);
+        }
+
+        // 大画面から編集へ直接送る
+        function sendViewerPhotoToEditor() {
+            if (!currentViewerPhoto) return;
+            const photoCopy = { ...currentViewerPhoto };
+            closeFullscreenViewer();
+            openInEditor(photoCopy);
+        }
+
+        // 大画面から写真を削除
+        async function deleteViewerPhoto() {
+            if (!currentViewerPhoto) return;
+            if (confirm(`${currentViewerPhoto.name} を削除してもよろしいですか？`)) {
+                await deletePhotoFromDB(currentViewerPhoto.id);
+                allPhotos = await getPhotosFromDB();
+                updateGalleryUI();
+                closeFullscreenViewer();
+                showToast("削除しました");
+            }
+        }
+
+        // クイックフィルター更新
+        function refreshQuickFilters() {
+            const container = document.getElementById('quick-album-filters');
+            container.innerHTML = '';
+
+            const allBtn = document.createElement('button');
+            allBtn.className = selectedFilterAlbumId === 'all' ? 'ai-btn' : 'ai-btn ai-btn-secondary';
+            allBtn.style.cssText = "padding: 6px 12px; font-size: 12px; white-space: nowrap;";
+            allBtn.textContent = 'すべて';
+            allBtn.onclick = () => selectFilterAlbum('all');
+            container.appendChild(allBtn);
+
+            allAlbums.forEach(album => {
+                const btn = document.createElement('button');
+                btn.className = selectedFilterAlbumId === album.id ? 'ai-btn' : 'ai-btn ai-btn-secondary';
+                btn.style.cssText = "padding: 6px 12px; font-size: 12px; white-space: nowrap; display:flex; align-items:center; gap:4px;";
+                btn.innerHTML = `
+                    ${album.isLocked ? '<span class="material-symbols-outlined" style="font-size:12px;">lock</span>' : ''}
+                    <span>${album.name}</span>
+                `;
+                btn.onclick = () => selectFilterAlbum(album.id);
+                container.appendChild(btn);
+            });
+        }
+
+        async function selectFilterAlbum(albumId) {
+            // ロック確認
+            const album = allAlbums.find(a => a.id === albumId);
+            if (album && album.isLocked && !sessionUnlockedAlbums.has(albumId)) {
+                const isSuccess = await promptAlbumPassword(album);
+                if (!isSuccess) return;
+            }
+
+            selectedFilterAlbumId = albumId;
+            const label = document.getElementById('current-filter-label');
+            if (albumId === 'all') {
+                label.textContent = 'すべて表示中';
+            } else {
+                const activeAlb = allAlbums.find(a => a.id === albumId);
+                label.textContent = `フォルダ: ${activeAlb ? activeAlb.name : ''}`;
+            }
+            refreshQuickFilters();
+            updateGalleryUI();
+        }
+
+        function filterPhotos() {
+            updateGalleryUI();
+        }
+
+        function sharePhoto(photo) {
+            if (navigator.share) {
+                fetch(photo.dataUrl)
+                .then(res => res.blob())
+                .then(blob => {
+                    const file = new File([blob], `${photo.name}.png`, { type: "image/png" });
+                    navigator.share({
+                        files: [file],
+                        title: photo.name,
+                        text: 'iDB Photoから写真を共有！'
+                    }).catch(err => {
+                        fallbackShare(photo);
+                    });
+                });
+            } else {
+                fallbackShare(photo);
+            }
+        }
+
+        function fallbackShare(photo) {
+            const tempInputId = "share-link-input";
+            const contentHtml = `
+                <p style="font-size:12px;">Web共有API非対応ブラウザのため、ダウンロードリンクを生成しました。</p>
+                <div style="text-align: center; margin: 12px 0;">
+                    <a href="${photo.dataUrl}" download="${photo.name}.png" class="ai-btn" style="width: 100%;">
+                        <span class="material-symbols-outlined">download</span>画像ファイルをダウンロード
+                    </a>
+                </div>
+                <div class="glass-input-wrapper">
+                    <label style="font-size:11px; color:var(--text-sub); display:block; margin-bottom:4px;">共有用データサイズ</label>
+                    <input type="text" class="glass-input" id="${tempInputId}" readonly value="data:image/png;base64, (約${Math.round(photo.dataUrl.length / 1024)} KB)">
+                </div>
+            `;
+
+            showCustomDialog({
+                title: "画像のエクスポート",
+                icon: 'share',
+                contentHtml: contentHtml,
+                confirmText: '閉じる',
+                onConfirm: () => {}
+            });
+        }
+
+        // アルバム一覧画面のUI更新
+        function updateAlbumUI() {
+            const grid = document.getElementById('album-grid-list');
+            grid.innerHTML = '';
+
+            allAlbums.forEach(album => {
+                const count = allPhotos.filter(p => p.albumId === album.id).length;
+
+                const card = document.createElement('div');
+                card.className = 'album-card';
+                card.onclick = () => selectAlbumInManager(album);
+
+                card.innerHTML = `
+                    <span class="material-symbols-outlined album-icon">
+                        ${album.id === 'favorites' ? 'grade' : (album.isLocked ? 'folder_locked' : 'folder')}
+                    </span>
+                    <div class="album-title">${album.name}</div>
+                    <div class="album-count">${count}枚の写真</div>
+                    ${album.isLocked ? '<span class="material-symbols-outlined album-lock-badge" style="font-size:16px;">lock</span>' : ''}
+                `;
+
+                grid.appendChild(card);
+            });
+        }
+
+        // パスワード確認用ダイアログ
+        function promptAlbumPassword(album) {
+            return new Promise((resolve) => {
+                const passwordInputId = 'unlock-password-val';
+                const contentHtml = `
+                    <p style="font-size:13px;">このフォルダ「${album.name}」は暗号キー（パスワード）によりロックされています。閲覧するには暗号キーを入力してください。</p>
+                    <div class="glass-input-wrapper">
+                        <input type="password" class="glass-input" id="${passwordInputId}" placeholder="パスワードを入力">
+                    </div>
+                `;
+
+                showCustomDialog({
+                    title: "フォルダを解錠する",
+                    icon: 'lock_open',
+                    contentHtml: contentHtml,
+                    confirmText: '解除',
+                    onConfirm: () => {
+                        const entered = document.getElementById(passwordInputId).value;
+                        if (entered === album.password) {
+                            sessionUnlockedAlbums.add(album.id);
+                            showToast(`${album.name} を解錠しました！`);
+                            resolve(true);
+                            return true;
+                        } else {
+                            showToast("パスワードが一致しません！");
+                            resolve(false);
+                            return false;
+                        }
+                    },
+                    onCancel: () => {
+                        resolve(false);
+                    }
+                });
+            });
+        }
+
+        // アルバム作成ダイアログ
+        function openCreateAlbumDialog() {
+            const albNameId = 'new-album-name';
+            const lockToggleId = 'new-album-lock-toggle';
+            const passGroupId = 'new-album-password-group';
+            const passInputId = 'new-album-password';
+
+            const contentHtml = `
+                <div class="glass-input-wrapper">
+                    <label style="font-size:11px; color:var(--text-sub); display:block; margin-bottom:4px;">アルバム名</label>
+                    <input type="text" class="glass-input" id="${albNameId}" placeholder="お出かけ、料理など...">
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin: 12px 0;">
+                    <div>
+                        <div style="font-size:13.5px; font-weight:600;">パスワードロック</div>
+                        <div style="font-size:11px; color:var(--text-sub);">フォルダへの進入を制限します</div>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="${lockToggleId}" onchange="toggleDialogPasswordInput(this.checked)">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="glass-input-wrapper" id="${passGroupId}" style="display:none;">
+                    <label style="font-size:11px; color:var(--text-sub); display:block; margin-bottom:4px;">暗号パスワード</label>
+                    <input type="password" class="glass-input" id="${passInputId}" placeholder="パスワードを定義">
+                </div>
+            `;
+
+            showCustomDialog({
+                title: "新規アルバム作成",
+                icon: 'create_new_folder',
+                contentHtml: contentHtml,
+                confirmText: '作成する',
+                onConfirm: async () => {
+                    const name = document.getElementById(albNameId).value;
+                    const isLocked = document.getElementById(lockToggleId).checked;
+                    const password = document.getElementById(passInputId).value;
+
+                    if (!name) {
+                        showToast("名前を入力してください");
+                        return false;
+                    }
+
+                    if (isLocked && !password) {
+                        showToast("ロック用パスワードを設定してください");
+                        return false;
+                    }
+
+                    const newAlbum = {
+                        id: 'album_' + new Date().getTime(),
+                        name: name,
+                        isLocked: isLocked,
+                        password: password || ""
+                    };
+
+                    await saveAlbumToDB(newAlbum);
+                    allAlbums = await getAlbumsFromDB();
+                    updateAlbumUI();
+                    refreshQuickFilters();
+                    showToast(`フォルダ「${name}」を作成しました`);
+                }
+            });
+        }
+
+        window.toggleDialogPasswordInput = function(isChecked) {
+            const passGroup = document.getElementById('new-album-password-group');
+            if (passGroup) {
+                passGroup.style.display = isChecked ? 'block' : 'none';
+            }
+        };
+
+        // アルバム詳細編集/削除マネージャー
+        function selectAlbumInManager(album) {
+            const isProtected = album.id === 'all' || album.id === 'favorites';
+
+            let optionsHtml = '';
+            if (!isProtected) {
+                optionsHtml = `
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:14px;">
+                        <div>
+                            <div style="font-size:13.5px; font-weight:600;">パスワードロック</div>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="manage-lock-toggle" ${album.isLocked ? 'checked' : ''} onchange="toggleManageDialogPasswordInput(this.checked)">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="glass-input-wrapper" id="manage-password-group" style="margin-top:10px; display:${album.isLocked ? 'block' : 'none'};">
+                        <label style="font-size:11px; color:var(--text-sub); display:block; margin-bottom:4px;">暗号パスワード</label>
+                        <input type="password" class="glass-input" id="manage-password-val" value="${album.password}" placeholder="現在のパスワード">
+                    </div>
+                `;
+            }
+
+            const contentHtml = `
+                <div class="glass-input-wrapper">
+                    <label style="font-size:11px; color:var(--text-sub); display:block; margin-bottom:4px;">アルバム名</label>
+                    <input type="text" class="glass-input" id="manage-album-name" value="${album.name}" ${isProtected ? 'readonly' : ''}>
+                </div>
+                ${optionsHtml}
+            `;
+
+            showCustomDialog({
+                title: `フォルダ設定: ${album.name}`,
+                icon: 'settings',
+                contentHtml: contentHtml,
+                confirmText: '保存する',
+                onConfirm: async () => {
+                    if (isProtected) return;
+
+                    const newName = document.getElementById('manage-album-name').value;
+                    const isLocked = document.getElementById('manage-lock-toggle').checked;
+                    const password = document.getElementById('manage-password-val').value;
+
+                    if (!newName) {
+                        showToast("フォルダ名が必要です");
+                        return false;
+                    }
+
+                    if (isLocked && !password) {
+                        showToast("ロックにはパスワードが必要です");
+                        return false;
+                    }
+
+                    album.name = newName;
+                    album.isLocked = isLocked;
+                    album.password = password;
+
+                    await saveAlbumToDB(album);
+                    allAlbums = await getAlbumsFromDB();
+                    updateAlbumUI();
+                    refreshQuickFilters();
+                    showToast("変更を保存しました");
+                }
+            });
+
+            if (!isProtected) {
+                const buttonsArea = document.getElementById('dialog-buttons-area');
+                const delBtn = document.createElement('button');
+                delBtn.className = "ai-btn";
+                delBtn.style.background = "#FF3B30";
+                delBtn.innerHTML = `<span class="material-symbols-outlined">delete_forever</span>フォルダを解体`;
+                delBtn.onclick = async () => {
+                    if (confirm(`このフォルダ「${album.name}」を削除してもよろしいですか？（中身の写真は削除されず「未分類」へ移動します）`)) {
+                        await deleteAlbumFromDB(album.id);
+                        allAlbums = await getAlbumsFromDB();
+                        allPhotos = await getPhotosFromDB();
+                        updateAlbumUI();
+                        updateGalleryUI();
+                        refreshQuickFilters();
+                        closeCustomDialog();
+                        showToast("フォルダを削除しました");
+                    }
+                };
+                buttonsArea.insertBefore(delBtn, buttonsArea.firstChild);
+            }
+        }
+
+        window.toggleManageDialogPasswordInput = function(isChecked) {
+            const passGroup = document.getElementById('manage-password-group');
+            if (passGroup) {
+                passGroup.style.display = isChecked ? 'block' : 'none';
+            }
+        };
+
+        function openInEditor(photo) {
+            editingImageSrc = photo.dataUrl;
+            editingImageName = photo.name;
+            editingPhotoId = photo.id;
+
+            switchView('view-editor');
+            
+            document.getElementById('editor-empty-state').style.display = 'none';
+            document.getElementById('editor-active-container').style.display = 'flex';
+
+            originalImageObj = new Image();
+            originalImageObj.onload = function() {
+                setupCanvas();
+            };
+            originalImageObj.src = photo.dataUrl;
+        }
+
+        function setupCanvas() {
+            let w = originalImageObj.width;
+            let h = originalImageObj.height;
+            
+            editorCanvas.width = w;
+            editorCanvas.height = h;
+
+            editorCtx.clearRect(0, 0, w, h);
+            editorCtx.drawImage(originalImageObj, 0, 0, w, h);
+
+            maskPoints = [];
+            setupCanvasInteraction();
+        }
+
+        function updateBrushSize(val) {
+            brushSize = parseInt(val);
+            document.getElementById('brush-size-label').textContent = `${val}px`;
+            
+            const fill = document.getElementById('brush-size-fill');
+            const percent = ((val - 5) / (50 - 5)) * 100;
+            fill.style.width = `${percent}%`;
+        }
+
+        function updateThickSlider(fillId, labelId, val, unit) {
+            const label = document.getElementById(labelId);
+            const fill = document.getElementById(fillId);
+            if (label) label.textContent = `${val}${unit}`;
+            if (fill) {
+                const input = fill.nextElementSibling;
+                if (input) {
+                    const min = parseFloat(input.min) || 0;
+                    const max = parseFloat(input.max) || 100;
+                    const percent = ((val - min) / (max - min)) * 100;
+                    fill.style.width = `${percent}%`;
+                }
+            }
+        }
+
+        function applyAdjustments() {
+            const brightVal = document.getElementById('slider-brightness-fill').nextElementSibling.value;
+            const satVal = document.getElementById('slider-saturation-fill').nextElementSibling.value;
+
+            updateThickSlider('slider-brightness-fill', 'val-brightness', brightVal, '%');
+            updateThickSlider('slider-saturation-fill', 'val-saturation', satVal, '%');
+
+            editorCtx.clearRect(0, 0, editorCanvas.width, editorCanvas.height);
+            
+            editorCtx.filter = `brightness(${brightVal}%) saturate(${satVal}%)`;
+            editorCtx.drawImage(originalImageObj, 0, 0, editorCanvas.width, editorCanvas.height);
+            editorCtx.filter = 'none';
+
+            redrawMask();
+        }
+
+        function rotateImage90() {
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = editorCanvas.height;
+            tempCanvas.height = editorCanvas.width;
+            const tempCtx = tempCanvas.getContext('2d');
+
+            tempCtx.translate(tempCanvas.width / 2, tempCanvas.height / 2);
+            tempCtx.rotate(90 * Math.PI / 180);
+            tempCtx.drawImage(originalImageObj, -editorCanvas.width / 2, -editorCanvas.height / 2);
+
+            originalImageObj = new Image();
+            originalImageObj.onload = function() {
+                setupCanvas();
+                applyAdjustments();
+            };
+            originalImageObj.src = tempCanvas.toDataURL();
+            showToast("90度回転しました");
+        }
+
+        function setupCanvasInteraction() {
+            editorCanvas.onmousedown = startDrawing;
+            editorCanvas.onmousemove = draw;
+            editorCanvas.onmouseup = stopDrawing;
+            editorCanvas.onmouseout = stopDrawing;
+
+            editorCanvas.ontouchstart = (e) => {
+                e.preventDefault();
+                const touch = e.touches[0];
+                const mouseEvent = new MouseEvent("mousedown", {
+                    clientX: touch.clientX,
+                    clientY: touch.clientY
+                });
+                editorCanvas.dispatchEvent(mouseEvent);
+            };
+            editorCanvas.ontouchmove = (e) => {
+                e.preventDefault();
+                const touch = e.touches[0];
+                const mouseEvent = new MouseEvent("mousemove", {
+                    clientX: touch.clientX,
+                    clientY: touch.clientY
+                });
+                editorCanvas.dispatchEvent(mouseEvent);
+            };
+            editorCanvas.ontouchend = (e) => {
+                const mouseEvent = new MouseEvent("mouseup", {});
+                editorCanvas.dispatchEvent(mouseEvent);
+            };
+        }
+
+        function getMousePos(canvasDom, clientX, clientY) {
+            const rect = canvasDom.getBoundingClientRect();
+            const scaleX = canvasDom.width / rect.width;
+            const scaleY = canvasDom.height / rect.height;
+            return {
+                x: (clientX - rect.left) * scaleX,
+                y: (clientY - rect.top) * scaleY
+            };
+        }
+
+        function startDrawing(e) {
+            isDrawing = true;
+            const pos = getMousePos(editorCanvas, e.clientX, e.clientY);
+            lastX = pos.x;
+            lastY = pos.y;
+            maskPoints.push({ x: pos.x, y: pos.y, start: true, size: brushSize });
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+            const pos = getMousePos(editorCanvas, e.clientX, e.clientY);
+
+            maskPoints.push({ x: pos.x, y: pos.y, start: false, size: brushSize });
+
+            editorCtx.strokeStyle = 'rgba(239, 68, 68, 0.6)';
+            editorCtx.lineJoin = 'round';
+            editorCtx.lineCap = 'round';
+            editorCtx.lineWidth = brushSize;
+
+            editorCtx.beginPath();
+            editorCtx.moveTo(lastX, lastY);
+            editorCtx.lineTo(pos.x, pos.y);
+            editorCtx.stroke();
+
+            lastX = pos.x;
+            lastY = pos.y;
+        }
+
+        function stopDrawing() {
+            isDrawing = false;
+        }
+
+        function redrawMask() {
+            if (maskPoints.length === 0) return;
+            editorCtx.strokeStyle = 'rgba(239, 68, 68, 0.6)';
+            editorCtx.lineJoin = 'round';
+            editorCtx.lineCap = 'round';
+
+            for (let i = 0; i < maskPoints.length; i++) {
+                const pt = maskPoints[i];
+                editorCtx.lineWidth = pt.size;
+                if (pt.start) {
+                    editorCtx.beginPath();
+                    editorCtx.moveTo(pt.x, pt.y);
+                } else {
+                    editorCtx.lineTo(pt.x, pt.y);
+                    editorCtx.stroke();
+                }
+            }
+        }
+
+        function resetBrushDraw() {
+            maskPoints = [];
+            applyAdjustments();
+            showToast("ブラシマークをリセットしました");
+        }
+
+        function executeMagicEraser() {
+            if (maskPoints.length === 0) {
+                showToast("消去したい箇所をまずなぞってください");
+                return;
+            }
+
+            showToast("不要物を消去中...");
+
+            const width = editorCanvas.width;
+            const height = editorCanvas.height;
+            const rawImgData = editorCtx.getImageData(0, 0, width, height);
+            const pixels = rawImgData.data;
+
+            const isMasked = new Uint8Array(width * height);
+            let hasMask = false;
+
+            const tempMaskCanvas = document.createElement('canvas');
+            tempMaskCanvas.width = width;
+            tempMaskCanvas.height = height;
+            const tempMaskCtx = tempMaskCanvas.getContext('2d');
+            tempMaskCtx.fillStyle = '#000000';
+            tempMaskCtx.fillRect(0,0,width,height);
+            tempMaskCtx.strokeStyle = '#FFFFFF';
+            tempMaskCtx.lineJoin = 'round';
+            tempMaskCtx.lineCap = 'round';
+
+            for (let i = 0; i < maskPoints.length; i++) {
+                const pt = maskPoints[i];
+                tempMaskCtx.lineWidth = pt.size;
+                if (pt.start) {
+                    tempMaskCtx.beginPath();
+                    tempMaskCtx.moveTo(pt.x, pt.y);
+                } else {
+                    tempMaskCtx.lineTo(pt.x, pt.y);
+                    tempMaskCtx.stroke();
+                }
+            }
+
+            const maskImgData = tempMaskCtx.getImageData(0, 0, width, height);
+            const maskPixels = maskImgData.data;
+
+            for (let i = 0; i < width * height; i++) {
+                if (maskPixels[i * 4] > 50) {
+                    isMasked[i] = 1;
+                    hasMask = true;
+                }
+            }
+
+            if (!hasMask) {
+                showToast("マークの認識に失敗しました。なぞり直してください。");
+                return;
+            }
+
+            const outputData = editorCtx.createImageData(width, height);
+            outputData.data.set(pixels);
+            const outPixels = outputData.data;
+
+            const maxIterations = 8;
+
+            for (let iter = 0; iter < maxIterations; iter++) {
+                for (let y = 1; y < height - 1; y++) {
+                    for (let x = 1; x < width - 1; x++) {
+                        const idx = y * width + x;
+                        if (isMasked[idx] === 1) {
+                            let rSum = 0, gSum = 0, bSum = 0, count = 0;
+                            const neighbors = [
+                                idx - 1, idx + 1, idx - width, idx + width,
+                                idx - width - 1, idx - width + 1, idx + width - 1, idx + width + 1
+                            ];
+
+                            for (const nIdx of neighbors) {
+                                if (isMasked[nIdx] === 0) {
+                                    rSum += outPixels[nIdx * 4];
+                                    gSum += outPixels[nIdx * 4 + 1];
+                                    bSum += outPixels[nIdx * 4 + 2];
+                                    count++;
+                                }
+                            }
+
+                            if (count > 0) {
+                                outPixels[idx * 4] = Math.round(rSum / count);
+                                outPixels[idx * 4 + 1] = Math.round(gSum / count);
+                                outPixels[idx * 4 + 2] = Math.round(bSum / count);
+                                isMasked[idx] = 0; 
+                            }
+                        }
+                    }
+                }
+            }
+
+            for (let pass = 0; pass < 2; pass++) {
+                for (let y = 1; y < height - 1; y++) {
+                    for (let x = 1; x < width - 1; x++) {
+                        const idx = y * width + x;
+                        if (maskPixels[idx * 4] > 1) {
+                            let rSum = 0, gSum = 0, bSum = 0;
+                            const neighbors = [idx, idx - 1, idx + 1, idx - width, idx + width];
+                            for (const nIdx of neighbors) {
+                                rSum += outPixels[nIdx * 4];
+                                gSum += outPixels[nIdx * 4 + 1];
+                                bSum += outPixels[nIdx * 4 + 2];
+                            }
+                            outPixels[idx * 4] = Math.round(rSum / 5);
+                            outPixels[idx * 4 + 1] = Math.round(gSum / 5);
+                            outPixels[idx * 4 + 2] = Math.round(bSum / 5);
+                        }
+                    }
+                }
+            }
+
+            editorCtx.putImageData(outputData, 0, 0);
+            
+            originalImageObj = new Image();
+            originalImageObj.onload = function() {
+                maskPoints = [];
+                showToast("消去が完了しました！");
+            };
+            originalImageObj.src = editorCanvas.toDataURL();
+        }
+
+        async function saveEditedImage() {
+            const dataUrl = editorCanvas.toDataURL();
+            
+            const contentHtml = `
+                <p style="font-size:13px;">編集した画像をどのように保存しますか？</p>
+            `;
+
+            showCustomDialog({
+                title: "画像の保存",
+                icon: 'save',
+                contentHtml: contentHtml,
+                confirmText: '新規として追加',
+                onConfirm: async () => {
+                    const newPhoto = {
+                        name: `${editingImageName}_edited`,
+                        dataUrl: dataUrl,
+                        albumId: "all",
+                        createdAt: new Date().getTime()
+                    };
+                    await savePhotoToDB(newPhoto);
+                    allPhotos = await getPhotosFromDB();
+                    updateGalleryUI();
+                    switchView('view-gallery');
+                    showToast("新規画像として保存しました");
+                }
+            });
+
+            if (editingPhotoId) {
+                const buttonsArea = document.getElementById('dialog-buttons-area');
+                const overwriteBtn = document.createElement('button');
+                overwriteBtn.className = "ai-btn ai-btn-secondary";
+                overwriteBtn.innerHTML = `<span class="material-symbols-outlined">update</span>上書き保存`;
+                overwriteBtn.onclick = async () => {
+                    const updatedPhoto = {
+                        id: editingPhotoId,
+                        name: editingImageName,
+                        dataUrl: dataUrl,
+                        albumId: allPhotos.find(p => p.id === editingPhotoId)?.albumId || "all",
+                        createdAt: new Date().getTime()
+                    };
+                    await savePhotoToDB(updatedPhoto);
+                    allPhotos = await getPhotosFromDB();
+                    updateGalleryUI();
+                    closeCustomDialog();
+                    switchView('view-gallery');
+                    showToast("オリジナルを上書き保存しました");
+                };
+                buttonsArea.insertBefore(overwriteBtn, buttonsArea.firstChild);
+            }
+        }
+
+        function clearAllAppData() {
+            if (confirm("本当にこのブラウザに保存されているすべてのフォルダと写真を削除してもよろしいですか？（この操作は元に戻せません）")) {
+                const req1 = indexedDB.deleteDatabase("iDBPhotoDB");
+                req1.onsuccess = function() {
+                    showToast("すべてのデータを消去しました。再起動します。");
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                };
+                req1.onerror = function() {
+                    showToast("初期化に失敗しました。");
+                };
+            }
+        }
+
+        function showToast(msg) {
+            toast.textContent = msg;
+            toast.classList.add('active');
+            setTimeout(() => {
+                toast.classList.remove('active');
+            }, 2300);
+        }
+
+        function setTheme(isDark) {
+            document.body.classList.toggle('dark-mode', isDark);
+            themeIcon.textContent = isDark ? 'dark_mode' : 'light_mode';
+        }
+
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+        setTheme(prefersDark.matches);
+
+        themeBtn.addEventListener('click', () => {
+            setTheme(!document.body.classList.contains('dark-mode'));
+        });
+
+        // 触感・ジェリーバウンド
+        document.addEventListener('mousedown', (e) => {
+            const target = e.target.closest('.glass-card, .ai-btn, .nav-item, .photo-card, .album-card, .viewer-action-btn');
+            if (target) {
+                target.classList.remove('squish-active');
+                void target.offsetWidth;
+                target.classList.add('squish-active');
+                
+                setTimeout(() => {
+                    target.classList.remove('squish-active');
+                }, 300);
+            }
+        });
+
+        // 起動処理
+        window.onload = async () => {
+            try {
+                await initDB();
+                await loadInitialData();
+                showToast("iDB Photo がロードされました");
+                
+                updateBrushSize(15);
+                updateThickSlider('slider-brightness-fill', 'val-brightness', 100, '%');
+                updateThickSlider('slider-saturation-fill', 'val-saturation', 100, '%');
+            } catch (err) {
+                console.error(err);
+                showToast("データベースの接続に失敗しました");
+            }
+        };
+    </script>
+</body>
+</html>
