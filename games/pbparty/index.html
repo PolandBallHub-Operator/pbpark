@@ -1,0 +1,2089 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PBParty! - ポーランドボール・パーティースタジオ</title>
+  
+  <style>
+    :root {
+      /* M-You-I Design System Base Tokens */
+      --myoui-radius-card: 20px;
+      --myoui-radius-dialog: 28px;
+      --myoui-radius-pill: 50px;
+      --myoui-radius-input: 12px;
+      --myoui-radius-btn: 20px;
+
+      --myoui-font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif;
+      
+      /* Default Dynamic Colors (Will be overwritten by Material Color Utilities) */
+      --myoui-sys-color-background: #eef5ec;
+      --myoui-sys-color-on-background: #191d17;
+      --myoui-sys-color-surface-card: #f7fbf4;
+      --myoui-sys-color-surface-variant: #e1e4dc;
+      --myoui-sys-color-on-surface: #191d17;
+      --myoui-sys-color-on-surface-variant: #43483f;
+      --myoui-sys-color-primary: #386b35;
+      --myoui-sys-color-on-primary: #ffffff;
+      --myoui-sys-color-primary-container: #b8f3b0;
+      --myoui-sys-color-on-primary-container: #002204;
+      --myoui-sys-color-outline: #73796f;
+      --myoui-sys-color-outline-focused: #386b35;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: var(--myoui-font-family);
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: var(--myoui-sys-color-background);
+      color: var(--myoui-sys-color-on-background);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      transition: background-color 0.3s, color 0.3s;
+      overflow-x: hidden;
+    }
+
+    .app-viewport {
+      width: 100%;
+      max-width: 500px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      background-color: var(--myoui-sys-color-background);
+    }
+
+    /* Header styling */
+    .app-header {
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background-color: var(--myoui-sys-color-surface-card);
+      border-bottom-left-radius: var(--myoui-radius-card);
+      border-bottom-right-radius: var(--myoui-radius-card);
+      z-index: 10;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand img {
+      width: 42px;
+      height: 42px;
+      object-fit: contain;
+      border-radius: 50%;
+    }
+
+    .brand-title {
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      color: var(--myoui-sys-color-primary);
+    }
+
+    .brand-subtitle {
+      font-size: 11px;
+      color: var(--myoui-sys-color-on-surface-variant);
+      font-weight: bold;
+    }
+
+    /* Floating Navigation Bar */
+    .floating-nav {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: var(--myoui-sys-color-primary-container);
+      padding: 8px 12px;
+      border-radius: var(--myoui-radius-pill);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      z-index: 100;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+      transition: transform 0.3s ease, opacity 0.3s ease;
+    }
+
+    .floating-nav.hidden {
+      transform: translate(-50%, 100px);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .nav-btn {
+      background: none;
+      border: none;
+      padding: 10px 18px;
+      border-radius: var(--myoui-radius-pill);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--myoui-sys-color-on-primary-container);
+      cursor: pointer;
+      transition: background-color 0.2s, color 0.2s;
+    }
+
+    .nav-btn.active {
+      background-color: var(--myoui-sys-color-primary);
+      color: var(--myoui-sys-color-on-primary);
+    }
+
+    /* Main Content container */
+    .main-content {
+      flex: 1;
+      padding: 16px 16px 110px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* Section components */
+    .app-section {
+      display: none;
+      flex-direction: column;
+      gap: 20px;
+      animation: fadeIn 0.3s ease-in-out;
+    }
+
+    .app-section.active {
+      display: flex;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* M-You-I Grouped Card structure */
+    .card-group {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      border-radius: var(--myoui-radius-card);
+      overflow: hidden;
+    }
+
+    .myoui-card {
+      background-color: var(--myoui-sys-color-surface-card);
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transition: background-color 0.2s;
+    }
+
+    .myoui-card.row {
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .card-header-area {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .pb-ball-container {
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      overflow: hidden;
+      background-color: var(--myoui-sys-color-surface-variant);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .pb-ball-img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    /* Special treatment for england472x600 to trim top 472px out of 600px */
+    .uk-ball-container {
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      overflow: hidden;
+      background-color: var(--myoui-sys-color-surface-variant);
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .uk-ball-container .pb-ball-img {
+      width: 100%;
+      height: auto;
+      object-fit: cover;
+      object-position: top;
+      aspect-ratio: 472 / 600;
+    }
+
+    /* Small variant ball */
+    .pb-ball-container.small, .uk-ball-container.small {
+      width: 32px;
+      height: 32px;
+    }
+
+    /* M-You-I Inputs & Form Controls */
+    .myoui-textfield {
+      position: relative;
+      width: 100%;
+    }
+
+    .myoui-textfield input, .myoui-textfield select {
+      width: 100%;
+      height: 56px;
+      padding: 0 16px;
+      background: transparent;
+      border: 1.5px solid var(--myoui-sys-color-outline);
+      border-radius: var(--myoui-radius-input);
+      font-size: 16px;
+      color: var(--myoui-sys-color-on-surface);
+      outline: none;
+      transition: border-color 0.2s, border-width 0.1s;
+    }
+
+    .myoui-textfield select {
+      appearance: none;
+    }
+
+    .myoui-textfield label {
+      position: absolute;
+      left: 12px;
+      top: -10px;
+      background-color: var(--myoui-sys-color-surface-card);
+      padding: 0 6px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--myoui-sys-color-outline);
+      transition: color 0.2s;
+    }
+
+    .myoui-textfield input:focus, .myoui-textfield select:focus {
+      border-color: var(--myoui-sys-color-outline-focused);
+      border-width: 2px;
+    }
+
+    .myoui-textfield input:focus + label, .myoui-textfield select:focus + label {
+      color: var(--myoui-sys-color-outline-focused);
+    }
+
+    /* Buttons */
+    .myoui-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border-radius: var(--myoui-radius-btn);
+      font-size: 14px;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      transition: background-color 0.2s, opacity 0.2s, transform 0.1s;
+    }
+
+    .myoui-btn:active {
+      transform: scale(0.97);
+    }
+
+    .btn-filled {
+      background-color: var(--myoui-sys-color-primary);
+      color: var(--myoui-sys-color-on-primary);
+    }
+
+    .btn-container {
+      background-color: var(--myoui-sys-color-primary-container);
+      color: var(--myoui-sys-color-on-primary-container);
+    }
+
+    .btn-outlined {
+      background-color: transparent;
+      border: 1.5px solid var(--myoui-sys-color-outline);
+      color: var(--myoui-sys-color-primary);
+    }
+
+    .btn-pill {
+      border-radius: var(--myoui-radius-pill);
+    }
+
+    /* Slider Progress Styling */
+    .slider-container {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .myoui-slider {
+      flex: 1;
+      -webkit-appearance: none;
+      appearance: none;
+      height: 8px;
+      border-radius: var(--myoui-radius-pill);
+      background: linear-gradient(
+        to right,
+        var(--myoui-sys-color-primary) 0%,
+        var(--myoui-sys-color-primary) var(--slider-progress, 50%),
+        var(--myoui-sys-color-surface-variant) var(--slider-progress, 50%),
+        var(--myoui-sys-color-surface-variant) 100%
+      );
+      outline: none;
+    }
+
+    .myoui-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--myoui-sys-color-primary);
+      cursor: pointer;
+    }
+
+    /* M-You-I Switches */
+    .myoui-switch {
+      position: relative;
+      width: 52px;
+      height: 32px;
+      display: inline-block;
+    }
+
+    .myoui-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .switch-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: var(--myoui-sys-color-surface-variant);
+      border-radius: var(--myoui-radius-pill);
+      transition: background-color 0.25s ease;
+      display: flex;
+      align-items: center;
+    }
+
+    .switch-thumb {
+      position: absolute;
+      height: 24px;
+      width: 24px;
+      left: 4px;
+      background-color: #FFFFFF;
+      border-radius: 50%;
+      transition: transform 0.25s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .switch-thumb svg {
+      width: 14px;
+      height: 14px;
+      stroke: var(--myoui-sys-color-primary);
+      stroke-width: 3;
+      fill: none;
+      opacity: 0;
+      transform: scale(0.5);
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+
+    input:checked + .switch-slider {
+      background-color: var(--myoui-sys-color-primary);
+    }
+
+    input:checked + .switch-slider .switch-thumb {
+      transform: translateX(20px);
+    }
+
+    input:checked + .switch-slider .switch-thumb svg {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    /* Dialog Modals */
+    .dialog-backdrop {
+      position: fixed;
+      inset: 0;
+      background-color: rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 1000;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.25s ease, visibility 0.25s ease;
+    }
+
+    .dialog-backdrop.is-open {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .myoui-dialog {
+      background-color: var(--myoui-sys-color-surface-card);
+      border-radius: var(--myoui-radius-dialog);
+      padding: 28px;
+      width: 100%;
+      max-width: 380px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 16px;
+      transform: scale(0.9);
+      transition: transform 0.25s ease;
+    }
+
+    .dialog-backdrop.is-open .myoui-dialog {
+      transform: scale(1);
+    }
+
+    .dialog-title {
+      font-size: 20px;
+      font-weight: 900;
+      color: var(--myoui-sys-color-on-surface);
+    }
+
+    .dialog-desc {
+      font-size: 14px;
+      color: var(--myoui-sys-color-on-surface-variant);
+      line-height: 1.5;
+    }
+
+    .dialog-actions {
+      display: flex;
+      gap: 12px;
+      width: 100%;
+      justify-content: center;
+      margin-top: 8px;
+    }
+
+    /* Polandball Bubble Dialogue decoration */
+    .pb-talk-bubble {
+      position: relative;
+      background-color: var(--myoui-sys-color-primary-container);
+      color: var(--myoui-sys-color-on-primary-container);
+      padding: 12px 16px;
+      border-radius: var(--myoui-radius-card);
+      font-size: 14px;
+      font-weight: bold;
+      line-height: 1.4;
+      margin-bottom: 12px;
+    }
+
+    .pb-talk-bubble::after {
+      content: '';
+      position: absolute;
+      bottom: -10px;
+      left: 24px;
+      border-width: 10px 10px 0;
+      border-style: solid;
+      border-color: var(--myoui-sys-color-primary-container) transparent;
+      display: block;
+      width: 0;
+    }
+
+    /* Game-specific UI Elements */
+    .game-play-area {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      padding: 10px 0;
+    }
+
+    /* Roulette Canvas */
+    #roulette-canvas {
+      border-radius: 50%;
+      background-color: #fff;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+      transition: transform 4s cubic-bezier(0.15, 0.85, 0.35, 1);
+    }
+
+    .roulette-wrapper {
+      position: relative;
+      width: 280px;
+      height: 280px;
+    }
+
+    .roulette-pin {
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 24px;
+      height: 32px;
+      background-color: #ff3366;
+      clip-path: polygon(50% 100%, 0 0, 100% 0);
+      z-index: 5;
+    }
+
+    /* Gacha Machine Animation */
+    .gacha-machine {
+      position: relative;
+      width: 220px;
+      height: 280px;
+      background-color: var(--myoui-sys-color-surface-variant);
+      border-radius: 40px 40px 20px 20px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px;
+    }
+
+    .gacha-glass {
+      width: 100%;
+      height: 140px;
+      background: rgba(255, 255, 255, 0.5);
+      border-radius: 30px 30px 10px 10px;
+      position: relative;
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      padding: 10px;
+      gap: 8px;
+      align-content: center;
+    }
+
+    .gacha-capsule-item {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #ff3366 50%, #fff 50%);
+      box-shadow: inset -2px -2px 4px rgba(0,0,0,0.2);
+    }
+
+    .gacha-capsule-item:nth-child(2n) {
+      background: linear-gradient(135deg, #33ccff 50%, #fff 50%);
+    }
+
+    .gacha-capsule-item:nth-child(3n) {
+      background: linear-gradient(135deg, #ffcc33 50%, #fff 50%);
+    }
+
+    .gacha-crank {
+      width: 64px;
+      height: 64px;
+      background-color: var(--myoui-sys-color-primary);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: white;
+      font-size: 24px;
+      font-weight: bold;
+      transition: transform 0.6s ease;
+    }
+
+    .gacha-crank.spin {
+      transform: rotate(360deg);
+    }
+
+    .gacha-exit {
+      width: 80px;
+      height: 40px;
+      background-color: #333;
+      border-radius: 10px 10px 0 0;
+      position: relative;
+    }
+
+    /* Kuji (Envelope/Lottery Drawer) */
+    .kuji-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      width: 100%;
+    }
+
+    .kuji-envelope {
+      aspect-ratio: 1;
+      background-color: var(--myoui-sys-color-surface-card);
+      border-radius: var(--myoui-radius-card);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 0.2s, background-color 0.2s;
+      border: 2px dashed var(--myoui-sys-color-outline);
+    }
+
+    .kuji-envelope:active {
+      transform: scale(0.95);
+    }
+
+    .kuji-envelope.opened {
+      border: none;
+      background-color: var(--myoui-sys-color-primary-container);
+    }
+
+    /* Settings helper */
+    .settings-item-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background-color: var(--myoui-sys-color-surface-variant);
+      padding: 12px;
+      border-radius: var(--myoui-radius-input);
+    }
+
+    .settings-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .delete-btn {
+      color: #ff3366;
+      background: none;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    /* Theme config floating bar */
+    .theme-config-card {
+      padding: 12px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+  </style>
+
+  <script type="module">
+    import {
+      argbFromHex,
+      hexFromArgb,
+      Hct,
+      SchemeTonalSpot
+    } from 'https://esm.run/@material/material-color-utilities';
+
+    // Global theme customizer injection function
+    window.generateMyOuiTheme = function(seedHex, isDark = false) {
+      try {
+        const seedArgb = argbFromHex(seedHex);
+        const hct = Hct.fromInt(seedArgb);
+        const scheme = new SchemeTonalSpot(hct, isDark, 0.0);
+
+        const myouiColors = {
+          '--myoui-sys-color-background': hexFromArgb(scheme.background),
+          '--myoui-sys-color-on-background': hexFromArgb(scheme.onBackground),
+          '--myoui-sys-color-surface-card': hexFromArgb(scheme.surfaceContainerLow),
+          '--myoui-sys-color-surface-variant': hexFromArgb(scheme.surfaceVariant),
+          '--myoui-sys-color-on-surface': hexFromArgb(scheme.onSurface),
+          '--myoui-sys-color-on-surface-variant': hexFromArgb(scheme.onSurfaceVariant),
+          '--myoui-sys-color-primary': hexFromArgb(scheme.primary),
+          '--myoui-sys-color-on-primary': hexFromArgb(scheme.onPrimary),
+          '--myoui-sys-color-primary-container': hexFromArgb(scheme.primaryContainer),
+          '--myoui-sys-color-on-primary-container': hexFromArgb(scheme.onPrimaryContainer),
+          '--myoui-sys-color-outline': hexFromArgb(scheme.outline),
+          '--myoui-sys-color-outline-focused': hexFromArgb(scheme.primary)
+        };
+
+        const root = document.documentElement;
+        for (const [key, value] of Object.entries(myouiColors)) {
+          root.style.setProperty(key, value);
+        }
+      } catch (err) {
+        console.error("Theme generation error: ", err);
+      }
+    }
+  </script>
+</head>
+<body>
+
+  <div class="app-viewport">
+    
+    <!-- App Header Bar -->
+    <header class="app-header" id="app-header">
+      <div class="brand">
+        <!-- Default polandball avatar -->
+        <div class="pb-ball-container small">
+          <img src="https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/poland/smile.png" alt="PB" class="pb-ball-img">
+        </div>
+        <div>
+          <h1 class="brand-title">PBParty!</h1>
+          <span class="brand-subtitle">ポーランドボール・パーティースタジオ</span>
+        </div>
+      </div>
+      
+      <!-- Theme Config Button -->
+      <button class="myoui-btn btn-container" style="padding: 8px 12px; border-radius: var(--myoui-radius-pill);" onclick="openThemeDialog()">
+        🎨 テーマ
+      </button>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+
+      <!-- ================= HOME TAB ================= -->
+      <section id="section-home" class="app-section active">
+        
+        <!-- Polandball Greeting card -->
+        <div class="card-group">
+          <div class="myoui-card" style="flex-direction: row; align-items: flex-start; gap: 16px;">
+            <div style="flex: 1;">
+              <div class="pb-talk-bubble">
+                ハロー！ポーランドだよ！<br>
+                ルーレットやガチャをカスタムして、友だちと遊んだりリンクで共有できるよ！
+              </div>
+              <p style="font-size: 13px; font-weight: bold; color: var(--myoui-sys-color-on-surface-variant); padding-left: 8px;">
+                まずは下の3つからつくりたいパーティーを選んでね！
+              </p>
+            </div>
+            <div class="pb-ball-container">
+              <img src="https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/poland/smile.png" alt="Poland" class="pb-ball-img">
+            </div>
+          </div>
+        </div>
+
+        <div class="section-title" style="font-weight: 900; font-size: 14px; color: var(--myoui-sys-color-on-surface-variant);">
+          つくるパーティーを選ぶ
+        </div>
+
+        <!-- Create Game selection -->
+        <div class="card-group">
+          <!-- Roulette Customizer trigger -->
+          <div class="myoui-card" style="cursor: pointer;" onclick="initCustomizer('roulette')">
+            <div style="display: flex; align-items: center; gap: 16px;">
+              <div style="font-size: 28px;">🎯</div>
+              <div style="flex: 1;">
+                <h3 style="font-weight: 900; font-size: 16px;">カスタム・ルーレット</h3>
+                <p style="font-size: 13px; color: var(--myoui-sys-color-on-surface-variant);">項目や確率を自由に設定できるボール・ルーレット！</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Kuji Customizer trigger -->
+          <div class="myoui-card" style="cursor: pointer;" onclick="initCustomizer('kuji')">
+            <div style="display: flex; align-items: center; gap: 16px;">
+              <div style="font-size: 28px;">✉️</div>
+              <div style="flex: 1;">
+                <h3 style="font-weight: 900; font-size: 16px;">どきどき紙くじびき</h3>
+                <p style="font-size: 13px; color: var(--myoui-sys-color-on-surface-variant);">封筒をめくってあたりを引き当てるボールくじ！</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Gacha Customizer trigger -->
+          <div class="myoui-card" style="cursor: pointer;" onclick="initCustomizer('gacha')">
+            <div style="display: flex; align-items: center; gap: 16px;">
+              <div style="font-size: 28px;">🔮</div>
+              <div style="flex: 1;">
+                <h3 style="font-weight: 900; font-size: 16px;">ボール・カプセルトイ (ガチャ)</h3>
+                <p style="font-size: 13px; color: var(--myoui-sys-color-on-surface-variant);">カプセルを回してポーランドボールを引き当てよう！</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ================= CUSTOMIZER TAB ================= -->
+      <section id="section-customizer" class="app-section">
+        
+        <div class="card-group">
+          <div class="myoui-card" style="flex-direction: row; gap: 12px; align-items: center;">
+            <button class="myoui-btn btn-container" style="padding: 8px 12px;" onclick="switchSection('home')">← 戻る</button>
+            <h2 id="customizer-title" style="font-weight: 900; font-size: 18px;">カスタム作成</h2>
+          </div>
+        </div>
+
+        <div class="card-group">
+          <!-- Main details form -->
+          <div class="myoui-card">
+            <div class="myoui-textfield">
+              <input type="text" id="game-title-input" value="きょうの運試し！">
+              <label>パーティーのタイトル</label>
+            </div>
+          </div>
+
+          <!-- Customizer options and Items list -->
+          <div class="myoui-card">
+            <h3 style="font-weight: 900; font-size: 15px;">項目・おくりものリスト</h3>
+            <p style="font-size: 12px; color: var(--myoui-sys-color-on-surface-variant);">当たり項目やキャラクターボールを追加してね！</p>
+            
+            <div id="custom-items-container" class="settings-list" style="margin-top: 10px;">
+              <!-- Dynamic item elements inject here -->
+            </div>
+
+            <!-- Add new item template form inside customizer -->
+            <div class="settings-item-row" style="flex-direction: column; gap: 12px; background-color: var(--myoui-sys-color-surface-card); border: 1.5px solid var(--myoui-sys-color-outline); padding: 12px;">
+              <div style="display: flex; gap: 8px; width: 100%;">
+                <div class="myoui-textfield" style="flex: 2;">
+                  <input type="text" id="new-item-text" placeholder="例: 大吉！お寿司食べる">
+                  <label>あたり・テキスト</label>
+                </div>
+                <div class="myoui-textfield" style="flex: 1;">
+                  <input type="number" id="new-item-weight" value="1" min="1">
+                  <label>重み/確率</label>
+                </div>
+              </div>
+
+              <!-- Polandball characters custom picker -->
+              <div style="display: flex; gap: 8px; width: 100%; align-items: center;">
+                <div class="myoui-textfield" style="flex: 1;">
+                  <select id="new-item-country" onchange="previewNewBall()">
+                    <option value="poland">ポーランド 🇵🇱</option>
+                    <option value="japan">日本 🇯🇵</option>
+                    <option value="germany">ドイツ 🇩🇪</option>
+                    <option value="china">中国 🇨🇳</option>
+                    <option value="italy">イタリア 🇮🇹</option>
+                    <option value="sierraleone">シエラレオネ 🇸🇱</option>
+                    <option value="russia">ロシア 🇷🇺</option>
+                    <option value="france">フランス 🇫🇷</option>
+                    <option value="england472x600">イギリス 🇬🇧</option>
+                    <option value="usa">アメリカ 🇺🇸</option>
+                  </select>
+                  <label>キャラクター国</label>
+                </div>
+
+                <div class="myoui-textfield" style="flex: 1;">
+                  <select id="new-item-emotion" onchange="previewNewBall()">
+                    <option value="smile">ニコニコ</option>
+                    <option value="happy">ハッピー</option>
+                    <option value="lol">爆笑</option>
+                    <option value="normal">ふつう</option>
+                    <option value="anger">ぷんぷん</option>
+                    <option value="dissatisfaction">不満げ</option>
+                    <option value="itome">糸目</option>
+                    <option value="plot">企み</option>
+                    <option value="surprise">びっくり</option>
+                  </select>
+                  <label>表情</label>
+                </div>
+
+                <!-- Ball Live Preview -->
+                <div id="new-ball-preview-box" class="pb-ball-container small">
+                  <img src="https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/poland/smile.png" id="new-ball-preview-img" class="pb-ball-img">
+                </div>
+              </div>
+
+              <button class="myoui-btn btn-container" style="width: 100%;" onclick="addCustomItem()">＋ 項目を追加</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action triggers -->
+        <div style="display: flex; gap: 12px;">
+          <button class="myoui-btn btn-filled" style="flex: 1;" onclick="completeAndPlay()">🎉 できあがり！</button>
+        </div>
+
+      </section>
+
+      <!-- ================= PLAY TAB ================= -->
+      <section id="section-play" class="app-section">
+        
+        <div class="card-group">
+          <div class="myoui-card" style="align-items: center; justify-content: center; text-align: center; gap: 8px;">
+            <h2 id="play-game-title" style="font-weight: 900; font-size: 22px; color: var(--myoui-sys-color-primary);">ゲームタイトル</h2>
+            <div id="play-game-badge" class="myoui-btn btn-container" style="padding: 4px 12px; font-size: 11px; pointer-events: none;">タイプ</div>
+          </div>
+        </div>
+
+        <!-- Dynamic Game Engine rendering placeholder -->
+        <div class="card-group">
+          <div class="myoui-card" style="align-items: center; justify-content: center; padding: 24px 12px;">
+            <div id="game-canvas-area" class="game-play-area">
+              <!-- Engine outputs here -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Interactive results presentation card -->
+        <div class="card-group" id="play-result-card" style="display: none;">
+          <div class="myoui-card" style="flex-direction: row; gap: 16px; align-items: center; background-color: var(--myoui-sys-color-primary-container); color: var(--myoui-sys-color-on-primary-container);">
+            <div id="result-ball-container">
+              <!-- Ball character dynamic placement -->
+            </div>
+            <div style="flex: 1;">
+              <div style="font-size: 11px; font-weight: bold; opacity: 0.8;">おめでとう！結果発表 🎉</div>
+              <h3 id="result-text" style="font-weight: 900; font-size: 20px;">大吉！</h3>
+              <p id="result-commentary" style="font-size: 13px; font-weight: bold; margin-top: 4px;"></p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Studio Operation Utilities (hidden in share mode) -->
+        <div class="card-group" id="studio-ops-panel">
+          <div class="myoui-card" style="flex-direction: row; gap: 12px;">
+            <button class="myoui-btn btn-container" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;" onclick="saveToIndexedDB()">
+              📥 保存する
+            </button>
+            <button class="myoui-btn btn-filled" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;" onclick="shareGameLink()">
+              🔗 共有する
+            </button>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ================= STORAGE TAB ================= -->
+      <section id="section-storage" class="app-section">
+        
+        <div class="card-group">
+          <div class="myoui-card" style="flex-direction: row; gap: 16px; align-items: center;">
+            <div class="pb-ball-container">
+              <img src="https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/germany/plot.png" class="pb-ball-img">
+            </div>
+            <div style="flex: 1;">
+              <div class="pb-talk-bubble">
+                ここは保管庫だよ！<br>
+                保存したカスタムパーティーがすべて記録されているよ。いつでも呼び出せるよ！
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-title" style="font-weight: 900; font-size: 14px; color: var(--myoui-sys-color-on-surface-variant);">
+          保存済みのパーティー一覧
+        </div>
+
+        <!-- Saved lists dynamic targets -->
+        <div class="card-group" id="saved-games-list">
+          <div class="myoui-card" style="text-align: center; color: var(--myoui-sys-color-on-surface-variant);">
+            まだ保存されたパーティーがありません。ホームでカスタムして保存してみよう！
+          </div>
+        </div>
+
+      </section>
+
+    </main>
+
+    <!-- Bottom Floating Navigation -->
+    <nav class="floating-nav" id="bottom-navbar">
+      <button class="nav-btn active" id="nav-home" onclick="switchSection('home')">
+        🏠 ホーム
+      </button>
+      <button class="nav-btn" id="nav-play" onclick="switchSection('play')">
+        🎯 遊び
+      </button>
+      <button class="nav-btn" id="nav-storage" onclick="switchSection('storage')">
+        📥 保存
+      </button>
+    </nav>
+
+  </div>
+
+  <!-- Dialog backdrop for Theme Customization -->
+  <div class="dialog-backdrop" id="theme-dialog" onclick="closeThemeDialog()">
+    <div class="myoui-dialog" onclick="event.stopPropagation()">
+      <div class="dialog-title">🎨 スタジオカラー設定</div>
+      <p class="dialog-desc">Material You カラーをお好みでダイナミックに変化させよう！</p>
+      
+      <!-- Color Picker & Switches -->
+      <div style="width: 100%; display: flex; flex-direction: column; gap: 12px; margin-top: 10px;">
+        <div class="myoui-card" style="flex-direction: row; justify-content: space-between; align-items: center; background-color: var(--myoui-sys-color-surface-variant);">
+          <span style="font-weight: bold; font-size: 14px;">シードキーカラー</span>
+          <input type="color" id="theme-color-input" value="#386b35" style="width: 48px; height: 32px; border: none; border-radius: 6px; cursor: pointer;">
+        </div>
+
+        <div class="myoui-card" style="flex-direction: row; justify-content: space-between; align-items: center; background-color: var(--myoui-sys-color-surface-variant);">
+          <span style="font-weight: bold; font-size: 14px;">ダークモード</span>
+          <label class="myoui-switch">
+            <input type="checkbox" id="theme-dark-input">
+            <span class="switch-slider">
+              <span class="switch-thumb">
+                <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+              </span>
+            </span>
+          </label>
+        </div>
+
+        <!-- NEW FIELD: Ball Dynamic Link Mode toggle -->
+        <div class="myoui-card" style="flex-direction: row; justify-content: space-between; align-items: center; background-color: var(--myoui-sys-color-surface-variant);">
+          <div style="text-align: left;">
+            <span style="font-weight: bold; font-size: 14px; display: block;">結果ボールとの連動</span>
+            <span style="font-size: 10px; color: var(--myoui-sys-color-on-surface-variant); display: block;">出現した国カラーにテーマを変化</span>
+          </div>
+          <label class="myoui-switch">
+            <input type="checkbox" id="theme-ball-link-input" checked>
+            <span class="switch-slider">
+              <span class="switch-thumb">
+                <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+              </span>
+            </span>
+          </label>
+        </div>
+      </div>
+
+      <div class="dialog-actions">
+        <button class="myoui-btn btn-filled btn-pill" style="width: 100%;" onclick="applyThemeFromDialog()">適用して保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dialog for General Notification / Message Box -->
+  <div class="dialog-backdrop" id="msg-dialog" onclick="closeMsgDialog()">
+    <div class="myoui-dialog" onclick="event.stopPropagation()">
+      <div class="dialog-title" id="msg-dialog-title">通知</div>
+      <p class="dialog-desc" id="msg-dialog-desc">ここに内容が入ります。</p>
+      <div class="dialog-actions">
+        <button class="myoui-btn btn-filled btn-pill" style="width: 120px;" onclick="closeMsgDialog()">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dialog for Confirm Action (Specifically for saving peer shared games) -->
+  <div class="dialog-backdrop" id="confirm-dialog">
+    <div class="myoui-dialog" onclick="event.stopPropagation()">
+      <div class="pb-ball-container" style="width: 64px; height: 64px; margin-bottom: 8px;">
+        <img src="https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/poland/surprise.png" class="pb-ball-img">
+      </div>
+      <div class="dialog-title" id="confirm-dialog-title">セーブしますか？</div>
+      <p class="dialog-desc" id="confirm-dialog-desc">このゲームをスタジオの保存に登録しますか？</p>
+      <div class="dialog-actions" style="width: 100%;">
+        <button class="myoui-btn btn-container" style="flex: 1;" onclick="handleConfirmCallback(false)" id="confirm-btn-no">いいえ！</button>
+        <button class="myoui-btn btn-filled" style="flex: 1;" onclick="handleConfirmCallback(true)" id="confirm-btn-yes">はい！</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // System Constants & Game Config Defaults
+    const DB_NAME = "PBPartyDB";
+    const STORE_NAME_GAMES = "games";
+    const STORE_NAME_SETTINGS = "settings";
+    
+    // Country to cute name map for ball visual effects
+    const COUNTRY_NAMES = {
+      germany: "ドイツ",
+      japan: "日本",
+      china: "中国",
+      italy: "イタリア",
+      sierraleone: "シエラレオネ",
+      russia: "ロシア",
+      france: "フランス",
+      poland: "ポーランド",
+      england472x600: "イギリス",
+      usa: "アメリカ"
+    };
+
+    // Represented countries key seed color mapping table
+    const BALL_THEME_COLORS = {
+      germany: "#D02F2F", 
+      japan: "#BC002D",   
+      china: "#DE2910",   
+      italy: "#009246",   
+      sierraleone: "#1EB53A", 
+      russia: "#1C3578",  
+      france: "#002395",  
+      poland: "#DC143C",  
+      england472x600: "#00247D", 
+      usa: "#1A237E"      
+    };
+
+    // Emotion definitions for dialogue variation
+    const EMOTION_COMMENTS = {
+      happy: "わーい！とっても嬉しいね！パーティーだ！",
+      smile: "ニコニコ笑顔がこぼれちゃうね！素晴らしい！",
+      lol: "あはははは！大爆笑が止まらないよ！ハッピー！",
+      normal: "ふむ、なるほどね。順調な仕上がりだよ！",
+      anger: "むむっ、ぷんぷんしちゃう！でも面白いから許す！",
+      dissatisfaction: "ちょっと不満げだけど、次はいいことがあるかも？",
+      itome: "にっこり細めて、なかなか趣深いお祝いだね！",
+      plot: "フフフ、何か面白いイタズラを思いついちゃったかな？",
+      surprise: "えええーっ！？おどろきの結末！びっくりだね！"
+    };
+
+    // Global in-memory state
+    let currentGame = {
+      type: 'roulette',
+      title: 'きょうのパーティー占い！',
+      items: [
+        { text: '大吉！', weight: 3, ball: 'japan', emotion: 'happy' },
+        { text: '吉：パンケーキを食べる', weight: 2, ball: 'england472x600', emotion: 'smile' },
+        { text: '小吉：ボールとダンス', weight: 2, ball: 'poland', emotion: 'normal' },
+        { text: '狂：怒り玉が出現！', weight: 1, ball: 'germany', emotion: 'anger' }
+      ]
+    };
+
+    // Config default values
+    let appThemeConfig = {
+      seedColor: "#386b35",
+      isDark: false,
+      ballThemeLink: true
+    };
+
+    let customGameData = null; // Staging container during customization
+    let indexedDBInstance = null;
+    let isShareMode = false;
+    let confirmCallback = null;
+
+    // Initialization routine
+    window.onload = function() {
+      initIndexedDB().then(() => {
+        return loadThemeSettings();
+      }).then(() => {
+        applyThemeConfig(appThemeConfig);
+        detectURLParametersAndLaunch();
+        renderSavedGamesList();
+      });
+
+      // Bind theme picker listener to live update the popup previews safely
+      const colPicker = document.getElementById('theme-color-input');
+      const darkCheck = document.getElementById('theme-dark-input');
+      const syncTheme = () => {
+        if (typeof window.generateMyOuiTheme === 'function') {
+          window.generateMyOuiTheme(colPicker.value, darkCheck.checked);
+        }
+      };
+      colPicker.addEventListener('input', syncTheme);
+      darkCheck.addEventListener('change', syncTheme);
+    };
+
+    // IndexedDB Management (Database Upgrade to support store "settings")
+    function initIndexedDB() {
+      return new Promise((resolve, reject) => {
+        const request = window.indexedDB.open(DB_NAME, 2);
+        
+        request.onupgradeneeded = function(e) {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains(STORE_NAME_GAMES)) {
+            db.createObjectStore(STORE_NAME_GAMES, { keyPath: "id", autoIncrement: true });
+          }
+          if (!db.objectStoreNames.contains(STORE_NAME_SETTINGS)) {
+            db.createObjectStore(STORE_NAME_SETTINGS, { keyPath: "key" });
+          }
+        };
+        
+        request.onsuccess = function(e) {
+          indexedDBInstance = e.target.result;
+          resolve();
+        };
+        
+        request.onerror = function(e) {
+          console.error("IndexedDB load error", e);
+          resolve(); // Fallback gracefully to memory configuration
+        };
+      });
+    }
+
+    // Load saved settings from IndexedDB
+    function loadThemeSettings() {
+      return new Promise((resolve) => {
+        if (!indexedDBInstance) return resolve();
+        try {
+          const transaction = indexedDBInstance.transaction([STORE_NAME_SETTINGS], "readonly");
+          const store = transaction.objectStore(STORE_NAME_SETTINGS);
+          const req = store.get("app_theme_config");
+          
+          req.onsuccess = function(e) {
+            if (e.target.result) {
+              appThemeConfig = e.target.result;
+              // Update dialog control nodes with loaded settings
+              document.getElementById('theme-color-input').value = appThemeConfig.seedColor;
+              document.getElementById('theme-dark-input').checked = appThemeConfig.isDark;
+              document.getElementById('theme-ball-link-input').checked = appThemeConfig.ballThemeLink;
+            }
+            resolve();
+          };
+          
+          req.onerror = function() {
+            resolve();
+          };
+        } catch (err) {
+          console.warn("Theme loading failed, using default settings", err);
+          resolve();
+        }
+      });
+    }
+
+    // Save settings to IndexedDB
+    function saveThemeSettings(configObj) {
+      if (!indexedDBInstance) return;
+      try {
+        const transaction = indexedDBInstance.transaction([STORE_NAME_SETTINGS], "readwrite");
+        const store = transaction.objectStore(STORE_NAME_SETTINGS);
+        store.put({
+          key: "app_theme_config",
+          seedColor: configObj.seedColor,
+          isDark: configObj.isDark,
+          ballThemeLink: configObj.ballThemeLink
+        });
+      } catch (err) {
+        console.error("Save config error", err);
+      }
+    }
+
+    // Apply specific setup settings configuration to view
+    function applyThemeConfig(configObj) {
+      if (typeof window.generateMyOuiTheme === 'function') {
+        window.generateMyOuiTheme(configObj.seedColor, configObj.isDark);
+      }
+    }
+
+    // Restore persistent base configuration (called when results are closed or navigated)
+    function restoreBaseTheme() {
+      applyThemeConfig(appThemeConfig);
+    }
+
+    // Save game into IndexedDB
+    function saveGameToDB(gameObj) {
+      return new Promise((resolve) => {
+        if (!indexedDBInstance) {
+          showMsg("保管のエラー", "データベースが有効ではありません。");
+          return resolve(false);
+        }
+        const transaction = indexedDBInstance.transaction([STORE_NAME_GAMES], "readwrite");
+        const store = transaction.objectStore(STORE_NAME_GAMES);
+        
+        // Deep copy clean save payload
+        const payload = {
+          type: gameObj.type,
+          title: gameObj.title,
+          items: JSON.parse(JSON.stringify(gameObj.items)),
+          createdAt: Date.now()
+        };
+
+        const req = store.add(payload);
+        req.onsuccess = function() {
+          resolve(true);
+        };
+        req.onerror = function() {
+          resolve(false);
+        };
+      });
+    }
+
+    // Load games list from IndexedDB
+    function getAllSavedGames() {
+      return new Promise((resolve) => {
+        if (!indexedDBInstance) return resolve([]);
+        const transaction = indexedDBInstance.transaction([STORE_NAME_GAMES], "readonly");
+        const store = transaction.objectStore(STORE_NAME_GAMES);
+        const req = store.getAll();
+        req.onsuccess = function(e) {
+          resolve(e.target.result || []);
+        };
+        req.onerror = function() {
+          resolve([]);
+        };
+      });
+    }
+
+    // Delete game from IndexedDB
+    function deleteSavedGame(id, event) {
+      if (event) event.stopPropagation();
+      if (!indexedDBInstance) return;
+      const transaction = indexedDBInstance.transaction([STORE_NAME_GAMES], "readwrite");
+      const store = transaction.objectStore(STORE_NAME_GAMES);
+      const req = store.delete(id);
+      req.onsuccess = function() {
+        renderSavedGamesList();
+        showMsg("削除完了", "パーティーを保管庫から削除しました。");
+      };
+    }
+
+    // URL Parameter parsing logic
+    function detectURLParametersAndLaunch() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const shareFlag = urlParams.get('share');
+      
+      if (shareFlag) {
+        // Enforce shared link game representation view mode
+        isShareMode = true;
+        
+        // Hide control operations panels
+        document.getElementById('app-header').style.display = 'none';
+        document.getElementById('bottom-navbar').classList.add('hidden');
+        document.getElementById('studio-ops-panel').style.display = 'none';
+        
+        // Retrieve payloads
+        try {
+          const type = urlParams.get('type') || 'roulette';
+          const title = urlParams.get('title') || '共有されたパーティー！';
+          const itemsDataRaw = urlParams.get('data');
+          let items = [];
+          
+          if (itemsDataRaw) {
+            // Safe UTF8 Base64 decoder
+            items = JSON.parse(decodeURIComponent(escape(atob(itemsDataRaw))));
+          }
+          
+          currentGame = { type, title, items };
+          
+          // Force rendering play tab immediately
+          switchSection('play');
+          setupGameEngine(currentGame);
+
+          // Spawn floating action button "PBPartyをはじめる" to welcome peer
+          spawnWelcomeTrigger();
+        } catch (err) {
+          console.error("Payload decode error", err);
+          showMsg("読み込み失敗", "共有データの読み込みに失敗しました。ノーマルスタジオを立ち上げます。");
+          exitShareMode();
+        }
+      } else {
+        // Normal mode launch
+        switchSection('home');
+      }
+    }
+
+    // Show a floating "PBPartyをはじめる" onboarding trigger in share mode
+    function spawnWelcomeTrigger() {
+      const parent = document.querySelector('.app-viewport');
+      const btn = document.createElement('button');
+      btn.className = "myoui-btn btn-filled btn-pill";
+      btn.id = "share-welcome-trigger";
+      btn.style.position = "fixed";
+      btn.style.bottom = "24px";
+      btn.style.left = "50%";
+      btn.style.transform = "translateX(-50%)";
+      btn.style.zIndex = "1000";
+      btn.style.boxShadow = "0 8px 32px rgba(0,0,0,0.2)";
+      btn.style.fontSize = "16px";
+      btn.style.padding = "16px 32px";
+      btn.innerHTML = "🎈 PBPartyをはじめる";
+      btn.onclick = function() {
+        // Show confirm dialog to save game
+        showConfirm("このゲームを保存しますか?", "はい！を選ぶとあなたのパーティー保管庫に保存され、すぐにホーム画面になります！", function(yes) {
+          if (yes) {
+            saveGameToDB(currentGame).then(() => {
+              showMsg("保存しました！", "保管庫にパーティーを追加しました。スタジオホームを開きます！");
+              setTimeout(exitShareMode, 1500);
+            });
+          } else {
+            exitShareMode();
+          }
+        });
+      };
+      parent.appendChild(btn);
+    }
+
+    function exitShareMode() {
+      // Clear address parameter safely and reload
+      const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+      window.location.href = cleanUrl;
+    }
+
+    // Tab and Screen management
+    function switchSection(sectionId) {
+      // Always restore configuration defaults when navigating
+      restoreBaseTheme();
+
+      // Hide all sections
+      document.querySelectorAll('.app-section').forEach(sec => sec.classList.remove('active'));
+      
+      // Deactivate all nav buttons
+      document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+
+      // Show requested target
+      const target = document.getElementById(`section-${sectionId}`);
+      if (target) {
+        target.classList.add('active');
+      }
+
+      // Sync navigation items state
+      const navBtn = document.getElementById(`nav-${sectionId}`);
+      if (navBtn) {
+        navBtn.classList.add('active');
+      }
+
+      // Special contextual actions
+      if (sectionId === 'play') {
+        setupGameEngine(currentGame);
+      } else if (sectionId === 'storage') {
+        renderSavedGamesList();
+      }
+    }
+
+    // Polandball visual builder
+    function buildBallElement(country, emotion, sizeClass = '') {
+      const isUk = (country === 'england472x600');
+      const containerClass = isUk ? 'uk-ball-container' : 'pb-ball-container';
+      const rootUrl = `https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/${country}/${emotion}.png`;
+      
+      return `
+        <div class="${containerClass} ${sizeClass}">
+          <img src="${rootUrl}" class="pb-ball-img" onerror="this.onerror=null; this.src='https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/poland/surprise.png'">
+        </div>
+      `;
+    }
+
+    // Customizer Engine Initialization
+    function initCustomizer(gameType) {
+      customGameData = {
+        type: gameType,
+        title: getGameTypeDefaultTitle(gameType),
+        items: getGameTypeDefaultItems(gameType)
+      };
+
+      // Set input defaults
+      document.getElementById('game-title-input').value = customGameData.title;
+      
+      // Update heading title
+      const titles = { roulette: "🎯 ルーレットをつくる", kuji: "✉️ 紙くじをつくる", gacha: "🔮 ガチャをつくる" };
+      document.getElementById('customizer-title').innerText = titles[gameType] || "カスタム作成";
+
+      renderCustomizerItems();
+      switchSection('customizer');
+    }
+
+    function getGameTypeDefaultTitle(type) {
+      if (type === 'roulette') return 'きょうの運だめしルーレット！';
+      if (type === 'kuji') return 'ハズレなし！わくわく紙くじ';
+      return 'ポーランドガチャガチャマシン';
+    }
+
+    function getGameTypeDefaultItems(type) {
+      return [
+        { text: '一等賞！豪華ディナー', weight: 1, ball: 'usa', emotion: 'lol' },
+        { text: '二等賞：チョコレート', weight: 2, ball: 'france', emotion: 'happy' },
+        { text: '残念賞：お掃除当番', weight: 3, ball: 'poland', emotion: 'dissatisfaction' }
+      ];
+    }
+
+    // Live preview ball when editing customizer
+    function previewNewBall() {
+      const country = document.getElementById('new-item-country').value;
+      const emotion = document.getElementById('new-item-emotion').value;
+      const rootUrl = `https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/${country}/${emotion}.png`;
+      
+      const previewImg = document.getElementById('new-ball-preview-img');
+      const previewBox = document.getElementById('new-ball-preview-box');
+      
+      // Adjust class for england472x600 size
+      if (country === 'england472x600') {
+        previewBox.className = 'uk-ball-container small';
+      } else {
+        previewBox.className = 'pb-ball-container small';
+      }
+      previewImg.src = rootUrl;
+    }
+
+    // Render items lists inside customizer
+    function renderCustomizerItems() {
+      const container = document.getElementById('custom-items-container');
+      container.innerHTML = '';
+
+      if (customGameData.items.length === 0) {
+        container.innerHTML = `<p style="font-size:12px; color:gray; text-align:center;">項目がありません。下から追加してね！</p>`;
+        return;
+      }
+
+      customGameData.items.forEach((item, idx) => {
+        const itemRow = document.createElement('div');
+        itemRow.className = "settings-item-row";
+        itemRow.style.justifyContent = "space-between";
+        itemRow.style.backgroundColor = "var(--myoui-sys-color-surface-card)";
+        
+        const ballElement = buildBallElement(item.ball, item.emotion, 'small');
+        
+        itemRow.innerHTML = `
+          <div style="display:flex; align-items:center; gap:10px;">
+            ${ballElement}
+            <div>
+              <div style="font-weight:bold; font-size:14px;">${escapeHtml(item.text)}</div>
+              <div style="font-size:11px; color:var(--myoui-sys-color-on-surface-variant)">確率比率: ${item.weight} | 国: ${COUNTRY_NAMES[item.ball] || item.ball}</div>
+            </div>
+          </div>
+          <button class="delete-btn" onclick="removeCustomItem(${idx})">削除</button>
+        `;
+        container.appendChild(itemRow);
+      });
+    }
+
+    // Add and remove items from custom state
+    function addCustomItem() {
+      const text = document.getElementById('new-item-text').value.trim();
+      const weight = parseInt(document.getElementById('new-item-weight').value) || 1;
+      const ball = document.getElementById('new-item-country').value;
+      const emotion = document.getElementById('new-item-emotion').value;
+
+      if (!text) {
+        showMsg("入力エラー", "あたりテキストを入力してください！");
+        return;
+      }
+
+      customGameData.items.push({ text, weight, ball, emotion });
+      
+      // Reset input
+      document.getElementById('new-item-text').value = '';
+      document.getElementById('new-item-weight').value = '1';
+
+      renderCustomizerItems();
+    }
+
+    function removeCustomItem(idx) {
+      customGameData.items.splice(idx, 1);
+      renderCustomizerItems();
+    }
+
+    function completeAndPlay() {
+      if (customGameData.items.length === 0) {
+        showMsg("作成エラー", "項目を1つ以上追加してください！");
+        return;
+      }
+      
+      // Apply input title updates
+      customGameData.title = document.getElementById('game-title-input').value.trim() || getGameTypeDefaultTitle(customGameData.type);
+      
+      // Update system global active game
+      currentGame = JSON.parse(JSON.stringify(customGameData));
+      
+      // Go to play screen
+      switchSection('play');
+    }
+
+    // Dynamic Game Engines Renderer
+    function setupGameEngine(gameObj) {
+      // Restore default theme when initializing/resetting engines
+      restoreBaseTheme();
+
+      // Setup titles
+      document.getElementById('play-game-title').innerText = gameObj.title;
+      
+      const badge = document.getElementById('play-game-badge');
+      if (gameObj.type === 'roulette') {
+        badge.innerText = "🎯 ルーレット";
+        badge.style.backgroundColor = "var(--myoui-sys-color-primary-container)";
+      } else if (gameObj.type === 'kuji') {
+        badge.innerText = "✉️ 紙くじびき";
+        badge.style.backgroundColor = "#ffeedd";
+      } else {
+        badge.innerText = "🔮 カプセルトイ";
+        badge.style.backgroundColor = "#e0f0ff";
+      }
+
+      // Clean up previous results presentation
+      document.getElementById('play-result-card').style.display = 'none';
+
+      // Setup Play Box Canvas or Containers
+      const stage = document.getElementById('game-canvas-area');
+      stage.innerHTML = '';
+
+      if (gameObj.type === 'roulette') {
+        renderRouletteEngine(stage, gameObj);
+      } else if (gameObj.type === 'kuji') {
+        renderKujiEngine(stage, gameObj);
+      } else {
+        renderGachaEngine(stage, gameObj);
+      }
+    }
+
+    // ================= ROULETTE ENGINE =================
+    function renderRouletteEngine(stage, gameObj) {
+      const wrapper = document.createElement('div');
+      wrapper.className = "roulette-wrapper";
+      
+      const pin = document.createElement('div');
+      pin.className = "roulette-pin";
+      
+      const canvas = document.createElement('canvas');
+      canvas.id = "roulette-canvas";
+      canvas.width = 280;
+      canvas.height = 280;
+
+      wrapper.appendChild(pin);
+      wrapper.appendChild(canvas);
+      stage.appendChild(wrapper);
+
+      // Create spin trigger button
+      const spinBtn = document.createElement('button');
+      spinBtn.className = "myoui-btn btn-filled btn-pill";
+      spinBtn.style.marginTop = "10px";
+      spinBtn.innerText = "🌀 ルーレットを回す！";
+      stage.appendChild(spinBtn);
+
+      const ctx = canvas.getContext('2d');
+      const items = gameObj.items;
+      const totalWeight = items.reduce((acc, cur) => acc + cur.weight, 0);
+
+      // Color scheme generation
+      const colors = ["#ff7675", "#74b9ff", "#55efc4", "#ffeaa7", "#a29bfe", "#fd79a8", "#fab1a0", "#81ecec"];
+
+      let currentAngle = 0;
+      
+      function drawRoulette() {
+        let startAngle = 0;
+        ctx.clearRect(0,0,280,280);
+
+        items.forEach((item, idx) => {
+          const sliceAngle = (item.weight / totalWeight) * 2 * Math.PI;
+          ctx.beginPath();
+          ctx.moveTo(140, 140);
+          ctx.arc(140, 140, 130, startAngle, startAngle + sliceAngle);
+          ctx.closePath();
+
+          ctx.fillStyle = colors[idx % colors.length];
+          ctx.fill();
+
+          // Text placement
+          ctx.save();
+          ctx.translate(140, 140);
+          ctx.rotate(startAngle + sliceAngle / 2);
+          ctx.textAlign = "right";
+          ctx.fillStyle = "#111";
+          ctx.font = "bold 12px sans-serif";
+          
+          // Truncate text if too long
+          let displayText = item.text;
+          if (displayText.length > 8) displayText = displayText.substring(0, 8) + '..';
+          ctx.fillText(displayText, 120, 5);
+          ctx.restore();
+
+          startAngle += sliceAngle;
+        });
+
+        // Outer outline ring
+        ctx.beginPath();
+        ctx.arc(140, 140, 130, 0, 2 * Math.PI);
+        ctx.strokeStyle = "var(--myoui-sys-color-primary)";
+        ctx.lineWidth = 4;
+        ctx.stroke();
+
+        // Inner core
+        ctx.beginPath();
+        ctx.arc(140, 140, 20, 0, 2 * Math.PI);
+        ctx.fillStyle = "#fff";
+        ctx.fill();
+        ctx.strokeStyle = "var(--myoui-sys-color-primary)";
+        ctx.lineWidth = 3;
+        ctx.stroke();
+      }
+
+      drawRoulette();
+
+      let spinning = false;
+      spinBtn.onclick = function() {
+        if (spinning) return;
+        spinning = true;
+        
+        // Reset base theme when starting a new turn
+        restoreBaseTheme();
+        document.getElementById('play-result-card').style.display = 'none';
+
+        // Select random target item using probability weight
+        let rand = Math.random() * totalWeight;
+        let selectedIdx = 0;
+        for (let i = 0; i < items.length; i++) {
+          rand -= items[i].weight;
+          if (rand <= 0) {
+            selectedIdx = i;
+            break;
+          }
+        }
+
+        // Calculate stopping angle
+        let sliceAccumulator = 0;
+        for (let i = 0; i < selectedIdx; i++) {
+          sliceAccumulator += (items[i].weight / totalWeight) * 360;
+        }
+        const targetSliceSize = (items[selectedIdx].weight / totalWeight) * 360;
+        const targetAngleOffset = sliceAccumulator + targetSliceSize / 2;
+
+        // Perfect rotation stopping offset formulation (Canvas rotates clockwise, needle at top 270 deg)
+        const finalRotation = 3600 + (270 - targetAngleOffset); 
+        canvas.style.transform = `rotate(${finalRotation}deg)`;
+
+        setTimeout(() => {
+          spinning = false;
+          showPlayResult(items[selectedIdx]);
+        }, 4100);
+      };
+    }
+
+    // ================= KUJI ENGINE =================
+    function renderKujiEngine(stage, gameObj) {
+      const grid = document.createElement('div');
+      grid.className = "kuji-grid";
+      stage.appendChild(grid);
+
+      const items = gameObj.items;
+      
+      // Shuffle envelopes to randomize
+      const kujiPool = [];
+      items.forEach(item => {
+        // Add instances based on weight probability
+        for (let w = 0; w < item.weight; w++) {
+          kujiPool.push(item);
+        }
+      });
+
+      // Limit max displayed cards to 6 or 9 cards dynamically
+      const maxCards = Math.min(kujiPool.length, 9);
+      const displayCards = kujiPool.sort(() => Math.random() - 0.5).slice(0, maxCards);
+
+      let opened = false;
+
+      displayCards.forEach((item, idx) => {
+        const env = document.createElement('div');
+        env.className = "kuji-envelope";
+        
+        env.innerHTML = `
+          <div style="font-size:32px; margin-bottom:4px;">✉️</div>
+          <span style="font-size:11px; font-weight:bold; color:var(--myoui-sys-color-on-surface-variant);">くじ ${idx + 1}</span>
+        `;
+
+        env.onclick = function() {
+          if (opened) return;
+          opened = true;
+          
+          restoreBaseTheme();
+
+          env.classList.add('opened');
+          env.innerHTML = `
+            <div style="font-size:32px; margin-bottom:4px;">📬</div>
+            <span style="font-size:11px; font-weight:bold; color:var(--myoui-sys-color-primary);">オープン！</span>
+          `;
+
+          // Brief delay before results reveal
+          setTimeout(() => {
+            showPlayResult(item);
+          }, 600);
+        };
+
+        grid.appendChild(env);
+      });
+    }
+
+    // ================= GACHA ENGINE =================
+    function renderGachaEngine(stage, gameObj) {
+      const machine = document.createElement('div');
+      machine.className = "gacha-machine";
+
+      // Glass bowl filling with colorful capsules
+      const glass = document.createElement('div');
+      glass.className = "gacha-glass";
+      
+      for (let i = 0; i < 12; i++) {
+        const capsule = document.createElement('div');
+        capsule.className = "gacha-capsule-item";
+        capsule.style.transform = `translate(${Math.random() * 8 - 4}px, ${Math.random() * 8 - 4}px) rotate(${Math.random() * 360}deg)`;
+        glass.appendChild(capsule);
+      }
+
+      // Crank lever
+      const crank = document.createElement('div');
+      crank.className = "gacha-crank";
+      crank.innerText = "↻";
+      crank.title = "まわす";
+
+      // Gacha exit hole
+      const exit = document.createElement('div');
+      exit.className = "gacha-exit";
+
+      machine.appendChild(glass);
+      machine.appendChild(crank);
+      machine.appendChild(exit);
+      stage.appendChild(machine);
+
+      // Info message
+      const hint = document.createElement('p');
+      hint.style.fontSize = "12px";
+      hint.style.color = "var(--myoui-sys-color-on-surface-variant)";
+      hint.style.fontWeight = "bold";
+      hint.innerText = "ハンドル（レバー）を回してね！";
+      stage.appendChild(hint);
+
+      let working = false;
+      crank.onclick = function() {
+        if (working) return;
+        working = true;
+        restoreBaseTheme();
+        document.getElementById('play-result-card').style.display = 'none';
+
+        crank.classList.add('spin');
+        
+        // Shake capsules inside the glass container
+        const capsules = glass.querySelectorAll('.gacha-capsule-item');
+        capsules.forEach(cap => {
+          cap.style.transition = 'transform 0.1s ease';
+          let shakes = 0;
+          const shaker = setInterval(() => {
+            cap.style.transform = `translate(${Math.random() * 14 - 7}px, ${Math.random() * 14 - 7}px) rotate(${Math.random() * 360}deg)`;
+            shakes++;
+            if (shakes > 15) {
+              clearInterval(shaker);
+            }
+          }, 80);
+        });
+
+        // Release rolling capsule animation through exit
+        setTimeout(() => {
+          const outCapsule = document.createElement('div');
+          outCapsule.className = "gacha-capsule-item";
+          outCapsule.style.position = "absolute";
+          outCapsule.style.top = "0px";
+          outCapsule.style.left = "24px";
+          outCapsule.style.width = "32px";
+          outCapsule.style.height = "32px";
+          outCapsule.style.transition = "transform 0.8s cubic-bezier(0.25, 1, 0.5, 1)";
+          outCapsule.style.cursor = "pointer";
+          exit.appendChild(outCapsule);
+
+          // Animate roll out
+          setTimeout(() => {
+            outCapsule.style.transform = "translateY(35px) scale(1.3)";
+          }, 50);
+
+          // Make popped capsule interactive
+          outCapsule.onclick = function() {
+            outCapsule.style.display = 'none';
+            
+            // Draw random reward
+            const items = gameObj.items;
+            const totalWeight = items.reduce((acc, cur) => acc + cur.weight, 0);
+            let rand = Math.random() * totalWeight;
+            let chosen = items[0];
+            
+            for (let i = 0; i < items.length; i++) {
+              rand -= items[i].weight;
+              if (rand <= 0) {
+                chosen = items[i];
+                break;
+              }
+            }
+            showPlayResult(chosen);
+          };
+
+          crank.classList.remove('spin');
+          working = false;
+        }, 1500);
+      };
+    }
+
+    // Play Game results presenter
+    function showPlayResult(itemObj) {
+      const resultCard = document.getElementById('play-result-card');
+      const ballContainer = document.getElementById('result-ball-container');
+      const textHeading = document.getElementById('result-text');
+      const commentary = document.getElementById('result-commentary');
+
+      // Place ball character
+      ballContainer.innerHTML = buildBallElement(itemObj.ball, itemObj.emotion);
+
+      // Populate text details
+      textHeading.innerText = itemObj.text;
+      
+      // Select dialog commentary based on emotion matching rule
+      const commentText = EMOTION_COMMENTS[itemObj.emotion] || "かわいいポーランドボールが応援しているよ！";
+      commentary.innerText = `「${COUNTRY_NAMES[itemObj.ball] || itemObj.ball}のコメント: ${commentText}」`;
+
+      // NEW: Apply Dynamic Ball Theme link colors if configured & registered
+      if (appThemeConfig.ballThemeLink && BALL_THEME_COLORS[itemObj.ball]) {
+        if (typeof window.generateMyOuiTheme === 'function') {
+          window.generateMyOuiTheme(BALL_THEME_COLORS[itemObj.ball], appThemeConfig.isDark);
+        }
+      }
+
+      // Show panel smoothly
+      resultCard.style.display = 'block';
+      resultCard.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // Save current game state directly to IndexedDB storage
+    function saveToIndexedDB() {
+      saveGameToDB(currentGame).then((success) => {
+        if (success) {
+          showMsg("保管にセーブ完了！", `パーティー「${currentGame.title}」を保管庫へ登録しました！保存タブでいつでも呼び出せます！`);
+          renderSavedGamesList();
+        } else {
+          showMsg("セーブのエラー", "データベースの保存処理に失敗しました。");
+        }
+      });
+    }
+
+    // Dynamic URL Generation & Share action
+    function shareGameLink() {
+      try {
+        const payloadData = JSON.parse(JSON.stringify(currentGame.items));
+        // Safe string utility base64 encoder
+        const b64Data = btoa(unescape(encodeURIComponent(JSON.stringify(payloadData))));
+        
+        const hostUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+        const shareUrl = `${hostUrl}?share=1&type=${currentGame.type}&title=${encodeURIComponent(currentGame.title)}&data=${b64Data}`;
+
+        // Attempt writing URL to clipboard (Using executive fallback as instructed)
+        const textarea = document.createElement("textarea");
+        textarea.value = shareUrl;
+        textarea.style.position = "fixed";  // Avoid scrolling to bottom
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        
+        try {
+          const successful = document.execCommand('copy');
+          if (successful) {
+            showMsg("🔗 共有リンクをコピー！", "友だちに送れるパーティーリンクをクリップボードにコピーしました！LINEやSNSで送ってみてね！");
+          } else {
+            throw new Error("Copy command returned false");
+          }
+        } catch (err) {
+          showMsg("リンクの共有", `下記のリンクをコピーしてね：\n\n${shareUrl}`);
+        }
+        document.body.removeChild(textarea);
+      } catch (e) {
+        console.error("Failed to generate share link: ", e);
+        showMsg("共有エラー", "データのパッケージ化に失敗しました。アイテムを見直してください。");
+      }
+    }
+
+    // Render storage list
+    function renderSavedGamesList() {
+      const listContainer = document.getElementById('saved-games-list');
+      
+      getAllSavedGames().then(games => {
+        listContainer.innerHTML = '';
+        
+        if (games.length === 0) {
+          listContainer.innerHTML = `
+            <div class="myoui-card" style="text-align:center; color:var(--myoui-sys-color-on-surface-variant); padding: 24px 12px;">
+              まだ保存されたパーティーがありません。ホームでパーティーを作成して「保存」をタップしてみてね！
+            </div>
+          `;
+          return;
+        }
+
+        games.forEach((game) => {
+          const card = document.createElement('div');
+          card.className = "myoui-card";
+          card.style.cursor = "pointer";
+          
+          // Play indicator icon
+          const icon = game.type === 'roulette' ? '🎯' : (game.type === 'kuji' ? '✉️' : '🔮');
+
+          // Build a tiny preview of ball faces
+          let ballsPreview = '';
+          const previewLimit = Math.min(game.items.length, 3);
+          for (let i = 0; i < previewLimit; i++) {
+            ballsPreview += buildBallElement(game.items[i].ball, game.items[i].emotion, 'small');
+          }
+
+          card.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap: 8px;">
+              <div style="display:flex; gap:12px; align-items:center;">
+                <span style="font-size:24px;">${icon}</span>
+                <div>
+                  <h4 style="font-weight:900; font-size:15px; color:var(--myoui-sys-color-primary);">${escapeHtml(game.title)}</h4>
+                  <p style="font-size:12px; color:var(--myoui-sys-color-on-surface-variant)">アイテム数: ${game.items.length}件</p>
+                </div>
+              </div>
+              <button class="delete-btn" onclick="deleteSavedGame(${game.id}, event)">消去</button>
+            </div>
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-top:6px; border-top: 1px dashed var(--myoui-sys-color-surface-variant); padding-top:6px;">
+              <div style="display:flex; gap:4px;">
+                ${ballsPreview}
+              </div>
+              <span style="font-size:11px; font-weight:bold; color:var(--myoui-sys-color-primary);">タップして遊ぶ ➔</span>
+            </div>
+          `;
+
+          card.onclick = function() {
+            currentGame = JSON.parse(JSON.stringify(game));
+            switchSection('play');
+            showMsg("パーティー読み込み完了", `「${game.title}」を遊びタブに読み込みました！`);
+          };
+
+          listContainer.appendChild(card);
+        });
+      });
+    }
+
+    // General Dialog Handlers
+    function showMsg(title, desc) {
+      document.getElementById('msg-dialog-title').innerText = title;
+      document.getElementById('msg-dialog-desc').innerText = desc;
+      document.getElementById('msg-dialog').classList.add('is-open');
+    }
+
+    function closeMsgDialog() {
+      document.getElementById('msg-dialog').classList.remove('is-open');
+    }
+
+    function openThemeDialog() {
+      // Re-synchronize dialogue options with local app state before displaying
+      document.getElementById('theme-color-input').value = appThemeConfig.seedColor;
+      document.getElementById('theme-dark-input').checked = appThemeConfig.isDark;
+      document.getElementById('theme-ball-link-input').checked = appThemeConfig.ballThemeLink;
+      
+      document.getElementById('theme-dialog').classList.add('is-open');
+    }
+
+    function closeThemeDialog() {
+      document.getElementById('theme-dialog').classList.remove('is-open');
+      // Ensure current view matches basic local state in case user modified values without saving
+      restoreBaseTheme();
+    }
+
+    // Apply & Save configured parameters securely
+    function applyThemeFromDialog() {
+      const color = document.getElementById('theme-color-input').value;
+      const isDark = document.getElementById('theme-dark-input').checked;
+      const ballLink = document.getElementById('theme-ball-link-input').checked;
+      
+      // Update persistent local state container
+      appThemeConfig.seedColor = color;
+      appThemeConfig.isDark = isDark;
+      appThemeConfig.ballThemeLink = ballLink;
+
+      // Apply
+      applyThemeConfig(appThemeConfig);
+      
+      // Save to IndexedDB (Persistence)
+      saveThemeSettings(appThemeConfig);
+
+      closeThemeDialog();
+      showMsg("テーマ適用・保存完了", "カラー設定をスタジオに登録・保存しました！次回起動時にも自動的に反映されます。");
+    }
+
+    // Dynamic Confirm Handlers
+    function showConfirm(title, desc, callback) {
+      document.getElementById('confirm-dialog-title').innerText = title;
+      document.getElementById('confirm-dialog-desc').innerText = desc;
+      confirmCallback = callback;
+      document.getElementById('confirm-dialog').classList.add('is-open');
+    }
+
+    function handleConfirmCallback(answer) {
+      document.getElementById('confirm-dialog').classList.remove('is-open');
+      if (confirmCallback) {
+        confirmCallback(answer);
+        confirmCallback = null;
+      }
+    }
+
+    // Helper: Escape text securely
+    function escapeHtml(str) {
+      if (typeof str !== 'string') return '';
+      return str.replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+    }
+  </script>
+</body>
+</html>
