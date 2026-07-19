@@ -1,1 +1,2026 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>紅茶を注げ！ - Polandball Tea Shop</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Mochi+Yaki&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body {
+            font-family: 'Inter', 'Mochi Yaki', sans-serif;
+            background-color: #1a1005;
+            color: #f7eedf;
+            user-select: none;
+            overflow: hidden;
+        }
+        .wood-panel {
+            background: linear-gradient(135deg, #4a2e1b 0%, #2b1a0e 100%);
+            border: 4px solid #8d5c36;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.6), 0 10px 25px rgba(0,0,0,0.5);
+        }
+        .tea-gradient {
+            background: linear-gradient(to top, #c26d1d, #f0a53a);
+        }
+        .green-tea-gradient {
+            background: linear-gradient(to top, #5c8f37, #8ecb5a);
+        }
+        .herbal-tea-gradient {
+            background: linear-gradient(to top, #9f1c30, #e05368);
+        }
+        /* Custom scrollbar for beautiful lists */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #2b1a0e;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #8d5c36;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="w-screen h-screen flex items-center justify-center relative overflow-hidden">
 
+    <!-- Sound Player Helper -->
+    <audio id="bgm" loop></audio>
+
+    <!-- Preloader Screen -->
+    <div id="loaderScreen" class="absolute inset-0 bg-[#150d05] flex flex-col items-center justify-center z-50 transition-all duration-700">
+        <div class="relative w-48 h-48 mb-8 flex items-center justify-center">
+            <!-- Animated UK Ball loading -->
+            <div id="loaderUKBall" class="w-32 h-32 rounded-full border-4 border-[#8d5c36] shadow-2xl relative overflow-hidden flex items-center justify-center bg-[#1d2d44]">
+                <!-- Flag patterns -->
+                <div class="absolute w-full h-4 bg-white top-1/2 -translate-y-1/2"></div>
+                <div class="absolute w-4 h-full bg-white left-1/2 -translate-x-1/2"></div>
+                <div class="absolute w-full h-2 bg-[#d90429] top-1/2 -translate-y-1/2"></div>
+                <div class="absolute w-2 h-full bg-[#d90429] left-1/2 -translate-x-1/2"></div>
+                <!-- Diagonal white lines -->
+                <div class="absolute w-full h-2 bg-white rotate-45"></div>
+                <div class="absolute w-full h-2 bg-white -rotate-45"></div>
+                <div class="absolute w-full h-1 bg-[#d90429] rotate-45"></div>
+                <div class="absolute w-full h-1 bg-[#d90429] -rotate-45"></div>
+                <!-- Top hat -->
+                <div class="absolute top-0 w-20 h-8 bg-black border border-gray-600 rounded-sm -mt-2"></div>
+                <div class="absolute top-5 w-24 h-2 bg-black rounded-full"></div>
+                <!-- Monocle and eye -->
+                <div class="absolute right-6 top-12 w-10 h-10 border-4 border-yellow-500 rounded-full bg-yellow-100 bg-opacity-20 flex items-center justify-center">
+                    <div class="w-6 h-6 bg-white rounded-full flex items-center justify-center">
+                        <div class="w-3 h-3 bg-black rounded-full"></div>
+                    </div>
+                    <!-- Chain -->
+                    <div class="absolute right-0 bottom-0 w-8 h-8 border-r-2 border-b-2 border-yellow-500 rounded-full -mr-4 -mb-4"></div>
+                </div>
+                <div class="absolute left-6 top-12 w-6 h-6 bg-white rounded-full flex items-center justify-center">
+                    <div class="w-3 h-3 bg-black rounded-full"></div>
+                </div>
+            </div>
+            <!-- Tea cup rotation -->
+            <div class="absolute bottom-2 right-2 w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg border border-gray-300 animate-bounce">
+                <i class="fa-solid fa-mug-hot text-[#8d5c36] text-xl"></i>
+            </div>
+        </div>
+        <h2 class="text-2xl font-bold tracking-wider text-[#e6b17a] mb-2 animate-pulse">紅茶をお淹れしています...</h2>
+        <div class="w-64 bg-[#2b1a0e] rounded-full h-4 overflow-hidden border-2 border-[#8d5c36]">
+            <div id="preloadBar" class="bg-gradient-to-r from-[#d90429] to-[#f0a53a] h-full w-0 transition-all duration-100"></div>
+        </div>
+        <span id="preloadStatus" class="text-xs text-gray-400 mt-2">Connecting to kitchen...</span>
+    </div>
+
+    <!-- My ID Registry dialog -->
+    <div id="idRegistryModal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+        <div class="wood-panel max-w-md w-full p-8 rounded-2xl flex flex-col items-center">
+            <h3 class="text-2xl font-bold text-[#e6b17a] mb-4 text-center">
+                <i class="fa-solid fa-address-card mr-2"></i>My IDを決定してください
+            </h3>
+            <p class="text-sm text-gray-300 text-center mb-6">
+                フレンド機能や対戦マッチングで使用します。<br>
+                <span class="text-red-400 font-bold">半角アルファベットのみ</span>で入力してください。
+            </p>
+            <input type="text" id="myIdInput" class="w-full bg-[#150d05] border-2 border-[#8d5c36] text-center text-xl font-bold p-3 rounded-lg focus:outline-none focus:border-[#f0a53a] text-white tracking-widest placeholder-gray-600 mb-6" placeholder="ENTERNAME" maxlength="15">
+            <button id="saveIdBtn" class="w-full bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400 border-b-4 border-green-800 text-white font-extrabold text-lg py-3 rounded-xl shadow-lg transition-transform active:scale-95">
+                決定してお店を開く！
+            </button>
+        </div>
+    </div>
+
+    <!-- Custom Modal/Toast system -->
+    <div id="toastContainer" class="fixed top-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- Main Application Wrapper -->
+    <div id="appContainer" class="relative w-full h-full max-w-7xl mx-auto flex flex-col justify-between p-4 md:p-6 hidden">
+        
+        <!-- ================= TITLE SCREEN ================= -->
+        <div id="titleScreen" class="absolute inset-0 flex flex-col items-center justify-between p-6 bg-cover bg-center bg-no-repeat transition-opacity duration-500" style="background-image: url('https://raw.githubusercontent.com/PolandBallHub-Operator/pbpark/refs/heads/main/games/TeaShop/titlebackground.png');">
+            <div class="w-full flex justify-between items-center z-10">
+                <div class="flex items-center space-x-3 bg-[#1a1005]/80 p-3 rounded-xl border border-[#8d5c36]">
+                    <div class="w-10 h-10 rounded-full border border-yellow-500 overflow-hidden" id="titleUserAvatar"></div>
+                    <div>
+                        <p class="text-xs text-[#e6b17a] font-bold">WELCOME BACK</p>
+                        <p class="text-sm font-extrabold" id="titleUsername">UK Tea Lover</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2 bg-[#1a1005]/80 p-3 rounded-xl border border-[#8d5c36]">
+                    <span class="w-3 h-3 bg-green-500 rounded-full animate-ping"></span>
+                    <p class="text-xs font-bold tracking-wider text-green-400" id="peerCodeDisplay">PEER: CONNECTING</p>
+                </div>
+            </div>
+
+            <!-- Logo -->
+            <div class="flex-1 flex flex-col items-center justify-center w-full max-w-md z-10 px-4">
+                <img src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbpark/refs/heads/main/games/TeaShop/logo.png" alt="Pour the Tea Logo" class="max-w-full h-auto drop-shadow-[0_10px_10px_rgba(0,0,0,0.8)] animate-bounce" style="animation-duration: 4s;">
+                <p class="text-sm md:text-base font-extrabold text-[#f7eedf] bg-[#2b1a0e]/95 px-6 py-2 rounded-full border-2 border-[#8d5c36] shadow-lg mt-4 text-center tracking-widest">
+                    紳士の国へようこそ。最高の紅茶を注げ！
+                </p>
+            </div>
+
+            <!-- Title Navigation Buttons -->
+            <div class="grid grid-cols-2 gap-4 w-full max-w-xl z-10 mt-6 bg-[#2b1a0e]/90 p-4 rounded-2xl border-4 border-[#8d5c36] shadow-2xl">
+                <button onclick="changeScreen('startMenuScreen')" class="col-span-2 bg-gradient-to-r from-[#d90429] to-[#ef233c] hover:from-[#ef233c] hover:to-[#d90429] border-b-8 border-[#a0001c] active:border-b-2 text-white font-extrabold text-xl md:text-2xl py-4 rounded-xl shadow-lg transition-transform transform active:translate-y-1">
+                    <i class="fa-solid fa-play mr-2"></i> START GAME
+                </button>
+                <button onclick="openFriendsModal()" class="bg-gradient-to-r from-blue-700 to-blue-600 hover:from-blue-600 hover:to-blue-500 border-b-4 border-blue-900 text-white font-extrabold text-sm md:text-base py-3 rounded-lg shadow transition-transform transform active:translate-y-0.5">
+                    <i class="fa-solid fa-users mr-2"></i> FRIENDS
+                </button>
+                <button onclick="openSettingsModal()" class="bg-gradient-to-r from-amber-700 to-amber-600 hover:from-amber-600 hover:to-amber-500 border-b-4 border-amber-900 text-white font-extrabold text-sm md:text-base py-3 rounded-lg shadow transition-transform transform active:translate-y-0.5">
+                    <i class="fa-solid fa-gears mr-2"></i> SETTINGS
+                </button>
+                <button onclick="openScoreModal()" class="col-span-2 bg-gradient-to-r from-stone-700 to-stone-600 hover:from-stone-600 hover:to-stone-500 border-b-4 border-stone-900 text-white font-extrabold text-sm md:text-base py-3 rounded-lg shadow transition-transform transform active:translate-y-0.5">
+                    <i class="fa-solid fa-trophy mr-2"></i> HIGH SCORES
+                </button>
+            </div>
+        </div>
+
+        <!-- ================= START MENU SCREEN ================= -->
+        <div id="startMenuScreen" class="absolute inset-0 flex flex-col items-center justify-between p-6 bg-cover bg-center bg-no-repeat transition-opacity duration-500 hidden" style="background-image: url('https://raw.githubusercontent.com/PolandBallHub-Operator/pbpark/refs/heads/main/games/TeaShop/start.png');">
+            <!-- Header back button -->
+            <div class="w-full flex justify-between items-center z-10">
+                <button onclick="changeScreen('titleScreen')" class="bg-stone-800/90 border border-stone-600 hover:bg-stone-700 text-white px-4 py-2 rounded-lg font-bold text-sm">
+                    <i class="fa-solid fa-arrow-left mr-2"></i> TITLE SCREEN
+                </button>
+                <h2 class="text-2xl font-black text-[#e6b17a] tracking-wider drop-shadow-md">難易度・プレイ選択</h2>
+            </div>
+
+            <!-- Choose Mode Container -->
+            <div class="flex-1 flex flex-col justify-center w-full max-w-2xl px-4 py-6 z-10 gap-6">
+                <!-- Single Player section -->
+                <div class="wood-panel p-6 rounded-2xl flex flex-col">
+                    <h3 class="text-lg font-extrabold text-yellow-400 mb-3 tracking-wide border-b border-yellow-400/30 pb-2">
+                        <i class="fa-solid fa-mug-hot mr-2"></i>シングルプレイヤー (Solo Game)
+                    </h3>
+                    <div class="grid grid-cols-3 gap-3">
+                        <button onclick="startSoloGame('easy')" class="bg-emerald-700 hover:bg-emerald-600 border-b-4 border-emerald-950 p-4 rounded-xl flex flex-col items-center justify-center font-extrabold transition-all active:scale-95">
+                            <span class="text-lg">EASY</span>
+                            <span class="text-xs font-normal text-emerald-200 mt-1">初心者向け (30秒)</span>
+                        </button>
+                        <button onclick="startSoloGame('medium')" class="bg-amber-700 hover:bg-amber-600 border-b-4 border-amber-950 p-4 rounded-xl flex flex-col items-center justify-center font-extrabold transition-all active:scale-95">
+                            <span class="text-lg">MEDIUM</span>
+                            <span class="text-xs font-normal text-amber-200 mt-1">標準的 (60秒)</span>
+                        </button>
+                        <button onclick="startSoloGame('hard')" class="bg-red-700 hover:bg-red-600 border-b-4 border-red-950 p-4 rounded-xl flex flex-col items-center justify-center font-extrabold transition-all active:scale-95">
+                            <span class="text-lg">HARD</span>
+                            <span class="text-xs font-normal text-red-200 mt-1">プロ店員 (90秒)</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Multiplayer / Friend Matches -->
+                <div class="wood-panel p-6 rounded-2xl flex flex-col">
+                    <h3 class="text-lg font-extrabold text-blue-400 mb-3 tracking-wide border-b border-blue-400/30 pb-2">
+                        <i class="fa-solid fa-gamepad mr-2"></i>オンラインマルチプレイヤー
+                    </h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <button onclick="openMultiplayerModal('versus')" class="bg-gradient-to-r from-blue-800 to-indigo-800 hover:from-blue-700 hover:to-indigo-700 p-4 rounded-xl border-b-4 border-blue-950 flex flex-col items-center justify-center font-extrabold transition-all active:scale-95">
+                            <i class="fa-solid fa-shield-halved text-2xl mb-1"></i>
+                            <span>紅茶バトル (VS Mode)</span>
+                            <span class="text-xs font-normal text-blue-200 mt-1">スコアを競い合います</span>
+                        </button>
+                        <button onclick="openMultiplayerModal('coop')" class="bg-gradient-to-r from-purple-800 to-pink-800 hover:from-purple-700 hover:to-pink-700 p-4 rounded-xl border-b-4 border-purple-950 flex flex-col items-center justify-center font-extrabold transition-all active:scale-95">
+                            <i class="fa-solid fa-handshake-angle text-2xl mb-1"></i>
+                            <span>協力キッチン (Co-op)</span>
+                            <span class="text-xs font-normal text-purple-200 mt-1">一人はカウンター、一人は調理</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="w-full text-center z-10 text-xs text-gray-400">
+                UK Shopkeeper rules apply. Ensure your teapot is piping hot!
+            </div>
+        </div>
+
+        <!-- ================= MAIN GAMEPLAY SCREEN ================= -->
+        <div id="gameplayScreen" class="absolute inset-0 flex flex-col justify-between hidden bg-black transition-all duration-300">
+            <!-- Game Top Status Bar (HUD) -->
+            <div class="w-full bg-[#150d05]/95 border-b-4 border-[#8d5c36] p-4 flex justify-between items-center z-20">
+                <!-- Left: Control Buttons -->
+                <div class="flex items-center space-x-2">
+                    <button id="pauseBtn" class="bg-red-800 hover:bg-red-700 text-white font-extrabold px-3 py-2 rounded-lg text-sm border-b-2 border-red-950 flex items-center gap-1">
+                        <i class="fa-solid fa-pause"></i> 一時停止
+                    </button>
+                    <!-- Switch View in Solo/VS -->
+                    <button id="switchViewBtn" onclick="toggleKitchenView()" class="bg-[#8d5c36] hover:bg-[#a36c41] text-white font-extrabold px-4 py-2 rounded-lg text-sm border-b-2 border-[#54361e] flex items-center gap-2">
+                        <i id="switchViewIcon" class="fa-solid fa-kitchen-set"></i> 
+                        <span id="switchViewText">キッチンへ移動</span>
+                    </button>
+                </div>
+
+                <!-- Center: High Info -->
+                <div class="flex items-center space-x-6">
+                    <div class="text-center">
+                        <p class="text-xs text-[#e6b17a] font-bold">REMAINING TIME</p>
+                        <p id="gameTimer" class="text-2xl font-black tracking-widest text-red-500">00:00</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-xs text-[#e6b17a] font-bold">CURRENT SCORE</p>
+                        <p id="gameScore" class="text-2xl font-black text-yellow-400 tracking-wider">0</p>
+                    </div>
+                </div>
+
+                <!-- Right: Player Info / Mode Display -->
+                <div class="flex items-center space-x-2 bg-[#2b1a0e] px-3 py-1.5 rounded-lg border border-[#8d5c36]">
+                    <span id="gameRoleBadge" class="text-xs bg-red-600 text-white font-extrabold px-2 py-0.5 rounded uppercase">SOLO</span>
+                    <span id="gameModeText" class="text-xs font-bold text-gray-300">MEDIUM</span>
+                </div>
+            </div>
+
+            <!-- Counter (Serving) View -->
+            <div id="counterView" class="absolute inset-0 top-20 flex flex-col justify-end transition-opacity duration-300 bg-cover bg-bottom" style="background-image: url('https://raw.githubusercontent.com/PolandBallHub-Operator/pbpark/refs/heads/main/games/TeaShop/countergame.png');">
+                <!-- Customer Polandball Container -->
+                <div id="customerWrapper" class="absolute inset-x-0 bottom-16 h-80 flex justify-center items-end relative overflow-visible pointer-events-none">
+                    <!-- Customers dynamically rendered here -->
+                </div>
+
+                <!-- Dialogue Speech Bubble from Customer -->
+                <div id="dialogueBubble" class="absolute left-1/2 -translate-x-1/2 top-4 bg-white text-[#1a1005] border-4 border-[#8d5c36] px-6 py-4 rounded-3xl max-w-lg w-11/12 shadow-2xl hidden flex-col transition-all duration-300 z-15">
+                    <div class="absolute bottom-[-16px] left-1/2 -translate-x-1/2 w-0 h-0 border-l-[16px] border-l-transparent border-r-[16px] border-r-transparent border-t-[16px] border-t-[#8d5c36]"></div>
+                    <p class="text-xs font-extrabold text-blue-600 tracking-wider uppercase mb-1" id="customerName">GERMANY BALL</p>
+                    <p class="text-sm md:text-base font-black leading-relaxed" id="customerRequest">紅茶をくれ！ブラック、それから三角に切ったサンドイッチ、スコーンも添えてくれ。</p>
+                    <div class="flex flex-wrap gap-2 mt-2" id="customerRequestBadges">
+                        <!-- badges of what they want -->
+                    </div>
+                </div>
+
+                <!-- Kitchen Delivery Tray / Servable Items (Interactive in Counter View) -->
+                <div class="w-full bg-[#3d2413]/95 border-t-4 border-[#8d5c36] p-4 flex justify-between items-center shadow-inner z-10">
+                    <div class="flex items-center space-x-3">
+                        <p class="text-xs font-extrabold text-stone-300 tracking-wider">TRAY ITEMS:<br>(準備できた商品)</p>
+                        <div id="readyTrayContainer" class="flex items-center space-x-2 bg-[#2b1a0e] p-2 rounded-xl border border-dashed border-[#8d5c36] min-w-[200px] h-16">
+                            <!-- Items placed on tray by kitchen -->
+                            <span class="text-xs text-gray-500 w-full text-center block">トレイは空です。キッチンで調理してください。</span>
+                        </div>
+                    </div>
+                    <div class="flex space-x-2">
+                        <button onclick="trashTray()" class="bg-amber-900 hover:bg-amber-800 text-amber-200 px-4 py-3 rounded-xl border-b-4 border-amber-950 font-extrabold text-sm flex items-center gap-1.5 active:translate-y-0.5 transition-transform">
+                            <i class="fa-solid fa-trash"></i> 破棄
+                        </button>
+                        <button onclick="serveCustomer()" class="bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-[#1a1005] px-8 py-3 rounded-xl border-b-4 border-amber-700 font-black text-base flex items-center gap-2 active:translate-y-0.5 transition-transform">
+                            <i class="fa-solid fa-bell"></i> お待たせしました！
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Kitchen (Preparation) View -->
+            <div id="kitchenView" class="absolute inset-0 top-20 flex flex-col justify-between hidden bg-cover bg-center transition-opacity duration-300" style="background-image: url('https://raw.githubusercontent.com/PolandBallHub-Operator/pbpark/refs/heads/main/games/TeaShop/kitchen.png');">
+                
+                <!-- Main Kitchen Prep Stations Grid -->
+                <div class="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4 p-4 overflow-y-auto max-h-[calc(100vh-180px)]">
+                    
+                    <!-- STATION 1: TEA MAKER -->
+                    <div class="wood-panel p-4 rounded-xl flex flex-col justify-between relative overflow-hidden h-[340px]">
+                        <div class="absolute top-2 right-2 bg-yellow-500/10 text-yellow-400 border border-yellow-500/30 px-2 py-0.5 rounded text-[10px] font-bold">STATION 1</div>
+                        <h4 class="text-md font-extrabold text-[#e6b17a] border-b border-[#8d5c36] pb-1.5 mb-3 flex items-center gap-2">
+                            <i class="fa-solid fa-mug-hot text-amber-500"></i> 紅茶を注ぐ
+                        </h4>
+
+                        <!-- Teabag & Cup interactive visual area -->
+                        <div class="flex-1 flex justify-around items-center">
+                            <!-- Teabag Chooser -->
+                            <div class="flex flex-col space-y-2">
+                                <button onclick="selectTeaType('black')" id="teaBagBlack" class="w-12 h-16 bg-[#a0522d] border-2 border-yellow-600 rounded-sm flex flex-col items-center justify-between p-1 cursor-pointer transition-all hover:scale-105 active:scale-95 shadow-md relative">
+                                    <span class="text-[9px] font-bold text-white bg-red-600 w-full text-center">紅茶</span>
+                                    <i class="fa-solid fa-leaf text-yellow-300 text-xs"></i>
+                                </button>
+                                <button onclick="selectTeaType('green')" id="teaBagGreen" class="w-12 h-16 bg-[#556b2f] border-2 border-green-600 rounded-sm flex flex-col items-center justify-between p-1 cursor-pointer transition-all hover:scale-105 active:scale-95 shadow-md relative">
+                                    <span class="text-[9px] font-bold text-white bg-green-600 w-full text-center">緑茶</span>
+                                    <i class="fa-solid fa-leaf text-green-300 text-xs"></i>
+                                </button>
+                                <button onclick="selectTeaType('herbal')" id="teaBagHerbal" class="w-12 h-16 bg-[#800000] border-2 border-red-400 rounded-sm flex flex-col items-center justify-between p-1 cursor-pointer transition-all hover:scale-105 active:scale-95 shadow-md relative">
+                                    <span class="text-[9px] font-bold text-white bg-rose-600 w-full text-center">ハーブ</span>
+                                    <i class="fa-solid fa-leaf text-rose-300 text-xs"></i>
+                                </button>
+                            </div>
+
+                            <!-- Interactive Pour Canvas Cup representation -->
+                            <div class="relative w-32 h-36 flex flex-col items-center justify-end">
+                                <!-- Cup wrapper -->
+                                <div id="teaCupVisual" class="w-24 h-24 border-x-4 border-b-4 border-white/80 rounded-b-3xl relative overflow-hidden bg-white/10 shadow-lg">
+                                    <!-- Liquid content filled by holding pour button -->
+                                    <div id="teaLiquid" class="absolute bottom-0 inset-x-0 h-0 transition-all duration-75 origin-bottom"></div>
+                                    <!-- Target filling line -->
+                                    <div class="absolute bottom-[70%] left-0 right-0 border-t-2 border-dashed border-red-500 z-10 flex justify-center">
+                                        <span class="bg-red-500 text-white text-[8px] px-1 rounded-full -mt-1.5 font-bold">TARGET (70%)</span>
+                                    </div>
+                                </div>
+                                <span id="teaLevelPct" class="text-xs font-bold text-white mt-2">量: 0%</span>
+                            </div>
+                        </div>
+
+                        <!-- Action controls -->
+                        <div class="grid grid-cols-2 gap-2 mt-2">
+                            <button id="pourBtn" class="bg-amber-600 active:bg-amber-700 text-white font-extrabold py-2 px-3 rounded-lg text-sm border-b-2 border-amber-800 transition-all active:translate-y-0.5 select-none" onmousedown="startPouring()" onmouseup="stopPouring()" onmouseleave="stopPouring()" ontouchstart="startPouring(event)" ontouchend="stopPouring(event)">
+                                <i class="fa-solid fa-faucet-drip mr-1"></i> 長押しで注ぐ
+                            </button>
+                            <button onclick="finishTea()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold py-2 px-3 rounded-lg text-sm border-b-2 border-emerald-800">
+                                <i class="fa-solid fa-check mr-1"></i> カップ完成
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- STATION 2: SANDWICH CUTTER -->
+                    <div class="wood-panel p-4 rounded-xl flex flex-col justify-between relative overflow-hidden h-[340px]">
+                        <div class="absolute top-2 right-2 bg-yellow-500/10 text-yellow-400 border border-yellow-500/30 px-2 py-0.5 rounded text-[10px] font-bold">STATION 2</div>
+                        <h4 class="text-md font-extrabold text-[#e6b17a] border-b border-[#8d5c36] pb-1.5 mb-3 flex items-center gap-2">
+                            <i class="fa-solid fa-bread-slice text-amber-600"></i> サンドイッチを挟んで切る
+                        </h4>
+
+                        <!-- Cutter interactive visualization -->
+                        <div class="flex-1 flex flex-col items-center justify-center relative">
+                            <!-- Interactive Slicing Canvas / Element -->
+                            <div id="sandwichBox" class="w-44 h-44 bg-[#fbf6ea] border-4 border-[#8d5c36] rounded-xl relative shadow-lg flex items-center justify-center cursor-pointer overflow-hidden">
+                                <!-- Inner Sandwich layers visual -->
+                                <div id="sandwichBody" class="w-36 h-36 bg-amber-100 rounded-lg relative border-2 border-amber-300 flex items-center justify-center overflow-hidden transition-transform duration-300">
+                                    <!-- Crust visual -->
+                                    <div class="absolute inset-0 border-[6px] border-amber-700/80 rounded-lg"></div>
+                                    <!-- Greens & Ham slice markers -->
+                                    <div class="absolute inset-4 bg-emerald-500/40 rounded-full blur-[2px]"></div>
+                                    <div class="absolute inset-8 bg-rose-500/50 rounded-lg"></div>
+                                    <!-- Slicing line visual (dotted) -->
+                                    <div id="sliceLineVisual" class="absolute inset-0 border-t-4 border-dashed border-red-500/80 top-1/2 -translate-y-1/2 pointer-events-none"></div>
+                                </div>
+                                <div id="sandwichCutIndicator" class="absolute inset-0 pointer-events-none flex items-center justify-center text-xs font-bold text-red-500 bg-red-950/25 hidden">
+                                    CUT MATCHED!
+                                </div>
+                            </div>
+                            <span id="sandwichCutStatus" class="text-xs font-bold text-[#e6b17a] mt-2">切り方：水平 (Triangle/Rectangle/Diagonal)</span>
+                        </div>
+
+                        <!-- Slice Buttons -->
+                        <div class="grid grid-cols-3 gap-1.5 mt-2">
+                            <button onclick="changeCutStyle('horizontal')" id="cutStyleHorizontal" class="bg-[#1a1005] hover:bg-[#2b1a0e] text-white text-xs py-2 px-1 rounded border-b border-[#8d5c36] font-bold">
+                                <div>水平</div>
+                                <div class="text-[10px] text-gray-400">長方形</div>
+                            </button>
+                            <button onclick="changeCutStyle('diagonal')" id="cutStyleDiagonal" class="bg-[#1a1005] hover:bg-[#2b1a0e] text-white text-xs py-2 px-1 rounded border-b border-[#8d5c36] font-bold">
+                                <div>斜め</div>
+                                <div class="text-[10px] text-gray-400">三角形</div>
+                            </button>
+                            <button onclick="executeSandwichCut()" class="bg-red-700 hover:bg-red-600 text-white font-extrabold py-2 px-2 rounded-lg text-sm border-b-2 border-red-950 col-span-1">
+                                <i class="fa-solid fa-scissors"></i> 切る！
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- STATION 3: CAKE ASSEMBLY -->
+                    <div class="wood-panel p-4 rounded-xl flex flex-col justify-between relative overflow-hidden h-[340px]">
+                        <div class="absolute top-2 right-2 bg-yellow-500/10 text-yellow-400 border border-yellow-500/30 px-2 py-0.5 rounded text-[10px] font-bold">STATION 3</div>
+                        <h4 class="text-md font-extrabold text-[#e6b17a] border-b border-[#8d5c36] pb-1.5 mb-3 flex items-center gap-2">
+                            <i class="fa-solid fa-cake-candles text-pink-500"></i> ケーキ・スコーン
+                        </h4>
+
+                        <!-- Pastry Choice grid -->
+                        <div class="flex-1 grid grid-cols-2 gap-3 items-center justify-center">
+                            <!-- Cake Option 1: Scone -->
+                            <button onclick="addPastryToTray('scone')" class="h-24 bg-[#1a1005] border-2 border-amber-600 hover:border-yellow-400 rounded-xl flex flex-col items-center justify-center p-2 transition-all hover:scale-105 active:scale-95 shadow">
+                                <div class="text-3xl">🫓</div>
+                                <span class="text-xs font-black text-amber-200 mt-1">スコーン</span>
+                                <span class="text-[9px] text-gray-400">Scone</span>
+                            </button>
+
+                            <!-- Cake Option 2: Shortcake -->
+                            <button onclick="addPastryToTray('shortcake')" class="h-24 bg-[#1a1005] border-2 border-amber-600 hover:border-yellow-400 rounded-xl flex flex-col items-center justify-center p-2 transition-all hover:scale-105 active:scale-95 shadow">
+                                <div class="text-3xl">🍰</div>
+                                <span class="text-xs font-black text-amber-200 mt-1">ショートケーキ</span>
+                                <span class="text-[9px] text-gray-400">Shortcake</span>
+                            </button>
+
+                            <!-- Cake Option 3: Chocolate Cake -->
+                            <button onclick="addPastryToTray('chocolate')" class="h-24 bg-[#1a1005] border-2 border-amber-600 hover:border-yellow-400 rounded-xl flex flex-col items-center justify-center p-2 transition-all hover:scale-105 active:scale-95 shadow col-span-2">
+                                <div class="text-3xl">🍫🧁</div>
+                                <span class="text-xs font-black text-amber-200 mt-1">チョコケーキ</span>
+                                <span class="text-[9px] text-gray-400">Chocolate Cake</span>
+                            </button>
+                        </div>
+
+                        <p class="text-[10px] text-gray-400 text-center mt-2">
+                            ご希望に沿ったお菓子を選んでトレイに盛り付けてください。
+                        </p>
+                    </div>
+
+                </div>
+
+                <!-- Kitchen Bottom Tray Panel (Synced with game tray state) -->
+                <div class="w-full bg-[#150d05]/95 border-t-4 border-[#8d5c36] p-4 flex justify-between items-center shadow-inner z-10">
+                    <div class="flex items-center space-x-3">
+                        <p class="text-xs font-extrabold text-[#e6b17a]">KITCHEN TRAY STATUS</p>
+                        <div id="kitchenTrayDisplay" class="flex items-center space-x-2 bg-[#2b1a0e] p-2 rounded-xl border border-dashed border-[#8d5c36] min-w-[200px] h-14">
+                            <!-- Synchronized tray representation -->
+                        </div>
+                    </div>
+                    <button onclick="toggleKitchenView()" class="bg-gradient-to-r from-[#d90429] to-[#ef233c] hover:from-[#ef233c] hover:to-[#d90429] text-white px-6 py-3 rounded-xl border-b-4 border-[#a0001c] font-extrabold text-sm flex items-center gap-1.5 active:translate-y-0.5 transition-transform">
+                        <i class="fa-solid fa-circle-arrow-left"></i> 接客カウンターに戻る
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ================= PAUSE OVERLAY ================= -->
+        <div id="pauseOverlay" class="hidden absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-40 p-4">
+            <div class="wood-panel max-w-sm w-full p-8 rounded-2xl flex flex-col items-center">
+                <h3 class="text-2xl font-bold text-[#e6b17a] mb-6"><i class="fa-solid fa-pause mr-2"></i>PAUSED</h3>
+                <button onclick="resumeGame()" class="w-full bg-emerald-600 hover:bg-emerald-500 border-b-4 border-emerald-800 text-white font-extrabold py-3 rounded-xl mb-3 shadow-md transition-all active:scale-95">
+                    ゲームを再開
+                </button>
+                <button onclick="quitGame()" class="w-full bg-stone-700 hover:bg-stone-600 border-b-4 border-stone-900 text-white font-extrabold py-3 rounded-xl shadow-md transition-all active:scale-95">
+                    タイトルに戻る
+                </button>
+            </div>
+        </div>
+
+        <!-- ================= TIME UP SCREEN (RESULTS) ================= -->
+        <div id="resultsScreen" class="absolute inset-0 flex flex-col items-center justify-between p-6 bg-cover bg-center bg-no-repeat transition-opacity duration-500 hidden" style="background-image: url('https://raw.githubusercontent.com/PolandBallHub-Operator/pbpark/refs/heads/main/games/TeaShop/start.png');">
+            
+            <div class="w-full text-center py-6">
+                <h2 class="text-4xl md:text-5xl font-black text-red-500 tracking-widest drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)] animate-pulse">
+                    TIME UP !
+                </h2>
+                <p class="text-sm font-bold text-white mt-1">営業時間が終了しました</p>
+            </div>
+
+            <!-- Main metrics display card -->
+            <div class="wood-panel max-w-md w-full p-8 rounded-2xl flex flex-col items-center shadow-2xl z-10">
+                <span class="text-6xl mb-4">🇬🇧👑</span>
+                <p class="text-xs text-[#e6b17a] font-extrabold tracking-wider mb-1">SCORE REPORT</p>
+                <h3 id="resultScore" class="text-5xl font-black text-yellow-400 mb-6 tracking-wide">0</h3>
+
+                <div class="w-full border-t border-[#8d5c36] pt-4 flex flex-col gap-2 mb-6 text-sm text-gray-300">
+                    <div class="flex justify-between">
+                        <span>提供した紅茶の数 (Tea served):</span>
+                        <span id="statTeaCount" class="font-bold text-white">0</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>提供したサンドイッチの数:</span>
+                        <span id="statSandwichCount" class="font-bold text-white">0</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>ミス/未完成 (Discarded):</span>
+                        <span id="statTrashCount" class="font-bold text-red-400">0</span>
+                    </div>
+                </div>
+
+                <!-- Action Button -->
+                <button onclick="changeScreen('titleScreen')" class="w-full bg-gradient-to-r from-[#d90429] to-[#ef233c] hover:from-[#ef233c] hover:to-[#d90429] border-b-6 border-[#a0001c] active:border-b-2 text-white font-extrabold text-lg py-4 rounded-xl shadow-lg transition-transform transform active:translate-y-0.5">
+                    タイトルに戻る (Back to Title)
+                </button>
+            </div>
+
+            <div class="text-stone-400 text-xs text-center pb-2 z-10">
+                Score has been safely archived in local tea shop ledger.
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- =========================== POPUPS / DIALOGS =========================== -->
+    <!-- ========================================================================= -->
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-30 p-4">
+        <div class="wood-panel max-w-lg w-full p-6 md:p-8 rounded-2xl flex flex-col">
+            <h3 class="text-2xl font-bold text-[#e6b17a] mb-6 flex justify-between items-center border-b border-[#8d5c36] pb-3">
+                <span><i class="fa-solid fa-gears mr-2"></i>SETTINGS (設定)</span>
+                <button onclick="closeSettingsModal()" class="text-stone-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </h3>
+
+            <!-- Profile form components -->
+            <div class="flex flex-col gap-4 overflow-y-auto max-h-[350px] pr-2">
+                <div>
+                    <label class="block text-xs font-extrabold text-[#e6b17a] tracking-wider mb-1.5 uppercase">Shopkeep Nickname (ニックネーム)</label>
+                    <input type="text" id="settingNameInput" class="w-full bg-[#150d05] border border-[#8d5c36] p-2.5 rounded-lg text-white font-bold" placeholder="Guest UK Ball">
+                </div>
+                <div>
+                    <label class="block text-xs font-extrabold text-[#e6b17a] tracking-wider mb-1.5 uppercase">Biography (自己紹介)</label>
+                    <textarea id="settingBioInput" rows="3" class="w-full bg-[#150d05] border border-[#8d5c36] p-2.5 rounded-lg text-white text-sm" placeholder="Tell the world how much you love Earl Grey..."></textarea>
+                </div>
+                <div>
+                    <label class="block text-xs font-extrabold text-[#e6b17a] tracking-wider mb-2 uppercase">Select Character Avatar (アバター変更)</label>
+                    <div class="grid grid-cols-5 gap-2" id="avatarGrid">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-end space-x-3 mt-6 border-t border-[#8d5c36] pt-4">
+                <button onclick="closeSettingsModal()" class="bg-stone-800 hover:bg-stone-700 text-stone-300 font-bold px-4 py-2 rounded-lg text-sm">キャンセル</button>
+                <button onclick="saveSettings()" class="bg-gradient-to-r from-emerald-700 to-emerald-600 hover:from-emerald-600 hover:to-emerald-500 text-white font-extrabold px-6 py-2 rounded-lg text-sm shadow">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Friends Modal -->
+    <div id="friendsModal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-30 p-4">
+        <div class="wood-panel max-w-xl w-full p-6 md:p-8 rounded-2xl flex flex-col h-[500px]">
+            <h3 class="text-2xl font-bold text-[#e6b17a] mb-4 flex justify-between items-center border-b border-[#8d5c36] pb-3">
+                <span><i class="fa-solid fa-users mr-2"></i>FRIENDS (フレンド一覧)</span>
+                <button onclick="closeFriendsModal()" class="text-stone-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </h3>
+
+            <!-- Search Add Friend -->
+            <div class="flex items-center gap-2 bg-[#1a1005] p-3 rounded-xl border border-[#8d5c36] mb-4">
+                <input type="text" id="friendIdSearchInput" class="flex-1 bg-transparent border-0 text-white text-sm font-bold focus:outline-none placeholder-stone-600" placeholder="相手のID (例: alice) を入力">
+                <button onclick="addFriendFromInput()" class="bg-gradient-to-r from-blue-700 to-blue-600 text-white font-extrabold px-4 py-2 rounded-lg text-xs hover:from-blue-600 hover:to-blue-500 flex items-center gap-1">
+                    <i class="fa-solid fa-user-plus"></i> フレンド追加
+                </button>
+            </div>
+
+            <!-- Friend list list viewport -->
+            <div class="flex-1 overflow-y-auto pr-1" id="friendsListContainer">
+                <!-- Dynamically loaded list of friends -->
+                <div class="text-center py-12 text-gray-500 text-sm">
+                    登録されているフレンドが居ません。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Multiplayer Invite & Matchmaking overlay -->
+    <div id="mpMatchmakingModal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-40 p-4">
+        <div class="wood-panel max-w-md w-full p-6 rounded-2xl flex flex-col items-center">
+            <h3 class="text-xl font-bold text-[#e6b17a] mb-2 text-center" id="mpModalTitle">オンラインマッチング中</h3>
+            <p class="text-xs text-gray-400 text-center mb-6" id="mpModalSub">接続先の相手にゲーム招待を送信します</p>
+
+            <div class="flex flex-col items-center justify-center py-6 w-full gap-4" id="mpModalInteractiveArea">
+                <!-- Dynamic search progress or connection state -->
+                <div class="relative w-20 h-20 flex items-center justify-center">
+                    <span class="absolute inset-0 border-4 border-dashed border-blue-500 rounded-full animate-spin"></span>
+                    <i class="fa-solid fa-globe text-3xl text-blue-400"></i>
+                </div>
+                <div class="text-center">
+                    <p class="text-sm font-bold text-white">あなたのID: <span id="mpMyDisplayCode" class="text-yellow-400">?</span></p>
+                    <p class="text-xs text-gray-400 mt-1">招待する友達を選択するか、相手から招待を待ってください</p>
+                </div>
+            </div>
+
+            <div class="w-full flex flex-col gap-2 border-t border-[#8d5c36] pt-4 mt-2">
+                <div class="text-xs font-bold text-gray-300 text-left mb-1">オンラインの友達:</div>
+                <div id="mpOnlineFriendsContainer" class="flex flex-col gap-1.5 max-h-[150px] overflow-y-auto mb-2">
+                    <!-- online list for match invites -->
+                    <p class="text-xs text-gray-500 text-center py-4">現在オンラインの友達が居ません</p>
+                </div>
+                <button onclick="closeMultiplayerModal()" class="w-full bg-stone-800 hover:bg-stone-700 text-stone-300 font-extrabold text-sm py-2.5 rounded-xl border border-stone-600 transition-all">
+                    キャンセル
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Invite Pop Up Confirmation Dialog -->
+    <div id="inviteConfirmModal" class="hidden fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
+        <div class="wood-panel max-w-sm w-full p-6 rounded-xl flex flex-col items-center text-center">
+            <span class="text-5xl mb-3">🔔</span>
+            <h3 class="text-lg font-extrabold text-[#e6b17a]" id="inviteConfirmTitle">ゲームの招待</h3>
+            <p class="text-sm text-gray-300 my-4" id="inviteConfirmText">〇〇さんがあなたを「紅茶バトル」に招待しています。参加しますか？</p>
+
+            <div class="grid grid-cols-2 gap-3 w-full">
+                <button onclick="rejectIncomingInvite()" class="bg-red-950/60 hover:bg-red-900/60 text-red-200 border border-red-800 py-2 rounded-lg text-sm font-bold">
+                    辞退する
+                </button>
+                <button onclick="acceptIncomingInvite()" class="bg-gradient-to-r from-green-700 to-green-600 text-white py-2 rounded-lg text-sm font-extrabold shadow">
+                    遊ぶ！
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- High Score Ledger view -->
+    <div id="scoreLedgerModal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-30 p-4">
+        <div class="wood-panel max-w-md w-full p-6 rounded-2xl flex flex-col h-[400px]">
+            <h3 class="text-xl font-bold text-[#e6b17a] mb-4 flex justify-between items-center border-b border-[#8d5c36] pb-3">
+                <span><i class="fa-solid fa-trophy text-yellow-400 mr-2"></i>HIGH SCORES (スコア帳)</span>
+                <button onclick="closeScoreModal()" class="text-stone-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </h3>
+
+            <!-- Score board container -->
+            <div class="flex-1 overflow-y-auto pr-1" id="ledgerContainer">
+                <!-- Dynamically populated scoreboard table -->
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- ======================= JAVASCRIPT GAME ENGINE ========================= -->
+    <!-- ========================================================================= -->
+
+    <script>
+        // Game Constants & Configuration
+        const APP_ID = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const DB_NAME = 'uk_tea_shop_pbpark';
+        const DB_VERSION = 1;
+
+        // Image Base Paths & Assets
+        const PB_CHAR_BASE_URL = 'https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/';
+        
+        // Allowed characters list
+        const CHARACTER_LIST = ['germany', 'japan', 'china', 'italy', 'sierraleone', 'russia', 'france', 'poland', 'england472x600', 'usa'];
+        const EXPRESSIONS = ['normal', 'happy', 'anger', 'dissatisfaction', 'smile', 'surprise', 'plot', 'itome', 'lol'];
+
+        // Cached preloaded images dictionary
+        const assetCache = {};
+
+        // App state variables
+        let localPlayerState = {
+            id: '',             // unique alphabet-only ID
+            name: 'Guest UK Ball',
+            bio: 'A humble server of British tea.',
+            avatar: 'england472x600',
+            level: 1,
+            highScore: 0
+        };
+
+        let friendsList = [];
+        let peerInstance = null;
+        let activeConnection = null;
+        let incomingInviteDetails = null; // Stores details for confirm modal
+
+        // Active Game State
+        let gameState = {
+            isPlaying: false,
+            difficulty: 'medium',
+            timer: 60,
+            timerInterval: null,
+            score: 0,
+            trashCount: 0,
+            stats: {
+                teaServed: 0,
+                sandwichesServed: 0
+            },
+            currentCustomer: null,
+            trayItems: [], // array of prepared items: { type: 'tea' | 'sandwich' | 'pastry', detail: string }
+            kitchenState: {
+                selectedTeaType: 'black',
+                teaPourProgress: 0,
+                isPouring: false,
+                pourInterval: null,
+                sandwichCutStyle: 'horizontal',
+                sandwichIsCut: false
+            },
+            multiplayer: {
+                isMulti: false,
+                mode: '', // 'versus' or 'coop'
+                role: '', // 'server' or 'kitchen' (for coop)
+                peerId: ''
+            }
+        };
+
+        // IndexedDB ledger logic
+        let dbInstance = null;
+        function initDatabase() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+                request.onupgradeneeded = (e) => {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains('scores')) {
+                        db.createObjectStore('scores', { keyPath: 'id', autoIncrement: true });
+                    }
+                    if (!db.objectStoreNames.contains('profile')) {
+                        db.createObjectStore('profile', { keyPath: 'key' });
+                    }
+                    if (!db.objectStoreNames.contains('friends')) {
+                        db.createObjectStore('friends', { keyPath: 'peerId' });
+                    }
+                };
+                request.onsuccess = (e) => {
+                    dbInstance = e.target.result;
+                    resolve(dbInstance);
+                };
+                request.onerror = (e) => reject(e);
+            });
+        }
+
+        // Save high score to DB
+        async function saveScoreToDB(score, mode) {
+            if (!dbInstance) return;
+            const transaction = dbInstance.transaction(['scores'], 'readwrite');
+            const store = transaction.objectStore('scores');
+            store.add({
+                score: score,
+                mode: mode,
+                timestamp: Date.now()
+            });
+        }
+
+        // Get all scores
+        function getScoresFromDB() {
+            return new Promise((resolve) => {
+                if (!dbInstance) return resolve([]);
+                const transaction = dbInstance.transaction(['scores'], 'readonly');
+                const store = transaction.objectStore('scores');
+                const request = store.getAll();
+                request.onsuccess = () => {
+                    // Sort descending
+                    const results = request.result || [];
+                    results.sort((a,b) => b.score - a.score);
+                    resolve(results);
+                };
+                request.onerror = () => resolve([]);
+            });
+        }
+
+        // Save own profile config
+        async function saveProfileToDB(profile) {
+            if (!dbInstance) return;
+            const transaction = dbInstance.transaction(['profile'], 'readwrite');
+            const store = transaction.objectStore('profile');
+            store.put({ key: 'player_profile', value: profile });
+        }
+
+        // Get profile
+        function getProfileFromDB() {
+            return new Promise((resolve) => {
+                if (!dbInstance) return resolve(null);
+                const transaction = dbInstance.transaction(['profile'], 'readonly');
+                const store = transaction.objectStore('profile');
+                const request = store.get('player_profile');
+                request.onsuccess = () => {
+                    resolve(request.result ? request.result.value : null);
+                };
+                request.onerror = () => resolve(null);
+            });
+        }
+
+        // Save local friends to DB
+        async function saveFriendsToDB(friends) {
+            if (!dbInstance) return;
+            const transaction = dbInstance.transaction(['friends'], 'readwrite');
+            const store = transaction.objectStore('friends');
+            // Clear current then insert
+            store.clear().onsuccess = () => {
+                friends.forEach(f => {
+                    store.add(f);
+                });
+            };
+        }
+
+        // Get local friends
+        function getFriendsFromDB() {
+            return new Promise((resolve) => {
+                if (!dbInstance) return resolve([]);
+                const transaction = dbInstance.transaction(['friends'], 'readonly');
+                const store = transaction.objectStore('friends');
+                const request = store.getAll();
+                request.onsuccess = () => resolve(request.result || []);
+                request.onerror = () => resolve([]);
+            });
+        }
+
+        // Asset loader logic
+        async function runPreloader() {
+            const bar = document.getElementById('preloadBar');
+            const status = document.getElementById('preloadStatus');
+
+            // Collect assets to preload
+            const assetList = [
+                { id: 'logo', url: 'https://raw.githubusercontent.com/PolandBallHub-Operator/pbpark/refs/heads/main/games/TeaShop/logo.png' },
+                { id: 'titleBG', url: 'https://raw.githubusercontent.com/PolandBallHub-Operator/pbpark/refs/heads/main/games/TeaShop/titlebackground.png' },
+                { id: 'startBG', url: 'https://raw.githubusercontent.com/PolandBallHub-Operator/pbpark/refs/heads/main/games/TeaShop/start.png' },
+                { id: 'counterBG', url: 'https://raw.githubusercontent.com/PolandBallHub-Operator/pbpark/refs/heads/main/games/TeaShop/countergame.png' },
+                { id: 'kitchenBG', url: 'https://raw.githubusercontent.com/PolandBallHub-Operator/pbpark/main/games/TeaShop/kitchen.png' }
+            ];
+
+            // Add standard characters & expressions
+            CHARACTER_LIST.forEach(char => {
+                EXPRESSIONS.forEach(expr => {
+                    assetList.push({
+                        id: `${char}_${expr}`,
+                        url: `${PB_CHAR_BASE_URL}${char}/${expr}.png`
+                    });
+                });
+            });
+
+            const total = assetList.length;
+            let loaded = 0;
+
+            const loadPromises = assetList.map(asset => {
+                return new Promise((resolve) => {
+                    const img = new Image();
+                    img.src = asset.url;
+                    img.onload = () => {
+                        assetCache[asset.id] = img;
+                        loaded++;
+                        const pct = Math.floor((loaded / total) * 100);
+                        bar.style.width = `${pct}%`;
+                        status.textContent = `Preloading ${asset.id}... (${pct}%)`;
+                        resolve();
+                    };
+                    img.onerror = () => {
+                        // Failed, resolve anyway so game starts (no strict blocking fallbacks)
+                        loaded++;
+                        const pct = Math.floor((loaded / total) * 100);
+                        bar.style.width = `${pct}%`;
+                        status.textContent = `Skipped ${asset.id}... (${pct}%)`;
+                        resolve();
+                    };
+                });
+            });
+
+            await Promise.all(loadPromises);
+
+            // Hide preloader with style transition
+            const loader = document.getElementById('loaderScreen');
+            loader.classList.add('opacity-0');
+            setTimeout(() => {
+                loader.classList.add('hidden');
+                document.getElementById('appContainer').classList.remove('hidden');
+            }, 700);
+        }
+
+        // PeerJS Setup
+        function setupPeer(customId) {
+            const peerId = `${customId}-ukteashop-pbpark`;
+            document.getElementById('peerCodeDisplay').textContent = `PEER: INITIALIZING`;
+
+            try {
+                peerInstance = new Peer(peerId);
+
+                peerInstance.on('open', (id) => {
+                    document.getElementById('peerCodeDisplay').textContent = `ID: ${customId}`;
+                    showToast('PeerJS Network Active!', `Your addressable ID is: ${customId}`);
+                    // Trigger peer check loop
+                    startFriendOnlinePing();
+                });
+
+                peerInstance.on('connection', (conn) => {
+                    // Receive incoming connection from another client
+                    handleIncomingConnection(conn);
+                });
+
+                peerInstance.on('error', (err) => {
+                    console.warn('PeerJS Connection Error:', err);
+                    document.getElementById('peerCodeDisplay').textContent = `PEER: ERROR`;
+                });
+            } catch(e) {
+                console.error(e);
+            }
+        }
+
+        function handleIncomingConnection(conn) {
+            activeConnection = conn;
+            conn.on('data', (data) => {
+                if (!data || !data.type) return;
+
+                switch(data.type) {
+                    case 'FRIEND_REQUEST':
+                        // Incoming friend sync
+                        handleIncomingFriendReq(data.payload);
+                        break;
+                    case 'FRIEND_ACCEPT':
+                        confirmFriendship(data.payload);
+                        break;
+                    case 'GAME_INVITE':
+                        showGameInviteConfirm(data);
+                        break;
+                    case 'INVITE_REJECTED':
+                        showToast('招待が辞退されました', `${data.senderName}は現在参加できません。`);
+                        closeMultiplayerModal();
+                        break;
+                    case 'INVITE_ACCEPTED':
+                        showToast('招待が承認されました！', `ゲームを開始します。`);
+                        startGameFromInvite(data, false); // Host
+                        break;
+                    case 'GAME_DATA':
+                        handleRealtimeGameData(data.payload);
+                        break;
+                }
+            });
+        }
+
+        // Audio synthesis engine using Web Audio API to produce sweet vintage cafe-style sound effects without loading external files
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playSound(type) {
+            try {
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                if (type === 'bell') {
+                    // Vintage bell sound
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.1);
+                    gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.6);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.6);
+                } else if (type === 'pour') {
+                    // Flowing bubble sounds
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(220, audioCtx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(440, audioCtx.currentTime + 0.2);
+                    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.2);
+                } else if (type === 'slice') {
+                    // Whoosh knife slice sound
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.15);
+                    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.15);
+                } else if (type === 'win') {
+                    // Happy chord
+                    const frequencies = [523.25, 659.25, 783.99, 1046.50];
+                    frequencies.forEach((f, i) => {
+                        const o = audioCtx.createOscillator();
+                        const g = audioCtx.createGain();
+                        o.type = 'sine';
+                        o.frequency.setValueAtTime(f, audioCtx.currentTime + i * 0.08);
+                        g.gain.setValueAtTime(0.15, audioCtx.currentTime + i * 0.08);
+                        g.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+                        o.connect(g);
+                        g.connect(audioCtx.destination);
+                        o.start(audioCtx.currentTime + i * 0.08);
+                        o.stop(audioCtx.currentTime + 0.5);
+                    });
+                } else if (type === 'fail') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(180, audioCtx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(80, audioCtx.currentTime + 0.4);
+                    gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.4);
+                }
+            } catch (err) {
+                // Audio context block fallbacks ignored gracefully
+            }
+        }
+
+        // UI Notifications
+        function showToast(title, body) {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = "bg-[#2b1a0e] border-2 border-[#8d5c36] text-white p-4 rounded-xl shadow-2xl flex flex-col max-w-xs transition-all transform translate-x-12 opacity-0 pointer-events-auto cursor-pointer";
+            toast.innerHTML = `
+                <div class="flex items-center gap-2 border-b border-[#8d5c36] pb-1.5 mb-1.5">
+                    <span class="text-amber-500"><i class="fa-solid fa-bell"></i></span>
+                    <span class="font-extrabold text-xs text-[#e6b17a] tracking-wider uppercase">${title}</span>
+                </div>
+                <p class="text-xs leading-relaxed text-stone-200">${body}</p>
+            `;
+            toast.onclick = () => toast.remove();
+            container.appendChild(toast);
+
+            // Trigger animation frame slide-in
+            setTimeout(() => {
+                toast.classList.remove('translate-x-12', 'opacity-0');
+            }, 50);
+
+            // Auto dismiss
+            setTimeout(() => {
+                toast.classList.add('translate-x-12', 'opacity-0');
+                setTimeout(() => toast.remove(), 400);
+            }, 4500);
+        }
+
+        // Navigation manager
+        function changeScreen(screenId) {
+            const screens = ['titleScreen', 'startMenuScreen', 'gameplayScreen', 'resultsScreen'];
+            screens.forEach(id => {
+                const screen = document.getElementById(id);
+                if (id === screenId) {
+                    screen.classList.remove('hidden');
+                    screen.classList.add('opacity-0');
+                    setTimeout(() => screen.classList.remove('opacity-0'), 50);
+                } else {
+                    screen.classList.add('hidden');
+                }
+            });
+
+            // Specific Screen setups
+            if (screenId === 'titleScreen') {
+                document.getElementById('titleUsername').textContent = localPlayerState.name;
+                // Render custom user avatar
+                renderTitleAvatar();
+            }
+        }
+
+        function renderTitleAvatar() {
+            const avatarContainer = document.getElementById('titleUserAvatar');
+            const imgUrl = `${PB_CHAR_BASE_URL}${localPlayerState.avatar}/normal.png`;
+            avatarContainer.innerHTML = `<img src="${imgUrl}" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/100x100/4a2e1b/f7eedf?text=UK'">`;
+        }
+
+        // Avatar configuration choices
+        function populateAvatarChoices() {
+            const grid = document.getElementById('avatarGrid');
+            grid.innerHTML = '';
+            CHARACTER_LIST.forEach(char => {
+                const item = document.createElement('button');
+                item.className = `w-12 h-12 rounded-full border-2 overflow-hidden transition-all ${localPlayerState.avatar === char ? 'border-yellow-400 scale-105 shadow' : 'border-stone-800'}`;
+                item.onclick = () => selectSettingsAvatar(char);
+                item.innerHTML = `<img src="${PB_CHAR_BASE_URL}${char}/normal.png" class="w-full h-full object-cover">`;
+                grid.appendChild(item);
+            });
+        }
+
+        function selectSettingsAvatar(char) {
+            localPlayerState.avatar = char;
+            populateAvatarChoices();
+        }
+
+        // Settings panel open/close
+        function openSettingsModal() {
+            document.getElementById('settingNameInput').value = localPlayerState.name;
+            document.getElementById('settingBioInput').value = localPlayerState.bio;
+            populateAvatarChoices();
+            document.getElementById('settingsModal').classList.remove('hidden');
+        }
+
+        function closeSettingsModal() {
+            document.getElementById('settingsModal').classList.add('hidden');
+        }
+
+        async function saveSettings() {
+            const name = document.getElementById('settingNameInput').value.trim();
+            const bio = document.getElementById('settingBioInput').value.trim();
+            if (name) {
+                localPlayerState.name = name;
+                localPlayerState.bio = bio;
+                await saveProfileToDB(localPlayerState);
+                changeScreen('titleScreen');
+                closeSettingsModal();
+                showToast('Settings Saved', 'Your shopkeeper persona has been updated!');
+            }
+        }
+
+        // Score ledger open/close
+        async function openScoreModal() {
+            const ledger = document.getElementById('ledgerContainer');
+            ledger.innerHTML = '<p class="text-center py-10 text-gray-400">Loading ledger...</p>';
+            document.getElementById('scoreLedgerModal').classList.remove('hidden');
+
+            const scores = await getScoresFromDB();
+            if (scores.length === 0) {
+                ledger.innerHTML = '<p class="text-center py-10 text-gray-500">営業スコアはありません。今すぐお店を開きましょう！</p>';
+                return;
+            }
+
+            let html = '<table class="w-full text-left text-sm text-stone-200"><thead><tr class="border-b border-[#8d5c36] text-[#e6b17a]"><th class="py-2">日付</th><th class="py-2">難易度</th><th class="py-2 text-right">スコア</th></tr></thead><tbody>';
+            scores.forEach(s => {
+                const date = new Date(s.timestamp).toLocaleDateString();
+                html += `<tr class="border-b border-[#8d5c36]/40">
+                    <td class="py-2.5">${date}</td>
+                    <td class="py-2.5 uppercase font-bold">${s.mode}</td>
+                    <td class="py-2.5 text-right font-black text-yellow-400">${s.score}</td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+            ledger.innerHTML = html;
+        }
+
+        function closeScoreModal() {
+            document.getElementById('scoreLedgerModal').classList.add('hidden');
+        }
+
+        // Friends Dialog control
+        async function openFriendsModal() {
+            document.getElementById('friendsModal').classList.remove('hidden');
+            await renderFriendsList();
+        }
+
+        function closeFriendsModal() {
+            document.getElementById('friendsModal').classList.add('hidden');
+        }
+
+        async function renderFriendsList() {
+            const container = document.getElementById('friendsListContainer');
+            container.innerHTML = '';
+
+            if (friendsList.length === 0) {
+                container.innerHTML = '<div class="text-center py-12 text-gray-500 text-sm">登録されているフレンドが居ません。相手のMyIDを入力して登録してください。</div>';
+                return;
+            }
+
+            friendsList.forEach(friend => {
+                const item = document.createElement('div');
+                item.className = "flex items-center justify-between p-3 bg-[#1a1005] border border-[#8d5c36]/60 rounded-xl mb-2";
+                
+                const avatarUrl = `${PB_CHAR_BASE_URL}${friend.avatar}/normal.png`;
+                const statusDot = friend.online ? 'bg-green-500 animate-pulse' : 'bg-stone-600';
+                const statusText = friend.online ? 'Online' : 'Offline';
+
+                item.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <div class="w-12 h-12 rounded-full border border-[#8d5c36] overflow-hidden relative">
+                            <img src="${avatarUrl}" class="w-full h-full object-cover">
+                            <span class="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-[#1a1005] ${statusDot}"></span>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-1.5">
+                                <span class="font-extrabold text-sm text-[#e6b17a]">${friend.name}</span>
+                                <span class="text-[10px] text-stone-500 font-bold">@${friend.id}</span>
+                            </div>
+                            <p class="text-xs text-stone-400 italic">${friend.bio || 'British high-tea enjoyer'}</p>
+                            <span class="text-[10px] text-emerald-400 font-extrabold">LEVEL: ${friend.level}</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <button onclick="removeFriend('${friend.peerId}')" class="text-red-500 hover:text-red-400 text-xs p-2">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        // PeerJS search and add friend
+        async function addFriendFromInput() {
+            const val = document.getElementById('friendIdSearchInput').value.trim().toLowerCase();
+            if (!val) return;
+
+            if (val === localPlayerState.id) {
+                showToast('エラー', '自分自身をフレンドにすることはできません！');
+                return;
+            }
+
+            const friendPeerId = `${val}-ukteashop-pbpark`;
+            
+            // Check if already exist
+            if (friendsList.some(f => f.peerId === friendPeerId)) {
+                showToast('エラー', '既に登録済みのフレンドです。');
+                return;
+            }
+
+            showToast('接続中...', `${val}にフレンド通知を送信します...`);
+
+            try {
+                const conn = peerInstance.connect(friendPeerId);
+                conn.on('open', () => {
+                    // Send friend sync request
+                    conn.send({
+                        type: 'FRIEND_REQUEST',
+                        payload: {
+                            id: localPlayerState.id,
+                            name: localPlayerState.name,
+                            bio: localPlayerState.bio,
+                            avatar: localPlayerState.avatar,
+                            level: localPlayerState.level,
+                            peerId: peerInstance.id
+                        }
+                    });
+                });
+            } catch(e) {
+                // If offline, save anyways as offline friend local ledger entry
+                saveOfflineFriend(val, friendPeerId);
+            }
+        }
+
+        function saveOfflineFriend(id, peerId) {
+            const newFriend = {
+                id: id,
+                name: `${id.toUpperCase()}`,
+                bio: 'Pending Confirmation',
+                avatar: 'poland',
+                level: 1,
+                peerId: peerId,
+                online: false
+            };
+            friendsList.push(newFriend);
+            saveFriendsToDB(friendsList);
+            renderFriendsList();
+            showToast('フレンド保存', `${id}をオフラインフレンドとして保存しました（相手の接続時に自動承認されます）`);
+        }
+
+        function handleIncomingFriendReq(payload) {
+            // Confirm popup alert alternative modal
+            const accept = confirm(`${payload.name} (ID: ${payload.id}) さんをフレンドに登録しますか？`);
+            if (accept) {
+                const friendData = {
+                    id: payload.id,
+                    name: payload.name,
+                    bio: payload.bio,
+                    avatar: payload.avatar,
+                    level: payload.level,
+                    peerId: payload.peerId,
+                    online: true
+                };
+                
+                // Add to list if unique
+                if (!friendsList.some(f => f.peerId === payload.peerId)) {
+                    friendsList.push(friendData);
+                    saveFriendsToDB(friendsList);
+                }
+
+                showToast('フレンド追加成功！', `${payload.name}と友達になりました。`);
+                
+                // Send accept back
+                if (activeConnection) {
+                    activeConnection.send({
+                        type: 'FRIEND_ACCEPT',
+                        payload: {
+                            id: localPlayerState.id,
+                            name: localPlayerState.name,
+                            bio: localPlayerState.bio,
+                            avatar: localPlayerState.avatar,
+                            level: localPlayerState.level,
+                            peerId: peerInstance.id
+                        }
+                    });
+                }
+                renderFriendsList();
+            }
+        }
+
+        function confirmFriendship(payload) {
+            const friendData = {
+                id: payload.id,
+                name: payload.name,
+                bio: payload.bio,
+                avatar: payload.avatar,
+                level: payload.level,
+                peerId: payload.peerId,
+                online: true
+            };
+            
+            // Add if unique
+            if (!friendsList.some(f => f.peerId === payload.peerId)) {
+                friendsList.push(friendData);
+                saveFriendsToDB(friendsList);
+            } else {
+                // Update
+                const idx = friendsList.findIndex(f => f.peerId === payload.peerId);
+                friendsList[idx] = friendData;
+                saveFriendsToDB(friendsList);
+            }
+
+            showToast('相互フレンド確認！', `${payload.name}がフレンド申請を受理しました。`);
+            renderFriendsList();
+        }
+
+        function removeFriend(peerId) {
+            friendsList = friendsList.filter(f => f.peerId !== peerId);
+            saveFriendsToDB(friendsList);
+            renderFriendsList();
+            showToast('フレンド削除', 'リストから削除しました');
+        }
+
+        // Active check to ping peer list to see who is online
+        function startFriendOnlinePing() {
+            setInterval(() => {
+                if (!peerInstance || peerInstance.destroyed) return;
+                friendsList.forEach(friend => {
+                    const conn = peerInstance.connect(friend.peerId);
+                    conn.on('open', () => {
+                        friend.online = true;
+                        conn.close();
+                        renderFriendsList();
+                    });
+                    conn.on('error', () => {
+                        friend.online = false;
+                        renderFriendsList();
+                    });
+                });
+            }, 15000); // 15s checks
+        }
+
+        // Multiplayer Matching Window
+        function openMultiplayerModal(mode) {
+            gameState.multiplayer.mode = mode;
+            document.getElementById('mpModalTitle').textContent = mode === 'versus' ? '紅茶バトル (VS Mode)' : '協力キッチン (Co-op)';
+            document.getElementById('mpMyDisplayCode').textContent = localPlayerState.id;
+            
+            // Render online friends inside match selection
+            const container = document.getElementById('mpOnlineFriendsContainer');
+            container.innerHTML = '';
+
+            const onlineFriends = friendsList.filter(f => f.online);
+            if (onlineFriends.length === 0) {
+                container.innerHTML = '<p class="text-xs text-gray-500 text-center py-4">現在オンラインの友達が居ません。<br>招待コードを直接伝えるか、招待を待ってください。</p>';
+            } else {
+                onlineFriends.forEach(friend => {
+                    const row = document.createElement('button');
+                    row.className = "w-full flex items-center justify-between p-2.5 bg-[#1a1005] border border-[#8d5c36] hover:border-yellow-400 rounded-lg text-left transition-all active:scale-95";
+                    row.onclick = () => inviteFriendToGame(friend);
+                    row.innerHTML = `
+                        <div class="flex items-center space-x-2">
+                            <img src="${PB_CHAR_BASE_URL}${friend.avatar}/normal.png" class="w-8 h-8 rounded-full">
+                            <div>
+                                <p class="text-xs font-bold text-white">${friend.name}</p>
+                                <p class="text-[10px] text-gray-400">ID: ${friend.id}</p>
+                            </div>
+                        </div>
+                        <span class="text-[10px] bg-green-600 text-white font-extrabold px-1.5 py-0.5 rounded">ONLINE</span>
+                    `;
+                    container.appendChild(row);
+                });
+            }
+
+            document.getElementById('mpMatchmakingModal').classList.remove('hidden');
+        }
+
+        function closeMultiplayerModal() {
+            document.getElementById('mpMatchmakingModal').classList.add('hidden');
+        }
+
+        // Send invite
+        function inviteFriendToGame(friend) {
+            showToast('招待送信中', `${friend.name}にマッチの招待をお送りしています...`);
+            
+            const conn = peerInstance.connect(friend.peerId);
+            activeConnection = conn;
+
+            conn.on('open', () => {
+                conn.send({
+                    type: 'GAME_INVITE',
+                    mode: gameState.multiplayer.mode,
+                    senderId: localPlayerState.id,
+                    senderName: localPlayerState.name,
+                    senderPeerId: peerInstance.id
+                });
+            });
+        }
+
+        // Incoming invite popup check
+        function showGameInviteConfirm(data) {
+            incomingInviteDetails = data;
+            const modeText = data.mode === 'versus' ? '紅茶バトル (VS Mode)' : '協力キッチン (Co-op)';
+            document.getElementById('inviteConfirmText').textContent = `${data.senderName}さんがあなたを「${modeText}」に招待しています。参加しますか？`;
+            document.getElementById('inviteConfirmModal').classList.remove('hidden');
+        }
+
+        function rejectIncomingInvite() {
+            document.getElementById('inviteConfirmModal').classList.add('hidden');
+            if (incomingInviteDetails) {
+                const conn = peerInstance.connect(incomingInviteDetails.senderPeerId);
+                conn.on('open', () => {
+                    conn.send({
+                        type: 'INVITE_REJECTED',
+                        senderName: localPlayerState.name
+                    });
+                });
+            }
+        }
+
+        function acceptIncomingInvite() {
+            document.getElementById('inviteConfirmModal').classList.add('hidden');
+            if (incomingInviteDetails) {
+                const conn = peerInstance.connect(incomingInviteDetails.senderPeerId);
+                activeConnection = conn;
+
+                conn.on('open', () => {
+                    conn.send({
+                        type: 'INVITE_ACCEPTED',
+                        senderName: localPlayerState.name,
+                        mode: incomingInviteDetails.mode
+                    });
+                    
+                    // Client joins game
+                    startGameFromInvite(incomingInviteDetails, true); // Guest joiner
+                });
+            }
+        }
+
+        function startGameFromInvite(data, isGuest) {
+            closeMultiplayerModal();
+            gameState.multiplayer.isMulti = true;
+            gameState.multiplayer.mode = data.mode;
+            gameState.multiplayer.peerId = isGuest ? data.senderPeerId : data.senderId;
+
+            if (data.mode === 'coop') {
+                // Determine Roles: Host is server, Guest is kitchen chef
+                gameState.multiplayer.role = isGuest ? 'kitchen' : 'server';
+                document.getElementById('gameRoleBadge').textContent = `CO-OP: ${gameState.multiplayer.role.toUpperCase()}`;
+            } else {
+                gameState.multiplayer.role = 'server'; // both serve and compete scores
+                document.getElementById('gameRoleBadge').textContent = 'VS MATCH';
+            }
+
+            // Setup difficulty automatically to medium
+            startGame('medium');
+        }
+
+        // Real-time synchronization during game matches
+        function handleRealtimeGameData(payload) {
+            if (payload.action === 'SCORE_UPDATE') {
+                // Show competitor score
+                showToast('ライバルが紅茶を提供！', `相手のスコア: ${payload.score}`);
+            } else if (payload.action === 'TRAY_UPDATE') {
+                // Coop tray sync
+                gameState.trayItems = payload.trayItems;
+                renderTray();
+            } else if (payload.action === 'TIME_UP') {
+                endGame();
+            }
+        }
+
+        function sendGamePacket(payload) {
+            if (activeConnection && activeConnection.open) {
+                activeConnection.send({
+                    type: 'GAME_DATA',
+                    payload: payload
+                });
+            }
+        }
+
+        // =========================================================================
+        // ======================== CORE GAMEPLAY SCENES =========================
+        // =========================================================================
+
+        function startSoloGame(difficulty) {
+            gameState.multiplayer.isMulti = false;
+            document.getElementById('gameRoleBadge').textContent = 'SOLO';
+            startGame(difficulty);
+        }
+
+        function startGame(difficulty) {
+            gameState.isPlaying = true;
+            gameState.difficulty = difficulty;
+            gameState.score = 0;
+            gameState.trashCount = 0;
+            gameState.stats.teaServed = 0;
+            gameState.stats.sandwichesServed = 0;
+            gameState.trayItems = [];
+
+            // Reset timers based on difficulty requirements
+            if (difficulty === 'easy') {
+                gameState.timer = 30;
+            } else if (difficulty === 'medium') {
+                gameState.timer = 60;
+            } else {
+                gameState.timer = 90;
+            }
+
+            document.getElementById('gameScore').textContent = '0';
+            document.getElementById('gameModeText').textContent = difficulty.toUpperCase();
+            
+            // Switch screen and select initial view
+            changeScreen('gameplayScreen');
+            
+            // Set initial kitchen UI styles
+            resetKitchenStationState();
+
+            // Set to customer counter view initially (unless co-op kitchen role)
+            if (gameState.multiplayer.isMulti && gameState.multiplayer.mode === 'coop' && gameState.multiplayer.role === 'kitchen') {
+                toggleKitchenView(true); // force kitchen view
+                document.getElementById('switchViewBtn').classList.add('hidden'); // Kitchen player stays in kitchen
+            } else {
+                toggleKitchenView(false); // force counter view
+                document.getElementById('switchViewBtn').classList.remove('hidden');
+            }
+
+            // Spawn first customer
+            spawnCustomer();
+
+            // Start clock timer
+            clearInterval(gameState.timerInterval);
+            gameState.timerInterval = setInterval(() => {
+                gameState.timer--;
+                updateTimerDisplay();
+
+                if (gameState.timer <= 0) {
+                    endGame();
+                }
+            }, 1000);
+            updateTimerDisplay();
+        }
+
+        function updateTimerDisplay() {
+            const min = Math.floor(gameState.timer / 60);
+            const sec = gameState.timer % 60;
+            document.getElementById('gameTimer').textContent = `${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+        }
+
+        function toggleKitchenView(forceKitchen = null) {
+            const kitchen = document.getElementById('kitchenView');
+            const counter = document.getElementById('counterView');
+            const btnText = document.getElementById('switchViewText');
+            const btnIcon = document.getElementById('switchViewIcon');
+
+            let showKitchen = forceKitchen;
+            if (showKitchen === null) {
+                showKitchen = kitchen.classList.contains('hidden');
+            }
+
+            if (showKitchen) {
+                kitchen.classList.remove('hidden');
+                counter.classList.add('hidden');
+                btnText.textContent = "接客カウンターへ";
+                btnIcon.className = "fa-solid fa-bell";
+                renderTray();
+            } else {
+                kitchen.classList.add('hidden');
+                counter.classList.remove('hidden');
+                btnText.textContent = "キッチンへ移動";
+                btnIcon.className = "fa-solid fa-kitchen-set";
+                renderTray();
+            }
+        }
+
+        // Customer Management
+        function spawnCustomer() {
+            // Select random country (Not including player avatar if solo to keep visual depth)
+            let country = CHARACTER_LIST[Math.floor(Math.random() * CHARACTER_LIST.length)];
+            
+            // Generate order details
+            const teaTypes = ['black', 'green', 'herbal'];
+            const cutStyles = ['horizontal', 'diagonal'];
+            const pastryTypes = ['scone', 'shortcake', 'chocolate'];
+
+            const targetTea = teaTypes[Math.floor(Math.random() * teaTypes.length)];
+            const targetCut = cutStyles[Math.floor(Math.random() * cutStyles.length)];
+            const targetPastry = pastryTypes[Math.floor(Math.random() * pastryTypes.length)];
+
+            gameState.currentCustomer = {
+                country: country,
+                expression: 'normal',
+                order: {
+                    tea: targetTea,
+                    cut: targetCut,
+                    pastry: targetPastry
+                }
+            };
+
+            renderCustomer();
+            showDialogueBubble();
+        }
+
+        function renderCustomer() {
+            const wrapper = document.getElementById('customerWrapper');
+            wrapper.innerHTML = '';
+
+            const c = gameState.currentCustomer;
+            const imgId = `${c.country}_${c.expression}`;
+            
+            // Build canvas container
+            const customerDiv = document.createElement('div');
+            customerDiv.className = "absolute bottom-0 w-60 h-60 flex items-end justify-center pointer-events-auto transition-all duration-500 transform translate-y-full";
+            
+            // Use cached preloaded image
+            const img = assetCache[imgId];
+            if (img) {
+                // If england character, we must apply the 472x472 crop logic requested by the user
+                if (c.country === 'england472x600') {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 472;
+                    canvas.height = 472;
+                    const ctx = canvas.getContext('2d');
+                    // Draw top 472px
+                    ctx.drawImage(img, 0, 0, 472, 472, 0, 0, 472, 472);
+                    const croppedImg = document.createElement('img');
+                    croppedImg.src = canvas.toDataURL();
+                    croppedImg.className = "w-full h-auto drop-shadow-xl animate-pulse";
+                    customerDiv.appendChild(croppedImg);
+                } else {
+                    const characterImg = document.createElement('img');
+                    characterImg.src = img.src;
+                    characterImg.className = "w-full h-auto drop-shadow-xl";
+                    customerDiv.appendChild(characterImg);
+                }
+            } else {
+                // Simple placeholder image just in case
+                customerDiv.innerHTML = `<img src="https://placehold.co/400x400/4a2e1b/f7eedf?text=${c.country}" class="w-48 h-48 rounded-full border-4 border-[#8d5c36]">`;
+            }
+
+            wrapper.appendChild(customerDiv);
+
+            // Animate entrance
+            setTimeout(() => {
+                customerDiv.classList.remove('translate-y-full');
+            }, 50);
+        }
+
+        function showDialogueBubble() {
+            const bubble = document.getElementById('dialogueBubble');
+            const nameEl = document.getElementById('customerName');
+            const reqEl = document.getElementById('customerRequest');
+            const badgesEl = document.getElementById('customerRequestBadges');
+
+            const c = gameState.currentCustomer;
+            nameEl.textContent = `${c.country.toUpperCase()} BALL`;
+
+            // Translate options
+            const teaNames = { black: 'ブラック紅茶', green: '伝統的な緑茶', herbal: '赤いハーブティー' };
+            const cutNames = { horizontal: '水平に二等分した長方形サンド', diagonal: '斜めに切った三角サンド' };
+            const pastryNames = { scone: 'イングリッシュスコーン', shortcake: '贅沢ショートケーキ', chocolate: '濃厚チョコケーキ' };
+
+            reqEl.textContent = `紅茶を淹れてくれ！${teaNames[c.order.tea]}。それと${cutNames[c.order.cut]}、お茶菓子に${pastryNames[c.order.pastry]}を用意してほしいな。`;
+            
+            // Build clean badges
+            badgesEl.innerHTML = `
+                <span class="bg-amber-100 text-amber-800 text-xs font-black px-2 py-0.5 rounded border border-amber-300">🍵 ${teaNames[c.order.tea]}</span>
+                <span class="bg-rose-100 text-rose-800 text-xs font-black px-2 py-0.5 rounded border border-rose-300">🥪 ${cutNames[c.order.cut]}</span>
+                <span class="bg-blue-100 text-blue-800 text-xs font-black px-2 py-0.5 rounded border border-blue-300">🍰 ${pastryNames[c.order.pastry]}</span>
+            `;
+
+            bubble.classList.remove('hidden');
+            playSound('bell');
+        }
+
+        // Tray UI Synchronizer
+        function renderTray() {
+            const containers = [
+                document.getElementById('readyTrayContainer'),
+                document.getElementById('kitchenTrayDisplay')
+            ];
+
+            containers.forEach(container => {
+                if (!container) return;
+                container.innerHTML = '';
+
+                if (gameState.trayItems.length === 0) {
+                    container.innerHTML = '<span class="text-xs text-stone-500 w-full text-center block py-2">トレイは空です</span>';
+                    return;
+                }
+
+                gameState.trayItems.forEach((item, index) => {
+                    const badge = document.createElement('div');
+                    badge.className = "bg-[#150d05] border border-[#8d5c36] text-white text-xs px-2.5 py-1.5 rounded-lg flex items-center space-x-1.5 relative shadow-md";
+                    
+                    let icon = '❓';
+                    if (item.type === 'tea') icon = '🍵';
+                    if (item.type === 'sandwich') icon = '🥪';
+                    if (item.type === 'pastry') icon = '🍰';
+
+                    badge.innerHTML = `
+                        <span>${icon}</span>
+                        <span class="font-extrabold text-[10px] text-yellow-300">${item.detail.toUpperCase()}</span>
+                        <button onclick="removeFromTray(${index})" class="text-red-500 hover:text-red-400 font-bold ml-1 text-[10px]"><i class="fa-solid fa-xmark"></i></button>
+                    `;
+                    container.appendChild(badge);
+                });
+            });
+        }
+
+        function removeFromTray(idx) {
+            gameState.trayItems.splice(idx, 1);
+            renderTray();
+            
+            if (gameState.multiplayer.isMulti) {
+                sendGamePacket({ action: 'TRAY_UPDATE', trayItems: gameState.trayItems });
+            }
+        }
+
+        function trashTray() {
+            gameState.trashCount += gameState.trayItems.length;
+            gameState.trayItems = [];
+            renderTray();
+            showToast('トレイをリセット', '中身を全て廃棄しました。');
+
+            if (gameState.multiplayer.isMulti) {
+                sendGamePacket({ action: 'TRAY_UPDATE', trayItems: [] });
+            }
+        }
+
+        // Serving Verification Logic
+        function serveCustomer() {
+            if (!gameState.currentCustomer) return;
+
+            const c = gameState.currentCustomer;
+            const order = c.order;
+
+            // Check if tray contains correct matches
+            const hasCorrectTea = gameState.trayItems.some(i => i.type === 'tea' && i.detail === order.tea);
+            const hasCorrectSandwich = gameState.trayItems.some(i => i.type === 'sandwich' && i.detail === order.cut);
+            const hasCorrectPastry = gameState.trayItems.some(i => i.type === 'pastry' && i.detail === order.pastry);
+
+            if (hasCorrectTea && hasCorrectSandwich && hasCorrectPastry) {
+                // Success!
+                playSound('win');
+                showToast('大満足！', 'パーフェクトな盛り付けです！');
+                
+                // Add points
+                let points = 100;
+                if (gameState.difficulty === 'medium') points = 150;
+                if (gameState.difficulty === 'hard') points = 250;
+                gameState.score += points;
+                gameState.stats.teaServed++;
+                gameState.stats.sandwichesServed++;
+
+                document.getElementById('gameScore').textContent = gameState.score;
+
+                // Sync VS match score
+                if (gameState.multiplayer.isMulti && gameState.multiplayer.mode === 'versus') {
+                    sendGamePacket({ action: 'SCORE_UPDATE', score: gameState.score });
+                }
+
+                // Clear tray and spawn new customer
+                gameState.trayItems = [];
+                renderTray();
+                
+                if (gameState.multiplayer.isMulti) {
+                    sendGamePacket({ action: 'TRAY_UPDATE', trayItems: [] });
+                }
+
+                // Animate current customer leaving happy
+                c.expression = 'happy';
+                renderCustomer();
+                document.getElementById('dialogueBubble').classList.add('hidden');
+                
+                setTimeout(() => {
+                    spawnCustomer();
+                }, 1500);
+
+            } else {
+                // Incorrect items
+                playSound('fail');
+                showToast('注文と違います！', 'トレイの中身を確認してください。');
+                
+                // Animate anger expression
+                c.expression = 'anger';
+                renderCustomer();
+            }
+        }
+
+        // =========================================================================
+        // ======================== KITCHEN INTERACTIVE MINI-GAMES ==================
+        // =========================================================================
+
+        function resetKitchenStationState() {
+            gameState.kitchenState.selectedTeaType = 'black';
+            gameState.kitchenState.teaPourProgress = 0;
+            gameState.kitchenState.isPouring = false;
+            gameState.kitchenState.sandwichCutStyle = 'horizontal';
+            gameState.kitchenState.sandwichIsCut = false;
+
+            // Apply selected visual classes
+            selectTeaType('black');
+            changeCutStyle('horizontal');
+            updatePourCupVisual();
+        }
+
+        // STATION 1: TEA POURING
+        function selectTeaType(type) {
+            gameState.kitchenState.selectedTeaType = type;
+            
+            // Style selected bags
+            ['black', 'green', 'herbal'].forEach(t => {
+                const bag = document.getElementById(`teaBag${t.charAt(0).toUpperCase() + t.slice(1)}`);
+                if (t === type) {
+                    bag.classList.add('border-yellow-300', 'scale-105', 'shadow-lg');
+                } else {
+                    bag.classList.remove('border-yellow-300', 'scale-105', 'shadow-lg');
+                }
+            });
+
+            // Update tea color gradient in visual cup representation
+            const cupLiquid = document.getElementById('teaLiquid');
+            cupLiquid.className = "absolute bottom-0 inset-x-0 h-0 transition-all duration-75 origin-bottom";
+            if (type === 'black') cupLiquid.classList.add('tea-gradient');
+            if (type === 'green') cupLiquid.classList.add('green-tea-gradient');
+            if (type === 'herbal') cupLiquid.classList.add('herbal-tea-gradient');
+            
+            // Reset cup pouring level
+            gameState.kitchenState.teaPourProgress = 0;
+            updatePourCupVisual();
+        }
+
+        function startPouring(e) {
+            if (e) e.preventDefault();
+            gameState.kitchenState.isPouring = true;
+            
+            clearInterval(gameState.kitchenState.pourInterval);
+            gameState.kitchenState.pourInterval = setInterval(() => {
+                if (gameState.kitchenState.teaPourProgress < 100) {
+                    gameState.kitchenState.teaPourProgress += 1.5;
+                    playSound('pour');
+                    updatePourCupVisual();
+                }
+            }, 50);
+        }
+
+        function stopPouring(e) {
+            if (e) e.preventDefault();
+            gameState.kitchenState.isPouring = false;
+            clearInterval(gameState.kitchenState.pourInterval);
+        }
+
+        function updatePourCupVisual() {
+            const pct = Math.min(Math.floor(gameState.kitchenState.teaPourProgress), 100);
+            document.getElementById('teaLevelPct').textContent = `量: ${pct}%`;
+            document.getElementById('teaLiquid').style.height = `${pct}%`;
+        }
+
+        function finishTea() {
+            const pct = Math.floor(gameState.kitchenState.teaPourProgress);
+            if (pct < 50) {
+                showToast('量が足りません', '紅茶はコップの半分以上注いでください！');
+                playSound('fail');
+                return;
+            }
+            if (pct > 85) {
+                showToast('溢れました！', 'コップからお茶が溢れて失敗です。');
+                playSound('fail');
+                gameState.kitchenState.teaPourProgress = 0;
+                updatePourCupVisual();
+                return;
+            }
+
+            // Successfully added to kitchen tray
+            playSound('slice');
+            const type = gameState.kitchenState.selectedTeaType;
+            gameState.trayItems.push({ type: 'tea', detail: type });
+            renderTray();
+            
+            if (gameState.multiplayer.isMulti) {
+                sendGamePacket({ action: 'TRAY_UPDATE', trayItems: gameState.trayItems });
+            }
+
+            // Reset station
+            gameState.kitchenState.teaPourProgress = 0;
+            updatePourCupVisual();
+            showToast('紅茶お待たせ！', 'カップをトレイに置きました。');
+        }
+
+        // STATION 2: SANDWICH CUTTING
+        function changeCutStyle(style) {
+            gameState.kitchenState.sandwichCutStyle = style;
+
+            const horiz = document.getElementById('cutStyleHorizontal');
+            const diag = document.getElementById('cutStyleDiagonal');
+            const line = document.getElementById('sliceLineVisual');
+            const text = document.getElementById('sandwichCutStatus');
+
+            if (style === 'horizontal') {
+                horiz.className = "bg-[#8d5c36] text-white text-xs py-2 px-1 rounded border-2 border-yellow-400 font-bold scale-105 shadow";
+                diag.className = "bg-[#1a1005] hover:bg-[#2b1a0e] text-white text-xs py-2 px-1 rounded border-b border-[#8d5c36] font-bold";
+                line.className = "absolute inset-0 border-t-4 border-dashed border-red-500/80 top-1/2 -translate-y-1/2 pointer-events-none";
+                text.textContent = "切り方：水平 (長方形に切ります)";
+            } else {
+                diag.className = "bg-[#8d5c36] text-white text-xs py-2 px-1 rounded border-2 border-yellow-400 font-bold scale-105 shadow";
+                horiz.className = "bg-[#1a1005] hover:bg-[#2b1a0e] text-white text-xs py-2 px-1 rounded border-b border-[#8d5c36] font-bold";
+                line.className = "absolute inset-0 border-t-4 border-dashed border-red-500/80 top-0 left-0 w-[150%] h-[150%] rotate-45 origin-top-left pointer-events-none";
+                text.textContent = "切り方：斜め (三角形に切ります)";
+            }
+        }
+
+        function executeSandwichCut() {
+            playSound('slice');
+            const style = gameState.kitchenState.sandwichCutStyle;
+            
+            // Visual transition animation representing sandwich split
+            const body = document.getElementById('sandwichBody');
+            body.style.transform = 'scale(0.9) rotate(2deg)';
+            
+            document.getElementById('sandwichCutIndicator').classList.remove('hidden');
+
+            setTimeout(() => {
+                body.style.transform = 'scale(1) rotate(0deg)';
+                document.getElementById('sandwichCutIndicator').classList.add('hidden');
+                
+                // Add sandwich to tray list
+                gameState.trayItems.push({ type: 'sandwich', detail: style });
+                renderTray();
+
+                if (gameState.multiplayer.isMulti) {
+                    sendGamePacket({ action: 'TRAY_UPDATE', trayItems: gameState.trayItems });
+                }
+
+                showToast('サンドイッチ完成！', 'トレイに盛り付けました。');
+            }, 800);
+        }
+
+        // STATION 3: PASTRY PLACER
+        function addPastryToTray(pastryType) {
+            playSound('slice');
+            gameState.trayItems.push({ type: 'pastry', detail: pastryType });
+            renderTray();
+
+            if (gameState.multiplayer.isMulti) {
+                sendGamePacket({ action: 'TRAY_UPDATE', trayItems: gameState.trayItems });
+            }
+
+            showToast('ケーキ・スコーン追加', `${pastryType}をトレイに追加しました。`);
+        }
+
+        // =========================================================================
+        // ======================== END GAME & PAUSE LOGIC =========================
+        // =========================================================================
+
+        function pauseGame() {
+            clearInterval(gameState.timerInterval);
+            document.getElementById('pauseOverlay').classList.remove('hidden');
+        }
+
+        function resumeGame() {
+            document.getElementById('pauseOverlay').classList.add('hidden');
+            gameState.timerInterval = setInterval(() => {
+                gameState.timer--;
+                updateTimerDisplay();
+
+                if (gameState.timer <= 0) {
+                    endGame();
+                }
+            }, 1000);
+        }
+
+        function quitGame() {
+            clearInterval(gameState.timerInterval);
+            document.getElementById('pauseOverlay').classList.add('hidden');
+            changeScreen('titleScreen');
+        }
+
+        async function endGame() {
+            gameState.isPlaying = false;
+            clearInterval(gameState.timerInterval);
+
+            // Play win/finish sound
+            playSound('win');
+
+            // Render Results Metrics
+            document.getElementById('resultScore').textContent = gameState.score;
+            document.getElementById('statTeaCount').textContent = gameState.stats.teaServed;
+            document.getElementById('statSandwichCount').textContent = gameState.stats.sandwichesServed;
+            document.getElementById('statTrashCount').textContent = gameState.trashCount;
+
+            // Save score locally
+            await saveScoreToDB(gameState.score, gameState.difficulty);
+
+            // Update level up slightly
+            if (gameState.score > 200) {
+                localPlayerState.level += 1;
+                await saveProfileToDB(localPlayerState);
+            }
+
+            // Sync multi-player game end packet
+            if (gameState.multiplayer.isMulti) {
+                sendGamePacket({ action: 'TIME_UP', finalScore: gameState.score });
+            }
+
+            changeScreen('resultsScreen');
+        }
+
+        // Entrypoint Initialization
+        window.onload = async () => {
+            // First initialize database
+            await initDatabase();
+
+            // Load saved user state or require creation of unique identifier
+            const savedProfile = await getProfileFromDB();
+            if (savedProfile) {
+                localPlayerState = savedProfile;
+                setupPeer(localPlayerState.id);
+            } else {
+                // Show Registration block
+                document.getElementById('idRegistryModal').classList.remove('hidden');
+            }
+
+            // Retrieve saved friends
+            friendsList = await getFriendsFromDB();
+
+            // Run assets caching loader
+            await runPreloader();
+
+            // Set screen navigation defaults
+            changeScreen('titleScreen');
+
+            // Pause listeners
+            document.getElementById('pauseBtn').onclick = pauseGame;
+            
+            // Input character ID restriction
+            document.getElementById('myIdInput').oninput = (e) => {
+                e.target.value = e.target.value.replace(/[^a-zA-Z]/g, '');
+            };
+
+            document.getElementById('saveIdBtn').onclick = async () => {
+                const val = document.getElementById('myIdInput').value.trim().toLowerCase();
+                if (val.length < 3) {
+                    alert('IDは3文字以上で入力してください');
+                    return;
+                }
+                localPlayerState.id = val;
+                localPlayerState.name = `${val.toUpperCase()} Shopkeeper`;
+                await saveProfileToDB(localPlayerState);
+                
+                document.getElementById('idRegistryModal').classList.add('hidden');
+                setupPeer(val);
+                changeScreen('titleScreen');
+            };
+        };
+    </script>
+</body>
+</html>
