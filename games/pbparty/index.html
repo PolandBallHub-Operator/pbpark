@@ -16,7 +16,7 @@
 
       --myoui-font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif;
       
-      /* Default Dynamic Colors (Will be overwritten by Material Color Utilities) */
+      /* Default Dynamic Colors (Overwritten dynamically by Material Color Utilities) */
       --myoui-sys-color-background: #eef5ec;
       --myoui-sys-color-on-background: #191d17;
       --myoui-sys-color-surface-card: #f7fbf4;
@@ -97,7 +97,6 @@
       font-weight: bold;
     }
 
-    /* Floating Navigation Bar */
     .floating-nav {
       position: fixed;
       bottom: 24px;
@@ -149,7 +148,6 @@
       gap: 20px;
     }
 
-    /* Section components */
     .app-section {
       display: none;
       flex-direction: column;
@@ -188,12 +186,6 @@
       flex-direction: row;
       align-items: center;
       justify-content: space-between;
-    }
-
-    .card-header-area {
-      display: flex;
-      align-items: center;
-      gap: 12px;
     }
 
     .pb-ball-container {
@@ -241,7 +233,6 @@
       height: 32px;
     }
 
-    /* M-You-I Inputs & Form Controls */
     .myoui-textfield {
       position: relative;
       width: 100%;
@@ -324,7 +315,6 @@
       border-radius: var(--myoui-radius-pill);
     }
 
-    /* Slider Progress Styling */
     .slider-container {
       display: flex;
       flex-direction: column;
@@ -363,7 +353,7 @@
       cursor: pointer;
     }
 
-    /* M-You-I Switches */
+    /* M-You-I Switches with Animating SVG Checkmark */
     .myoui-switch {
       position: relative;
       width: 52px;
@@ -425,7 +415,6 @@
       transform: scale(1);
     }
 
-    /* Dialog Modals */
     .dialog-backdrop {
       position: fixed;
       inset: 0;
@@ -510,13 +499,13 @@
       width: 0;
     }
 
-    /* Game-specific UI Elements */
     .game-play-area {
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 20px;
       padding: 10px 0;
+      width: 100%;
     }
 
     /* Roulette Canvas */
@@ -545,7 +534,6 @@
       z-index: 5;
     }
 
-    /* Gacha Machine Animation */
     .gacha-machine {
       position: relative;
       width: 220px;
@@ -647,7 +635,7 @@
       background-color: var(--myoui-sys-color-primary-container);
     }
 
-    /* Settings helper */
+    /* Settings helpers */
     .settings-item-row {
       display: flex;
       align-items: center;
@@ -669,15 +657,7 @@
       border: none;
       font-weight: bold;
       cursor: pointer;
-    }
-
-    /* Theme config floating bar */
-    .theme-config-card {
-      padding: 12px 18px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
+      font-size: 13px;
     }
   </style>
 
@@ -772,7 +752,6 @@
           つくるパーティーを選ぶ
         </div>
 
-        <!-- Create Game selection -->
         <div class="card-group">
           <!-- Roulette Customizer trigger -->
           <div class="myoui-card" style="cursor: pointer;" onclick="initCustomizer('roulette')">
@@ -1021,7 +1000,7 @@
           </label>
         </div>
 
-        <!-- NEW FIELD: Ball Dynamic Link Mode toggle -->
+        <!-- Ball Dynamic Link Mode toggle -->
         <div class="myoui-card" style="flex-direction: row; justify-content: space-between; align-items: center; background-color: var(--myoui-sys-color-surface-variant);">
           <div style="text-align: left;">
             <span style="font-weight: bold; font-size: 14px; display: block;">結果ボールとの連動</span>
@@ -1055,7 +1034,7 @@
     </div>
   </div>
 
-  <!-- Dialog for Confirm Action (Specifically for saving peer shared games) -->
+  <!-- Dialog for Confirm Action -->
   <div class="dialog-backdrop" id="confirm-dialog">
     <div class="myoui-dialog" onclick="event.stopPropagation()">
       <div class="pb-ball-container" style="width: 64px; height: 64px; margin-bottom: 8px;">
@@ -1076,7 +1055,7 @@
     const STORE_NAME_GAMES = "games";
     const STORE_NAME_SETTINGS = "settings";
     
-    // Country to cute name map for ball visual effects
+    // Country map
     const COUNTRY_NAMES = {
       germany: "ドイツ",
       japan: "日本",
@@ -1136,12 +1115,42 @@
       ballThemeLink: true
     };
 
-    let customGameData = null; // Staging container during customization
+    let customGameData = null; 
     let indexedDBInstance = null;
     let isShareMode = false;
     let confirmCallback = null;
 
-    // Initialization routine
+    /**
+     * Encodes a string into a URL-Safe Base64 string that natively supports high-range Unicode (Japanese text)
+     * and guarantees no '+' or '/' breaks query routing.
+     */
+    function safeB64Encode(str) {
+      const utf8Bytes = encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (match, p1) => {
+        return String.fromCharCode(parseInt(p1, 16));
+      });
+      return btoa(utf8Bytes)
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/, '');
+    }
+
+    /**
+     * Decodes a URL-Safe Base64 string back into standard UTF-8 text safely, restoring '+' and '/' symbols 
+     * even if converted to spaces by standard parameter parsers.
+     */
+    function safeB64Decode(str) {
+      if (!str) return '';
+      // Replace URL-safe symbols and restore normal base64. Ensure spaces (corrupted '+') are converted back to '+'
+      let cleaned = str.replace(/-/g, '+').replace(/_/g, '/').replace(/\s/g, '+');
+      while (cleaned.length % 4) {
+        cleaned += '=';
+      }
+      const raw = atob(cleaned);
+      return decodeURIComponent(Array.prototype.map.call(raw, (c) => {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+      }).join(''));
+    }
+
     window.onload = function() {
       initIndexedDB().then(() => {
         return loadThemeSettings();
@@ -1151,7 +1160,7 @@
         renderSavedGamesList();
       });
 
-      // Bind theme picker listener to live update the popup previews safely
+      // Bind theme picker live-sync
       const colPicker = document.getElementById('theme-color-input');
       const darkCheck = document.getElementById('theme-dark-input');
       const syncTheme = () => {
@@ -1163,9 +1172,9 @@
       darkCheck.addEventListener('change', syncTheme);
     };
 
-    // IndexedDB Management (Database Upgrade to support store "settings")
+    // IndexedDB Operations
     function initIndexedDB() {
-      return new Promise((resolve, reject) => {
+      return new Promise((resolve) => {
         const request = window.indexedDB.open(DB_NAME, 2);
         
         request.onupgradeneeded = function(e) {
@@ -1183,14 +1192,12 @@
           resolve();
         };
         
-        request.onerror = function(e) {
-          console.error("IndexedDB load error", e);
-          resolve(); // Fallback gracefully to memory configuration
+        request.onerror = function() {
+          resolve(); 
         };
       });
     }
 
-    // Load saved settings from IndexedDB
     function loadThemeSettings() {
       return new Promise((resolve) => {
         if (!indexedDBInstance) return resolve();
@@ -1202,25 +1209,19 @@
           req.onsuccess = function(e) {
             if (e.target.result) {
               appThemeConfig = e.target.result;
-              // Update dialog control nodes with loaded settings
               document.getElementById('theme-color-input').value = appThemeConfig.seedColor;
               document.getElementById('theme-dark-input').checked = appThemeConfig.isDark;
               document.getElementById('theme-ball-link-input').checked = appThemeConfig.ballThemeLink;
             }
             resolve();
           };
-          
-          req.onerror = function() {
-            resolve();
-          };
+          req.onerror = function() { resolve(); };
         } catch (err) {
-          console.warn("Theme loading failed, using default settings", err);
           resolve();
         }
       });
     }
 
-    // Save settings to IndexedDB
     function saveThemeSettings(configObj) {
       if (!indexedDBInstance) return;
       try {
@@ -1237,19 +1238,16 @@
       }
     }
 
-    // Apply specific setup settings configuration to view
     function applyThemeConfig(configObj) {
       if (typeof window.generateMyOuiTheme === 'function') {
         window.generateMyOuiTheme(configObj.seedColor, configObj.isDark);
       }
     }
 
-    // Restore persistent base configuration (called when results are closed or navigated)
     function restoreBaseTheme() {
       applyThemeConfig(appThemeConfig);
     }
 
-    // Save game into IndexedDB
     function saveGameToDB(gameObj) {
       return new Promise((resolve) => {
         if (!indexedDBInstance) {
@@ -1259,7 +1257,6 @@
         const transaction = indexedDBInstance.transaction([STORE_NAME_GAMES], "readwrite");
         const store = transaction.objectStore(STORE_NAME_GAMES);
         
-        // Deep copy clean save payload
         const payload = {
           type: gameObj.type,
           title: gameObj.title,
@@ -1268,32 +1265,22 @@
         };
 
         const req = store.add(payload);
-        req.onsuccess = function() {
-          resolve(true);
-        };
-        req.onerror = function() {
-          resolve(false);
-        };
+        req.onsuccess = function() { resolve(true); };
+        req.onerror = function() { resolve(false); };
       });
     }
 
-    // Load games list from IndexedDB
     function getAllSavedGames() {
       return new Promise((resolve) => {
         if (!indexedDBInstance) return resolve([]);
         const transaction = indexedDBInstance.transaction([STORE_NAME_GAMES], "readonly");
         const store = transaction.objectStore(STORE_NAME_GAMES);
         const req = store.getAll();
-        req.onsuccess = function(e) {
-          resolve(e.target.result || []);
-        };
-        req.onerror = function() {
-          resolve([]);
-        };
+        req.onsuccess = function(e) { resolve(e.target.result || []); };
+        req.onerror = function() { resolve([]); };
       });
     }
 
-    // Delete game from IndexedDB
     function deleteSavedGame(id, event) {
       if (event) event.stopPropagation();
       if (!indexedDBInstance) return;
@@ -1306,21 +1293,18 @@
       };
     }
 
-    // URL Parameter parsing logic
     function detectURLParametersAndLaunch() {
       const urlParams = new URLSearchParams(window.location.search);
       const shareFlag = urlParams.get('share');
       
       if (shareFlag) {
-        // Enforce shared link game representation view mode
         isShareMode = true;
         
-        // Hide control operations panels
+        // Hide control layout components
         document.getElementById('app-header').style.display = 'none';
         document.getElementById('bottom-navbar').classList.add('hidden');
         document.getElementById('studio-ops-panel').style.display = 'none';
         
-        // Retrieve payloads
         try {
           const type = urlParams.get('type') || 'roulette';
           const title = urlParams.get('title') || '共有されたパーティー！';
@@ -1328,30 +1312,26 @@
           let items = [];
           
           if (itemsDataRaw) {
-            // Safe UTF8 Base64 decoder
-            items = JSON.parse(decodeURIComponent(escape(atob(itemsDataRaw))));
+            // Highly robust URL-safe Base64 parser
+            const decodedJson = safeB64Decode(itemsDataRaw);
+            items = JSON.parse(decodedJson);
           }
           
           currentGame = { type, title, items };
           
-          // Force rendering play tab immediately
           switchSection('play');
           setupGameEngine(currentGame);
-
-          // Spawn floating action button "PBPartyをはじめる" to welcome peer
           spawnWelcomeTrigger();
         } catch (err) {
-          console.error("Payload decode error", err);
-          showMsg("読み込み失敗", "共有データの読み込みに失敗しました。ノーマルスタジオを立ち上げます。");
-          exitShareMode();
+          console.error("Payload decode error: ", err);
+          showMsg("読み込み失敗", "共有データの読み込みに失敗しました。標準スタジオを開きます。");
+          setTimeout(exitShareMode, 2000);
         }
       } else {
-        // Normal mode launch
         switchSection('home');
       }
     }
 
-    // Show a floating "PBPartyをはじめる" onboarding trigger in share mode
     function spawnWelcomeTrigger() {
       const parent = document.querySelector('.app-viewport');
       const btn = document.createElement('button');
@@ -1367,7 +1347,6 @@
       btn.style.padding = "16px 32px";
       btn.innerHTML = "🎈 PBPartyをはじめる";
       btn.onclick = function() {
-        // Show confirm dialog to save game
         showConfirm("このゲームを保存しますか?", "はい！を選ぶとあなたのパーティー保管庫に保存され、すぐにホーム画面になります！", function(yes) {
           if (yes) {
             saveGameToDB(currentGame).then(() => {
@@ -1383,35 +1362,22 @@
     }
 
     function exitShareMode() {
-      // Clear address parameter safely and reload
       const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
       window.location.href = cleanUrl;
     }
 
-    // Tab and Screen management
     function switchSection(sectionId) {
-      // Always restore configuration defaults when navigating
       restoreBaseTheme();
 
-      // Hide all sections
       document.querySelectorAll('.app-section').forEach(sec => sec.classList.remove('active'));
-      
-      // Deactivate all nav buttons
       document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
 
-      // Show requested target
       const target = document.getElementById(`section-${sectionId}`);
-      if (target) {
-        target.classList.add('active');
-      }
+      if (target) target.classList.add('active');
 
-      // Sync navigation items state
       const navBtn = document.getElementById(`nav-${sectionId}`);
-      if (navBtn) {
-        navBtn.classList.add('active');
-      }
+      if (navBtn) navBtn.classList.add('active');
 
-      // Special contextual actions
       if (sectionId === 'play') {
         setupGameEngine(currentGame);
       } else if (sectionId === 'storage') {
@@ -1419,7 +1385,6 @@
       }
     }
 
-    // Polandball visual builder
     function buildBallElement(country, emotion, sizeClass = '') {
       const isUk = (country === 'england472x600');
       const containerClass = isUk ? 'uk-ball-container' : 'pb-ball-container';
@@ -1432,7 +1397,6 @@
       `;
     }
 
-    // Customizer Engine Initialization
     function initCustomizer(gameType) {
       customGameData = {
         type: gameType,
@@ -1440,10 +1404,8 @@
         items: getGameTypeDefaultItems(gameType)
       };
 
-      // Set input defaults
       document.getElementById('game-title-input').value = customGameData.title;
       
-      // Update heading title
       const titles = { roulette: "🎯 ルーレットをつくる", kuji: "✉️ 紙くじをつくる", gacha: "🔮 ガチャをつくる" };
       document.getElementById('customizer-title').innerText = titles[gameType] || "カスタム作成";
 
@@ -1465,7 +1427,6 @@
       ];
     }
 
-    // Live preview ball when editing customizer
     function previewNewBall() {
       const country = document.getElementById('new-item-country').value;
       const emotion = document.getElementById('new-item-emotion').value;
@@ -1474,7 +1435,6 @@
       const previewImg = document.getElementById('new-ball-preview-img');
       const previewBox = document.getElementById('new-ball-preview-box');
       
-      // Adjust class for england472x600 size
       if (country === 'england472x600') {
         previewBox.className = 'uk-ball-container small';
       } else {
@@ -1483,7 +1443,6 @@
       previewImg.src = rootUrl;
     }
 
-    // Render items lists inside customizer
     function renderCustomizerItems() {
       const container = document.getElementById('custom-items-container');
       container.innerHTML = '';
@@ -1515,7 +1474,6 @@
       });
     }
 
-    // Add and remove items from custom state
     function addCustomItem() {
       const text = document.getElementById('new-item-text').value.trim();
       const weight = parseInt(document.getElementById('new-item-weight').value) || 1;
@@ -1528,8 +1486,6 @@
       }
 
       customGameData.items.push({ text, weight, ball, emotion });
-      
-      // Reset input
       document.getElementById('new-item-text').value = '';
       document.getElementById('new-item-weight').value = '1';
 
@@ -1547,22 +1503,13 @@
         return;
       }
       
-      // Apply input title updates
       customGameData.title = document.getElementById('game-title-input').value.trim() || getGameTypeDefaultTitle(customGameData.type);
-      
-      // Update system global active game
       currentGame = JSON.parse(JSON.stringify(customGameData));
-      
-      // Go to play screen
       switchSection('play');
     }
 
-    // Dynamic Game Engines Renderer
     function setupGameEngine(gameObj) {
-      // Restore default theme when initializing/resetting engines
       restoreBaseTheme();
-
-      // Setup titles
       document.getElementById('play-game-title').innerText = gameObj.title;
       
       const badge = document.getElementById('play-game-badge');
@@ -1577,10 +1524,8 @@
         badge.style.backgroundColor = "#e0f0ff";
       }
 
-      // Clean up previous results presentation
       document.getElementById('play-result-card').style.display = 'none';
 
-      // Setup Play Box Canvas or Containers
       const stage = document.getElementById('game-canvas-area');
       stage.innerHTML = '';
 
@@ -1610,7 +1555,6 @@
       wrapper.appendChild(canvas);
       stage.appendChild(wrapper);
 
-      // Create spin trigger button
       const spinBtn = document.createElement('button');
       spinBtn.className = "myoui-btn btn-filled btn-pill";
       spinBtn.style.marginTop = "10px";
@@ -1620,11 +1564,7 @@
       const ctx = canvas.getContext('2d');
       const items = gameObj.items;
       const totalWeight = items.reduce((acc, cur) => acc + cur.weight, 0);
-
-      // Color scheme generation
       const colors = ["#ff7675", "#74b9ff", "#55efc4", "#ffeaa7", "#a29bfe", "#fd79a8", "#fab1a0", "#81ecec"];
-
-      let currentAngle = 0;
       
       function drawRoulette() {
         let startAngle = 0;
@@ -1640,7 +1580,6 @@
           ctx.fillStyle = colors[idx % colors.length];
           ctx.fill();
 
-          // Text placement
           ctx.save();
           ctx.translate(140, 140);
           ctx.rotate(startAngle + sliceAngle / 2);
@@ -1648,7 +1587,6 @@
           ctx.fillStyle = "#111";
           ctx.font = "bold 12px sans-serif";
           
-          // Truncate text if too long
           let displayText = item.text;
           if (displayText.length > 8) displayText = displayText.substring(0, 8) + '..';
           ctx.fillText(displayText, 120, 5);
@@ -1657,14 +1595,13 @@
           startAngle += sliceAngle;
         });
 
-        // Outer outline ring
+        // Outline rings
         ctx.beginPath();
         ctx.arc(140, 140, 130, 0, 2 * Math.PI);
         ctx.strokeStyle = "var(--myoui-sys-color-primary)";
         ctx.lineWidth = 4;
         ctx.stroke();
 
-        // Inner core
         ctx.beginPath();
         ctx.arc(140, 140, 20, 0, 2 * Math.PI);
         ctx.fillStyle = "#fff";
@@ -1681,11 +1618,9 @@
         if (spinning) return;
         spinning = true;
         
-        // Reset base theme when starting a new turn
         restoreBaseTheme();
         document.getElementById('play-result-card').style.display = 'none';
 
-        // Select random target item using probability weight
         let rand = Math.random() * totalWeight;
         let selectedIdx = 0;
         for (let i = 0; i < items.length; i++) {
@@ -1696,15 +1631,12 @@
           }
         }
 
-        // Calculate stopping angle
         let sliceAccumulator = 0;
         for (let i = 0; i < selectedIdx; i++) {
           sliceAccumulator += (items[i].weight / totalWeight) * 360;
         }
         const targetSliceSize = (items[selectedIdx].weight / totalWeight) * 360;
         const targetAngleOffset = sliceAccumulator + targetSliceSize / 2;
-
-        // Perfect rotation stopping offset formulation (Canvas rotates clockwise, needle at top 270 deg)
         const finalRotation = 3600 + (270 - targetAngleOffset); 
         canvas.style.transform = `rotate(${finalRotation}deg)`;
 
@@ -1722,17 +1654,13 @@
       stage.appendChild(grid);
 
       const items = gameObj.items;
-      
-      // Shuffle envelopes to randomize
       const kujiPool = [];
       items.forEach(item => {
-        // Add instances based on weight probability
         for (let w = 0; w < item.weight; w++) {
           kujiPool.push(item);
         }
       });
 
-      // Limit max displayed cards to 6 or 9 cards dynamically
       const maxCards = Math.min(kujiPool.length, 9);
       const displayCards = kujiPool.sort(() => Math.random() - 0.5).slice(0, maxCards);
 
@@ -1759,7 +1687,6 @@
             <span style="font-size:11px; font-weight:bold; color:var(--myoui-sys-color-primary);">オープン！</span>
           `;
 
-          // Brief delay before results reveal
           setTimeout(() => {
             showPlayResult(item);
           }, 600);
@@ -1774,7 +1701,6 @@
       const machine = document.createElement('div');
       machine.className = "gacha-machine";
 
-      // Glass bowl filling with colorful capsules
       const glass = document.createElement('div');
       glass.className = "gacha-glass";
       
@@ -1785,13 +1711,10 @@
         glass.appendChild(capsule);
       }
 
-      // Crank lever
       const crank = document.createElement('div');
       crank.className = "gacha-crank";
       crank.innerText = "↻";
-      crank.title = "まわす";
 
-      // Gacha exit hole
       const exit = document.createElement('div');
       exit.className = "gacha-exit";
 
@@ -1800,7 +1723,6 @@
       machine.appendChild(exit);
       stage.appendChild(machine);
 
-      // Info message
       const hint = document.createElement('p');
       hint.style.fontSize = "12px";
       hint.style.color = "var(--myoui-sys-color-on-surface-variant)";
@@ -1817,7 +1739,6 @@
 
         crank.classList.add('spin');
         
-        // Shake capsules inside the glass container
         const capsules = glass.querySelectorAll('.gacha-capsule-item');
         capsules.forEach(cap => {
           cap.style.transition = 'transform 0.1s ease';
@@ -1831,7 +1752,6 @@
           }, 80);
         });
 
-        // Release rolling capsule animation through exit
         setTimeout(() => {
           const outCapsule = document.createElement('div');
           outCapsule.className = "gacha-capsule-item";
@@ -1844,16 +1764,13 @@
           outCapsule.style.cursor = "pointer";
           exit.appendChild(outCapsule);
 
-          // Animate roll out
           setTimeout(() => {
             outCapsule.style.transform = "translateY(35px) scale(1.3)";
           }, 50);
 
-          // Make popped capsule interactive
           outCapsule.onclick = function() {
             outCapsule.style.display = 'none';
             
-            // Draw random reward
             const items = gameObj.items;
             const totalWeight = items.reduce((acc, cur) => acc + cur.weight, 0);
             let rand = Math.random() * totalWeight;
@@ -1875,36 +1792,28 @@
       };
     }
 
-    // Play Game results presenter
     function showPlayResult(itemObj) {
       const resultCard = document.getElementById('play-result-card');
       const ballContainer = document.getElementById('result-ball-container');
       const textHeading = document.getElementById('result-text');
       const commentary = document.getElementById('result-commentary');
 
-      // Place ball character
       ballContainer.innerHTML = buildBallElement(itemObj.ball, itemObj.emotion);
-
-      // Populate text details
       textHeading.innerText = itemObj.text;
       
-      // Select dialog commentary based on emotion matching rule
       const commentText = EMOTION_COMMENTS[itemObj.emotion] || "かわいいポーランドボールが応援しているよ！";
       commentary.innerText = `「${COUNTRY_NAMES[itemObj.ball] || itemObj.ball}のコメント: ${commentText}」`;
 
-      // NEW: Apply Dynamic Ball Theme link colors if configured & registered
       if (appThemeConfig.ballThemeLink && BALL_THEME_COLORS[itemObj.ball]) {
         if (typeof window.generateMyOuiTheme === 'function') {
           window.generateMyOuiTheme(BALL_THEME_COLORS[itemObj.ball], appThemeConfig.isDark);
         }
       }
 
-      // Show panel smoothly
       resultCard.style.display = 'block';
       resultCard.scrollIntoView({ behavior: 'smooth' });
     }
 
-    // Save current game state directly to IndexedDB storage
     function saveToIndexedDB() {
       saveGameToDB(currentGame).then((success) => {
         if (success) {
@@ -1916,20 +1825,21 @@
       });
     }
 
-    // Dynamic URL Generation & Share action
+    /**
+     * Builds and copies a URL-Safe, UTF-8 secure parameters link to the clipboard.
+     */
     function shareGameLink() {
       try {
         const payloadData = JSON.parse(JSON.stringify(currentGame.items));
-        // Safe string utility base64 encoder
-        const b64Data = btoa(unescape(encodeURIComponent(JSON.stringify(payloadData))));
+        // Use custom URL-Safe encoder to prevent character corruption
+        const b64Data = safeB64Encode(JSON.stringify(payloadData));
         
         const hostUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
         const shareUrl = `${hostUrl}?share=1&type=${currentGame.type}&title=${encodeURIComponent(currentGame.title)}&data=${b64Data}`;
 
-        // Attempt writing URL to clipboard (Using executive fallback as instructed)
         const textarea = document.createElement("textarea");
         textarea.value = shareUrl;
-        textarea.style.position = "fixed";  // Avoid scrolling to bottom
+        textarea.style.position = "fixed";  
         document.body.appendChild(textarea);
         textarea.focus();
         textarea.select();
@@ -1939,7 +1849,7 @@
           if (successful) {
             showMsg("🔗 共有リンクをコピー！", "友だちに送れるパーティーリンクをクリップボードにコピーしました！LINEやSNSで送ってみてね！");
           } else {
-            throw new Error("Copy command returned false");
+            throw new Error("Copy command failed");
           }
         } catch (err) {
           showMsg("リンクの共有", `下記のリンクをコピーしてね：\n\n${shareUrl}`);
@@ -1951,7 +1861,6 @@
       }
     }
 
-    // Render storage list
     function renderSavedGamesList() {
       const listContainer = document.getElementById('saved-games-list');
       
@@ -1972,10 +1881,8 @@
           card.className = "myoui-card";
           card.style.cursor = "pointer";
           
-          // Play indicator icon
           const icon = game.type === 'roulette' ? '🎯' : (game.type === 'kuji' ? '✉️' : '🔮');
 
-          // Build a tiny preview of ball faces
           let ballsPreview = '';
           const previewLimit = Math.min(game.items.length, 3);
           for (let i = 0; i < previewLimit; i++) {
@@ -2012,7 +1919,6 @@
       });
     }
 
-    // General Dialog Handlers
     function showMsg(title, desc) {
       document.getElementById('msg-dialog-title').innerText = title;
       document.getElementById('msg-dialog-desc').innerText = desc;
@@ -2024,7 +1930,6 @@
     }
 
     function openThemeDialog() {
-      // Re-synchronize dialogue options with local app state before displaying
       document.getElementById('theme-color-input').value = appThemeConfig.seedColor;
       document.getElementById('theme-dark-input').checked = appThemeConfig.isDark;
       document.getElementById('theme-ball-link-input').checked = appThemeConfig.ballThemeLink;
@@ -2034,32 +1939,25 @@
 
     function closeThemeDialog() {
       document.getElementById('theme-dialog').classList.remove('is-open');
-      // Ensure current view matches basic local state in case user modified values without saving
       restoreBaseTheme();
     }
 
-    // Apply & Save configured parameters securely
     function applyThemeFromDialog() {
       const color = document.getElementById('theme-color-input').value;
       const isDark = document.getElementById('theme-dark-input').checked;
       const ballLink = document.getElementById('theme-ball-link-input').checked;
       
-      // Update persistent local state container
       appThemeConfig.seedColor = color;
       appThemeConfig.isDark = isDark;
       appThemeConfig.ballThemeLink = ballLink;
 
-      // Apply
       applyThemeConfig(appThemeConfig);
-      
-      // Save to IndexedDB (Persistence)
       saveThemeSettings(appThemeConfig);
 
       closeThemeDialog();
       showMsg("テーマ適用・保存完了", "カラー設定をスタジオに登録・保存しました！次回起動時にも自動的に反映されます。");
     }
 
-    // Dynamic Confirm Handlers
     function showConfirm(title, desc, callback) {
       document.getElementById('confirm-dialog-title').innerText = title;
       document.getElementById('confirm-dialog-desc').innerText = desc;
@@ -2075,7 +1973,6 @@
       }
     }
 
-    // Helper: Escape text securely
     function escapeHtml(str) {
       if (typeof str !== 'string') return '';
       return str.replace(/&/g, '&amp;')
