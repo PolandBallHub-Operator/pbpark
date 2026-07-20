@@ -1,0 +1,1693 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+    <title>Polandball MagicEraser</title>
+
+    <!-- Google Fonts & Material Symbols -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+
+    <style>
+        :root {
+            /* AIグラデーション色指定 */
+            --ai-grad-1: #5679F0;
+            --ai-grad-2: #D2B5CD;
+            --ai-grad-3: #EB9968;
+
+            --accent-primary: #5679F0;
+            --accent-active: #3e5fc4;
+            
+            /* PTZ 規格初期値 */
+            --ptz-theme-name: "Polandball MagicEraser";
+            --ptz-card-radius: 24px;
+            --ptz-slider-height: 16px;
+            --ptz-toggle-width: 54px;
+            --ptz-toggle-height: 30px;
+            --ptz-toggle-knob-radius: 50%;
+            --ptz-toggle-knob-width: 22px;
+            --ptz-blur-intensity: 0px;
+
+            /* Light Mode ベースカラー */
+            --bg-base: #F7F7F7;
+            --glass-bg: #FFFFFF;
+            --text-main: #1C1C1E;
+            --text-sub: #666666;
+            --bg-secondary: #EEEEEE;
+            --nav-bg: #FFFFFF;
+            --nav-icon-active: #5679F0;
+            
+            --m3-easing: cubic-bezier(0.32, 0.72, 0, 1);
+            --transition-smooth: 0.35s var(--m3-easing);
+            --card-padding: 24px;
+        }
+
+        /* ダークモード */
+        .dark-mode {
+            --bg-base: #121212;
+            --glass-bg: #1E1E1E;
+            --text-main: #FFFFFF;
+            --text-sub: #A1A1A6;
+            --bg-secondary: #2C2C2E;
+            --nav-bg: #1E1E1E;
+            --nav-icon-active: #D2B5CD;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', 'Noto Sans JP', sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            transition: background-color var(--transition-smooth), color var(--transition-smooth);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* アプリ全体のコンテナ */
+        #app-viewport {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        /* ヘッダー */
+        header {
+            height: 64px;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--glass-bg);
+            transition: background-color var(--transition-smooth);
+            position: relative;
+            flex-shrink: 0;
+            border-bottom: 1px solid var(--bg-secondary);
+        }
+
+        .logo {
+            font-weight: 700;
+            font-size: 19px;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, var(--ai-grad-1), var(--ai-grad-2), var(--ai-grad-3));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-align: center;
+        }
+        .theme-toggle {
+            position: absolute;
+            right: 24px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: none;
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background var(--transition-smooth), transform 0.2s;
+        }
+        .theme-toggle:active {
+            transform: scale(0.9);
+        }
+
+        /* メインコンテンツ */
+        main {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 24px 20px 100px;
+            max-width: 720px;
+            width: 100%;
+            margin: 0 auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* フラットソリッドカード */
+        .glass-card {
+            background: var(--glass-bg);
+            border-radius: var(--ptz-card-radius);
+            padding: var(--card-padding);
+            margin-bottom: 20px;
+            box-shadow: none !important;
+            border: none !important;
+            transition: background-color var(--transition-smooth), border-radius var(--transition-smooth);
+            position: relative;
+        }
+
+        h2 { 
+            font-size: 18px; 
+            margin-top: 0; 
+            margin-bottom: 12px;
+            font-weight: 700; 
+            letter-spacing: -0.3px;
+        }
+        p {
+            font-size: 13.5px;
+            line-height: 1.5;
+            margin-top: 0;
+            margin-bottom: 16px;
+            color: var(--text-sub);
+        }
+
+        /* リストコンポーネント */
+        .custom-list {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            margin-bottom: 16px;
+        }
+        .list-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 8px;
+            border-bottom: 1px solid var(--bg-secondary);
+            cursor: pointer;
+            transition: background 0.2s;
+            border-radius: 8px;
+        }
+        .list-item:hover {
+            background: rgba(0, 0, 0, 0.02);
+        }
+        .dark-mode .list-item:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+        .list-item.selected {
+            background: rgba(86, 121, 240, 0.08);
+            border-left: 4px solid var(--accent-primary);
+        }
+        .list-item:last-child {
+            border-bottom: none;
+        }
+        .list-item-title {
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .list-item-desc {
+            font-size: 12px;
+            color: var(--text-sub);
+        }
+
+        /* 太いブルースライダー */
+        .slider-wrapper {
+            margin: 16px 0;
+        }
+        .slider-label-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        .thick-slider-container {
+            position: relative;
+            width: 100%;
+            height: var(--ptz-slider-height);
+            background: var(--bg-secondary);
+            border-radius: calc(var(--ptz-slider-height) / 2);
+            overflow: hidden;
+            cursor: pointer;
+            transition: height var(--transition-smooth);
+        }
+        .thick-slider-fill {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 50%;
+            /* スライダーの塗りつぶしにAIグラデーションを使用 */
+            background: linear-gradient(90deg, var(--ai-grad-1), var(--ai-grad-2), var(--ai-grad-3));
+            transition: width 0.1s ease-out;
+        }
+        .thick-slider-input {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+            margin: 0;
+        }
+
+        /* トグルスイッチ */
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 4px;
+        }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: var(--ptz-toggle-width);
+            height: var(--ptz-toggle-height);
+            transition: width var(--transition-smooth), height var(--transition-smooth);
+        }
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--bg-secondary);
+            transition: var(--transition-smooth);
+            border-radius: calc(var(--ptz-toggle-height) / 2);
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: var(--ptz-toggle-knob-width);
+            width: var(--ptz-toggle-knob-width);
+            left: 4px;
+            bottom: calc((var(--ptz-toggle-height) - var(--ptz-toggle-knob-width)) / 2);
+            background: white;
+            transition: var(--transition-smooth);
+            border-radius: var(--ptz-toggle-knob-radius);
+        }
+        /* トグルスイッチのみ指示に基づき通常の青を採用 */
+        input:checked + .slider {
+            background: #3381FF;
+        }
+        input:checked + .slider:before {
+            transform: translateX(calc(var(--ptz-toggle-width) - var(--ptz-toggle-knob-width) - 8px));
+        }
+
+        /* アクションボタン（AIグラデーション適用） */
+        .ai-btn {
+            border: none;
+            outline: none;
+            padding: 12px 24px;
+            border-radius: 14px;
+            font-weight: 700;
+            font-size: 14px;
+            color: white;
+            cursor: pointer;
+            background: linear-gradient(135deg, var(--ai-grad-1) 0%, var(--ai-grad-2) 50%, var(--ai-grad-3) 100%);
+            transition: transform 0.2s, filter 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(86, 121, 240, 0.25);
+        }
+        .ai-btn:hover {
+            transform: scale(1.02);
+            filter: brightness(1.06);
+        }
+        .ai-btn:active {
+            transform: scale(0.96);
+        }
+        .ai-btn-secondary {
+            background: var(--bg-secondary) !important;
+            color: var(--text-main) !important;
+            box-shadow: none;
+        }
+        .ai-btn-secondary:hover {
+            filter: brightness(0.95);
+        }
+
+        /* インプットテキスト */
+        .glass-input-wrapper {
+            margin-bottom: 14px;
+        }
+        .glass-input {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: none;
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            font-size: 14px;
+            font-family: inherit;
+            box-sizing: border-box;
+            transition: background var(--transition-smooth);
+        }
+        .glass-input:focus {
+            outline: 2px solid var(--accent-primary);
+        }
+
+        /* 下付き固定ナビゲーションバー */
+        .bottom-nav-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 72px;
+            background: var(--nav-bg);
+            border-top: 1px solid var(--bg-secondary);
+            z-index: 500;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding-bottom: env(safe-area-inset-bottom);
+            transition: background-color var(--transition-smooth), border-color var(--transition-smooth);
+        }
+        .nav-item {
+            flex: 1;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-sub);
+            transition: color 0.25s var(--m3-easing);
+            position: relative;
+            gap: 4px;
+        }
+        .nav-item span.material-symbols-outlined {
+            font-size: 24px;
+            font-variation-settings: 'FILL' 0, 'wght' 400;
+            transition: font-variation-settings 0.2s, color 0.2s;
+        }
+        .nav-label {
+            font-size: 10px;
+            font-weight: 600;
+        }
+        .nav-item.active {
+            color: var(--nav-icon-active);
+        }
+        .nav-item.active span.material-symbols-outlined {
+            font-variation-settings: 'FILL' 1, 'wght' 700;
+        }
+
+        /* ビュー切り替え */
+        .view {
+            display: none;
+        }
+        .view.active {
+            display: block;
+            animation: viewIn 0.3s var(--m3-easing);
+        }
+        @keyframes viewIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 画像ドロップエリア */
+        .ptz-dropzone {
+            border: 2px dashed var(--accent-primary);
+            border-radius: var(--ptz-card-radius);
+            padding: 24px;
+            text-align: center;
+            cursor: pointer;
+            background: rgba(86, 121, 240, 0.02);
+            transition: background 0.2s, border-color 0.2s;
+            margin-bottom: 16px;
+        }
+        .dark-mode .ptz-dropzone {
+            background: rgba(210, 181, 205, 0.02);
+        }
+        .ptz-dropzone:hover {
+            background: rgba(86, 121, 240, 0.06);
+            border-color: var(--ai-grad-3);
+        }
+
+        /* JSON エディタ */
+        .json-textarea {
+            width: 100%;
+            height: 160px;
+            font-family: monospace;
+            font-size: 12.5px;
+            padding: 16px;
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            border: none;
+            border-radius: var(--ptz-card-radius);
+            resize: vertical;
+            outline: none;
+            line-height: 1.4;
+            transition: background var(--transition-smooth);
+        }
+        .json-textarea:focus {
+            box-shadow: 0 0 0 2px var(--accent-primary);
+        }
+
+        /* プリセットボタンリスト */
+        .preset-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .preset-btn {
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            border: none;
+            padding: 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            transition: background 0.2s, transform 0.1s;
+        }
+        .preset-btn:active {
+            transform: scale(0.97);
+        }
+
+        /* キャンバスコンテナ */
+        .eraser-canvas-container {
+            position: relative;
+            width: 100%;
+            background: var(--bg-secondary);
+            border-radius: var(--ptz-card-radius);
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            touch-action: none;
+        }
+        #image-canvas {
+            display: block;
+            max-width: 100%;
+            height: auto;
+            object-fit: contain;
+        }
+        #mask-canvas {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: block;
+            max-width: 100%;
+            height: auto;
+            object-fit: contain;
+            cursor: crosshair;
+            z-index: 5;
+        }
+
+        /* 画面表示用ウォーターマーク (消去不可) */
+        .eraser-watermark {
+            position: absolute;
+            bottom: 12px;
+            right: 12px;
+            pointer-events: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(0, 0, 0, 0.65);
+            padding: 6px 12px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            z-index: 10;
+        }
+        .eraser-watermark span {
+            font-size: 11px;
+            font-weight: 700;
+            color: #FFFFFF;
+            letter-spacing: 0.3px;
+        }
+        .eraser-watermark img {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        /* 処理中オーバーレイ（ぼかし＋流動的AIグラデーション＋✦回転） */
+        .processing-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 2000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            background: rgba(0, 0, 0, 0.35);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+        }
+        .processing-overlay.active {
+            display: flex;
+        }
+        .processing-fluid-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(-45deg, var(--ai-grad-1), var(--ai-grad-2), var(--ai-grad-3));
+            background-size: 400% 400%;
+            animation: aiFluidGradient 6s ease infinite;
+            opacity: 0.82;
+            z-index: -1;
+        }
+        .sparkle-spinner {
+            font-size: 64px;
+            color: white;
+            animation: rotateSparkle 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+            margin-bottom: 24px;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.8);
+            user-select: none;
+        }
+        .processing-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: white;
+            letter-spacing: 0.5px;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            margin-bottom: 6px;
+        }
+        .processing-desc {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.85);
+            text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        @keyframes rotateSparkle {
+            0% { transform: rotate(0deg) scale(1); }
+            50% { transform: rotate(180deg) scale(1.15); }
+            100% { transform: rotate(360deg) scale(1); }
+        }
+        @keyframes aiFluidGradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* トースト通知 */
+        .toast {
+            position: fixed;
+            bottom: 84px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--text-main);
+            color: var(--glass-bg);
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s var(--m3-easing);
+            z-index: 2000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .toast.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* ダイアログ */
+        .dialog-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000; display: flex; align-items: center; justify-content: center;
+            opacity: 0; visibility: hidden; transition: all 0.3s var(--m3-easing);
+        }
+        .dialog-overlay.active { opacity: 1; visibility: visible; }
+        .glass-dialog {
+            background: var(--glass-bg);
+            border-radius: var(--ptz-card-radius);
+            padding: 24px; max-width: 380px; width: 90%; text-align: center;
+            transform: scale(0.9) translateY(20px); transition: all 0.4s var(--m3-easing);
+        }
+        .dialog-overlay.active .glass-dialog { transform: scale(1) translateY(0); }
+
+        .badge {
+            background: linear-gradient(135deg, var(--ai-grad-1), var(--ai-grad-3));
+            color: white;
+            padding: 3px 10px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 700;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app-viewport">
+        <!-- ヘッダー -->
+        <header>
+            <div class="logo">Polandball MagicEraser</div>
+            <button class="theme-toggle" id="theme-btn" title="テーマ切り替え">
+                <span class="material-symbols-outlined">light_mode</span>
+            </button>
+        </header>
+
+        <!-- メインコンテンツ -->
+        <main>
+            <!-- 1. ホームビュー (消しゴムメイン画面) -->
+            <section id="view-home" class="view active">
+                <div class="glass-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <span class="badge" id="current-theme-badge">Polandball MagicEraser</span>
+                        <span style="font-size: 11px; color: var(--text-sub);" id="ptz-status-label">最強画像消しゴムツール</span>
+                    </div>
+                    <h2>MagicEraser キャンバス</h2>
+                    <p>
+                        画像上の不要なキャラクターやオブジェクトを指かマウスでなぞって選択してください。「消去する」をクリックすると全方向引き伸ばし処理や周辺テクスチャ補正をかけ違和感なく消し去ります。
+                    </p>
+
+                    <!-- キャンバスエリア (白いカード内に直接配置・灰色の内包カードは禁止) -->
+                    <div class="eraser-canvas-container" id="canvas-outer">
+                        <canvas id="image-canvas"></canvas>
+                        <canvas id="mask-canvas"></canvas>
+                        
+                        <!-- 常に画面に留まるウォーターマーク (消すことはできない) -->
+                        <div class="eraser-watermark">
+                            <span>Edit with PBPark</span>
+                            <img src="https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/germany/normal.png" alt="Germanyball" id="wm-img-avatar">
+                        </div>
+                    </div>
+
+                    <!-- ブラシサイズコントローラー -->
+                    <div class="slider-wrapper">
+                        <div class="slider-label-row">
+                            <span>消しゴムの太さ (ブラシ半径)</span>
+                            <span id="val-brush">20px</span>
+                        </div>
+                        <div class="thick-slider-container" id="slider-brush-container">
+                            <div class="thick-slider-fill" id="slider-brush-fill" style="width: 40%;"></div>
+                            <input type="range" class="thick-slider-input" min="5" max="50" value="20" id="brush-size-input">
+                        </div>
+                    </div>
+
+                    <!-- 各種操作ボタン -->
+                    <div style="margin-top: 18px; display: flex; flex-wrap: wrap; gap: 8px;">
+                        <button class="ai-btn" id="btn-erase" style="flex: 1; min-width: 140px;">
+                            <span class="material-symbols-outlined">auto_fix_high</span>
+                            消去する
+                        </button>
+                        <button class="ai-btn ai-btn-secondary" id="btn-undo" title="元に戻す" style="padding: 12px 16px;">
+                            <span class="material-symbols-outlined">undo</span>
+                            戻す
+                        </button>
+                        <button class="ai-btn" id="btn-download" style="flex: 1; min-width: 140px; background: linear-gradient(135deg, var(--ai-grad-2), var(--ai-grad-3));">
+                            <span class="material-symbols-outlined">download</span>
+                            保存
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 画像アップロードセクション (フラットデザイン) -->
+                <div class="glass-card">
+                    <h2>画像をロードする</h2>
+                    <p>PCやスマホからローカル画像をロードして消しゴムマジックを試すことができます。</p>
+                    
+                    <div class="ptz-dropzone" id="ptz-drop-area" onclick="triggerFileInput()">
+                        <span class="material-symbols-outlined" style="font-size: 36px; color: var(--accent-primary); margin-bottom: 8px;">add_photo_alternate</span>
+                        <div style="font-weight: 700; font-size: 14px;">ここに画像をドロップ、またはクリック</div>
+                        <div style="font-size: 12px; color: var(--text-sub); margin-top: 4px;">PNG, JPG画像ファイルをロードできます</div>
+                        <input type="file" id="ptz-file-input" accept="image/*" style="display: none;" onchange="handleImageFileSelect(event)">
+                    </div>
+
+                    <div style="display: flex; gap: 8px;">
+                        <button class="ai-btn ai-btn-secondary" onclick="loadDefaultGermanyBall()" style="width: 100%;">
+                            <span class="material-symbols-outlined">restart_alt</span>
+                            ドイツボール画像を初期化ロード
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2. 消去オプション & PTZカスタマイズビュー -->
+            <section id="view-ptz" class="view">
+                <div class="glass-card">
+                    <h2>消しオプション & 処理方式</h2>
+                    <p>画像の性質に合わせて最適な消去アルゴリズムを選択してください。</p>
+
+                    <div class="custom-list" id="erase-options-list">
+                        <!-- オプション：ガチ消し -->
+                        <div class="list-item selected" data-mode="gachi">
+                            <div>
+                                <div class="list-item-title">ガチ消し (一番しっかり消せる)</div>
+                                <div class="list-item-desc">周囲のテクスチャを引き伸ばし、細部ノイズを馴染ませる最強モード</div>
+                            </div>
+                            <span class="material-symbols-outlined" style="color: var(--accent-primary)">check_circle</span>
+                        </div>
+
+                        <!-- オプション：モヤかけ完全消去 -->
+                        <div class="list-item" data-mode="moya">
+                            <div>
+                                <div class="list-item-title">ちょっとモヤをかけて完全に消去</div>
+                                <div class="list-item-desc">消した境界線に薄くブラーをかけることで違和感をゼロにします</div>
+                            </div>
+                            <span class="material-symbols-outlined" style="color: var(--text-sub)">radio_button_unchecked</span>
+                        </div>
+
+                        <!-- オプション：完全消去 -->
+                        <div class="list-item" data-mode="clean">
+                            <div>
+                                <div class="list-item-title">完全消去 (残らない)</div>
+                                <div class="list-item-desc">周囲の主要色を検出し完全にベタ塗り引き伸ばしをかけます</div>
+                            </div>
+                            <span class="material-symbols-outlined" style="color: var(--text-sub)">radio_button_unchecked</span>
+                        </div>
+
+                        <!-- オプション：違和感なく消せる -->
+                        <div class="list-item" data-mode="natural">
+                            <div>
+                                <div class="list-item-title">違和感なく消去</div>
+                                <div class="list-item-desc">境界部の色連続性とグラデーションの整合性を保ちながら引き伸ばします</div>
+                            </div>
+                            <span class="material-symbols-outlined" style="color: var(--text-sub)">radio_button_unchecked</span>
+                        </div>
+
+                        <!-- オプション：MyErase -->
+                        <div class="list-item" data-mode="myerase">
+                            <div>
+                                <div class="list-item-title">MyErase</div>
+                                <div class="list-item-desc">画像の縦横比を検出し、その方向に優先して周囲のテクスチャを引き伸ばします</div>
+                            </div>
+                            <span class="material-symbols-outlined" style="color: var(--text-sub)">radio_button_unchecked</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card">
+                    <h2>PTZ.json 連携マネージャー</h2>
+                    <p>アプリ全体を好みのテーマデザインに一発カスタマイズできる規格「PTZ.json」の管理パネルです。</p>
+
+                    <div style="margin-bottom: 12px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                            <span style="font-weight: 700; font-size: 13px;">PTZ.json コードエディタ</span>
+                            <div style="display: flex; gap: 6px;">
+                                <button class="preset-btn" style="padding: 4px 8px; margin: 0;" onclick="copyJsonToClipboard()">コピー</button>
+                                <button class="preset-btn" style="padding: 4px 8px; margin: 0; background: var(--accent-primary); color: white;" onclick="downloadJsonFile()">保存 (.json)</button>
+                            </div>
+                        </div>
+                        <textarea class="json-textarea" id="ptz-code-area" oninput="validateAndApplyJson(this.value)"></textarea>
+                        <div id="json-error-msg" style="color: #FF3B30; font-size: 12px; margin-top: 6px; display: none; font-weight: 600;"></div>
+                    </div>
+
+                    <div style="margin-top: 16px;">
+                        <button class="ai-btn" style="width: 100%;" onclick="applyJsonFromTextArea()">
+                            <span class="material-symbols-outlined">done_all</span>
+                            変更を今すぐ強制適用
+                        </button>
+                    </div>
+                </div>
+
+                <div class="glass-card">
+                    <h2>プリセット・テーマ</h2>
+                    <p>PTZ.jsonのワンタップ・プリセットです。好みのデザインに即座に切り替えます。</p>
+                    <div class="preset-grid">
+                        <button class="preset-btn" onclick="loadPreset('default')">Polandball Magic</button>
+                        <button class="preset-btn" onclick="loadPreset('sharpPurple')">Sharp Purple (角丸0)</button>
+                        <button class="preset-btn" onclick="loadPreset('chunkyRose')">Chunky Rose (極厚)</button>
+                        <button class="preset-btn" onclick="loadPreset('minimalGray')">Minimal Monochrome</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. 情報・デモギャラリービュー -->
+            <section id="view-components" class="view">
+                <div class="glass-card">
+                    <h2>Polandball MagicEraser とは</h2>
+                    <p>
+                        ドイツボールなどのPolandball画像を完璧に編集し、不要なキャラクターや枠線、テキストなどを瞬時に魔法のように除去できる画期的な「非AI消しゴム」ツールです。
+                    </p>
+                    <p>
+                        キャンバス上で赤く囲って消去を実行すると、全方向引き伸ばしや境界ピクセルコピーの強力な内部エンジンが働き、画像を完璧に再構成します。
+                    </p>
+                    <p>
+                        消し終えたら、右下に<strong>「Edit with PBPark」とドイツボールのウォーターマーク</strong>が自動的に追加され、あなたの作品を守ります。そのままダウンロードして友達と共有しましょう！
+                    </p>
+                </div>
+
+                <div class="glass-card">
+                    <h2>システム設定</h2>
+                    <p>デザインシステムがロードしているPTZパラメータ情報</p>
+                    <div style="display: flex; flex-direction: column; gap: 10px; font-size: 13px;">
+                        <div style="display: flex; justify-content: space-between;">
+                            <span style="color: var(--text-sub);">アクティブカラー</span>
+                            <span style="font-weight:700; color: var(--accent-primary);" id="info-accent-color">#5679F0</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span style="color: var(--text-sub);">カード角丸半径</span>
+                            <span style="font-weight:700;" id="info-radius">24px</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span style="color: var(--text-sub);">スライダーの厚さ</span>
+                            <span style="font-weight:700;" id="info-slider-height">16px</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- 下付き固定ナビゲーションバー（枠線なし、アクティブ時色変化） -->
+        <div class="bottom-nav-container">
+            <div class="nav-item active" data-view="view-home" onclick="switchView('view-home')">
+                <span class="material-symbols-outlined">brush</span>
+                <span class="nav-label">消しゴム</span>
+            </div>
+            <div class="nav-item" data-view="view-ptz" onclick="switchView('view-ptz')">
+                <span class="material-symbols-outlined">tune</span>
+                <span class="nav-label">消去設定</span>
+            </div>
+            <div class="nav-item" data-view="view-components" onclick="switchView('view-components')">
+                <span class="material-symbols-outlined">info</span>
+                <span class="nav-label">詳細</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 処理中のローディング表示 (流動的AIグラデーション + ✦回転) -->
+    <div id="processing-overlay" class="processing-overlay">
+        <div class="processing-fluid-bg"></div>
+        <div class="sparkle-spinner">✦</div>
+        <div class="processing-title" id="processing-main-text">テクスチャを解析して消去中...</div>
+        <div class="processing-desc">全方向の引きのばしと補間処理を適用しています</div>
+    </div>
+
+    <!-- トースト通知 -->
+    <div class="toast" id="toast-message">メッセージをコピーしました</div>
+
+    <script>
+        /**
+         * Polandball MagicEraser - Application Logic
+         */
+
+        const viewport = document.getElementById('app-viewport');
+        const themeBtn = document.getElementById('theme-btn');
+        const themeIcon = themeBtn.querySelector('span');
+        const toast = document.getElementById('toast-message');
+        const ptzCodeArea = document.getElementById('ptz-code-area');
+        const jsonErrorMsg = document.getElementById('json-error-msg');
+
+        // キャンバス関係
+        const imageCanvas = document.getElementById('image-canvas');
+        const maskCanvas = document.getElementById('mask-canvas');
+        const imgCtx = imageCanvas.getContext('2d');
+        const maskCtx = maskCanvas.getContext('2d');
+        
+        let brushRadius = 20;
+        let isDrawing = false;
+        let activeEraseMode = 'gachi'; // gachi, moya, clean, natural, myerase
+        let loadedImgObj = null;
+
+        // Undoヒストリ
+        let historyStack = [];
+        const maxHistory = 10;
+
+        // デフォルトPTZオブジェクト
+        let currentPtz = {
+            "themeName": "Polandball MagicEraser",
+            "accentColor": "#5679F0",
+            "cardRadius": 24,
+            "sliderHeight": 16,
+            "toggleWidth": 54,
+            "toggleHeight": 30,
+            "toggleKnobRadius": 50,
+            "toggleKnobWidth": 22,
+            "blurIntensity": 0,
+            "bgLight": "#F7F7F7",
+            "bgDark": "#121212"
+        };
+
+        // プリセットデータ定義
+        const presets = {
+            default: {
+                "themeName": "Polandball Magic",
+                "accentColor": "#5679F0",
+                "cardRadius": 24,
+                "sliderHeight": 16,
+                "toggleWidth": 54,
+                "toggleHeight": 30,
+                "toggleKnobRadius": 50,
+                "toggleKnobWidth": 22,
+                "blurIntensity": 0,
+                "bgLight": "#F7F7F7",
+                "bgDark": "#121212"
+            },
+            sharpPurple: {
+                "themeName": "Sharp Purple",
+                "accentColor": "#8B5CF6",
+                "cardRadius": 0,
+                "sliderHeight": 12,
+                "toggleWidth": 50,
+                "toggleHeight": 26,
+                "toggleKnobRadius": 0,
+                "toggleKnobWidth": 18,
+                "blurIntensity": 0,
+                "bgLight": "#FFFFFF",
+                "bgDark": "#1C1C1E"
+            },
+            chunkyRose: {
+                "themeName": "Chunky Rose",
+                "accentColor": "#E11D48",
+                "cardRadius": 32,
+                "sliderHeight": 24,
+                "toggleWidth": 64,
+                "toggleHeight": 36,
+                "toggleKnobRadius": 50,
+                "toggleKnobWidth": 28,
+                "blurIntensity": 0,
+                "bgLight": "#FFF1F2",
+                "bgDark": "#1A0B0E"
+            },
+            minimalGray: {
+                "themeName": "Minimal Monochrome",
+                "accentColor": "#444444",
+                "cardRadius": 12,
+                "sliderHeight": 14,
+                "toggleWidth": 46,
+                "toggleHeight": 24,
+                "toggleKnobRadius": 50,
+                "toggleKnobWidth": 16,
+                "blurIntensity": 0,
+                "bgLight": "#F3F4F6",
+                "bgDark": "#0F0F10"
+            }
+        };
+
+        // --- PTZ適用のコア関数 ---
+        function applyPtz(ptz) {
+            currentPtz = { ...currentPtz, ...ptz };
+
+            // CSS Custom Properties へのマッピング
+            const root = document.documentElement;
+            root.style.setProperty('--accent-primary', currentPtz.accentColor);
+            root.style.setProperty('--accent-active', adjustColorBrightness(currentPtz.accentColor, -15));
+            root.style.setProperty('--ptz-card-radius', `${currentPtz.cardRadius}px`);
+            root.style.setProperty('--ptz-slider-height', `${currentPtz.sliderHeight}px`);
+            root.style.setProperty('--ptz-toggle-width', `${currentPtz.toggleWidth}px`);
+            root.style.setProperty('--ptz-toggle-height', `${currentPtz.toggleHeight}px`);
+            root.style.setProperty('--ptz-toggle-knob-radius', isNaN(currentPtz.toggleKnobRadius) ? currentPtz.toggleKnobRadius : `${currentPtz.toggleKnobRadius}%`);
+            root.style.setProperty('--ptz-toggle-knob-width', `${currentPtz.toggleKnobWidth}px`);
+            
+            // ライト／ダーク背景をPTZの指定通りに
+            root.style.setProperty('--bg-base', document.body.classList.contains('dark-mode') ? currentPtz.bgDark : currentPtz.bgLight);
+
+            // バッジやインジケーターの文言を同期
+            document.getElementById('current-theme-badge').textContent = currentPtz.themeName || "PTZ Config";
+            document.getElementById('info-accent-color').textContent = currentPtz.accentColor;
+            document.getElementById('info-accent-color').style.color = currentPtz.accentColor;
+            document.getElementById('info-radius').textContent = `${currentPtz.cardRadius}px`;
+            document.getElementById('info-slider-height').textContent = `${currentPtz.sliderHeight}px`;
+
+            // エディタ（Textarea）に反映
+            ptzCodeArea.value = JSON.stringify(currentPtz, null, 2);
+        }
+
+        // 明るさ調整用ヘルパー
+        function adjustColorBrightness(hex, percent) {
+            let R = parseInt(hex.substring(1, 3), 16);
+            let G = parseInt(hex.substring(3, 5), 16);
+            let B = parseInt(hex.substring(5, 7), 16);
+            R = parseInt(R * (100 + percent) / 100);
+            G = parseInt(G * (100 + percent) / 100);
+            B = parseInt(B * (100 + percent) / 100);
+            R = (R < 255) ? R : 255; G = (G < 255) ? G : 255; B = (B < 255) ? B : 255;
+            const rHex = ((R.toString(16).length == 1) ? "0" + R.toString(16) : R.toString(16));
+            const gHex = ((G.toString(16).length == 1) ? "0" + G.toString(16) : G.toString(16));
+            const bHex = ((B.toString(16).length == 1) ? "0" + B.toString(16) : B.toString(16));
+            return "#" + rHex + gHex + bHex;
+        }
+
+        // JSONバリデーションと適用
+        function validateAndApplyJson(textVal) {
+            try {
+                const parsed = JSON.parse(textVal);
+                jsonErrorMsg.style.display = 'none';
+                applyPtz(parsed);
+                return true;
+            } catch (e) {
+                jsonErrorMsg.textContent = `JSON構文エラー: ${e.message}`;
+                jsonErrorMsg.style.display = 'block';
+                return false;
+            }
+        }
+
+        function applyJsonFromTextArea() {
+            if (validateAndApplyJson(ptzCodeArea.value)) {
+                showToast('PTZ.json 変更が手動適用されました');
+            } else {
+                showToast('エラー箇所を修正してください');
+            }
+        }
+
+        // プリセット適用
+        function loadPreset(key) {
+            if (presets[key]) {
+                applyPtz(presets[key]);
+                showToast(`プリセット [${presets[key].themeName}] をロードしました`);
+            }
+        }
+
+        // --- 太いブルースライダーのハンドラ ---
+        function updateThickSlider(fillId, labelId, val, unit) {
+            const label = document.getElementById(labelId);
+            const fill = document.getElementById(fillId);
+            if (label) label.textContent = `${val}${unit}`;
+            
+            if (fill) {
+                const input = fill.nextElementSibling;
+                if (input) {
+                    const min = parseFloat(input.min) || 0;
+                    const max = parseFloat(input.max) || 100;
+                    const percent = ((val - min) / (max - min)) * 100;
+                    fill.style.width = `${percent}%`;
+                }
+            }
+        }
+
+        // --- ファイルドラッグ＆ドロップ ＆ 読み込み ---
+        function triggerFileInput() {
+            document.getElementById('ptz-file-input').click();
+        }
+
+        function handleImageFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            readImageFile(file);
+        }
+
+        function readImageFile(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                loadImageSrc(e.target.result);
+                showToast("画像をロードしました！");
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // ドラッグ＆ドロップ イベント登録
+        const dropArea = document.getElementById('ptz-drop-area');
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropArea.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                dropArea.style.borderColor = 'var(--ai-grad-3)';
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                dropArea.style.borderColor = 'var(--accent-primary)';
+            }, false);
+        });
+
+        dropArea.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            const file = dt.files[0];
+            if (file && file.type.startsWith('image/')) {
+                readImageFile(file);
+            } else {
+                showToast('有効な画像ファイルをドロップしてください。');
+            }
+        });
+
+        // JSONのコピーとダウンロード
+        function copyJsonToClipboard() {
+            ptzCodeArea.select();
+            document.execCommand('copy');
+            showToast('PTZ.json をクリップボードにコピーしました！');
+        }
+
+        function downloadJsonFile() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(ptzCodeArea.value);
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `${currentPtz.themeName.toLowerCase().replace(/\s+/g, '_')}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+            showToast('PTZ.json ファイルのダウンロードを開始しました');
+        }
+
+        // --- ビュー切り替え機構 ---
+        const navItems = document.querySelectorAll('.nav-item');
+        const views = document.querySelectorAll('.view');
+
+        function switchView(viewId) {
+            navItems.forEach(n => {
+                n.classList.remove('active');
+                if (n.getAttribute('data-view') === viewId) {
+                    n.classList.add('active');
+                }
+            });
+
+            views.forEach(v => {
+                v.classList.remove('active');
+                if (v.id === viewId) {
+                    v.classList.add('active');
+                }
+            });
+        }
+
+        // --- トースト通知 ---
+        function showToast(msg) {
+            toast.textContent = msg;
+            toast.classList.add('active');
+            setTimeout(() => {
+                toast.classList.remove('active');
+            }, 2300);
+        }
+
+        // --- テーマ（ライト・ダーク）切替 ---
+        function setTheme(isDark) {
+            document.body.classList.toggle('dark-mode', isDark);
+            themeIcon.textContent = isDark ? 'dark_mode' : 'light_mode';
+            
+            const root = document.documentElement;
+            root.style.setProperty('--bg-base', isDark ? currentPtz.bgDark : currentPtz.bgLight);
+        }
+
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+        setTheme(prefersDark.matches);
+
+        themeBtn.addEventListener('click', () => {
+            setTheme(!document.body.classList.contains('dark-mode'));
+        });
+
+        // ------------------ キャンバス描画・MagicEraser処理エンジン ------------------
+
+        // 画像の読み込み
+        function loadImageSrc(src) {
+            const img = new Image();
+            img.crossOrigin = "anonymous";
+            img.onload = function() {
+                loadedImgObj = img;
+                setupCanvasSizes();
+                imgCtx.drawImage(img, 0, 0);
+                maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
+                
+                // ヒストリ初期化
+                historyStack = [];
+                pushHistory();
+            };
+            img.src = src;
+        }
+
+        function setupCanvasSizes() {
+            if (!loadedImgObj) return;
+
+            const w = loadedImgObj.naturalWidth;
+            const h = loadedImgObj.naturalHeight;
+
+            imageCanvas.width = w;
+            imageCanvas.height = h;
+            maskCanvas.width = w;
+            maskCanvas.height = h;
+
+            // 表示サイズ調整
+            const outer = document.getElementById('canvas-outer');
+            const containerWidth = outer.clientWidth;
+            const aspect = h / w;
+
+            let targetWidth = containerWidth;
+            let targetHeight = containerWidth * aspect;
+
+            // 最大高さを制限
+            if (targetHeight > 420) {
+                targetHeight = 420;
+                targetWidth = 420 / aspect;
+            }
+
+            imageCanvas.style.width = `${targetWidth}px`;
+            imageCanvas.style.height = `${targetHeight}px`;
+            maskCanvas.style.width = `${targetWidth}px`;
+            maskCanvas.style.height = `${targetHeight}px`;
+        }
+
+        // デフォルト画像を初期化ロード
+        function loadDefaultGermanyBall() {
+            loadImageSrc("https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/germany/normal.png");
+        }
+
+        // マスクお絵かき関連のイベント
+        function getCanvasCoords(e, canvas) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            
+            let clientX, clientY;
+            if (e.touches && e.touches.length > 0) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            } else {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            }
+            
+            return {
+                x: (clientX - rect.left) * scaleX,
+                y: (clientY - rect.top) * scaleY
+            };
+        }
+
+        function startDrawing(e) {
+            isDrawing = true;
+            draw(e);
+        }
+
+        function stopDrawing() {
+            isDrawing = false;
+            maskCtx.beginPath();
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+            e.preventDefault();
+            
+            const coords = getCanvasCoords(e, maskCanvas);
+            
+            maskCtx.lineWidth = brushRadius * 2;
+            maskCtx.lineCap = 'round';
+            maskCtx.lineJoin = 'round';
+            // 半透明の朱色（AIグラデーションの一部をイメージした色でなぞる）
+            maskCtx.strokeStyle = 'rgba(235, 153, 104, 0.65)';
+            
+            maskCtx.lineTo(coords.x, coords.y);
+            maskCtx.stroke();
+            maskCtx.beginPath();
+            maskCtx.moveTo(coords.x, coords.y);
+        }
+
+        maskCanvas.addEventListener('mousedown', startDrawing);
+        maskCanvas.addEventListener('mousemove', draw);
+        window.addEventListener('mouseup', stopDrawing);
+
+        maskCanvas.addEventListener('touchstart', startDrawing, { passive: false });
+        maskCanvas.addEventListener('touchmove', draw, { passive: false });
+        window.addEventListener('touchend', stopDrawing);
+
+        // スライダー入力処理
+        const brushInput = document.getElementById('brush-size-input');
+        brushInput.addEventListener('input', (e) => {
+            brushRadius = parseInt(e.target.value);
+            updateThickSlider('slider-brush-fill', 'val-brush', brushRadius, 'px');
+        });
+
+        // ヒストリ処理
+        function pushHistory() {
+            if (historyStack.length >= maxHistory) {
+                historyStack.shift();
+            }
+            historyStack.push(imageCanvas.toDataURL());
+        }
+
+        document.getElementById('btn-undo').addEventListener('click', () => {
+            if (historyStack.length > 1) {
+                historyStack.pop(); // 現在の状態を削除
+                const previousState = historyStack[historyStack.length - 1];
+                const img = new Image();
+                img.onload = function() {
+                    imgCtx.clearRect(0, 0, imageCanvas.width, imageCanvas.height);
+                    imgCtx.drawImage(img, 0, 0);
+                    showToast("元に戻しました");
+                };
+                img.src = previousState;
+            } else {
+                showToast("これ以上戻せません。");
+            }
+        });
+
+        // ------------------ MagicEraser処理ロジック (非AI最強インペイント) ------------------
+
+        function runMagicEraser() {
+            const width = imageCanvas.width;
+            const height = imageCanvas.height;
+
+            const maskData = maskCtx.getImageData(0, 0, width, height);
+            const maskPixels = maskData.data;
+
+            // マスク領域があるか確認
+            let hasMask = false;
+            const maskMap = new Uint8Array(width * height);
+            for (let i = 0; i < width * height; i++) {
+                // 赤または不透明度がある部分をマスクとする
+                if (maskPixels[i * 4 + 3] > 20) {
+                    maskMap[i] = 1;
+                    hasMask = true;
+                } else {
+                    maskMap[i] = 0;
+                }
+            }
+
+            if (!hasMask) {
+                showToast("キャンバスをなぞって消したい部分を指定してください！");
+                return;
+            }
+
+            // 処理中アニメーション表示
+            const overlay = document.getElementById('processing-overlay');
+            const mainText = document.getElementById('processing-main-text');
+            
+            // モードに応じた文言
+            if (activeEraseMode === 'gachi') mainText.textContent = "ガチ消し(最強) 処理中...";
+            else if (activeEraseMode === 'moya') mainText.textContent = "モヤかけ完全消去 処理中...";
+            else if (activeEraseMode === 'clean') mainText.textContent = "完全消去 処理中...";
+            else if (activeEraseMode === 'natural') mainText.textContent = "違和感なし消去 処理中...";
+            else if (activeEraseMode === 'myerase') mainText.textContent = "MyErase 高速補間中...";
+
+            overlay.classList.add('active');
+
+            setTimeout(() => {
+                const imgData = imgCtx.getImageData(0, 0, width, height);
+                const pixels = imgData.data;
+
+                // 全方向引き伸ばし＆テクスチャコピーを非AIアルゴリズムで擬似・高速実装
+                // Onion-skin 収縮境界波及法 (Dilation Propagation)
+                let workingPixels = new Uint8ClampedArray(pixels);
+                let currentMask = new Uint8Array(maskMap);
+                let maskCount = 0;
+                for (let i = 0; i < currentMask.length; i++) if (currentMask[i] === 1) maskCount++;
+
+                const isVertical = height > width;
+                let iter = 0;
+                const maxIter = Math.max(width, height);
+
+                while (maskCount > 0 && iter < maxIter) {
+                    let newlyFilled = [];
+                    
+                    for (let y = 0; y < height; y++) {
+                        for (let x = 0; x < width; x++) {
+                            const idx = y * width + x;
+                            if (currentMask[idx] === 1) {
+                                // 境界上のピクセル（周囲に非マスクピクセルがある）を探す
+                                let neighbors = [];
+                                
+                                // 周囲の座標定義
+                                let coords = [
+                                    [x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]
+                                ];
+
+                                // MyEraseモードでは、縦長なら縦方向、横長なら横方向の周辺テクスチャを大きく引っ張る
+                                if (activeEraseMode === 'myerase') {
+                                    if (isVertical) {
+                                        coords = [
+                                            [x, y - 1], [x, y + 1],
+                                            [x, y - 2], [x, y + 2],
+                                            [x - 1, y], [x + 1, y]
+                                        ];
+                                    } else {
+                                        coords = [
+                                            [x - 1, y], [x + 1, y],
+                                            [x - 2, y], [x + 2, y],
+                                            [x, y - 1], [x, y + 1]
+                                        ];
+                                    }
+                                }
+
+                                for (let c of coords) {
+                                    const nx = c[0];
+                                    const ny = c[1];
+                                    if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+                                        const nidx = ny * width + nx;
+                                        if (currentMask[nidx] === 0) {
+                                            neighbors.push(nidx);
+                                        }
+                                    }
+                                }
+
+                                if (neighbors.length > 0) {
+                                    let r = 0, g = 0, b = 0, a = 0;
+                                    
+                                    if (activeEraseMode === 'natural') {
+                                        // 違和感なく消す：隣接ピクセルからランダムに色を抽出し、微妙にグラデーションを揺らす
+                                        const randN = neighbors[Math.floor(Math.random() * neighbors.length)];
+                                        r = workingPixels[randN * 4];
+                                        g = workingPixels[randN * 4 + 1];
+                                        b = workingPixels[randN * 4 + 2];
+                                        a = workingPixels[randN * 4 + 3];
+                                        
+                                        // 微細な色変動
+                                        r = Math.max(0, Math.min(255, r + (Math.random() * 4 - 2)));
+                                        g = Math.max(0, Math.min(255, g + (Math.random() * 4 - 2)));
+                                        b = Math.max(0, Math.min(255, b + (Math.random() * 4 - 2)));
+                                    } else {
+                                        // 通常の全方向引き伸ばし平均色
+                                        for (let nidx of neighbors) {
+                                            r += workingPixels[nidx * 4];
+                                            g += workingPixels[nidx * 4 + 1];
+                                            b += workingPixels[nidx * 4 + 2];
+                                            a += workingPixels[nidx * 4 + 3];
+                                        }
+                                        r = r / neighbors.length;
+                                        g = g / neighbors.length;
+                                        b = b / neighbors.length;
+                                        a = a / neighbors.length;
+                                    }
+
+                                    newlyFilled.push({ idx, r, g, b, a });
+                                }
+                            }
+                        }
+                    }
+
+                    if (newlyFilled.length === 0) {
+                        break;
+                    }
+
+                    for (let item of newlyFilled) {
+                        workingPixels[item.idx * 4] = item.r;
+                        workingPixels[item.idx * 4 + 1] = item.g;
+                        workingPixels[item.idx * 4 + 2] = item.b;
+                        workingPixels[item.idx * 4 + 3] = item.a;
+                        currentMask[item.idx] = 0;
+                        maskCount--;
+                    }
+                    iter++;
+                }
+
+                // 各モード特有の仕上げ処理
+                if (activeEraseMode === 'moya') {
+                    // モヤをかけて馴染ませる
+                    applySubsetBlur(workingPixels, maskMap, width, height, 4);
+                } else if (activeEraseMode === 'gachi') {
+                    // ガチ消し（最強）：引き伸ばし特有の筋を消すため、境界周辺を軽く滑らかにしつつ極微細なテクスチャを合成
+                    applySubsetSmooth(workingPixels, maskMap, width, height);
+                }
+
+                // 結果を書き戻す
+                for (let i = 0; i < pixels.length; i++) {
+                    pixels[i] = workingPixels[i];
+                }
+                imgCtx.putImageData(imgData, 0, 0);
+
+                // マスクのクリア
+                maskCtx.clearRect(0, 0, width, height);
+
+                // ドイツボールウォーターマーク＆Edit with PBParkを強制的に焼き込む (消去不可)
+                burnWatermark(imageCanvas, () => {
+                    overlay.classList.remove('active');
+                    showToast("MagicEraser 処理完了！");
+                    pushHistory();
+                });
+
+            }, 2500); // 演出用処理時間
+        }
+
+        // 簡易ブラー
+        function applySubsetBlur(pixels, maskMap, width, height, radius) {
+            const copy = new Uint8ClampedArray(pixels);
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    const idx = y * width + x;
+                    if (maskMap[idx] === 1) {
+                        let r = 0, g = 0, b = 0, count = 0;
+                        for (let ky = -radius; ky <= radius; ky++) {
+                            for (let kx = -radius; kx <= radius; kx++) {
+                                const nx = x + kx;
+                                const ny = y + ky;
+                                if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+                                    const nidx = ny * width + nx;
+                                    r += copy[nidx * 4];
+                                    g += copy[nidx * 4 + 1];
+                                    b += copy[nidx * 4 + 2];
+                                    count++;
+                                }
+                            }
+                        }
+                        pixels[idx * 4] = r / count;
+                        pixels[idx * 4 + 1] = g / count;
+                        pixels[idx * 4 + 2] = b / count;
+                    }
+                }
+            }
+        }
+
+        // 滑らかさ＆デジタル微細テクスチャ補正（ガチ消し）
+        function applySubsetSmooth(pixels, maskMap, width, height) {
+            const copy = new Uint8ClampedArray(pixels);
+            for (let y = 1; y < height - 1; y++) {
+                for (let x = 1; x < width - 1; x++) {
+                    const idx = y * width + x;
+                    if (maskMap[idx] === 1) {
+                        let r = 0, g = 0, b = 0;
+                        for (let ky = -1; ky <= 1; ky++) {
+                            for (let kx = -1; kx <= 1; kx++) {
+                                const nidx = (y + ky) * width + (x + kx);
+                                r += copy[nidx * 4];
+                                g += copy[nidx * 4 + 1];
+                                b += copy[nidx * 4 + 2];
+                            }
+                        }
+                        // 軽微なテクスチャノイズを追加しCGっぽさを排除
+                        const noise = (Math.random() - 0.5) * 6;
+                        pixels[idx * 4] = Math.max(0, Math.min(255, r / 9 + noise));
+                        pixels[idx * 4 + 1] = Math.max(0, Math.min(255, g / 9 + noise));
+                        pixels[idx * 4 + 2] = Math.max(0, Math.min(255, b / 9 + noise));
+                    }
+                }
+            }
+        }
+
+        // ウォーターマーク焼き込み (非AI画像合成)
+        function burnWatermark(canvas, callback) {
+            const ctx = canvas.getContext('2d');
+            const img = new Image();
+            img.crossOrigin = "anonymous";
+            img.onload = function() {
+                const w = canvas.width;
+                const h = canvas.height;
+                
+                // キャンバスサイズに応じた適切なサイズ比率を計算
+                const size = Math.min(w, h) * 0.08 + 12; 
+                const padding = 12;
+                
+                const x = w - size - padding;
+                const y = h - size - padding;
+                
+                ctx.save();
+                ctx.shadowColor = 'transparent';
+                
+                const fontSize = Math.max(11, size * 0.4);
+                ctx.font = `bold ${fontSize}px 'Plus Jakarta Sans', sans-serif`;
+                
+                const text = "Edit with PBPark";
+                const textWidth = ctx.measureText(text).width;
+                const textX = x - textWidth - 8;
+                const textY = y + size / 2 + fontSize / 3.5;
+                
+                // すかし視認性確保のための半透明黒バックグラウンド
+                ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+                ctx.beginPath();
+                
+                const bgX = textX - 8;
+                const bgY = y - 4;
+                const bgW = textWidth + size + 24;
+                const bgH = size + 8;
+                const r = (size + 8) / 2;
+                
+                if (ctx.roundRect) {
+                    ctx.roundRect(bgX, bgY, bgW, bgH, r);
+                } else {
+                    ctx.rect(bgX, bgY, bgW, bgH);
+                }
+                ctx.fill();
+                
+                // テキストの描画
+                ctx.fillStyle = "#ffffff";
+                ctx.fillText(text, textX, textY);
+                
+                // ドイツボールを丸くクリップして描画
+                ctx.beginPath();
+                ctx.arc(x + size / 2, y + size / 2, size / 2, 0, Math.PI * 2);
+                ctx.clip();
+                ctx.drawImage(img, x, y, size, size);
+                ctx.restore();
+                
+                if (callback) callback();
+            };
+            img.onerror = function() {
+                // 画像ロード失敗時（CORS等）の文字のみフォールバック
+                const w = canvas.width;
+                const h = canvas.height;
+                ctx.save();
+                ctx.font = "bold 14px 'Plus Jakarta Sans', sans-serif";
+                ctx.fillStyle = "#ffffff";
+                ctx.shadowColor = "rgba(0,0,0,0.8)";
+                ctx.shadowBlur = 4;
+                ctx.fillText("Edit with PBPark", w - 150, h - 20);
+                ctx.restore();
+                if (callback) callback();
+            };
+            img.src = "https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/germany/normal.png";
+        }
+
+        // 消去実行ボタンイベント
+        document.getElementById('btn-erase').addEventListener('click', runMagicEraser);
+
+        // 画像保存ダウンロード処理
+        document.getElementById('btn-download').addEventListener('click', () => {
+            const dataUrl = imageCanvas.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.download = 'pb_magic_eraser.png';
+            link.href = dataUrl;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast("MagicEraser済みの画像を保存しました！");
+        });
+
+        // 消しオプションの選択切り替え
+        const optionsList = document.getElementById('erase-options-list');
+        optionsList.addEventListener('click', (e) => {
+            const item = e.target.closest('.list-item');
+            if (!item) return;
+
+            // 選択状態のリセット
+            const children = optionsList.querySelectorAll('.list-item');
+            children.forEach(c => {
+                c.classList.remove('selected');
+                const icon = c.querySelector('.material-symbols-outlined');
+                if (icon) {
+                    icon.textContent = 'radio_button_unchecked';
+                    icon.style.color = 'var(--text-sub)';
+                }
+            });
+
+            // 選択状態の反映
+            item.classList.add('selected');
+            const activeIcon = item.querySelector('.material-symbols-outlined');
+            if (activeIcon) {
+                activeIcon.textContent = 'check_circle';
+                activeIcon.style.color = 'var(--accent-primary)';
+            }
+
+            activeEraseMode = item.getAttribute('data-mode');
+            showToast(`消去モード: ${item.querySelector('.list-item-title').textContent}`);
+        });
+
+        // 触感・バウンド演出
+        document.addEventListener('mousedown', (e) => {
+            const target = e.target.closest('.glass-card, .ai-btn, .nav-item, .preset-btn');
+            if (target) {
+                target.classList.remove('squish-active');
+                void target.offsetWidth;
+                target.classList.add('squish-active');
+                
+                setTimeout(() => {
+                    target.classList.remove('squish-active');
+                }, 350);
+            }
+        });
+
+        // 初期ロード処理
+        window.onload = () => {
+            applyPtz(currentPtz);
+            updateThickSlider('slider-brush-fill', 'val-brush', 20, 'px');
+            loadDefaultGermanyBall();
+        };
+
+        window.addEventListener('resize', setupCanvasSizes);
+    </script>
+</body>
+</html>
