@@ -1,0 +1,1617 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+    <title>ReMiniWeb - Multimodal AI Platform</title>
+
+    <!-- Google Fonts & Material Symbols -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+
+    <!-- JSZip CDN for ReminiTakeout (ZIP backup/restore) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <style>
+        /* デフォルトテーマ & AIグラデーションカラー定義 */
+        :root {
+            --accent-primary: #5679F0;
+            --accent-active: #405ec9;
+            --ai-grad-1: #5679F0;
+            --ai-grad-2: #D2B5CD;
+            --ai-grad-3: #EB9968;
+            --ai-gradient: linear-gradient(135deg, #5679F0 0%, #D2B5CD 50%, #EB9968 100%);
+
+            /* PTZ 規格初期値 */
+            --ptz-theme-name: "ReMini AI Theme";
+            --ptz-card-radius: 20px;
+            --ptz-slider-height: 16px;
+            --ptz-toggle-width: 54px;
+            --ptz-toggle-height: 30px;
+            --ptz-toggle-knob-radius: 50%;
+            --ptz-toggle-knob-width: 22px;
+            --ptz-blur-intensity: 0px;
+
+            /* Light Mode ベースカラー */
+            --bg-base: #F4F6F9;
+            --glass-bg: #FFFFFF;
+            --text-main: #1C1C1E;
+            --text-sub: #6E6E73;
+            --bg-secondary: #EBECEF;
+            --nav-bg: #FFFFFF;
+            --nav-icon-active: #1C1C1E;
+            
+            --m3-easing: cubic-bezier(0.32, 0.72, 0, 1);
+            --transition-smooth: 0.35s var(--m3-easing);
+            --card-padding: 20px;
+        }
+
+        /* ダークモード */
+        .dark-mode {
+            --bg-base: #121316;
+            --glass-bg: #1C1D22;
+            --text-main: #F2F2F7;
+            --text-sub: #98989D;
+            --bg-secondary: #2C2D35;
+            --nav-bg: #1C1D22;
+            --nav-icon-active: #FFFFFF;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', 'Noto Sans JP', sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            transition: background-color var(--transition-smooth), color var(--transition-smooth);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* アプリ全体のコンテナ */
+        #app-viewport {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* ヘッダー (ナビバーなし。ハンバーガー、モデル選択、タイトル) */
+        header {
+            height: 64px;
+            padding: 0 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--glass-bg);
+            transition: background-color var(--transition-smooth);
+            position: relative;
+            flex-shrink: 0;
+            gap: 8px;
+            z-index: 100;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: none;
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background var(--transition-smooth), transform 0.2s;
+            flex-shrink: 0;
+        }
+        .header-btn:active {
+            transform: scale(0.92);
+        }
+
+        .model-select-wrapper {
+            position: relative;
+        }
+
+        .model-select {
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            border: none;
+            padding: 6px 12px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            outline: none;
+            cursor: pointer;
+            font-family: inherit;
+            appearance: none;
+            padding-right: 28px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' height='20' viewBox='0-960 960 960' width='20' fill='%23666'%3E%3Cpath d='M480-345 240-585l56-56 184 184 184-184 56 56-240 240Z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 6px center;
+        }
+
+        .logo {
+            font-weight: 700;
+            font-size: 16px;
+            letter-spacing: -0.3px;
+            color: var(--text-main);
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 180px;
+            cursor: pointer;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* メインチャットエリア */
+        main {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 16px 16px 140px;
+            max-width: 800px;
+            width: 100%;
+            margin: 0 auto;
+            -webkit-overflow-scrolling: touch;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* フラットソリッドカード */
+        .glass-card {
+            background: var(--glass-bg);
+            border-radius: var(--ptz-card-radius);
+            padding: var(--card-padding);
+            margin-bottom: 0;
+            box-shadow: none !important;
+            border: none !important;
+            transition: background-color var(--transition-smooth), border-radius var(--transition-smooth);
+        }
+
+        h2 { 
+            font-size: 18px; 
+            margin-top: 0; 
+            margin-bottom: 12px;
+            font-weight: 700; 
+            letter-spacing: -0.3px;
+        }
+        p {
+            font-size: 13.5px;
+            line-height: 1.5;
+            margin-top: 0;
+            margin-bottom: 16px;
+            color: var(--text-sub);
+        }
+
+        /* リストコンポーネント (白カード内に灰色のカードを入れない) */
+        .custom-list {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            margin-bottom: 12px;
+        }
+        .list-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 4px;
+            border-bottom: 1px solid var(--bg-secondary);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .list-item:last-child {
+            border-bottom: none;
+        }
+        .list-item-title {
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .list-item-desc {
+            font-size: 12px;
+            color: var(--text-sub);
+        }
+
+        /* 画面下部 チャット入力バー */
+        .chat-input-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--glass-bg);
+            border-top: 1px solid var(--bg-secondary);
+            z-index: 200;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-width: 800px;
+            margin: 0 auto;
+            right: 0;
+        }
+
+        .chat-image-preview-area {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 4px;
+        }
+
+        .preview-thumb {
+            position: relative;
+            width: 56px;
+            height: 56px;
+            border-radius: 10px;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        .preview-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .preview-thumb-remove {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background: rgba(0,0,0,0.6);
+            color: white;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .chat-input-row {
+            display: flex;
+            align-items: flex-end;
+            gap: 8px;
+        }
+
+        .glass-input-wrapper {
+            flex-grow: 1;
+            margin-bottom: 0;
+        }
+        .glass-input {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 14px;
+            border: none;
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            font-size: 14.5px;
+            font-family: inherit;
+            box-sizing: border-box;
+            transition: background var(--transition-smooth);
+            resize: none;
+            max-height: 120px;
+            min-height: 44px;
+            outline: none;
+        }
+        .glass-input:focus {
+            outline: 2px solid var(--accent-primary);
+        }
+
+        /* アクションボタン (AIグラデーション対応) */
+        .ai-btn {
+            border: none;
+            outline: none;
+            padding: 12px 20px;
+            border-radius: 14px;
+            font-weight: 600;
+            font-size: 14px;
+            color: white;
+            cursor: pointer;
+            background: var(--ai-gradient);
+            transition: transform 0.2s, opacity 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(86, 121, 240, 0.25);
+        }
+        .ai-btn:hover {
+            opacity: 0.92;
+            transform: scale(1.02);
+        }
+        .ai-btn:active {
+            transform: scale(0.96);
+        }
+        .ai-btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            box-shadow: none;
+        }
+        .ai-btn-icon {
+            padding: 10px;
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            flex-shrink: 0;
+        }
+
+        /* チャットメッセージバブル */
+        .chat-bubble {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            max-width: 88%;
+            margin-bottom: 12px;
+            animation: fadeIn 0.3s var(--m3-easing);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .chat-bubble.user {
+            align-self: flex-end;
+        }
+        .chat-bubble.assistant {
+            align-self: flex-start;
+        }
+
+        .bubble-content {
+            padding: 14px 18px;
+            border-radius: 20px;
+            font-size: 14.5px;
+            line-height: 1.55;
+            word-break: break-word;
+            white-space: pre-wrap;
+        }
+
+        .chat-bubble.user .bubble-content {
+            background: var(--ai-gradient);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .chat-bubble.assistant .bubble-content {
+            background: var(--glass-bg);
+            color: var(--text-main);
+            border-bottom-left-radius: 4px;
+            position: relative;
+        }
+
+        .bubble-images {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-bottom: 6px;
+        }
+        .bubble-images img {
+            max-width: 200px;
+            max-height: 200px;
+            border-radius: 12px;
+            object-fit: cover;
+        }
+
+        .bubble-header {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-sub);
+            margin-bottom: 2px;
+        }
+
+        /* Remini ★ アイコンと回転アニメーション */
+        .remini-star {
+            display: inline-block;
+            background: var(--ai-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-size: 18px;
+            font-weight: 900;
+        }
+
+        .star-spinning {
+            animation: starRotate 1.2s infinite linear;
+            display: inline-block;
+        }
+
+        @keyframes starRotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .bubble-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 4px;
+        }
+        .action-icon-btn {
+            border: none;
+            background: transparent;
+            color: var(--text-sub);
+            cursor: pointer;
+            padding: 2px;
+            display: flex;
+            align-items: center;
+            font-size: 16px;
+            border-radius: 6px;
+        }
+        .action-icon-btn:hover {
+            color: var(--text-main);
+        }
+
+        /* ------------------ サイドバー Drawer (ハンバーガーメニュー) ------------------ */
+        .drawer-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.4);
+            z-index: 500;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s var(--m3-easing);
+        }
+        .drawer-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .drawer {
+            position: fixed;
+            top: 0; left: 0;
+            width: 320px;
+            max-width: 85vw;
+            height: 100%;
+            background: var(--glass-bg);
+            z-index: 501;
+            transform: translateX(-100%);
+            transition: transform 0.35s var(--m3-easing);
+            display: flex;
+            flex-direction: column;
+            padding: 20px 16px;
+            gap: 16px;
+        }
+        .drawer.active {
+            transform: translateX(0);
+        }
+
+        .drawer-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .drawer-search {
+            position: relative;
+        }
+        .drawer-search .glass-input {
+            padding-left: 36px;
+            font-size: 13px;
+        }
+        .drawer-search span {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-sub);
+            font-size: 20px;
+        }
+
+        .drawer-content {
+            flex-grow: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .section-title {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-sub);
+            margin-bottom: 6px;
+        }
+
+        /* トースト & ダイアログ */
+        .toast {
+            position: fixed;
+            bottom: 90px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--text-main);
+            color: var(--glass-bg);
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s var(--m3-easing);
+            z-index: 2000;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+        }
+        .toast.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .dialog-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000; display: flex; align-items: center; justify-content: center;
+            opacity: 0; visibility: hidden; transition: all 0.3s var(--m3-easing);
+            padding: 16px;
+        }
+        .dialog-overlay.active { opacity: 1; visibility: visible; }
+        .glass-dialog {
+            background: var(--glass-bg);
+            border-radius: var(--ptz-card-radius);
+            padding: 24px; max-width: 480px; width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            transform: scale(0.9) translateY(20px); transition: all 0.4s var(--m3-easing);
+        }
+        .dialog-overlay.active .glass-dialog { transform: scale(1) translateY(0); }
+
+        .rem-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            border-radius: 8px;
+            background: var(--bg-secondary);
+            font-size: 12px;
+            font-weight: 600;
+            margin-right: 6px;
+            margin-bottom: 6px;
+        }
+
+        /* 触感バウンド */
+        @keyframes squishy {
+            0% { transform: scale(1, 1); }
+            30% { transform: scale(1.05, 0.95); }
+            50% { transform: scale(0.98, 1.02); }
+            100% { transform: scale(1, 1); }
+        }
+        .squish-active {
+            animation: squishy 0.35s var(--m3-easing);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app-viewport">
+        <!-- ヘッダー -->
+        <header>
+            <div class="header-left">
+                <button class="header-btn" onclick="toggleDrawer(true)" title="メニュー">
+                    <span class="material-symbols-outlined">menu</span>
+                </button>
+                <div class="model-select-wrapper">
+                    <select class="model-select" id="model-selector" onchange="changeModel(this.value)">
+                        <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+                        <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite</option>
+                        <option value="gemini-3.1-flash-lite">gemini-3.1-flash-lite</option>
+                        <option value="gemini-3.5-flash">gemini-3.5-flash</option>
+                        <option value="gemini-3.1-flash">gemini-3.1-flash</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="logo" id="chat-title-display" onclick="renameCurrentChat()" title="タップしてチャット名を変更">新規チャット</div>
+
+            <div class="header-right">
+                <button class="header-btn" onclick="openSettingsDialog()" title="設定">
+                    <span class="material-symbols-outlined">settings</span>
+                </button>
+                <button class="header-btn" id="theme-btn" title="テーマ切り替え">
+                    <span class="material-symbols-outlined">light_mode</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- メインチャット表示エリア -->
+        <main id="chat-container">
+            <!-- メッセージバブルが動的に差し込まれます -->
+        </main>
+
+        <!-- チャット入力バー -->
+        <div class="chat-input-bar">
+            <!-- 添付画像プレビュー領域 -->
+            <div class="chat-image-preview-area" id="image-preview-container" style="display: none;"></div>
+
+            <div class="chat-input-row">
+                <input type="file" id="image-file-input" accept="image/*" multiple style="display: none;" onchange="handleImageSelect(event)">
+                <button class="ai-btn ai-btn-secondary ai-btn-icon" onclick="document.getElementById('image-file-input').click()" title="画像を追加">
+                    <span class="material-symbols-outlined">image</span>
+                </button>
+                <div class="glass-input-wrapper">
+                    <textarea class="glass-input" id="chat-input" placeholder="ReMiniにメッセージを送信..." rows="1" onkeydown="handleKeyDown(event)"></textarea>
+                </div>
+                <button class="ai-btn ai-btn-icon" id="send-btn" onclick="sendMessage()" title="送信">
+                    <span class="material-symbols-outlined">send</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Drawer (サイドバー) -->
+    <div class="drawer-overlay" id="drawer-overlay" onclick="toggleDrawer(false)"></div>
+    <div class="drawer" id="drawer">
+        <div class="drawer-header">
+            <div style="font-weight: 700; font-size: 18px; display: flex; align-items: center; gap: 6px;">
+                <span class="remini-star">★</span> ReMini
+            </div>
+            <button class="header-btn" onclick="toggleDrawer(false)">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+
+        <button class="ai-btn" style="width: 100%; justify-content: center;" onclick="createNewChat()">
+            <span class="material-symbols-outlined">add</span>
+            新しいチャット
+        </button>
+
+        <!-- 全チャットからメッセージ検索 -->
+        <div class="drawer-search">
+            <span class="material-symbols-outlined">search</span>
+            <input type="text" class="glass-input" id="search-input" placeholder="すべてのチャットから検索..." oninput="searchChats(this.value)">
+        </div>
+
+        <div class="drawer-content">
+            <!-- Rem (カスタムAI) セクション -->
+            <div>
+                <div class="section-title" style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>Rem (カスタムアシスタント)</span>
+                    <span class="material-symbols-outlined" style="cursor: pointer; font-size: 18px;" onclick="openRemModal()" title="新規Rem作成">add_circle</span>
+                </div>
+                <div id="rem-list" class="custom-list">
+                    <!-- Rem リスト -->
+                </div>
+            </div>
+
+            <!-- チャット履歴リスト -->
+            <div>
+                <div class="section-title">チャット履歴</div>
+                <div id="chat-history-list" class="custom-list">
+                    <!-- チャット履歴 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 設定ダイアログ -->
+    <div class="dialog-overlay" id="settings-dialog">
+        <div class="glass-dialog">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <h2 style="margin: 0;">設定 & バックアップ</h2>
+                <button class="header-btn" onclick="closeSettingsDialog()">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+
+            <!-- Gemini API Key 設定 -->
+            <div class="glass-card" style="padding: 16px; margin-bottom: 16px;">
+                <h2>Gemini API Key</h2>
+                <p style="margin-bottom: 8px;">Gemini APIキーを設定してください（キーなしの場合はシステム内蔵キーを自動試行します）。</p>
+                <input type="password" class="glass-input" id="api-key-input" placeholder="AIzaSy..." onchange="saveApiKey(this.value)">
+            </div>
+
+            <!-- モデル手動追加 -->
+            <div class="glass-card" style="padding: 16px; margin-bottom: 16px;">
+                <h2>カスタムモデル追加</h2>
+                <p style="margin-bottom: 8px;">好きなGeminiモデル名を追加できます。</p>
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" class="glass-input" id="custom-model-input" placeholder="gemini-1.5-pro 等">
+                    <button class="ai-btn" onclick="addCustomModel()">追加</button>
+                </div>
+            </div>
+
+            <!-- ReminiTakeout & Import -->
+            <div class="glass-card" style="padding: 16px; margin-bottom: 16px;">
+                <h2>ReminiTakeout (バックアップ)</h2>
+                <p style="margin-bottom: 12px;">すべてのチャット履歴・画像・設定データをZip形式でダウンロード/復元します。</p>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button class="ai-btn" onclick="exportTakeoutZip()">
+                        <span class="material-symbols-outlined">download</span>
+                        Takeout (.zip)
+                    </button>
+                    <input type="file" id="import-zip-input" accept=".zip" style="display: none;" onchange="importTakeoutZip(event)">
+                    <button class="ai-btn ai-btn-secondary" onclick="document.getElementById('import-zip-input').click()">
+                        <span class="material-symbols-outlined">upload</span>
+                        Takeout Import
+                    </button>
+                </div>
+            </div>
+
+            <!-- IndexedDB 設定 -->
+            <div class="glass-card" style="padding: 16px; margin-bottom: 0;">
+                <h2>IndexedDB 設定</h2>
+                <div id="storage-info" style="font-size: 13px; color: var(--text-sub); margin-bottom: 12px;">
+                    ストレージ容量を取得中...
+                </div>
+                <button class="ai-btn ai-btn-secondary" style="color: #FF3B30;" onclick="clearIndexedDBData()">
+                    <span class="material-symbols-outlined">delete_forever</span>
+                    全データを初期化
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rem (「Gem」同等機能) 作成・編集モーダル -->
+    <div class="dialog-overlay" id="rem-dialog">
+        <div class="glass-dialog">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <h2 style="margin: 0;" id="rem-modal-title">Rem (カスタムAI) を作成</h2>
+                <button class="header-btn" onclick="closeRemModal()">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+
+            <div class="glass-input-wrapper" style="margin-bottom: 12px;">
+                <label style="font-size: 12px; font-weight: 700; color: var(--text-sub);">Rem の名前</label>
+                <input type="text" class="glass-input" id="rem-name-input" placeholder="例: Pythonコードアシスタント">
+            </div>
+
+            <div class="glass-input-wrapper" style="margin-bottom: 12px;">
+                <label style="font-size: 12px; font-weight: 700; color: var(--text-sub);">カスタムプロンプト (指示)</label>
+                <textarea class="glass-input" id="rem-prompt-input" rows="3" placeholder="あなたのアシスタントの役割や口調を定義..."></textarea>
+            </div>
+
+            <!-- 参照ファイル 2個まで -->
+            <div style="margin-bottom: 16px;">
+                <label style="font-size: 12px; font-weight: 700; color: var(--text-sub);">参照ファイル (最大2個まで)</label>
+                <p style="font-size: 12px; margin-bottom: 8px;">テキストファイルやドキュメントを参照コンテキストに追加できます。</p>
+                <input type="file" id="rem-file-input" accept=".txt,.md,.json,.js,.py,.html,.css" multiple style="display: none;" onchange="handleRemFiles(event)">
+                <button class="ai-btn ai-btn-secondary" onclick="document.getElementById('rem-file-input').click()" style="margin-bottom: 8px;">
+                    <span class="material-symbols-outlined">attach_file</span>
+                    参照ファイルを選択
+                </button>
+                <div id="rem-files-list"></div>
+            </div>
+
+            <button class="ai-btn" style="width: 100%; justify-content: center;" onclick="saveRem()">
+                <span class="material-symbols-outlined">save</span>
+                Rem を保存
+            </button>
+        </div>
+    </div>
+
+    <!-- トースト通知 -->
+    <div class="toast" id="toast-message">メッセージをコピーしました</div>
+
+    <script>
+        /**
+         * ReMiniWeb - Core Application Engine
+         */
+
+        // State Management
+        let db = null;
+        let currentChatId = null;
+        let chats = []; // List of chat metadata
+        let currentMessages = []; // Messages of active chat
+        let attachedImages = []; // Base64 image strings
+        let selectedModel = 'gemini-2.5-flash';
+        let apiKey = '';
+        let rems = []; // Custom Rems
+        let activeRemId = null;
+        let tempRemFiles = []; // Attached files for Rem creation
+
+        // Default Available Models
+        let availableModels = [
+            'gemini-2.5-flash',
+            'gemini-2.5-flash-lite',
+            'gemini-3.1-flash-lite',
+            'gemini-3.5-flash',
+            'gemini-3.1-flash'
+        ];
+
+        // --- IndexedDB Controller ---
+        function initDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open('ReMiniWebDB', 2);
+                request.onupgradeneeded = (e) => {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains('chats')) {
+                        db.createObjectStore('chats', { keyPath: 'id' });
+                    }
+                    if (!db.objectStoreNames.contains('messages')) {
+                        db.createObjectStore('messages', { keyPath: 'id' });
+                    }
+                    if (!db.objectStoreNames.contains('rems')) {
+                        db.createObjectStore('rems', { keyPath: 'id' });
+                    }
+                    if (!db.objectStoreNames.contains('settings')) {
+                        db.createObjectStore('settings', { keyPath: 'key' });
+                    }
+                };
+                request.onsuccess = (e) => {
+                    db = e.target.result;
+                    resolve(db);
+                };
+                request.onerror = (e) => reject(e);
+            });
+        }
+
+        async function loadSettings() {
+            const tx = db.transaction('settings', 'readonly');
+            const store = tx.objectStore('settings');
+            const keyReq = store.get('apiKey');
+            keyReq.onsuccess = () => {
+                if (keyReq.result) {
+                    apiKey = keyReq.result.value || '';
+                    document.getElementById('api-key-input').value = apiKey;
+                }
+            };
+
+            const modelsReq = store.get('customModels');
+            modelsReq.onsuccess = () => {
+                if (modelsReq.result && Array.isArray(modelsReq.result.value)) {
+                    modelsReq.result.value.forEach(m => {
+                        if (!availableModels.includes(m)) availableModels.push(m);
+                    });
+                    renderModelDropdown();
+                }
+            };
+        }
+
+        async function saveApiKey(val) {
+            apiKey = val.trim();
+            const tx = db.transaction('settings', 'readwrite');
+            tx.objectStore('settings').put({ key: 'apiKey', value: apiKey });
+            showToast('API Keyを保存しました');
+        }
+
+        async function loadRems() {
+            const tx = db.transaction('rems', 'readonly');
+            const store = tx.objectStore('rems');
+            const req = store.getAll();
+            req.onsuccess = () => {
+                rems = req.result || [];
+                renderRemList();
+            };
+        }
+
+        async function loadChatList() {
+            const tx = db.transaction('chats', 'readonly');
+            const store = tx.objectStore('chats');
+            const req = store.getAll();
+            req.onsuccess = () => {
+                chats = req.result || [];
+                chats.sort((a, b) => b.updatedAt - a.updatedAt);
+                renderChatHistoryList();
+
+                if (chats.length > 0 && !currentChatId) {
+                    selectChat(chats[0].id);
+                } else if (chats.length === 0) {
+                    createNewChat();
+                }
+            };
+        }
+
+        async function loadMessages(chatId) {
+            const tx = db.transaction('messages', 'readonly');
+            const store = tx.objectStore('messages');
+            const req = store.get(chatId);
+            req.onsuccess = () => {
+                currentMessages = (req.result && req.result.list) ? req.result.list : [];
+                renderMessages();
+            };
+        }
+
+        async function saveCurrentMessages() {
+            if (!currentChatId) return;
+            const tx = db.transaction(['messages', 'chats'], 'readwrite');
+            tx.objectStore('messages').put({ id: currentChatId, list: currentMessages });
+
+            // Update chat meta
+            const chatObj = chats.find(c => c.id === currentChatId);
+            if (chatObj) {
+                chatObj.updatedAt = Date.now();
+                if (currentMessages.length > 0) {
+                    const firstUserMsg = currentMessages.find(m => m.role === 'user');
+                    if (firstUserMsg && chatObj.title === '新規チャット') {
+                        chatObj.title = firstUserMsg.text.slice(0, 20) || '画像チャット';
+                        document.getElementById('chat-title-display').textContent = chatObj.title;
+                    }
+                }
+                tx.objectStore('chats').put(chatObj);
+                renderChatHistoryList();
+            }
+        }
+
+        // --- Chat Operations ---
+        async function createNewChat() {
+            const newId = 'chat_' + Date.now();
+            const newChat = {
+                id: newId,
+                title: '新規チャット',
+                createdAt: Date.now(),
+                updatedAt: Date.now(),
+                model: selectedModel,
+                remId: activeRemId
+            };
+
+            const tx = db.transaction(['chats', 'messages'], 'readwrite');
+            tx.objectStore('chats').add(newChat);
+            tx.objectStore('messages').add({ id: newId, list: [] });
+
+            chats.unshift(newChat);
+            currentChatId = newId;
+            currentMessages = [];
+            renderChatHistoryList();
+            renderMessages();
+            document.getElementById('chat-title-display').textContent = newChat.title;
+            toggleDrawer(false);
+            showToast('新規チャットを作成しました');
+        }
+
+        function selectChat(id) {
+            currentChatId = id;
+            const chat = chats.find(c => c.id === id);
+            if (chat) {
+                document.getElementById('chat-title-display').textContent = chat.title;
+                if (chat.model && availableModels.includes(chat.model)) {
+                    selectedModel = chat.model;
+                    document.getElementById('model-selector').value = selectedModel;
+                }
+                loadMessages(id);
+            }
+            toggleDrawer(false);
+        }
+
+        async function deleteChat(id, event) {
+            if (event) event.stopPropagation();
+            const tx = db.transaction(['chats', 'messages'], 'readwrite');
+            tx.objectStore('chats').delete(id);
+            tx.objectStore('messages').delete(id);
+
+            chats = chats.filter(c => c.id !== id);
+            renderChatHistoryList();
+
+            if (currentChatId === id) {
+                if (chats.length > 0) {
+                    selectChat(chats[0].id);
+                } else {
+                    createNewChat();
+                }
+            }
+            showToast('チャットを削除しました');
+        }
+
+        function renameCurrentChat() {
+            if (!currentChatId) return;
+            const chat = chats.find(c => c.id === currentChatId);
+            if (!chat) return;
+            const newTitle = prompt('チャット名を入力してください:', chat.title);
+            if (newTitle && newTitle.trim()) {
+                chat.title = newTitle.trim();
+                document.getElementById('chat-title-display').textContent = chat.title;
+                const tx = db.transaction('chats', 'readwrite');
+                tx.objectStore('chats').put(chat);
+                renderChatHistoryList();
+            }
+        }
+
+        // --- Render UI Components ---
+        function renderModelDropdown() {
+            const select = document.getElementById('model-selector');
+            select.innerHTML = '';
+            availableModels.forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m;
+                opt.textContent = m;
+                select.appendChild(opt);
+            });
+            select.value = selectedModel;
+        }
+
+        function changeModel(val) {
+            selectedModel = val;
+            if (currentChatId) {
+                const chat = chats.find(c => c.id === currentChatId);
+                if (chat) {
+                    chat.model = val;
+                    const tx = db.transaction('chats', 'readwrite');
+                    tx.objectStore('chats').put(chat);
+                }
+            }
+            showToast(`モデルを ${val} に変更しました`);
+        }
+
+        function addCustomModel() {
+            const input = document.getElementById('custom-model-input');
+            const modelName = input.value.trim();
+            if (!modelName) return;
+            if (!availableModels.includes(modelName)) {
+                availableModels.push(modelName);
+                renderModelDropdown();
+                const tx = db.transaction('settings', 'readwrite');
+                tx.objectStore('settings').put({ key: 'customModels', value: availableModels });
+                showToast(`モデル ${modelName} を追加しました`);
+            }
+            input.value = '';
+        }
+
+        function renderChatHistoryList(filterText = '') {
+            const container = document.getElementById('chat-history-list');
+            container.innerHTML = '';
+
+            const filtered = chats.filter(c => c.title.toLowerCase().includes(filterText.toLowerCase()));
+
+            filtered.forEach(c => {
+                const item = document.createElement('div');
+                item.className = 'list-item';
+                if (c.id === currentChatId) {
+                    item.style.fontWeight = 'bold';
+                }
+                item.onclick = () => selectChat(c.id);
+
+                item.innerHTML = `
+                    <div>
+                        <div class="list-item-title">${escapeHtml(c.title)}</div>
+                        <div class="list-item-desc">${c.model || 'gemini-2.5-flash'}</div>
+                    </div>
+                    <button class="action-icon-btn" onclick="deleteChat('${c.id}', event)" title="削除">
+                        <span class="material-symbols-outlined" style="font-size:18px;">delete</span>
+                    </button>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function renderMessages() {
+            const container = document.getElementById('chat-container');
+            container.innerHTML = '';
+
+            currentMessages.forEach((msg, idx) => {
+                const bubble = document.createElement('div');
+                bubble.className = `chat-bubble ${msg.role}`;
+
+                let imagesHtml = '';
+                if (msg.images && msg.images.length > 0) {
+                    imagesHtml = `<div class="bubble-images">` +
+                        msg.images.map(img => `<img src="${img}" alt="Attached">`).join('') +
+                        `</div>`;
+                }
+
+                if (msg.role === 'user') {
+                    bubble.innerHTML = `
+                        ${imagesHtml}
+                        <div class="bubble-content">${escapeHtml(msg.text)}</div>
+                    `;
+                } else {
+                    bubble.innerHTML = `
+                        <div class="bubble-header">
+                            <span class="remini-star">★</span> ReMini AI (${msg.model || selectedModel})
+                        </div>
+                        <div class="bubble-content">${escapeHtml(msg.text)}</div>
+                        <div class="bubble-actions">
+                            <button class="action-icon-btn" onclick="copyToClipboard('${escapeJsString(msg.text)}')" title="コピー">
+                                <span class="material-symbols-outlined">content_copy</span>
+                            </button>
+                        </div>
+                    `;
+                }
+                container.appendChild(bubble);
+            });
+
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // 回答生成中に★が回転するBubbleを生成
+        function appendGeneratingBubble() {
+            const container = document.getElementById('chat-container');
+            const bubble = document.createElement('div');
+            bubble.className = 'chat-bubble assistant';
+            bubble.id = 'generating-bubble';
+
+            bubble.innerHTML = `
+                <div class="bubble-header">
+                    <span class="remini-star star-spinning">★</span> ReMini AI が回答を生成中...
+                </div>
+                <div class="bubble-content" style="color: var(--text-sub);">思考中...</div>
+            `;
+            container.appendChild(bubble);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function removeGeneratingBubble() {
+            const bubble = document.getElementById('generating-bubble');
+            if (bubble) bubble.remove();
+        }
+
+        // --- Multimodal Image Handling ---
+        function handleImageSelect(e) {
+            const files = Array.from(e.target.files);
+            files.forEach(file => {
+                const reader = new FileReader();
+                reader.onload = (evt) => {
+                    attachedImages.push(evt.target.result);
+                    renderImagePreviews();
+                };
+                reader.readAsDataURL(file);
+            });
+            e.target.value = '';
+        }
+
+        function renderImagePreviews() {
+            const container = document.getElementById('image-preview-container');
+            if (attachedImages.length === 0) {
+                container.style.display = 'none';
+                return;
+            }
+            container.style.display = 'flex';
+            container.innerHTML = '';
+
+            attachedImages.forEach((imgSrc, idx) => {
+                const thumb = document.createElement('div');
+                thumb.className = 'preview-thumb';
+                thumb.innerHTML = `
+                    <img src="${imgSrc}" alt="thumb">
+                    <div class="preview-thumb-remove" onclick="removeImage(${idx})">×</div>
+                `;
+                container.appendChild(thumb);
+            });
+        }
+
+        function removeImage(idx) {
+            attachedImages.splice(idx, 1);
+            renderImagePreviews();
+        }
+
+        // --- Gemini API Invocation ---
+        async function sendMessage() {
+            const input = document.getElementById('chat-input');
+            const text = input.value.trim();
+
+            if (!text && attachedImages.length === 0) return;
+
+            // User Message Object
+            const userMsg = {
+                role: 'user',
+                text: text,
+                images: [...attachedImages],
+                timestamp: Date.now()
+            };
+
+            currentMessages.push(userMsg);
+            renderMessages();
+
+            // Clear Inputs
+            input.value = '';
+            input.style.height = 'auto';
+            const imagesToSend = [...attachedImages];
+            attachedImages = [];
+            renderImagePreviews();
+
+            // Append spinner bubble
+            appendGeneratingBubble();
+
+            try {
+                // Construct System Instruction from Active Rem if selected
+                let systemInstructionText = '';
+                if (activeRemId) {
+                    const rem = rems.find(r => r.id === activeRemId);
+                    if (rem) {
+                        systemInstructionText = rem.prompt || '';
+                        if (rem.files && rem.files.length > 0) {
+                            systemInstructionText += '\n\n【参照ファイルデータ】:\n';
+                            rem.files.forEach(f => {
+                                systemInstructionText += `--- ${f.name} ---\n${f.content}\n`;
+                            });
+                        }
+                    }
+                }
+
+                // Construct Gemini API Payload
+                const contents = [];
+                currentMessages.forEach(msg => {
+                    const parts = [];
+                    if (msg.images && msg.images.length > 0) {
+                        msg.images.forEach(dataUrl => {
+                            const base64Data = dataUrl.split(',')[1];
+                            const mimeType = dataUrl.split(';')[0].split(':')[1] || 'image/png';
+                            parts.push({
+                                inlineData: { mimeType, data: base64Data }
+                            });
+                        });
+                    }
+                    if (msg.text) {
+                        parts.push({ text: msg.text });
+                    }
+                    contents.push({
+                        role: msg.role === 'user' ? 'user' : 'model',
+                        parts: parts
+                    });
+                });
+
+                const payload = {
+                    contents: contents
+                };
+
+                if (systemInstructionText) {
+                    payload.systemInstruction = {
+                        parts: [{ text: systemInstructionText }]
+                    };
+                }
+
+                // Gemini API Endpoint
+                const key = apiKey || '';
+                const model = selectedModel || 'gemini-2.5-flash';
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+                removeGeneratingBubble();
+
+                if (result.candidates && result.candidates[0]?.content?.parts?.[0]?.text) {
+                    const aiText = result.candidates[0].content.parts[0].text;
+                    const aiMsg = {
+                        role: 'assistant',
+                        text: aiText,
+                        model: model,
+                        timestamp: Date.now()
+                    };
+                    currentMessages.push(aiMsg);
+                    saveCurrentMessages();
+                    renderMessages();
+                } else if (result.error) {
+                    throw new Error(result.error.message || 'APIエラーが発生しました');
+                } else {
+                    throw new Error('返答の取得に失敗しました');
+                }
+
+            } catch (err) {
+                removeGeneratingBubble();
+                showToast(`エラー: ${err.message}`);
+                const errorMsg = {
+                    role: 'assistant',
+                    text: `⚠️ エラーが発生しました: ${err.message}\nAPI Keyまたはモデル設定をご確認ください。`,
+                    model: selectedModel,
+                    timestamp: Date.now()
+                };
+                currentMessages.push(errorMsg);
+                renderMessages();
+            }
+        }
+
+        // --- Rem (Custom AI) Management ---
+        function openRemModal() {
+            document.getElementById('rem-modal-title').textContent = 'Rem (カスタムAI) を作成';
+            document.getElementById('rem-name-input').value = '';
+            document.getElementById('rem-prompt-input').value = '';
+            tempRemFiles = [];
+            renderRemFileList();
+            document.getElementById('rem-dialog').classList.add('active');
+        }
+
+        function closeRemModal() {
+            document.getElementById('rem-dialog').classList.remove('active');
+        }
+
+        function handleRemFiles(e) {
+            const files = Array.from(e.target.files);
+            if (tempRemFiles.length + files.length > 2) {
+                showToast('参照ファイルは最大2個までです');
+                return;
+            }
+            files.forEach(file => {
+                const reader = new FileReader();
+                reader.onload = (evt) => {
+                    tempRemFiles.push({
+                        name: file.name,
+                        content: evt.target.result
+                    });
+                    renderRemFileList();
+                };
+                reader.readAsText(file);
+            });
+            e.target.value = '';
+        }
+
+        function renderRemFileList() {
+            const container = document.getElementById('rem-files-list');
+            container.innerHTML = '';
+            tempRemFiles.forEach((f, idx) => {
+                const chip = document.createElement('div');
+                chip.className = 'rem-chip';
+                chip.innerHTML = `
+                    <span class="material-symbols-outlined" style="font-size:14px;">description</span>
+                    ${escapeHtml(f.name)}
+                    <span class="material-symbols-outlined" style="font-size:14px; cursor:pointer;" onclick="removeRemFile(${idx})">close</span>
+                `;
+                container.appendChild(chip);
+            });
+        }
+
+        function removeRemFile(idx) {
+            tempRemFiles.splice(idx, 1);
+            renderRemFileList();
+        }
+
+        function saveRem() {
+            const name = document.getElementById('rem-name-input').value.trim();
+            const prompt = document.getElementById('rem-prompt-input').value.trim();
+            if (!name) {
+                showToast('Remの名前を入力してください');
+                return;
+            }
+
+            const remObj = {
+                id: 'rem_' + Date.now(),
+                name,
+                prompt,
+                files: tempRemFiles
+            };
+
+            const tx = db.transaction('rems', 'readwrite');
+            tx.objectStore('rems').put(remObj);
+            rems.push(remObj);
+            renderRemList();
+            closeRemModal();
+            showToast(`Rem [${name}] を作成しました`);
+        }
+
+        function renderRemList() {
+            const container = document.getElementById('rem-list');
+            container.innerHTML = '';
+
+            if (rems.length === 0) {
+                container.innerHTML = `<div style="font-size:12px; color:var(--text-sub); padding:4px;">Rem未作成</div>`;
+                return;
+            }
+
+            rems.forEach(rem => {
+                const item = document.createElement('div');
+                item.className = 'list-item';
+                const isActive = activeRemId === rem.id;
+                item.style.background = isActive ? 'var(--bg-secondary)' : 'transparent';
+
+                item.innerHTML = `
+                    <div onclick="toggleActiveRem('${rem.id}')" style="flex-grow:1;">
+                        <div class="list-item-title" style="display:flex; align-items:center; gap:4px;">
+                            <span class="remini-star">★</span> ${escapeHtml(rem.name)} ${isActive ? ' (適用中)' : ''}
+                        </div>
+                        <div class="list-item-desc">${escapeHtml(rem.prompt.slice(0, 25))}...</div>
+                    </div>
+                    <button class="action-icon-btn" onclick="deleteRem('${rem.id}', event)">
+                        <span class="material-symbols-outlined" style="font-size:16px;">delete</span>
+                    </button>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function toggleActiveRem(remId) {
+            if (activeRemId === remId) {
+                activeRemId = null;
+                showToast('Remの適用を解除しました');
+            } else {
+                activeRemId = remId;
+                const rem = rems.find(r => r.id === remId);
+                showToast(`Rem [${rem.name}] を適用しました`);
+            }
+            renderRemList();
+        }
+
+        function deleteRem(remId, event) {
+            if (event) event.stopPropagation();
+            const tx = db.transaction('rems', 'readwrite');
+            tx.objectStore('rems').delete(remId);
+            rems = rems.filter(r => r.id !== remId);
+            if (activeRemId === remId) activeRemId = null;
+            renderRemList();
+            showToast('Remを削除しました');
+        }
+
+        // --- ReminiTakeout & Takeout Import (ZIP Backup) ---
+        async function exportTakeoutZip() {
+            showToast('Takeout ZIPを作成中...');
+            const zip = new JSZip();
+
+            // 1. Fetch All Chats
+            const chatsTx = db.transaction('chats', 'readonly').objectStore('chats').getAll();
+            chatsTx.onsuccess = async () => {
+                const chatsData = chatsTx.result || [];
+                zip.file('chats_metadata.json', JSON.stringify(chatsData, null, 2));
+
+                // 2. Fetch All Messages
+                const msgsTx = db.transaction('messages', 'readonly').objectStore('messages').getAll();
+                msgsTx.onsuccess = async () => {
+                    const msgsData = msgsTx.result || [];
+                    zip.file('messages_data.json', JSON.stringify(msgsData, null, 2));
+
+                    // 3. Fetch Rems
+                    const remsTx = db.transaction('rems', 'readonly').objectStore('rems').getAll();
+                    remsTx.onsuccess = async () => {
+                        const remsData = remsTx.result || [];
+                        zip.file('rems_data.json', JSON.stringify(remsData, null, 2));
+
+                        // Generate Zip Blob
+                        const blob = await zip.generateAsync({ type: 'blob' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `ReminiTakeout_${new Date().toISOString().slice(0,10)}.zip`;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                        showToast('Takeout Zipをダウンロードしました');
+                    };
+                };
+            };
+        }
+
+        async function importTakeoutZip(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            try {
+                showToast('Zipデータを復元中...');
+                const zip = await JSZip.loadAsync(file);
+
+                const chatsJson = await zip.file('chats_metadata.json')?.async('string');
+                const msgsJson = await zip.file('messages_data.json')?.async('string');
+                const remsJson = await zip.file('rems_data.json')?.async('string');
+
+                if (chatsJson && msgsJson) {
+                    const importedChats = JSON.parse(chatsJson);
+                    const importedMsgs = JSON.parse(msgsJson);
+
+                    const tx = db.transaction(['chats', 'messages'], 'readwrite');
+                    importedChats.forEach(c => tx.objectStore('chats').put(c));
+                    importedMsgs.forEach(m => tx.objectStore('messages').put(m));
+
+                    if (remsJson) {
+                        const importedRems = JSON.parse(remsJson);
+                        const remsTx = db.transaction('rems', 'readwrite');
+                        importedRems.forEach(r => remsTx.objectStore('rems').put(r));
+                    }
+
+                    showToast('Takeout データの復元に成功しました！');
+                    loadChatList();
+                    loadRems();
+                } else {
+                    throw new Error('ZIP構造が無効です');
+                }
+            } catch (err) {
+                showToast(`復元失敗: ${err.message}`);
+            }
+            event.target.value = '';
+        }
+
+        // --- Storage & Helper Functions ---
+        async function updateStorageInfo() {
+            if (navigator.storage && navigator.storage.estimate) {
+                const estimate = await navigator.storage.estimate();
+                const usedMb = (estimate.usage / (1024 * 1024)).toFixed(2);
+                document.getElementById('storage-info').textContent = `現在使用量: 約 ${usedMb} MB`;
+            }
+        }
+
+        async function clearIndexedDBData() {
+            if (confirm('すべてのチャット履歴、Rem、設定データを初期化しますか？')) {
+                const tx = db.transaction(['chats', 'messages', 'rems'], 'readwrite');
+                tx.objectStore('chats').clear();
+                tx.objectStore('messages').clear();
+                tx.objectStore('rems').clear();
+
+                chats = [];
+                currentMessages = [];
+                rems = [];
+                renderChatHistoryList();
+                renderMessages();
+                renderRemList();
+                createNewChat();
+                showToast('全データを初期化しました');
+                closeSettingsDialog();
+            }
+        }
+
+        function searchChats(val) {
+            renderChatHistoryList(val.trim());
+        }
+
+        function toggleDrawer(open) {
+            document.getElementById('drawer-overlay').classList.toggle('active', open);
+            document.getElementById('drawer').classList.toggle('active', open);
+        }
+
+        function openSettingsDialog() {
+            updateStorageInfo();
+            document.getElementById('settings-dialog').classList.add('active');
+        }
+
+        function closeSettingsDialog() {
+            document.getElementById('settings-dialog').classList.remove('active');
+        }
+
+        function copyToClipboard(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            showToast('コピーしました');
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast-message');
+            toast.textContent = msg;
+            toast.classList.add('active');
+            setTimeout(() => toast.classList.remove('active'), 2500);
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+
+        function escapeJsString(str) {
+            if (!str) return '';
+            return str.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n');
+        }
+
+        function handleKeyDown(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        }
+
+        // Auto Textarea Auto-height
+        const chatInput = document.getElementById('chat-input');
+        chatInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+        });
+
+        // Theme Switch
+        const themeBtn = document.getElementById('theme-btn');
+        themeBtn.addEventListener('click', () => {
+            document.body.classList.toggle('dark-mode');
+            const isDark = document.body.classList.contains('dark-mode');
+            themeBtn.querySelector('span').textContent = isDark ? 'dark_mode' : 'light_mode';
+        });
+
+        // App Initialization
+        window.onload = async () => {
+            renderModelDropdown();
+            await initDB();
+            await loadSettings();
+            await loadRems();
+            await loadChatList();
+        };
+    </script>
+</body>
+</html>
