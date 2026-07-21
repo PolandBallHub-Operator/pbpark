@@ -1,0 +1,1598 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+    <title>Pcontact - PeerJS Communication with Mi UI</title>
+
+    <!-- Google Fonts & Material Symbols -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+
+    <!-- PeerJS Library for WebRTC Audio, Video & Data Chat -->
+    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+
+    <style>
+        :root {
+            --accent-primary: #3381FF;
+            --accent-active: #1A5FCC;
+            
+            /* PTZ & HyperOS デザイン初期値 */
+            --ptz-card-radius: 24px;
+            --mi-dialog-radius: 28px;
+
+            /* Light Mode カラー */
+            --bg-base: #F4F4F6;
+            --glass-bg: #FFFFFF;
+            --text-main: #111111;
+            --text-sub: #777777;
+            --bg-secondary: #EFEFEF;
+            --nav-bg: #FFFFFF;
+            --nav-icon-active: #000000;
+            --border-light: rgba(0, 0, 0, 0.06);
+
+            --m3-easing: cubic-bezier(0.2, 0.8, 0.2, 1);
+            --transition-smooth: 0.3s var(--m3-easing);
+            --card-padding: 24px;
+
+            --status-online: #34C759;
+            --status-offline: #8E8E93;
+        }
+
+        /* ダークモード (HyperOS Dark Theme) */
+        .dark-mode {
+            --bg-base: #0A0A0C;
+            --glass-bg: #1A1A1E;
+            --text-main: #F5F5F7;
+            --text-sub: #8E8E93;
+            --bg-secondary: #28282C;
+            --nav-bg: #1A1A1E;
+            --nav-icon-active: #FFFFFF;
+            --border-light: rgba(255, 255, 255, 0.08);
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', 'Noto Sans JP', sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            transition: background-color var(--transition-smooth), color var(--transition-smooth);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* アプリ全体コンテナ */
+        #app-viewport {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        /* ヘッダー */
+        header {
+            height: 60px;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--glass-bg);
+            border-bottom: 1px solid var(--border-light);
+            transition: background-color var(--transition-smooth);
+            position: relative;
+            flex-shrink: 0;
+        }
+        .logo {
+            font-weight: 700;
+            font-size: 18px;
+            letter-spacing: -0.5px;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .theme-toggle {
+            position: absolute;
+            right: 20px;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            border: none;
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s, background var(--transition-smooth);
+        }
+        .theme-toggle:active {
+            transform: scale(0.9);
+        }
+
+        /* メインスクロールエリア */
+        main {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 20px 16px 100px;
+            max-width: 680px;
+            width: 100%;
+            margin: 0 auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* フラットカード (HyperOS/PTZ風) */
+        .glass-card {
+            background: var(--glass-bg);
+            border-radius: var(--ptz-card-radius);
+            padding: var(--card-padding);
+            margin-bottom: 16px;
+            border: 1px solid var(--border-light);
+            transition: background-color var(--transition-smooth);
+        }
+
+        h2 { 
+            font-size: 17px; 
+            margin-top: 0; 
+            margin-bottom: 10px;
+            font-weight: 700; 
+            letter-spacing: -0.3px;
+        }
+        p {
+            font-size: 13px;
+            line-height: 1.5;
+            margin-top: 0;
+            margin-bottom: 14px;
+            color: var(--text-sub);
+        }
+
+        /* UIパーツ */
+        .custom-list {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .list-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 6px;
+            border-bottom: 1px solid var(--border-light);
+        }
+        .list-item:last-child {
+            border-bottom: none;
+        }
+        .list-item-title {
+            font-weight: 600;
+            font-size: 14.5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .list-item-desc {
+            font-size: 11.5px;
+            color: var(--text-sub);
+            word-break: break-all;
+            margin-top: 2px;
+        }
+
+        /* アクションボタン */
+        .ai-btn {
+            border: none;
+            outline: none;
+            padding: 12px 20px;
+            border-radius: 14px;
+            font-weight: 600;
+            font-size: 13.5px;
+            color: white;
+            cursor: pointer;
+            background: var(--accent-primary);
+            transition: transform 0.15s, background-color var(--transition-smooth);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            justify-content: center;
+        }
+        .ai-btn:active {
+            background: var(--accent-active);
+            transform: scale(0.96);
+        }
+        .ai-btn:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+            transform: none !allowed;
+        }
+        .ai-btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-main);
+        }
+        .ai-btn-danger {
+            background: #FF3B30;
+            color: white;
+        }
+
+        /* 入力フォーム */
+        .glass-input-wrapper {
+            margin-bottom: 12px;
+        }
+        .glass-input {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 14px;
+            border: 1px solid transparent;
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            font-size: 14px;
+            font-family: inherit;
+            box-sizing: border-box;
+            transition: background var(--transition-smooth), border-color 0.2s;
+        }
+        .glass-input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            background: var(--glass-bg);
+        }
+
+        /* アイコンピッカー */
+        .avatar-picker {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            padding: 6px 2px;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+        .avatar-option {
+            font-size: 24px;
+            padding: 8px 12px;
+            border-radius: 14px;
+            cursor: pointer;
+            background: var(--bg-secondary);
+            transition: transform 0.15s, border 0.15s;
+            border: 2px solid transparent;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 48px;
+            height: 48px;
+        }
+        .avatar-option.selected {
+            border-color: var(--accent-primary);
+            background: var(--glass-bg);
+        }
+        .avatar-img-preview {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+
+        /* 汎用アバター表示スタイル */
+        .ui-avatar {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            vertical-align: middle;
+            border-radius: 50%;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        .ui-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* ステータスドット */
+        .status-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            display: inline-block;
+            flex-shrink: 0;
+        }
+        .status-dot.online {
+            background-color: var(--status-online);
+            box-shadow: 0 0 6px var(--status-online);
+        }
+        .status-dot.offline {
+            background-color: var(--status-offline);
+        }
+
+        /* 通話ビデオエリア */
+        .video-container {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 16/9;
+            background: #000;
+            border-radius: var(--ptz-card-radius);
+            overflow: hidden;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .video-element {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .local-video {
+            position: absolute;
+            bottom: 12px;
+            right: 12px;
+            width: 28%;
+            aspect-ratio: 16/9;
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+            z-index: 10;
+        }
+
+        /* チャットエリア */
+        .chat-log {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 260px;
+            overflow-y: auto;
+            margin-bottom: 14px;
+            padding-right: 4px;
+        }
+        .chat-bubble {
+            max-width: 80%;
+            padding: 10px 14px;
+            border-radius: 16px;
+            font-size: 13.5px;
+            line-height: 1.4;
+            word-break: break-word;
+        }
+        .chat-bubble.me {
+            align-self: flex-end;
+            background: var(--accent-primary);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+        .chat-bubble.peer {
+            align-self: flex-start;
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            border-bottom-left-radius: 4px;
+        }
+        .chat-time {
+            font-size: 10px;
+            opacity: 0.7;
+            margin-top: 4px;
+            text-align: right;
+        }
+
+        /* ナビゲーションバー */
+        .bottom-nav-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 68px;
+            background: var(--nav-bg);
+            border-top: 1px solid var(--border-light);
+            z-index: 500;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        .nav-item {
+            flex: 1;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-sub);
+            transition: color 0.2s var(--m3-easing);
+            gap: 3px;
+        }
+        .nav-item span.material-symbols-outlined {
+            font-size: 24px;
+            font-variation-settings: 'FILL' 0, 'wght' 400;
+        }
+        .nav-label {
+            font-size: 10.5px;
+            font-weight: 600;
+        }
+        .nav-item.active {
+            color: var(--nav-icon-active);
+        }
+        .nav-item.active span.material-symbols-outlined {
+            font-variation-settings: 'FILL' 1, 'wght' 700;
+        }
+
+        /* ビューアニメーション */
+        .view {
+            display: none;
+        }
+        .view.active {
+            display: block;
+            animation: viewIn 0.25s var(--m3-easing);
+        }
+        @keyframes viewIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ---------- Xiaomi HyperOS (Mi) スタイル モーダルダイアログ ---------- */
+        .mi-dialog-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.45);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.25s var(--m3-easing), visibility 0.25s;
+        }
+        .mi-dialog-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .mi-dialog-card {
+            background: var(--glass-bg);
+            width: 100%;
+            max-width: 360px;
+            border-radius: var(--mi-dialog-radius);
+            padding: 24px 20px 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+            text-align: center;
+            transform: scale(0.92);
+            transition: transform 0.25s var(--m3-easing);
+            border: 1px solid var(--border-light);
+        }
+        .mi-dialog-overlay.active .mi-dialog-card {
+            transform: scale(1);
+        }
+        .mi-dialog-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+            display: inline-block;
+        }
+        .mi-dialog-title {
+            font-weight: 700;
+            font-size: 18px;
+            margin-bottom: 8px;
+            color: var(--text-main);
+        }
+        .mi-dialog-body {
+            font-size: 13.5px;
+            color: var(--text-sub);
+            line-height: 1.5;
+            margin-bottom: 22px;
+            word-break: break-all;
+        }
+        .mi-dialog-actions {
+            display: flex;
+            gap: 10px;
+        }
+        .mi-dialog-btn {
+            flex: 1;
+            padding: 12px;
+            border-radius: 16px;
+            font-weight: 600;
+            font-size: 14px;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.15s, background 0.2s;
+        }
+        .mi-dialog-btn-cancel {
+            background: var(--bg-secondary);
+            color: var(--text-main);
+        }
+        .mi-dialog-btn-confirm {
+            background: var(--accent-primary);
+            color: #FFFFFF;
+        }
+        .mi-dialog-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* トースト通知 */
+        .toast {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--text-main);
+            color: var(--glass-bg);
+            padding: 10px 20px;
+            border-radius: 14px;
+            font-size: 13px;
+            font-weight: 600;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s var(--m3-easing);
+            z-index: 3000;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+        }
+        .toast.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .badge {
+            background: var(--accent-primary);
+            color: white;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 11.5px;
+            font-weight: 700;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app-viewport">
+        <!-- ヘッダー -->
+        <header>
+            <div class="logo">
+                <span class="material-symbols-outlined" style="color: var(--accent-primary);">connect_without_contact</span>
+                Pcontact
+            </div>
+            <button class="theme-toggle" id="theme-btn" title="テーマ切替">
+                <span class="material-symbols-outlined">light_mode</span>
+            </button>
+        </header>
+
+        <!-- メインコンテンツ -->
+        <main>
+            <!-- 1. 連絡先ビュー (Home) -->
+            <section id="view-contacts" class="view active">
+                <div class="glass-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <span class="badge" id="my-peer-status">接続中...</span>
+                        <span style="font-size: 11.5px; color: var(--text-sub);" id="my-peer-id-label">Peercode: 取得中</span>
+                    </div>
+                    <h2>自分の Peercode</h2>
+                    <p>このPeercodeを相手に伝えて登録してもらってください。</p>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="my-peercode-input" class="glass-input" readonly value="生成中...">
+                        <button class="ai-btn" onclick="copyMyPeerCode()">
+                            <span class="material-symbols-outlined">content_copy</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="glass-card">
+                    <h2>相手の Peercode を登録</h2>
+                    <p>相手のコードを入力すると、相手に「登録しますか？」とMiダイアログで確認リクエストが送信されます。</p>
+                    <div class="glass-input-wrapper">
+                        <input type="text" id="add-contact-code" class="glass-input" placeholder="相手の Peercode を入力...">
+                    </div>
+                    <button class="ai-btn" style="width: 100%;" onclick="sendAddContactRequest()">
+                        <span class="material-symbols-outlined">person_add</span>
+                        登録リクエストを送信
+                    </button>
+                </div>
+
+                <div class="glass-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <h2>連絡先一覧</h2>
+                        <button class="ai-btn ai-btn-secondary" style="padding: 6px 12px; font-size: 12px;" onclick="checkAllOnlineStatus()">
+                            <span class="material-symbols-outlined" style="font-size: 16px;">refresh</span>
+                            状態更新
+                        </button>
+                    </div>
+                    <p>相手がオンラインの時のみ、通話およびリアルタイム対話が可能です。</p>
+                    
+                    <div class="custom-list" id="contact-list-container">
+                        <!-- 動的生成される連絡先リスト -->
+                        <div style="text-align: center; color: var(--text-sub); padding: 16px; font-size: 13px;">
+                            連絡先が登録されていません。
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2. 通話 & 対話ビュー -->
+            <section id="view-communication" class="view">
+                <div class="glass-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span class="badge" id="comm-target-name">相手を選択してください</span>
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <span class="status-dot offline" id="comm-target-status-dot"></span>
+                            <span style="font-size: 12px; color: var(--text-sub);" id="comm-target-status-text">オフライン</span>
+                        </div>
+                    </div>
+                    <h2>コミュニケーションルーム</h2>
+                    <p id="comm-target-code-display">連絡先一覧から相手を選択して開始してください。</p>
+                    
+                    <!-- アクションボタン -->
+                    <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+                        <button class="ai-btn" id="btn-audio-call" style="flex: 1;" onclick="startCall(false)" disabled>
+                            <span class="material-symbols-outlined">call</span>
+                            音声通話
+                        </button>
+                        <button class="ai-btn" id="btn-video-call" style="flex: 1;" onclick="startCall(true)" disabled>
+                            <span class="material-symbols-outlined">videocam</span>
+                            ビデオ通話
+                        </button>
+                        <button class="ai-btn ai-btn-danger" id="btn-end-call" style="display: none;" onclick="endCurrentCall()">
+                            <span class="material-symbols-outlined">call_end</span>
+                            切断
+                        </button>
+                    </div>
+
+                    <!-- ビデオ表示エリア -->
+                    <div class="video-container" id="video-wrapper" style="display: none;">
+                        <video id="remote-video" class="video-element" autoplay playsinline></video>
+                        <video id="local-video" class="video-element local-video" autoplay playsinline muted></video>
+                    </div>
+
+                    <!-- チャットログ -->
+                    <div class="chat-log" id="chat-log-box">
+                        <div style="text-align: center; color: var(--text-sub); padding: 12px; font-size: 12px;">
+                            メッセージ履歴がここに表示されます
+                        </div>
+                    </div>
+
+                    <!-- メッセージ入力 -->
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="chat-message-input" class="glass-input" style="margin-bottom: 0;" placeholder="メッセージを入力..." disabled onkeydown="if(event.key==='Enter') sendChatMessage()">
+                        <button class="ai-btn" id="btn-send-msg" onclick="sendChatMessage()" disabled>
+                            <span class="material-symbols-outlined">send</span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. プロフィール & Peercode 設定ビュー -->
+            <section id="view-profile" class="view">
+                <div class="glass-card">
+                    <h2>プロフィール設定</h2>
+                    <p>あなたの表示名とアイコンを設定します（相手に自動共有されます）。</p>
+                    
+                    <div class="glass-input-wrapper">
+                        <label style="font-size: 12px; font-weight: 600; color: var(--text-sub); display: block; margin-bottom: 6px;">アイコン選択（絵文字・画像アップロード）</label>
+                        
+                        <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 12px;">
+                            <div id="current-avatar-preview" class="ui-avatar" style="width: 64px; height: 64px; background: var(--bg-secondary); font-size: 32px; border: 2px solid var(--accent-primary);">
+                                👤
+                            </div>
+                            <div>
+                                <input type="file" id="avatar-file-input" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
+                                <button class="ai-btn ai-btn-secondary" style="padding: 8px 14px; font-size: 12.5px;" onclick="document.getElementById('avatar-file-input').click()">
+                                    <span class="material-symbols-outlined" style="font-size: 18px;">upload_file</span>
+                                    画像ファイルを選択
+                                </button>
+                                <div style="font-size: 11px; color: var(--text-sub); margin-top: 4px;">※自動的に軽量化して保存されます</div>
+                            </div>
+                        </div>
+
+                        <div class="avatar-picker" id="avatar-picker">
+                            <div class="avatar-option selected" onclick="selectAvatar('👤')">👤</div>
+                            <div class="avatar-option" onclick="selectAvatar('🐱')">🐱</div>
+                            <div class="avatar-option" onclick="selectAvatar('🐶')">🐶</div>
+                            <div class="avatar-option" onclick="selectAvatar('🦊')">🦊</div>
+                            <div class="avatar-option" onclick="selectAvatar('🚀')">🚀</div>
+                            <div class="avatar-option" onclick="selectAvatar('🌟')">🌟</div>
+                            <div class="avatar-option" onclick="selectAvatar('🔥')">🔥</div>
+                            <div class="avatar-option" onclick="selectAvatar('📱')">📱</div>
+                        </div>
+                        <input type="text" id="custom-avatar-input" class="glass-input" placeholder="お好みの絵文字や1文字を入力..." maxlength="4" style="margin-top: 4px;" oninput="selectAvatar(this.value)">
+                    </div>
+
+                    <div class="glass-input-wrapper">
+                        <label style="font-size: 12px; font-weight: 600; color: var(--text-sub); display: block; margin-bottom: 6px;">表示名</label>
+                        <input type="text" id="profile-name-input" class="glass-input" placeholder="あなたの名前を入力...">
+                    </div>
+
+                    <button class="ai-btn" style="width: 100%; margin-bottom: 24px;" onclick="saveProfileSettings()">
+                        <span class="material-symbols-outlined">save</span>
+                        プロフィール変更を保存
+                    </button>
+
+                    <h2>自分の Peercode を直接指定</h2>
+                    <p>お好きな英数字で自作の Peercode を指定可能です。</p>
+
+                    <div class="glass-input-wrapper">
+                        <input type="text" id="custom-peercode-input" class="glass-input" placeholder="例: my-custom-id-999">
+                    </div>
+
+                    <div style="display: flex; gap: 8px;">
+                        <button class="ai-btn ai-btn-secondary" style="flex: 1;" onclick="generateRandomPeerCode()">
+                            <span class="material-symbols-outlined">autorenew</span>
+                            ランダム生成
+                        </button>
+                        <button class="ai-btn" style="flex: 1;" onclick="applyCustomPeerCode()">
+                            <span class="material-symbols-outlined">check_circle</span>
+                            IDを適用して接続
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- 下付き固定ナビゲーションバー -->
+        <div class="bottom-nav-container">
+            <div class="nav-item active" data-view="view-contacts" onclick="switchView('view-contacts')">
+                <span class="material-symbols-outlined">contacts</span>
+                <span class="nav-label">連絡先</span>
+            </div>
+            <div class="nav-item" data-view="view-communication" onclick="switchView('view-communication')">
+                <span class="material-symbols-outlined">forum</span>
+                <span class="nav-label">対話・通話</span>
+            </div>
+            <div class="nav-item" data-view="view-profile" onclick="switchView('view-profile')">
+                <span class="material-symbols-outlined">account_circle</span>
+                <span class="nav-label">設定</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Xiaomi HyperOS スタイル モーダルダイアログ (Mi Dialog) -->
+    <div class="mi-dialog-overlay" id="mi-dialog-overlay">
+        <div class="mi-dialog-card">
+            <div class="mi-dialog-icon" id="mi-dialog-icon">👤</div>
+            <div class="mi-dialog-title" id="mi-dialog-title">タイトル</div>
+            <div class="mi-dialog-body" id="mi-dialog-body">メッセージ本文がここに表示されます。</div>
+            <div class="mi-dialog-actions">
+                <button class="mi-dialog-btn mi-dialog-btn-cancel" id="mi-dialog-cancel-btn">キャンセル</button>
+                <button class="mi-dialog-btn mi-dialog-btn-confirm" id="mi-dialog-confirm-btn">登録する</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- トースト通知 -->
+    <div class="toast" id="toast-message">通知メッセージ</div>
+
+    <script>
+        /**
+         * Pcontact - HyperOS Architecture & PeerJS Core
+         */
+
+        // --- IndexedDB システムマネージャー ---
+        const DB_NAME = 'PcontactHyperDB';
+        const DB_VERSION = 1;
+        let db = null;
+
+        function initIndexedDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+                request.onupgradeneeded = (e) => {
+                    const database = e.target.result;
+                    if (!database.objectStoreNames.contains('profile')) {
+                        database.createObjectStore('profile', { keyPath: 'id' });
+                    }
+                    if (!database.objectStoreNames.contains('contacts')) {
+                        database.createObjectStore('contacts', { keyPath: 'peercode' });
+                    }
+                    if (!database.objectStoreNames.contains('chats')) {
+                        const chatStore = database.createObjectStore('chats', { keyPath: 'id', autoIncrement: true });
+                        chatStore.createIndex('peercode', 'peercode', { unique: false });
+                    }
+                };
+                request.onsuccess = (e) => {
+                    db = e.target.result;
+                    resolve(db);
+                };
+                request.onerror = (e) => reject('IndexedDB Error: ' + e.target.error);
+            });
+        }
+
+        function dbGet(storeName, key) {
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(storeName, 'readonly');
+                const store = tx.objectStore(storeName);
+                const req = store.get(key);
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+        }
+
+        function dbPut(storeName, value) {
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(storeName, 'readwrite');
+                const store = tx.objectStore(storeName);
+                const req = store.put(value);
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+        }
+
+        function dbGetAll(storeName) {
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(storeName, 'readonly');
+                const store = tx.objectStore(storeName);
+                const req = store.getAll();
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+        }
+
+        function dbDelete(storeName, key) {
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(storeName, 'readwrite');
+                const store = tx.objectStore(storeName);
+                const req = store.delete(key);
+                req.onsuccess = () => resolve();
+                req.onerror = () => reject(req.error);
+            });
+        }
+
+        // --- Peercode 生成ロジック ---
+        function createRandomPeerCode() {
+            const now = new Date();
+            const timeStr = String(now.getHours()).padStart(2, '0') +
+                            String(now.getMinutes()).padStart(2, '0');
+            const serial = String(Math.floor(1000 + Math.random() * 9000));
+            return `code-${timeStr}-${serial}`;
+        }
+
+        // --- Xiaomi HyperOS モーダルダイアログ システム (Mi Dialog) ---
+        function showMiDialog({ icon = '👤', title, message, confirmText = '登録する', cancelText = 'キャンセル', onConfirm, onCancel }) {
+            const overlay = document.getElementById('mi-dialog-overlay');
+            const iconEl = document.getElementById('mi-dialog-icon');
+            const titleEl = document.getElementById('mi-dialog-title');
+            const bodyEl = document.getElementById('mi-dialog-body');
+            const confirmBtn = document.getElementById('mi-dialog-confirm-btn');
+            const cancelBtn = document.getElementById('mi-dialog-cancel-btn');
+
+            iconEl.innerHTML = renderAvatarHTML(icon, '48px', '48px');
+            titleEl.textContent = title;
+            bodyEl.textContent = message;
+            confirmBtn.textContent = confirmText;
+            cancelBtn.textContent = cancelText;
+
+            overlay.classList.add('active');
+
+            const cleanup = () => {
+                overlay.classList.remove('active');
+                confirmBtn.onclick = null;
+                cancelBtn.onclick = null;
+            };
+
+            confirmBtn.onclick = () => {
+                cleanup();
+                if (onConfirm) onConfirm();
+            };
+
+            cancelBtn.onclick = () => {
+                cleanup();
+                if (onCancel) onCancel();
+            };
+        }
+
+        // --- アバター描画ヘルパー関数 (絵文字 or Base64/URL画像対応) ---
+        function renderAvatarHTML(avatarData, width = '24px', height = '24px') {
+            if (!avatarData) avatarData = '👤';
+            if (avatarData.startsWith('data:image/') || avatarData.startsWith('http://') || avatarData.startsWith('https://')) {
+                return `<span class="ui-avatar" style="width:${width}; height:${height};"><img src="${avatarData}" alt="avatar"></span>`;
+            }
+            return `<span style="font-size: calc(${width} * 0.85); line-height: 1;">${escapeHtml(avatarData)}</span>`;
+        }
+
+        // 画像アップロード時のリサイズ＆圧縮処理 (200x200px Max)
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (!file.type.startsWith('image/')) {
+                showToast('画像ファイルを選択してください');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const maxDim = 200;
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > height) {
+                        if (width > maxDim) {
+                            height = Math.round((height * maxDim) / width);
+                            width = maxDim;
+                        }
+                    } else {
+                        if (height > maxDim) {
+                            width = Math.round((width * maxDim) / height);
+                            height = maxDim;
+                        }
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    // WebP または JPEG で圧縮
+                    const compressedBase64 = canvas.toDataURL('image/jpeg', 0.85);
+                    selectAvatar(compressedBase64);
+                    showToast('プロフィール画像を適用しました');
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // --- アプリケーション状態 ---
+        let myProfile = {
+            id: 'my_profile',
+            name: 'ユーザー',
+            avatar: '👤',
+            peercode: ''
+        };
+        let contactsList = [];
+        let peer = null;
+        let activeDataConn = null;
+        let activeMediaCall = null;
+        let localStream = null;
+        let selectedTargetContact = null;
+        let onlineStatusMap = {};
+
+        // --- PeerJS ネイティブ接続 ---
+        async function initializePeerJS(peercode) {
+            if (peer) {
+                peer.destroy();
+            }
+
+            const statusBadge = document.getElementById('my-peer-status');
+            statusBadge.textContent = '接続中...';
+            statusBadge.style.background = 'var(--accent-primary)';
+
+            myProfile.peercode = peercode;
+            document.getElementById('my-peercode-input').value = peercode;
+            document.getElementById('my-peer-id-label').textContent = `Peercode: ${peercode}`;
+            await dbPut('profile', myProfile);
+
+            peer = new Peer(peercode, { debug: 1 });
+
+            peer.on('open', (id) => {
+                statusBadge.textContent = 'オンライン';
+                statusBadge.style.background = 'var(--status-online)';
+                showToast(`Peercode: [${id}] でオンラインになりました`);
+                checkAllOnlineStatus();
+            });
+
+            peer.on('error', (err) => {
+                console.error('Peer Error:', err);
+                if (err.type === 'unavailable-id') {
+                    showMiDialog({
+                        icon: '⚠️',
+                        title: 'ID重複エラー',
+                        message: `Peercode [${peercode}] は既に使用されています。ランダムIDでリトライしますか？`,
+                        confirmText: '新規作成',
+                        cancelText: '閉じる',
+                        onConfirm: () => {
+                            const newCode = createRandomPeerCode();
+                            initializePeerJS(newCode);
+                        }
+                    });
+                } else {
+                    statusBadge.textContent = 'オフライン';
+                    statusBadge.style.background = '#FF3B30';
+                }
+            });
+
+            // チャット・登録リクエストメッセージ受信ハンドラー
+            peer.on('connection', (conn) => {
+                setupDataConnection(conn);
+            });
+
+            // 着信通話ハンドラー (Miダイアログで対応)
+            peer.on('call', async (call) => {
+                const callerName = call.metadata?.callerName || call.peer;
+                const isVideo = call.metadata?.isVideo || false;
+
+                showMiDialog({
+                    icon: isVideo ? 'videocam' : 'call',
+                    title: isVideo ? 'テレビ電話の着信' : '音声通話の着信',
+                    message: `${callerName} から着信しています。応答しますか？`,
+                    confirmText: '応答する',
+                    cancelText: '拒否',
+                    onConfirm: async () => {
+                        try {
+                            localStream = await navigator.mediaDevices.getUserMedia({
+                                audio: true,
+                                video: isVideo
+                            });
+
+                            document.getElementById('video-wrapper').style.display = isVideo ? 'flex' : 'none';
+                            document.getElementById('local-video').srcObject = localStream;
+
+                            call.answer(localStream);
+                            activeMediaCall = call;
+
+                            call.on('stream', (remoteStream) => {
+                                document.getElementById('remote-video').srcObject = remoteStream;
+                            });
+
+                            call.on('close', () => {
+                                endCurrentCallCleanup();
+                            });
+
+                            document.getElementById('btn-end-call').style.display = 'inline-flex';
+                            document.getElementById('btn-audio-call').style.display = 'none';
+                            document.getElementById('btn-video-call').style.display = 'none';
+
+                            switchView('view-communication');
+                        } catch (e) {
+                            showToast('マイク/カメラのアクセスが許可されませんでした');
+                        }
+                    },
+                    onCancel: () => {
+                        call.close();
+                    }
+                });
+            });
+        }
+
+        // データチャット & 登録リクエスト通信セットアップ
+        function setupDataConnection(conn) {
+            activeDataConn = conn;
+
+            conn.on('open', () => {
+                onlineStatusMap[conn.peer] = true;
+                renderContactList();
+                updateCommTargetUI();
+            });
+
+            conn.on('data', async (data) => {
+                // 1. 相手からの登録リクエストを受信したとき (Mi Dialog 表示)
+                if (data.type === 'req_add_contact') {
+                    showMiDialog({
+                        icon: data.senderAvatar || '👤',
+                        title: '連絡先登録リクエスト',
+                        message: `「${data.senderName}」(${data.senderCode}) から登録リクエストが届きました。連絡先に登録しますか？`,
+                        confirmText: '登録する',
+                        cancelText: '拒否する',
+                        onConfirm: async () => {
+                            // 相手を自分の連絡先DBに登録
+                            const newContact = {
+                                peercode: data.senderCode,
+                                name: data.senderName,
+                                avatar: data.senderAvatar || '👤',
+                                addedAt: new Date().toISOString()
+                            };
+                            await dbPut('contacts', newContact);
+                            contactsList = await dbGetAll('contacts');
+                            onlineStatusMap[data.senderCode] = true;
+                            renderContactList();
+
+                            // 承認と自分のプロフィールを相手に送り返す
+                            conn.send({
+                                type: 'res_add_contact',
+                                accepted: true,
+                                senderName: myProfile.name,
+                                senderAvatar: myProfile.avatar,
+                                senderCode: myProfile.peercode
+                            });
+
+                            showToast(`「${data.senderName}」を連絡先に追加しました`);
+                        },
+                        onCancel: () => {
+                            conn.send({
+                                type: 'res_add_contact',
+                                accepted: false
+                            });
+                        }
+                    });
+                } 
+                // 2. 相手が登録リクエストに応答したとき
+                else if (data.type === 'res_add_contact') {
+                    if (data.accepted) {
+                        const newContact = {
+                            peercode: data.senderCode,
+                            name: data.senderName,
+                            avatar: data.senderAvatar || '👤',
+                            addedAt: new Date().toISOString()
+                        };
+                        await dbPut('contacts', newContact);
+                        contactsList = await dbGetAll('contacts');
+                        onlineStatusMap[data.senderCode] = true;
+                        renderContactList();
+
+                        showToast(`「${data.senderName}」と相互登録が完了しました！`);
+                    } else {
+                        showToast('相手に登録リクエストが拒否されました');
+                    }
+                } 
+                // 3. チャットメッセージの受信
+                else if (data.type === 'chat') {
+                    const chatMsg = {
+                        peercode: conn.peer,
+                        sender: 'peer',
+                        text: data.text,
+                        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                    };
+                    await dbPut('chats', chatMsg);
+                    if (selectedTargetContact && selectedTargetContact.peercode === conn.peer) {
+                        renderChatLogs(conn.peer);
+                    } else {
+                        showToast(`新着メッセージ (${conn.peer})`);
+                    }
+                }
+            });
+
+            conn.on('close', () => {
+                onlineStatusMap[conn.peer] = false;
+                renderContactList();
+                updateCommTargetUI();
+            });
+        }
+
+        // 相手のコードを指定して「登録リクエスト」を送信
+        async function sendAddContactRequest() {
+            const codeInput = document.getElementById('add-contact-code');
+            const targetCode = codeInput.value.trim();
+
+            if (!targetCode) {
+                showToast('相手の Peercode を入力してください');
+                return;
+            }
+            if (targetCode === myProfile.peercode) {
+                showToast('自分の Peercode は追加できません');
+                return;
+            }
+
+            showToast('相手のオンライン状態を確認して要求を送信中...');
+
+            const conn = peer.connect(targetCode);
+            let responseReceived = false;
+
+            const timer = setTimeout(() => {
+                if (!responseReceived) {
+                    showToast('相手がオフラインか、応答がありません');
+                    conn.close();
+                }
+            }, 5000);
+
+            conn.on('open', () => {
+                responseReceived = true;
+                clearTimeout(timer);
+
+                // 自分の表示名とアイコンを乗せて送信
+                conn.send({
+                    type: 'req_add_contact',
+                    senderCode: myProfile.peercode,
+                    senderName: myProfile.name,
+                    senderAvatar: myProfile.avatar
+                });
+
+                setupDataConnection(conn);
+                codeInput.value = '';
+                showToast('相手に確認リクエストを送信しました');
+            });
+
+            conn.on('error', (err) => {
+                clearTimeout(timer);
+                showToast('相手が見つからないか、オフラインです');
+            });
+        }
+
+        // 全連絡先のオンライン状況チェック
+        function checkOnlineStatus(targetPeerCode) {
+            return new Promise((resolve) => {
+                if (!peer || peer.disconnected) {
+                    resolve(false);
+                    return;
+                }
+                const tempConn = peer.connect(targetPeerCode, { reliable: false });
+                let resolved = false;
+
+                const timer = setTimeout(() => {
+                    if (!resolved) {
+                        resolved = true;
+                        tempConn.close();
+                        resolve(false);
+                    }
+                }, 2000);
+
+                tempConn.on('open', () => {
+                    if (!resolved) {
+                        resolved = true;
+                        clearTimeout(timer);
+                        tempConn.close();
+                        resolve(true);
+                    }
+                });
+
+                tempConn.on('error', () => {
+                    if (!resolved) {
+                        resolved = true;
+                        clearTimeout(timer);
+                        resolve(false);
+                    }
+                });
+            });
+        }
+
+        async function checkAllOnlineStatus() {
+            showToast('状態を同期中...');
+            for (const contact of contactsList) {
+                const isOnline = await checkOnlineStatus(contact.peercode);
+                onlineStatusMap[contact.peercode] = isOnline;
+            }
+            renderContactList();
+            updateCommTargetUI();
+            showToast('状態更新完了');
+        }
+
+        async function loadProfileAndContacts() {
+            const savedProfile = await dbGet('profile', 'my_profile');
+            if (savedProfile) {
+                myProfile = savedProfile;
+                document.getElementById('profile-name-input').value = myProfile.name || 'ユーザー';
+                selectAvatar(myProfile.avatar || '👤');
+            } else {
+                myProfile.peercode = createRandomPeerCode();
+            }
+
+            document.getElementById('custom-peercode-input').value = myProfile.peercode;
+            await initializePeerJS(myProfile.peercode);
+
+            contactsList = await dbGetAll('contacts');
+            renderContactList();
+        }
+
+        function renderContactList() {
+            const container = document.getElementById('contact-list-container');
+            container.innerHTML = '';
+
+            if (contactsList.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; color: var(--text-sub); padding: 16px; font-size: 13px;">
+                        連絡先が登録されていません。
+                    </div>`;
+                return;
+            }
+
+            contactsList.forEach((contact) => {
+                const isOnline = !!onlineStatusMap[contact.peercode];
+                const item = document.createElement('div');
+                item.className = 'list-item';
+
+                item.innerHTML = `
+                    <div>
+                        <div class="list-item-title">
+                            <span class="status-dot ${isOnline ? 'online' : 'offline'}"></span>
+                            <span style="display: inline-flex; align-items: center; gap: 6px;">
+                                ${renderAvatarHTML(contact.avatar, '24px', '24px')} 
+                                ${escapeHtml(contact.name || '名前なし')}
+                            </span>
+                        </div>
+                        <div class="list-item-desc">${contact.peercode}</div>
+                    </div>
+                    <div style="display: flex; gap: 6px;">
+                        <button class="ai-btn ai-btn-secondary" style="padding: 6px 12px; font-size: 12px;" onclick="openCommunicationRoom('${contact.peercode}')">
+                            対話・通話
+                        </button>
+                        <button class="ai-btn ai-btn-danger" style="padding: 6px; border-radius: 50%;" onclick="confirmDeleteContact('${contact.peercode}')" title="削除">
+                            <span class="material-symbols-outlined" style="font-size: 18px;">delete</span>
+                        </button>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function confirmDeleteContact(peercode) {
+            showMiDialog({
+                icon: '🗑️',
+                title: '連絡先の削除',
+                message: `連絡先 [${peercode}] を削除しますか？`,
+                confirmText: '削除する',
+                cancelText: 'キャンセル',
+                onConfirm: async () => {
+                    await dbDelete('contacts', peercode);
+                    contactsList = await dbGetAll('contacts');
+                    delete onlineStatusMap[peercode];
+                    renderContactList();
+                    showToast('連絡先を削除しました');
+                }
+            });
+        }
+
+        async function openCommunicationRoom(peercode) {
+            selectedTargetContact = contactsList.find(c => c.peercode === peercode) || { peercode: peercode, name: '未登録', avatar: '👤' };
+            switchView('view-communication');
+            updateCommTargetUI();
+            renderChatLogs(peercode);
+
+            if (peer && !peer.disconnected) {
+                const conn = peer.connect(peercode);
+                setupDataConnection(conn);
+            }
+        }
+
+        function updateCommTargetUI() {
+            if (!selectedTargetContact) return;
+
+            const isOnline = !!onlineStatusMap[selectedTargetContact.peercode];
+            const nameTarget = document.getElementById('comm-target-name');
+            nameTarget.innerHTML = `<div style="display: flex; align-items: center; gap: 6px;">
+                ${renderAvatarHTML(selectedTargetContact.avatar, '22px', '22px')} 
+                <span>${escapeHtml(selectedTargetContact.name)}</span>
+            </div>`;
+
+            document.getElementById('comm-target-code-display').textContent = `Peercode: ${selectedTargetContact.peercode}`;
+            
+            const dot = document.getElementById('comm-target-status-dot');
+            const statusText = document.getElementById('comm-target-status-text');
+
+            if (isOnline) {
+                dot.className = 'status-dot online';
+                statusText.textContent = 'オンライン';
+            } else {
+                dot.className = 'status-dot offline';
+                statusText.textContent = 'オフライン';
+            }
+
+            document.getElementById('btn-audio-call').disabled = !isOnline;
+            document.getElementById('btn-video-call').disabled = !isOnline;
+            document.getElementById('chat-message-input').disabled = !isOnline;
+            document.getElementById('btn-send-msg').disabled = !isOnline;
+        }
+
+        async function renderChatLogs(peercode) {
+            const chatBox = document.getElementById('chat-log-box');
+            chatBox.innerHTML = '';
+
+            const allChats = await dbGetAll('chats');
+            const targetChats = allChats.filter(c => c.peercode === peercode);
+
+            if (targetChats.length === 0) {
+                chatBox.innerHTML = `
+                    <div style="text-align: center; color: var(--text-sub); padding: 12px; font-size: 12px;">
+                        メッセージ履歴はありません
+                    </div>`;
+                return;
+            }
+
+            targetChats.forEach(chat => {
+                const bubble = document.createElement('div');
+                bubble.className = `chat-bubble ${chat.sender === 'me' ? 'me' : 'peer'}`;
+                bubble.innerHTML = `
+                    <div>${escapeHtml(chat.text)}</div>
+                    <div class="chat-time">${chat.time}</div>
+                `;
+                chatBox.appendChild(bubble);
+            });
+
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        async function sendChatMessage() {
+            const input = document.getElementById('chat-message-input');
+            const text = input.value.trim();
+            if (!text || !selectedTargetContact) return;
+
+            if (!onlineStatusMap[selectedTargetContact.peercode]) {
+                showToast('相手がオフラインのため送信できません');
+                return;
+            }
+
+            if (activeDataConn && activeDataConn.open) {
+                activeDataConn.send({ type: 'chat', text: text });
+
+                const chatMsg = {
+                    peercode: selectedTargetContact.peercode,
+                    sender: 'me',
+                    text: text,
+                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                };
+                await dbPut('chats', chatMsg);
+
+                input.value = '';
+                renderChatLogs(selectedTargetContact.peercode);
+            } else {
+                showToast('再接続しています...');
+                const conn = peer.connect(selectedTargetContact.peercode);
+                setupDataConnection(conn);
+            }
+        }
+
+        async function startCall(isVideo) {
+            if (!selectedTargetContact || !onlineStatusMap[selectedTargetContact.peercode]) {
+                showToast('相手がオンラインの時のみ通話可能です');
+                return;
+            }
+
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({
+                    audio: true,
+                    video: isVideo
+                });
+
+                document.getElementById('video-wrapper').style.display = isVideo ? 'flex' : 'none';
+                document.getElementById('local-video').srcObject = localStream;
+
+                const call = peer.call(selectedTargetContact.peercode, localStream, {
+                    metadata: { callerName: myProfile.name, isVideo: isVideo }
+                });
+                activeMediaCall = call;
+
+                call.on('stream', (remoteStream) => {
+                    document.getElementById('remote-video').srcObject = remoteStream;
+                });
+
+                call.on('close', () => {
+                    endCurrentCallCleanup();
+                });
+
+                document.getElementById('btn-end-call').style.display = 'inline-flex';
+                document.getElementById('btn-audio-call').style.display = 'none';
+                document.getElementById('btn-video-call').style.display = 'none';
+
+                showToast(isVideo ? 'ビデオ通話を呼び出し中...' : '音声通話を呼び出し中...');
+            } catch (e) {
+                showToast('カメラまたはマイクのアクセス許可が必要です');
+            }
+        }
+
+        function endCurrentCall() {
+            if (activeMediaCall) {
+                activeMediaCall.close();
+            }
+            endCurrentCallCleanup();
+        }
+
+        function endCurrentCallCleanup() {
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+            }
+            document.getElementById('video-wrapper').style.display = 'none';
+            document.getElementById('remote-video').srcObject = null;
+            document.getElementById('local-video').srcObject = null;
+
+            document.getElementById('btn-end-call').style.display = 'none';
+            document.getElementById('btn-audio-call').style.display = 'inline-flex';
+            document.getElementById('btn-video-call').style.display = 'inline-flex';
+
+            showToast('通話を終了しました');
+        }
+
+        // アイコン選択ロジック
+        function selectAvatar(symbol) {
+            if (!symbol) return;
+            document.querySelectorAll('.avatar-option').forEach(el => el.classList.remove('selected'));
+            
+            let matched = false;
+            document.querySelectorAll('.avatar-option').forEach(opt => {
+                if (opt.textContent.trim() === symbol) {
+                    opt.classList.add('selected');
+                    matched = true;
+                }
+            });
+
+            if (!matched && !symbol.startsWith('data:image/')) {
+                document.getElementById('custom-avatar-input').value = symbol;
+            }
+
+            myProfile.avatar = symbol;
+
+            // プロフィール画面のプレビューを更新
+            const preview = document.getElementById('current-avatar-preview');
+            if (preview) {
+                preview.innerHTML = renderAvatarHTML(symbol, '100%', '100%');
+            }
+        }
+
+        async function saveProfileSettings() {
+            const nameInput = document.getElementById('profile-name-input');
+            myProfile.name = nameInput.value.trim() || 'ユーザー';
+
+            await dbPut('profile', myProfile);
+            showToast('プロフィール設定を保存しました');
+        }
+
+        function generateRandomPeerCode() {
+            const code = createRandomPeerCode();
+            document.getElementById('custom-peercode-input').value = code;
+        }
+
+        function applyCustomPeerCode() {
+            const customCode = document.getElementById('custom-peercode-input').value.trim();
+            if (!customCode) {
+                showToast('Peercode を入力してください');
+                return;
+            }
+            showMiDialog({
+                icon: '🔄',
+                title: 'ID変更の確認',
+                message: `Peercode を [${customCode}] に変更してネットワークに再接続しますか？`,
+                confirmText: '変更して接続',
+                cancelText: 'キャンセル',
+                onConfirm: () => {
+                    initializePeerJS(customCode);
+                }
+            });
+        }
+
+        function copyMyPeerCode() {
+            const input = document.getElementById('my-peercode-input');
+            input.select();
+            document.execCommand('copy');
+            showToast('Peercode をコピーしました！');
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>"']/g, function(m) {
+                return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m];
+            });
+        }
+
+        // --- ビュー切り替え機構 ---
+        const navItems = document.querySelectorAll('.nav-item');
+        const views = document.querySelectorAll('.view');
+
+        function switchView(viewId) {
+            navItems.forEach(n => {
+                n.classList.remove('active');
+                if (n.getAttribute('data-view') === viewId) {
+                    n.classList.add('active');
+                }
+            });
+
+            views.forEach(v => {
+                v.classList.remove('active');
+                if (v.id === viewId) {
+                    v.classList.add('active');
+                }
+            });
+        }
+
+        // --- トースト通知 ---
+        function showToast(msg) {
+            const toast = document.getElementById('toast-message');
+            toast.textContent = msg;
+            toast.classList.add('active');
+            setTimeout(() => {
+                toast.classList.remove('active');
+            }, 2600);
+        }
+
+        // --- テーマ切替 ---
+        const themeBtn = document.getElementById('theme-btn');
+        const themeIcon = themeBtn.querySelector('span');
+
+        function setTheme(isDark) {
+            document.body.classList.toggle('dark-mode', isDark);
+            themeIcon.textContent = isDark ? 'dark_mode' : 'light_mode';
+        }
+
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+        setTheme(prefersDark.matches);
+
+        themeBtn.addEventListener('click', () => {
+            setTheme(!document.body.classList.contains('dark-mode'));
+        });
+
+        // アプリ起動初期化
+        window.onload = async () => {
+            await initIndexedDB();
+            await loadProfileAndContacts();
+        };
+    </script>
+</body>
+</html>
