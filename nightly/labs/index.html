@@ -1,1 +1,1272 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+    <title>PolandballParkLabs - PTZ Dynamic AI Portal</title>
 
+    <!-- Google Fonts & Material Symbols -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+
+    <style>
+        /* デフォルトテーマ（PTZ.jsonのデフォルト値と連動） */
+        :root {
+            --accent-primary: #5679F0;
+            --accent-active: #3c5cd1;
+            
+            /* PTZ 規格初期値 */
+            --ptz-theme-name: "PolandballPark Dynamic PTZ";
+            --ptz-card-radius: 24px;
+            --ptz-slider-height: 30px; /* デフォルト30pxに拡大 */
+            --ptz-toggle-width: 58px;
+            --ptz-toggle-height: 32px;
+            --ptz-toggle-knob-radius: 50%;
+            --ptz-toggle-knob-width: 24px;
+            --ptz-blur-intensity: 0px;
+
+            /* AI グラデーション（コンポーネント共有） */
+            --ai-gradient: linear-gradient(135deg, #5679F0 0%, #D2B5CD 50%, #EB9968 100%);
+            --ai-gradient-hover: linear-gradient(135deg, #4467E0 0%, #C1A4BC 50%, #DA8857 100%);
+
+            /* Light Mode ベースカラー */
+            --bg-base: #F7F7F7;
+            --glass-bg: #FFFFFF;
+            --text-main: #000000;
+            --text-sub: #666666;
+            --bg-secondary: #EEEEEE;
+            --nav-bg: #FFFFFF;
+            --nav-icon-active: #000000;
+            
+            --m3-easing: cubic-bezier(0.32, 0.72, 0, 1);
+            --transition-smooth: 0.35s var(--m3-easing);
+            --card-padding: 24px;
+        }
+
+        /* ダークモード */
+        .dark-mode {
+            --bg-base: #121212;
+            --glass-bg: #1E1E1E;
+            --text-main: #FFFFFF;
+            --text-sub: #A1A1A6;
+            --bg-secondary: #2C2C2E;
+            --nav-bg: #1E1E1E;
+            --nav-icon-active: #FFFFFF;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', 'Noto Sans JP', sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            transition: background-color var(--transition-smooth), color var(--transition-smooth);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* アプリ全体のコンテナ */
+        #app-viewport {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        /* ヘッダー（中央タイトル、境界線・シャドウなし） */
+        header {
+            height: 64px;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--glass-bg);
+            transition: background-color var(--transition-smooth);
+            position: relative;
+            flex-shrink: 0;
+            z-index: 100;
+        }
+        .logo {
+            font-weight: 700;
+            font-size: 18px;
+            letter-spacing: -0.5px;
+            color: var(--text-main);
+            text-align: center;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .theme-toggle {
+            position: absolute;
+            right: 24px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: none;
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background var(--transition-smooth), transform 0.2s;
+        }
+        .theme-toggle:active {
+            transform: scale(0.9);
+        }
+
+        /* メインコンテンツ（スクロール可能） */
+        main {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 24px 20px 100px;
+            max-width: 720px;
+            width: 100%;
+            margin: 0 auto;
+            -webkit-overflow-scrolling: touch;
+            position: relative;
+        }
+
+        main.labs-ai-active {
+            padding: 0 !important;
+            max-width: 100% !important;
+            overflow: hidden !important;
+        }
+
+        /* フラットソリッドカード */
+        .glass-card {
+            background: var(--glass-bg);
+            border-radius: var(--ptz-card-radius);
+            padding: var(--card-padding);
+            margin-bottom: 20px;
+            box-shadow: none !important;
+            border: none !important;
+            transition: background-color var(--transition-smooth), border-radius var(--transition-smooth);
+        }
+
+        /* AIグラデーションヘッダーカード */
+        .glass-card.ai-gradient-header {
+            background: var(--ai-gradient) !important;
+            color: #FFFFFF !important;
+            text-align: center;
+            padding: 36px 24px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .glass-card.ai-gradient-header h1 {
+            margin: 12px 0 4px;
+            font-size: 22px;
+            font-weight: 700;
+            color: #FFFFFF;
+            letter-spacing: -0.5px;
+        }
+
+        .glass-card.ai-gradient-header p {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 13px;
+            margin: 0;
+        }
+
+        .header-logo-img {
+            max-width: 260px;
+            width: 75%;
+            height: auto;
+            filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.15));
+            object-fit: contain;
+        }
+
+        h2 { 
+            font-size: 18px; 
+            margin-top: 0; 
+            margin-bottom: 12px;
+            font-weight: 700; 
+            letter-spacing: -0.3px;
+        }
+        p {
+            font-size: 13.5px;
+            line-height: 1.5;
+            margin-top: 0;
+            margin-bottom: 16px;
+            color: var(--text-sub);
+        }
+
+        /* 1. リストコンポーネント */
+        .custom-list {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            margin-bottom: 16px;
+        }
+        .list-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 4px;
+            border-bottom: 1px solid var(--bg-secondary);
+        }
+        .list-item:last-child {
+            border-bottom: none;
+        }
+        .list-item-title {
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .list-item-desc {
+            font-size: 12px;
+            color: var(--text-sub);
+        }
+
+        /* 2. グラデーション太スライダー（初期高さ30px） */
+        .slider-wrapper {
+            margin: 18px 0;
+        }
+        .slider-label-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        .thick-slider-container {
+            position: relative;
+            width: 100%;
+            height: var(--ptz-slider-height);
+            background: var(--bg-secondary);
+            border-radius: calc(var(--ptz-slider-height) / 2);
+            overflow: hidden;
+            cursor: pointer;
+            transition: height var(--transition-smooth);
+        }
+        /* 全てコンポーネントグラデーション化 */
+        .thick-slider-fill {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 50%;
+            background: var(--ai-gradient);
+            border-radius: calc(var(--ptz-slider-height) / 2);
+            transition: width 0.1s ease-out;
+        }
+        .thick-slider-input {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+            margin: 0;
+        }
+
+        /* 3. トグルスイッチ（ON時もグラデーション） */
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 4px;
+        }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: var(--ptz-toggle-width);
+            height: var(--ptz-toggle-height);
+            transition: width var(--transition-smooth), height var(--transition-smooth);
+        }
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--bg-secondary);
+            transition: var(--transition-smooth);
+            border-radius: calc(var(--ptz-toggle-height) / 2);
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: var(--ptz-toggle-knob-width);
+            width: var(--ptz-toggle-knob-width);
+            left: 4px;
+            bottom: calc((var(--ptz-toggle-height) - var(--ptz-toggle-knob-width)) / 2);
+            background: white;
+            transition: var(--transition-smooth);
+            border-radius: var(--ptz-toggle-knob-radius);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        input:checked + .slider {
+            background: var(--ai-gradient);
+        }
+        input:checked + .slider:before {
+            transform: translateX(calc(var(--ptz-toggle-width) - var(--ptz-toggle-knob-width) - 8px));
+        }
+
+        /* 4. アクションボタン（全コンポーネントグラデーション） */
+        .ai-btn {
+            border: none;
+            outline: none;
+            padding: 14px 24px;
+            border-radius: calc(var(--ptz-card-radius) / 1.5);
+            font-weight: 600;
+            font-size: 14px;
+            color: white;
+            cursor: pointer;
+            background: var(--ai-gradient); /* デフォルトでグラデーション */
+            transition: transform 0.2s, background 0.3s, box-shadow 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            justify-content: center;
+            text-decoration: none;
+            box-shadow: 0 4px 15px rgba(86, 121, 240, 0.25);
+        }
+        .ai-btn:hover {
+            transform: translateY(-1px) scale(1.01);
+            box-shadow: 0 6px 20px rgba(86, 121, 240, 0.35);
+        }
+        .ai-btn:active {
+            transform: scale(0.97);
+        }
+        .ai-btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            box-shadow: none;
+        }
+        .ai-btn-gradient {
+            background: var(--ai-gradient);
+            color: white;
+        }
+
+        /* ツールリンクカード */
+        .tool-link-card {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            background: var(--glass-bg);
+            border-radius: var(--ptz-card-radius);
+            margin-bottom: 12px;
+            text-decoration: none;
+            color: var(--text-main);
+            transition: transform 0.2s, background-color var(--transition-smooth);
+            cursor: pointer;
+        }
+        .tool-link-card:hover {
+            transform: translateY(-2px);
+        }
+        .tool-link-card .tool-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 14px;
+            background: var(--ai-gradient);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        /* インプットテキスト */
+        .glass-input-wrapper {
+            margin-bottom: 14px;
+        }
+        .glass-input {
+            width: 100%;
+            padding: 14px 16px;
+            border-radius: 14px;
+            border: none;
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            font-size: 14px;
+            font-family: inherit;
+            box-sizing: border-box;
+            transition: background var(--transition-smooth);
+        }
+        .glass-input:focus {
+            outline: 2px solid var(--accent-primary);
+        }
+
+        /* 下付き固定ナビゲーションバー */
+        .bottom-nav-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 72px;
+            background: var(--nav-bg);
+            border-top: 1px solid var(--bg-secondary);
+            z-index: 500;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding-bottom: env(safe-area-inset-bottom);
+            transition: background-color var(--transition-smooth), border-color var(--transition-smooth);
+        }
+        .nav-item {
+            flex: 1;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-sub);
+            transition: color 0.25s var(--m3-easing);
+            position: relative;
+            gap: 4px;
+        }
+        .nav-item span.material-symbols-outlined {
+            font-size: 24px;
+            font-variation-settings: 'FILL' 0, 'wght' 400;
+            transition: font-variation-settings 0.2s, color 0.2s;
+        }
+        .nav-label {
+            font-size: 10px;
+            font-weight: 600;
+        }
+        .nav-item.active {
+            color: var(--nav-icon-active);
+        }
+        .nav-item.active span.material-symbols-outlined {
+            font-variation-settings: 'FILL' 1, 'wght' 700;
+        }
+
+        /* ビュー切り替え */
+        .view {
+            display: none !important;
+        }
+        .view.active {
+            display: block !important;
+            animation: viewIn 0.3s var(--m3-easing);
+        }
+
+        #view-labs-ai.active {
+            display: flex !important;
+            flex-direction: column;
+            width: 100%;
+            height: calc(100vh - 64px - 72px);
+            height: calc(100dvh - 64px - 72px);
+            padding: 0;
+            margin: 0;
+        }
+        .copilot-toolbar {
+            padding: 12px 16px;
+            background: var(--glass-bg);
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-shrink: 0;
+            border-bottom: 1px solid var(--bg-secondary);
+        }
+        .copilot-iframe-wrapper {
+            flex-grow: 1;
+            width: 100%;
+            height: 100%;
+            position: relative;
+            background: var(--bg-secondary);
+        }
+        .copilot-iframe-wrapper iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: block;
+        }
+
+        /* PTZ JSON エディタ＆ファイル操作 */
+        .ptz-dropzone {
+            border: 2px dashed var(--text-sub);
+            border-radius: var(--ptz-card-radius);
+            padding: 24px;
+            text-align: center;
+            cursor: pointer;
+            background: rgba(0, 0, 0, 0.02);
+            transition: background 0.2s, border-color 0.2s;
+            margin-bottom: 16px;
+        }
+        .dark-mode .ptz-dropzone {
+            background: rgba(255, 255, 255, 0.02);
+        }
+        .ptz-dropzone:hover {
+            background: rgba(86, 121, 240, 0.05);
+            border-color: var(--accent-primary);
+        }
+        .json-textarea {
+            width: 100%;
+            height: 220px;
+            font-family: monospace;
+            font-size: 12.5px;
+            padding: 16px;
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            border: none;
+            border-radius: var(--ptz-card-radius);
+            resize: vertical;
+            outline: none;
+            line-height: 1.4;
+            transition: background var(--transition-smooth);
+        }
+        .json-textarea:focus {
+            box-shadow: 0 0 0 2px var(--accent-primary);
+        }
+
+        /* プリセットボタンリスト */
+        .preset-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .preset-btn {
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            border: none;
+            padding: 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            transition: background 0.2s, transform 0.1s;
+        }
+        .preset-btn:active {
+            transform: scale(0.97);
+        }
+
+        /* Jelly/Squishy インタラクション */
+        @keyframes squishy {
+            0% { transform: scale(1, 1); }
+            30% { transform: scale(1.04, 0.96); }
+            50% { transform: scale(0.98, 1.02); }
+            70% { transform: scale(1.01, 0.99); }
+            100% { transform: scale(1, 1); }
+        }
+        .squish-active {
+            animation: squishy 0.35s var(--m3-easing);
+        }
+
+        /* トースト通知 */
+        .toast {
+            position: fixed;
+            bottom: 84px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--text-main);
+            color: var(--glass-bg);
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s var(--m3-easing);
+            z-index: 2000;
+        }
+        .toast.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* 全コンポーネント用バッジ */
+        .badge {
+            background: var(--ai-gradient);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 700;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app-viewport">
+        <!-- ヘッダー -->
+        <header>
+            <div class="logo">
+                <span class="material-symbols-outlined" style="background: var(--ai-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">science</span>
+                PolandballParkLabs
+            </div>
+            <button class="theme-toggle" id="theme-btn" title="テーマ切り替え">
+                <span class="material-symbols-outlined">light_mode</span>
+            </button>
+        </header>
+
+        <!-- メインコンテンツ -->
+        <main>
+            <section id="view-home" class="view active">
+                <!-- AIグラデーション大型ロゴヘッダー -->
+                <div class="glass-card ai-gradient-header">
+                    <img src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbpark/refs/heads/main/nightly/labs/labs.png" 
+                         alt="PolandballParkLabs Logo" 
+                         class="header-logo-img"
+                         onerror="this.onerror=null; this.src='https://placehold.co/280x100/5679F0/ffffff?text=PolandballParkLabs';">
+                    <h1>PolayndballParkLabs</h1>
+                    <p>AI Enjoy</p>
+                </div>
+
+                <!-- PBlabs AI を使う -->
+                <div class="glass-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span class="badge">PBlabs AI</span>
+                        <span style="font-size: 11px; color: var(--text-sub);">Copilot Engine</span>
+                    </div>
+                    <h2>PBlabs AIを使う</h2>
+                    <p>質問したい内容を入力して実行すると、LabsAIタブ（フレームレス表示）でAIアシスタントが回答を生成します。</p>
+
+                    <div class="glass-input-wrapper">
+                        <input type="text" id="pblabs-ai-input" class="glass-input" placeholder="質問したい文言を入力してください..." onkeydown="if(event.key==='Enter') executePBlabsAI()">
+                    </div>
+
+                    <button class="ai-btn ai-btn-gradient" style="width: 100%;" onclick="executePBlabsAI()">
+                        <span class="material-symbols-outlined">psychology</span>
+                        PBlabs AI で質問する
+                    </button>
+                </div>
+
+                <!-- AIツールコレクション（新設ツールリンク） -->
+                <div style="margin-bottom: 20px;">
+                    <h2 style="font-size: 16px; margin-bottom: 12px; font-weight: 700; padding: 0 4px;">Labs 拡張AIツール</h2>
+
+                    <!-- ツール1: AI imageEdgeDetect -->
+                    <a href="https://example.com/ai-image-edge-detect" target="_self" class="tool-link-card">
+                        <div style="display: flex; align-items: center; gap: 14px;">
+                            <div class="tool-icon">
+                                <span class="material-symbols-outlined">crop_free</span>
+                            </div>
+                            <div>
+                                <div style="font-weight: 700; font-size: 15px;">AI imageEdgeDetect</div>
+                                <div style="font-size: 12px; color: var(--text-sub);">画像エッジ検出・輪郭抽出AIツール</div>
+                            </div>
+                        </div>
+                        <span class="material-symbols-outlined" style="color: var(--text-sub);">chevron_right</span>
+                    </a>
+
+                    <!-- ツール2: RemideAI -->
+                    <a href="https://example.com/remide-ai" target="_self" class="tool-link-card">
+                        <div style="display: flex; align-items: center; gap: 14px;">
+                            <div class="tool-icon">
+                                <span class="material-symbols-outlined">auto_awesome</span>
+                            </div>
+                            <div>
+                                <div style="font-weight: 700; font-size: 15px;">RemideAI</div>
+                                <div style="font-size: 12px; color: var(--text-sub);">ReMadeGemini, Remide 次世代AIアシスタント</div>
+                            </div>
+                        </div>
+                        <span class="material-symbols-outlined" style="color: var(--text-sub);">chevron_right</span>
+                    </a>
+                </div>
+
+                <!-- AIMode を使う -->
+                <div class="glass-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span class="badge">Google AI</span>
+                        <span style="font-size: 11px; color: var(--text-sub);">New Tab Search</span>
+                    </div>
+                    <h2>AIModeを使う</h2>
+                    <p>検索バーにキーワードを入力して、最新のGoogle AIモードで新しいタブを開きます。</p>
+
+                    <div class="glass-input-wrapper">
+                        <input type="text" id="aimode-input" class="glass-input" placeholder="検索したい文字を入力してください..." onkeydown="if(event.key==='Enter') executeAIMode()">
+                    </div>
+
+                    <button class="ai-btn" style="width: 100%;" onclick="executeAIMode()">
+                        <span class="material-symbols-outlined">open_in_new</span>
+                        AIMode で検索 (新タブ)
+                    </button>
+                </div>
+
+                <!-- テーマエディター案内 -->
+                <div class="glass-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span class="badge" id="current-theme-badge">PolandballPark PTZ</span>
+                        <span style="font-size: 11px; color: var(--text-sub);">Dynamic Engine</span>
+                    </div>
+                    <h2>テーマエディター</h2>
+                    <p>リアルタイムでコンポーネントの変化を確認しながら、オリジナルPTZテーマを作成・調整できます。</p>
+                    <button class="ai-btn ai-btn-secondary" style="width: 100%;" onclick="switchView('view-ptz')">
+                        <span class="material-symbols-outlined">palette</span>
+                        テーマエディターを開く
+                    </button>
+                </div>
+            </section>
+
+            <!-- 2. LabsAI ビュー (カードなし・画面いっぱい表示) -->
+            <section id="view-labs-ai" class="view">
+                <!-- 画面上部のコンパクト・ツールバー -->
+                <div class="copilot-toolbar">
+                    <input type="text" id="labs-ai-tab-input" class="glass-input" style="padding: 10px 14px; font-size: 13px;" placeholder="質問文言を更新..." onkeydown="if(event.key==='Enter') updateLabsAIIframe()">
+                    <button class="ai-btn ai-btn-gradient" style="padding: 10px 16px; flex-shrink: 0;" onclick="updateLabsAIIframe()">
+                        <span class="material-symbols-outlined">search</span>
+                    </button>
+                    <button class="ai-btn ai-btn-secondary" style="padding: 10px 12px; flex-shrink: 0;" onclick="openCurrentIframeExternal()" title="直接開く">
+                        <span class="material-symbols-outlined">open_in_new</span>
+                    </button>
+                </div>
+
+                <!-- カード化を排除したフルエリアIFRAME -->
+                <div class="copilot-iframe-wrapper">
+                    <iframe id="labs-ai-iframe" src="https://www.bing.com/copilotsearch?q=PolandballParkLabs" title="LabsAI Bing Copilot Search" allow="microphone; camera; clipboard-write"></iframe>
+                </div>
+            </section>
+
+            <!-- 3. テーマエディター (PTZ.json) ビュー -->
+            <section id="view-ptz" class="view">
+                <div class="glass-card">
+                    <h2>PTZ.json テーマエディター</h2>
+                    <p>画面のコンポーネントを確認しながら、PTZ規格のテーマパラメータを自由自在にカスタマイズできます。</p>
+
+                    <!-- ドラッグ＆ドロップ ゾーン -->
+                    <div class="ptz-dropzone" id="ptz-drop-area" onclick="triggerFileInput()">
+                        <span class="material-symbols-outlined" style="font-size: 40px; background: var(--ai-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 8px;">upload_file</span>
+                        <div style="font-weight: 700; font-size: 14px;">ここに PTZ.json をドロップ、またはクリック</div>
+                        <div style="font-size: 12px; color: var(--text-sub); margin-top: 4px;">手元の構成ファイルを適用します</div>
+                        <input type="file" id="ptz-file-input" accept=".json" style="display: none;" onchange="handleFileSelect(event)">
+                    </div>
+
+                    <div style="margin-bottom: 12px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                            <span style="font-weight: 700; font-size: 13px;">PTZ.json コードエディタ</span>
+                            <div style="display: flex; gap: 6px;">
+                                <button class="preset-btn" style="padding: 4px 8px; margin: 0;" onclick="copyJsonToClipboard()">コピー</button>
+                                <button class="preset-btn" style="padding: 4px 8px; margin: 0; background: var(--ai-gradient); color: white;" onclick="downloadJsonFile()">保存 (.json)</button>
+                            </div>
+                        </div>
+                        <textarea class="json-textarea" id="ptz-code-area" oninput="validateAndApplyJson(this.value)"></textarea>
+                        <div id="json-error-msg" style="color: #FF3B30; font-size: 12px; margin-top: 6px; display: none; font-weight: 600;"></div>
+                    </div>
+
+                    <div style="margin-top: 16px;">
+                        <button class="ai-btn" style="width: 100%;" onclick="applyJsonFromTextArea()">
+                            <span class="material-symbols-outlined">done_all</span>
+                            変更を強制適用
+                        </button>
+                    </div>
+                </div>
+
+                <div class="glass-card">
+                    <h2>プリセット・テーマ</h2>
+                    <p>PolandballParkLabs 推奨のPTZテーマプリセットです。</p>
+                    <div class="preset-grid">
+                        <button class="preset-btn" onclick="loadPreset('default')">PBPark AI Blue (30px)</button>
+                        <button class="preset-btn" onclick="loadPreset('sharpPurple')">Sharp Purple (角丸0)</button>
+                        <button class="preset-btn" onclick="loadPreset('chunkyRose')">Chunky Sunset</button>
+                        <button class="preset-btn" onclick="loadPreset('minimalGray')">Minimal Monochrome</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 4. コンポーネント プレビュー ビュー -->
+            <section id="view-components" class="view">
+                <div class="glass-card">
+                    <h2>構築コンポーネント一覧</h2>
+                    <p>PTZ設定をリアルタイムに反映するインタラクティブなグラデーションコンポーネント集です。</p>
+
+                    <!-- 全グラデーション化 ＆ 初期高さ30pxのスライダー -->
+                    <div class="slider-wrapper">
+                        <div class="slider-label-row">
+                            <span>AI 応答生成スピード</span>
+                            <span id="val-vol">70%</span>
+                        </div>
+                        <div class="thick-slider-container" id="slider-vol-container">
+                            <div class="thick-slider-fill" id="slider-vol-fill" style="width: 70%;"></div>
+                            <input type="range" class="thick-slider-input" min="0" max="100" value="70" oninput="updateThickSlider('slider-vol-fill', 'val-vol', this.value, '%')">
+                        </div>
+                    </div>
+
+                    <div class="slider-wrapper">
+                        <div class="slider-label-row">
+                            <span>AI テキスト出力スケール</span>
+                            <span id="val-scale">16px</span>
+                        </div>
+                        <div class="thick-slider-container">
+                            <div class="thick-slider-fill" id="slider-scale-fill" style="width: 50%;"></div>
+                            <input type="range" class="thick-slider-input" min="12" max="24" value="16" oninput="updateThickSlider('slider-scale-fill', 'val-scale', this.value, 'px')">
+                        </div>
+                    </div>
+
+                    <!-- リスト ＆ グラデーション トグル -->
+                    <div class="custom-list">
+                        <div class="list-item">
+                            <div>
+                                <div class="list-item-title">AI検索コンテキスト有効化</div>
+                                <div class="list-item-desc">過去の会話コンテキストをAI検索に適用します</div>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" checked>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="list-item">
+                            <div>
+                                <div class="list-item-title">ダークモード自動同期</div>
+                                <div class="list-item-desc">OSのシステムテーマ設定に従います</div>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" id="darkmode-ptz-toggle" onchange="setTheme(this.checked)">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="list-item">
+                            <div>
+                                <div class="list-item-title">Labs パートナーモード</div>
+                                <div class="list-item-desc">高速レスポンスサーバーに接続</div>
+                            </div>
+                            <div style="font-weight: 700; font-size: 14px; background: var(--ai-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">アクティブ</div>
+                        </div>
+                    </div>
+
+                    <!-- ボタンバリエーション -->
+                    <div style="margin-top: 16px;">
+                        <h3 style="font-size: 14px; margin-bottom: 8px; font-weight: 700;">ボタンバリエーション</h3>
+                        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                            <button class="ai-btn" onclick="showToast('AIグラデーションボタンが押されました')">メインボタン</button>
+                            <button class="ai-btn ai-btn-secondary" onclick="showToast('セカンダリボタンが押されました')">セカンダリ</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card">
+                    <h2>システム状況</h2>
+                    <p>ロード済みのPTZグラフィックス パッチ情報</p>
+                    <div style="display: flex; flex-direction: column; gap: 10px; font-size: 13px;">
+                        <div style="display: flex; justify-content: space-between;">
+                            <span style="color: var(--text-sub);">アクティブカラー</span>
+                            <span style="font-weight:700; color: var(--accent-primary);" id="info-accent-color">#5679F0</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span style="color: var(--text-sub);">カード角丸半径</span>
+                            <span style="font-weight:700;" id="info-radius">24px</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span style="color: var(--text-sub);">スライダー厚み (デフォルト30px)</span>
+                            <span style="font-weight:700;" id="info-slider-height">30px</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- 下付き固定ナビゲーションバー -->
+        <div class="bottom-nav-container">
+            <div class="nav-item active" data-view="view-home" onclick="switchView('view-home')">
+                <span class="material-symbols-outlined">home</span>
+                <span class="nav-label">ホーム</span>
+            </div>
+            <div class="nav-item" data-view="view-labs-ai" onclick="switchView('view-labs-ai')">
+                <span class="material-symbols-outlined">psychology</span>
+                <span class="nav-label">Labs AI</span>
+            </div>
+            <div class="nav-item" data-view="view-ptz" onclick="switchView('view-ptz')">
+                <span class="material-symbols-outlined">palette</span>
+                <span class="nav-label">テーマエディター</span>
+            </div>
+            <div class="nav-item" data-view="view-components" onclick="switchView('view-components')">
+                <span class="material-symbols-outlined">layers</span>
+                <span class="nav-label">コンポーネント</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- トースト通知 -->
+    <div class="toast" id="toast-message">メッセージをコピーしました</div>
+
+    <script>
+        /**
+         * PolandballParkLabs Engine & Customizer
+         */
+
+        const viewport = document.getElementById('app-viewport');
+        const themeBtn = document.getElementById('theme-btn');
+        const themeIcon = themeBtn.querySelector('span');
+        const toast = document.getElementById('toast-message');
+        const ptzCodeArea = document.getElementById('ptz-code-area');
+        const jsonErrorMsg = document.getElementById('json-error-msg');
+
+        // デフォルトPTZオブジェクト (スライダー標準高さを30pxに変更)
+        let currentPtz = {
+            "themeName": "PolandballPark Dynamic PTZ",
+            "accentColor": "#5679F0",
+            "cardRadius": 24,
+            "sliderHeight": 30, // 30px デフォルト
+            "toggleWidth": 58,
+            "toggleHeight": 32,
+            "toggleKnobRadius": 50,
+            "toggleKnobWidth": 24,
+            "blurIntensity": 0,
+            "bgLight": "#F7F7F7",
+            "bgDark": "#121212"
+        };
+
+        // プリセットデータ定義
+        const presets = {
+            default: {
+                "themeName": "PolandballPark Dynamic PTZ",
+                "accentColor": "#5679F0",
+                "cardRadius": 24,
+                "sliderHeight": 30,
+                "toggleWidth": 58,
+                "toggleHeight": 32,
+                "toggleKnobRadius": 50,
+                "toggleKnobWidth": 24,
+                "blurIntensity": 0,
+                "bgLight": "#F7F7F7",
+                "bgDark": "#121212"
+            },
+            sharpPurple: {
+                "themeName": "Sharp Purple PTZ",
+                "accentColor": "#8B5CF6",
+                "cardRadius": 0,
+                "sliderHeight": 24,
+                "toggleWidth": 50,
+                "toggleHeight": 26,
+                "toggleKnobRadius": 0,
+                "toggleKnobWidth": 18,
+                "blurIntensity": 0,
+                "bgLight": "#FFFFFF",
+                "bgDark": "#1C1C1E"
+            },
+            chunkyRose: {
+                "themeName": "Chunky Sunset PTZ",
+                "accentColor": "#EB9968",
+                "cardRadius": 32,
+                "sliderHeight": 36,
+                "toggleWidth": 62,
+                "toggleHeight": 34,
+                "toggleKnobRadius": 50,
+                "toggleKnobWidth": 26,
+                "blurIntensity": 0,
+                "bgLight": "#FFF7F2",
+                "bgDark": "#1A100B"
+            },
+            minimalGray: {
+                "themeName": "Minimal Monochrome PTZ",
+                "accentColor": "#444444",
+                "cardRadius": 12,
+                "sliderHeight": 28,
+                "toggleWidth": 46,
+                "toggleHeight": 24,
+                "toggleKnobRadius": 50,
+                "toggleKnobWidth": 16,
+                "blurIntensity": 0,
+                "bgLight": "#F3F4F6",
+                "bgDark": "#0F0F10"
+            }
+        };
+
+        // 1. 「PBlabs AIを使う」実行処理
+        function executePBlabsAI() {
+            const inputVal = document.getElementById('pblabs-ai-input').value.trim();
+            const query = inputVal || "PolandballParkLabs";
+            
+            // LabsAIタブのインプット同期
+            document.getElementById('labs-ai-tab-input').value = query;
+
+            // iFrame のURLを設定
+            const targetUrl = `https://www.bing.com/copilotsearch?q=${encodeURIComponent(query)}`;
+            document.getElementById('labs-ai-iframe').src = targetUrl;
+
+            // 「LabsAI」タブへ移動
+            switchView('view-labs-ai');
+            showToast(`PBlabs AI: 「${query}」を検索中...`);
+        }
+
+        // LabsAIタブ内からの再検索処理
+        function updateLabsAIIframe() {
+            const query = document.getElementById('labs-ai-tab-input').value.trim();
+            if (!query) return;
+            
+            const targetUrl = `https://www.bing.com/copilotsearch?q=${encodeURIComponent(query)}`;
+            document.getElementById('labs-ai-iframe').src = targetUrl;
+            showToast(`iFrame 読み込み更新: ${query}`);
+        }
+
+        // iFrameを直接新タブで開くフォールバック
+        function openCurrentIframeExternal() {
+            const iframe = document.getElementById('labs-ai-iframe');
+            if (iframe && iframe.src) {
+                window.open(iframe.src, '_blank');
+            }
+        }
+
+        // 2. 「AIModeを使う」実行処理
+        function executeAIMode() {
+            const inputVal = document.getElementById('aimode-input').value.trim();
+            if (!inputVal) {
+                showToast('検索したい文字を入力してください');
+                return;
+            }
+
+            const targetUrl = `https://google.com/ai?q=${encodeURIComponent(inputVal)}`;
+            window.open(targetUrl, '_blank');
+            showToast(`新しいタブで AIMode を開きました: ${inputVal}`);
+        }
+
+        // --- PTZ適用のコア関数 ---
+        function applyPtz(ptz) {
+            currentPtz = { ...currentPtz, ...ptz };
+
+            // CSS Custom Properties へのマッピング
+            const root = document.documentElement;
+            root.style.setProperty('--accent-primary', currentPtz.accentColor);
+            root.style.setProperty('--accent-active', adjustColorBrightness(currentPtz.accentColor, -15));
+            root.style.setProperty('--ptz-card-radius', `${currentPtz.cardRadius}px`);
+            root.style.setProperty('--ptz-slider-height', `${currentPtz.sliderHeight}px`);
+            root.style.setProperty('--ptz-toggle-width', `${currentPtz.toggleWidth}px`);
+            root.style.setProperty('--ptz-toggle-height', `${currentPtz.toggleHeight}px`);
+            root.style.setProperty('--ptz-toggle-knob-radius', isNaN(currentPtz.toggleKnobRadius) ? currentPtz.toggleKnobRadius : `${currentPtz.toggleKnobRadius}%`);
+            root.style.setProperty('--ptz-toggle-knob-width', `${currentPtz.toggleKnobWidth}px`);
+            
+            // 背景設定
+            root.style.setProperty('--bg-base', document.body.classList.contains('dark-mode') ? currentPtz.bgDark : currentPtz.bgLight);
+
+            // バッジやインジケーターの文言を同期
+            const badge = document.getElementById('current-theme-badge');
+            if (badge) badge.textContent = currentPtz.themeName || "PTZ Config";
+            
+            const infoAccent = document.getElementById('info-accent-color');
+            if (infoAccent) {
+                infoAccent.textContent = currentPtz.accentColor;
+                infoAccent.style.color = currentPtz.accentColor;
+            }
+
+            const infoRadius = document.getElementById('info-radius');
+            if (infoRadius) infoRadius.textContent = `${currentPtz.cardRadius}px`;
+
+            const infoSlider = document.getElementById('info-slider-height');
+            if (infoSlider) infoSlider.textContent = `${currentPtz.sliderHeight}px`;
+
+            // エディタ（Textarea）に反映
+            if (ptzCodeArea) ptzCodeArea.value = JSON.stringify(currentPtz, null, 2);
+        }
+
+        // 明るさ調整ヘルパー
+        function adjustColorBrightness(hex, percent) {
+            if (!hex || hex.indexOf('#') !== 0) return '#5679F0';
+            let R = parseInt(hex.substring(1, 3), 16);
+            let G = parseInt(hex.substring(3, 5), 16);
+            let B = parseInt(hex.substring(5, 7), 16);
+            R = parseInt(R * (100 + percent) / 100);
+            G = parseInt(G * (100 + percent) / 100);
+            B = parseInt(B * (100 + percent) / 100);
+            R = (R < 255) ? R : 255; G = (G < 255) ? G : 255; B = (B < 255) ? B : 255;
+            const rHex = ((R.toString(16).length == 1) ? "0" + R.toString(16) : R.toString(16));
+            const gHex = ((G.toString(16).length == 1) ? "0" + G.toString(16) : G.toString(16));
+            const bHex = ((B.toString(16).length == 1) ? "0" + B.toString(16) : B.toString(16));
+            return "#" + rHex + gHex + bHex;
+        }
+
+        // JSONバリデーションと適用
+        function validateAndApplyJson(textVal) {
+            try {
+                const parsed = JSON.parse(textVal);
+                if (jsonErrorMsg) jsonErrorMsg.style.display = 'none';
+                applyPtz(parsed);
+                return true;
+            } catch (e) {
+                if (jsonErrorMsg) {
+                    jsonErrorMsg.textContent = `JSON構文エラー: ${e.message}`;
+                    jsonErrorMsg.style.display = 'block';
+                }
+                return false;
+            }
+        }
+
+        function applyJsonFromTextArea() {
+            if (validateAndApplyJson(ptzCodeArea.value)) {
+                showToast('PTZ.json 変更を手動適用しました');
+            } else {
+                showToast('エラー箇所を修正してください');
+            }
+        }
+
+        // プリセット適用
+        function loadPreset(key) {
+            if (presets[key]) {
+                applyPtz(presets[key]);
+                showToast(`プリセット [${presets[key].themeName}] をロードしました`);
+            }
+        }
+
+        // --- スライダーハンドラ ---
+        function updateThickSlider(fillId, labelId, val, unit) {
+            const label = document.getElementById(labelId);
+            const fill = document.getElementById(fillId);
+            if (label) label.textContent = `${val}${unit}`;
+            
+            if (fill) {
+                const input = fill.nextElementSibling;
+                if (input) {
+                    const min = parseFloat(input.min) || 0;
+                    const max = parseFloat(input.max) || 100;
+                    const percent = ((val - min) / (max - min)) * 100;
+                    fill.style.width = `${percent}%`;
+                }
+            }
+        }
+
+        // --- ドラッグ＆ドロップ ＆ 読み込み ---
+        function triggerFileInput() {
+            document.getElementById('ptz-file-input').click();
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            readFile(file);
+        }
+
+        function readFile(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                if (validateAndApplyJson(text)) {
+                    showToast(`${file.name} を適用しました！`);
+                } else {
+                    showToast('読み込んだJSONファイルにエラーがあります');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        const dropArea = document.getElementById('ptz-drop-area');
+        if (dropArea) {
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropArea.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    dropArea.style.background = 'rgba(86, 121, 240, 0.1)';
+                }, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropArea.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    dropArea.style.background = 'rgba(0, 0, 0, 0.02)';
+                }, false);
+            });
+
+            dropArea.addEventListener('drop', (e) => {
+                const dt = e.dataTransfer;
+                const file = dt.files[0];
+                if (file) {
+                    readFile(file);
+                }
+            });
+        }
+
+        // JSONコピー＆ダウンロード
+        function copyJsonToClipboard() {
+            ptzCodeArea.select();
+            document.execCommand('copy');
+            showToast('PTZ.json をクリップボードにコピーしました！');
+        }
+
+        function downloadJsonFile() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(ptzCodeArea.value);
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `pbpark_${currentPtz.themeName.toLowerCase().replace(/\s+/g, '_')}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+            showToast('PTZ.json ファイルのダウンロードを開始しました');
+        }
+
+        // --- ビュー切り替え機構 ---
+        const navItems = document.querySelectorAll('.nav-item');
+        const views = document.querySelectorAll('.view');
+
+        function switchView(viewId) {
+            const mainElem = document.querySelector('main');
+
+            navItems.forEach(n => {
+                n.classList.remove('active');
+                if (n.getAttribute('data-view') === viewId) {
+                    n.classList.add('active');
+                }
+            });
+
+            views.forEach(v => {
+                v.classList.remove('active');
+                if (v.id === viewId) {
+                    v.classList.add('active');
+                }
+            });
+
+            // Labs AI タブ時のみ main のパディング制限を解除して全画面表示に固定
+            if (viewId === 'view-labs-ai') {
+                if (mainElem) mainElem.classList.add('labs-ai-active');
+            } else {
+                if (mainElem) mainElem.classList.remove('labs-ai-active');
+            }
+        }
+
+        // --- トースト通知 ---
+        function showToast(msg) {
+            toast.textContent = msg;
+            toast.classList.add('active');
+            setTimeout(() => {
+                toast.classList.remove('active');
+            }, 2300);
+        }
+
+        // --- テーマ切替 ---
+        function setTheme(isDark) {
+            document.body.classList.toggle('dark-mode', isDark);
+            themeIcon.textContent = isDark ? 'dark_mode' : 'light_mode';
+            
+            const dmToggle = document.getElementById('darkmode-ptz-toggle');
+            if (dmToggle) {
+                dmToggle.checked = isDark;
+            }
+            
+            const root = document.documentElement;
+            root.style.setProperty('--bg-base', isDark ? currentPtz.bgDark : currentPtz.bgLight);
+        }
+
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+        setTheme(prefersDark.matches);
+
+        themeBtn.addEventListener('click', () => {
+            setTheme(!document.body.classList.contains('dark-mode'));
+        });
+
+        // 触感演出 (Jelly Squish)
+        document.addEventListener('mousedown', (e) => {
+            const target = e.target.closest('.glass-card, .ai-btn, .nav-item, .preset-btn, .tool-link-card');
+            if (target) {
+                target.classList.remove('squish-active');
+                void target.offsetWidth;
+                target.classList.add('squish-active');
+                
+                setTimeout(() => {
+                    target.classList.remove('squish-active');
+                }, 350);
+            }
+        });
+
+        // 初期ロード
+        window.onload = () => {
+            applyPtz(currentPtz);
+            updateThickSlider('slider-vol-fill', 'val-vol', 70, '%');
+            updateThickSlider('slider-scale-fill', 'val-scale', 16, 'px');
+        };
+    </script>
+</body>
+</html>
