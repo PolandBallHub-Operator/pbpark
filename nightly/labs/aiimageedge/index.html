@@ -1,1 +1,1039 @@
 
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+    <title>ImageEdgeDetectAI - PBpark Labs</title>
+
+    <!-- Google Fonts & Material Symbols -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+
+    <script>
+        // Emscripten/OpenCV.js 二重初期化防止用グローバルハンドラ
+        window.Module = window.Module || {};
+        window.cvRuntimeInitialized = false;
+        
+        window.Module.onRuntimeInitialized = function() {
+            if (window.cvRuntimeInitialized) return;
+            window.cvRuntimeInitialized = true;
+            if (typeof window.onOpenCvReady === 'function') {
+                window.onOpenCvReady();
+            }
+        };
+    </script>
+
+    <!-- 指定AIモデルスクリプト（OpenCV.jsローダー） -->
+    <script id="ai-model-script" async src="https://cdn.jsdelivr.net/gh/PolandBallHub-Operator/pbpark@main/nightly/labs/aiimageedge/aimodel.js"></script>
+
+    <style>
+        :root {
+            /* 指定AIグラデーションカラー */
+            --ai-grad-1: #5679F0;
+            --ai-grad-2: #D2B5CD;
+            --ai-grad-3: #EB9968;
+            --ai-gradient: linear-gradient(135deg, #5679F0 0%, #D2B5CD 50%, #EB9968 100%);
+
+            /* PTZ 規格値（スライダーの高さ指定 30px） */
+            --ptz-theme-name: "ImageEdgeDetectAI";
+            --ptz-card-radius: 24px;
+            --ptz-slider-height: 30px;
+            --ptz-toggle-width: 54px;
+            --ptz-toggle-height: 30px;
+            --ptz-toggle-knob-radius: 50%;
+            --ptz-toggle-knob-width: 22px;
+
+            /* Light Mode ベースカラー */
+            --bg-base: #F7F7F7;
+            --glass-bg: #FFFFFF;
+            --text-main: #000000;
+            --text-sub: #666666;
+            --bg-secondary: #EEEEEE;
+            --nav-bg: #FFFFFF;
+            --nav-icon-active: #000000;
+
+            --m3-easing: cubic-bezier(0.32, 0.72, 0, 1);
+            --transition-smooth: 0.35s var(--m3-easing);
+            --card-padding: 24px;
+        }
+
+        .dark-mode {
+            --bg-base: #121212;
+            --glass-bg: #1E1E1E;
+            --text-main: #FFFFFF;
+            --text-sub: #A1A1A6;
+            --bg-secondary: #2C2C2E;
+            --nav-bg: #1E1E1E;
+            --nav-icon-active: #FFFFFF;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', 'Noto Sans JP', sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            transition: background-color var(--transition-smooth), color var(--transition-smooth);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* アプリ全体のコンテナ (スマホ枠なし・レスポンシブWeb仕様) */
+        #app-viewport {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        header {
+            height: 64px;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--glass-bg);
+            transition: background-color var(--transition-smooth);
+            position: relative;
+            flex-shrink: 0;
+        }
+        .logo {
+            font-weight: 700;
+            font-size: 18px;
+            letter-spacing: -0.5px;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .logo img {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .theme-toggle {
+            position: absolute;
+            right: 24px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: none;
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background var(--transition-smooth), transform 0.2s;
+        }
+        .theme-toggle:active {
+            transform: scale(0.9);
+        }
+
+        main {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 24px 20px 100px;
+            max-width: 720px;
+            width: 100%;
+            margin: 0 auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* フラット白カード（中に灰色カードを入れることは厳禁） */
+        .glass-card {
+            background: var(--glass-bg);
+            border-radius: var(--ptz-card-radius);
+            padding: var(--card-padding);
+            margin-bottom: 20px;
+            box-shadow: none !important;
+            border: none !important;
+            transition: background-color var(--transition-smooth), border-radius var(--transition-smooth);
+        }
+
+        h2 { 
+            font-size: 18px; 
+            margin-top: 0; 
+            margin-bottom: 12px;
+            font-weight: 700; 
+            letter-spacing: -0.3px;
+        }
+        p {
+            font-size: 13.5px;
+            line-height: 1.5;
+            margin-top: 0;
+            margin-bottom: 16px;
+            color: var(--text-sub);
+        }
+
+        .custom-list {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            margin-bottom: 16px;
+        }
+        .list-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 4px;
+            border-bottom: 1px solid var(--bg-secondary);
+        }
+        .list-item:last-child {
+            border-bottom: none;
+        }
+        .list-item-title {
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .list-item-desc {
+            font-size: 12px;
+            color: var(--text-sub);
+        }
+
+        /* AIグラデーションスライダー（高さ 30px） */
+        .slider-wrapper {
+            margin: 16px 0;
+        }
+        .slider-label-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        .thick-slider-container {
+            position: relative;
+            width: 100%;
+            height: var(--ptz-slider-height);
+            background: var(--bg-secondary);
+            border-radius: calc(var(--ptz-slider-height) / 2);
+            overflow: hidden;
+            cursor: pointer;
+            transition: height var(--transition-smooth);
+        }
+        .thick-slider-fill {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 50%;
+            background: var(--ai-gradient);
+            transition: width 0.1s ease-out;
+        }
+        .thick-slider-input {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+            margin: 0;
+        }
+
+        /* トグルスイッチ */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: var(--ptz-toggle-width);
+            height: var(--ptz-toggle-height);
+            transition: width var(--transition-smooth), height var(--transition-smooth);
+        }
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--bg-secondary);
+            transition: var(--transition-smooth);
+            border-radius: calc(var(--ptz-toggle-height) / 2);
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: var(--ptz-toggle-knob-width);
+            width: var(--ptz-toggle-knob-width);
+            left: 4px;
+            bottom: calc((var(--ptz-toggle-height) - var(--ptz-toggle-knob-width)) / 2);
+            background: white;
+            transition: var(--transition-smooth);
+            border-radius: var(--ptz-toggle-knob-radius);
+        }
+        input:checked + .slider {
+            background: var(--ai-gradient);
+        }
+        input:checked + .slider:before {
+            transform: translateX(calc(var(--ptz-toggle-width) - var(--ptz-toggle-knob-width) - 8px));
+        }
+
+        /* AIグラデーションボタン */
+        .ai-btn {
+            border: none;
+            outline: none;
+            padding: 14px 24px;
+            border-radius: 14px;
+            font-weight: 700;
+            font-size: 14px;
+            color: white;
+            cursor: pointer;
+            background: var(--ai-gradient);
+            background-size: 200% 200%;
+            animation: aiGradientShift 6s ease infinite;
+            transition: transform 0.2s, opacity 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            justify-content: center;
+        }
+        .ai-btn:hover {
+            transform: scale(1.02);
+        }
+        .ai-btn:active {
+            transform: scale(0.96);
+            opacity: 0.9;
+        }
+        .ai-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+        .ai-btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            animation: none;
+        }
+
+        @keyframes aiGradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* 画像プレビュー & AI生成アニメーションコンテナ */
+        .image-preview-container {
+            position: relative;
+            width: 100%;
+            min-height: 240px;
+            border-radius: 18px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-secondary);
+            margin-bottom: 16px;
+        }
+        .preview-canvas {
+            max-width: 100%;
+            max-height: 400px;
+            display: none;
+            border-radius: 14px;
+            transition: filter 0.8s var(--m3-easing);
+        }
+
+        /* AI処理中オーバーレイ（流動的AIグラデーション + ぼかし + ✦アニメーション） */
+        .ai-processing-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, rgba(86, 121, 240, 0.45), rgba(210, 181, 205, 0.45), rgba(235, 153, 104, 0.45));
+            background-size: 200% 200%;
+            animation: aiGradientShift 2s linear infinite;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            z-index: 10;
+        }
+        .ai-processing-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .loading-star {
+            font-size: 42px;
+            display: inline-block;
+            animation: spinStar 1.4s linear infinite;
+            color: #FFFFFF;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        @keyframes spinStar {
+            0% { transform: rotate(0deg) scale(1); }
+            50% { transform: rotate(180deg) scale(1.25); }
+            100% { transform: rotate(360deg) scale(1); }
+        }
+        .processing-text {
+            color: #FFFFFF;
+            font-weight: 700;
+            font-size: 15px;
+            margin-top: 10px;
+            text-shadow: 0 1px 4px rgba(0,0,0,0.3);
+            letter-spacing: 0.5px;
+        }
+
+        /* 完成時にぼかしが消えるアニメーションクラス */
+        .canvas-blurred {
+            filter: blur(14px) brightness(0.9);
+        }
+
+        /* 下付き固定ナビゲーションバー */
+        .bottom-nav-container {
+            position: fixed;
+            bottom: 0; left: 0; width: 100%; height: 72px;
+            background: var(--nav-bg);
+            border-top: 1px solid var(--bg-secondary);
+            z-index: 500;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding-bottom: env(safe-area-inset-bottom);
+            transition: background-color var(--transition-smooth), border-color var(--transition-smooth);
+        }
+        .nav-item {
+            flex: 1;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-sub);
+            transition: color 0.25s var(--m3-easing);
+            position: relative;
+            gap: 4px;
+        }
+        .nav-item span.material-symbols-outlined {
+            font-size: 24px;
+            font-variation-settings: 'FILL' 0, 'wght' 400;
+            transition: font-variation-settings 0.2s, color 0.2s;
+        }
+        .nav-label {
+            font-size: 10px;
+            font-weight: 600;
+        }
+        .nav-item.active {
+            color: var(--nav-icon-active);
+        }
+        .nav-item.active span.material-symbols-outlined {
+            font-variation-settings: 'FILL' 1, 'wght' 700;
+        }
+
+        .view {
+            display: none;
+        }
+        .view.active {
+            display: block;
+            animation: viewIn 0.3s var(--m3-easing);
+        }
+        @keyframes viewIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .ptz-dropzone {
+            border: 2px dashed var(--text-sub);
+            border-radius: var(--ptz-card-radius);
+            padding: 24px;
+            text-align: center;
+            cursor: pointer;
+            background: rgba(0, 0, 0, 0.02);
+            transition: background 0.2s, border-color 0.2s;
+            margin-bottom: 16px;
+        }
+        .dark-mode .ptz-dropzone {
+            background: rgba(255, 255, 255, 0.02);
+        }
+        .ptz-dropzone:hover {
+            background: rgba(86, 121, 240, 0.08);
+            border-color: var(--ai-grad-1);
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 84px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--text-main);
+            color: var(--glass-bg);
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s var(--m3-easing);
+            z-index: 2000;
+            white-space: nowrap;
+        }
+        .toast.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .badge {
+            background: var(--ai-gradient);
+            color: white;
+            padding: 3px 10px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 700;
+            display: inline-block;
+        }
+        .badge-status {
+            background: var(--bg-secondary);
+            color: var(--text-main);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app-viewport">
+        <!-- ヘッダー -->
+        <header>
+            <div class="logo">
+                <img src="https://raw.githubusercontent.com/PolandBallHub-Operator/PBscreenshot/refs/heads/main/countryball_aiball.png" alt="PBpark Labs Ball">
+                <span>ImageEdgeDetectAI</span>
+            </div>
+            <button class="theme-toggle" id="theme-btn" title="テーマ切り替え">
+                <span class="material-symbols-outlined">light_mode</span>
+            </button>
+        </header>
+
+        <!-- メインコンテンツ -->
+        <main>
+            <!-- 1. メイン処理ビュー -->
+            <section id="view-home" class="view active">
+                <div class="glass-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span class="badge">PBpark Labs AI Engine</span>
+                        <span id="model-status-badge" class="badge badge-status">AIモデル読み込み中...</span>
+                    </div>
+                    <h2>画像エッジ検出 & 背景コントロール</h2>
+                    <p>
+                        OpenCVエッジ検出AI技術を利用して、画像から輪郭を抽出し、背景の削除・対象物以外の消去を行います。
+                    </p>
+
+                    <!-- 画像アップロードドロップゾーン -->
+                    <div class="ptz-dropzone" id="image-drop-area" onclick="triggerImageInput()">
+                        <span class="material-symbols-outlined" style="font-size: 40px; color: var(--ai-grad-1); margin-bottom: 8px;">add_photo_alternate</span>
+                        <div style="font-weight: 700; font-size: 14px;">好きな画像を読み込む</div>
+                        <div style="font-size: 12px; color: var(--text-sub); margin-top: 4px;">タップまたはファイルをドロップ</div>
+                        <input type="file" id="fileInput" accept="image/*" style="display: none;">
+                    </div>
+
+                    <!-- 隠しimg要素（OpenCV入力用） -->
+                    <img id="imageSrc" style="display: none;" alt="Source">
+
+                    <!-- プレビュー＆キャンバス領域 -->
+                    <div class="image-preview-container">
+                        <canvas id="canvasOutput" class="preview-canvas"></canvas>
+                        <div id="no-image-placeholder" style="text-align: center; color: var(--text-sub); padding: 20px;">
+                            <span class="material-symbols-outlined" style="font-size: 48px; opacity: 0.5;">image</span>
+                            <div style="font-size: 13px; margin-top: 8px;" id="placeholder-text">画像を選択してください</div>
+                        </div>
+
+                        <!-- AI処理中オーバーレイ -->
+                        <div class="ai-processing-overlay" id="ai-overlay">
+                            <span class="loading-star">★</span>
+                            <div class="processing-text">生成中です</div>
+                        </div>
+                    </div>
+
+                    <!-- パラメータ調整 -->
+                    <div class="custom-list">
+                        <!-- スライダー（高さ30px指定） -->
+                        <div class="slider-wrapper">
+                            <div class="slider-label-row">
+                                <span>Edge判定強度</span>
+                                <span id="val-edge-strength">50</span>
+                            </div>
+                            <div class="thick-slider-container">
+                                <div class="thick-slider-fill" id="slider-edge-fill" style="width: 50%;"></div>
+                                <input type="range" class="thick-slider-input" min="10" max="200" value="50" id="edgeThresh" oninput="updateThickSlider('slider-edge-fill', 'val-edge-strength', this.value, '')">
+                            </div>
+                        </div>
+
+                        <!-- 背景切り替えトグル -->
+                        <div class="list-item">
+                            <div>
+                                <div class="list-item-title" id="bg-mode-label">背景を消す（切り抜き）</div>
+                                <div class="list-item-desc" id="bg-mode-desc">オフにすると背景だけを残して対象を透過します</div>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" id="bg-toggle" checked onchange="updateBgModeLabel(this.checked)">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- 実行ボタン -->
+                    <div style="margin-top: 16px; display: flex; flex-direction: column; gap: 10px;">
+                        <button class="ai-btn" id="runBtn" style="width: 100%;" onclick="runEdgeDetectionAI()" disabled>
+                            <span class="material-symbols-outlined">auto_awesome</span>
+                            AIに削除してもらう
+                        </button>
+
+                        <button class="ai-btn ai-btn-secondary" id="downloadBtn" style="width: 100%; display: none;" onclick="downloadResultImage()">
+                            <span class="material-symbols-outlined">download</span>
+                            削除後の画像をダウンロード
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2. スクリプト手動読み込み＆設定ビュー -->
+            <section id="view-ptz" class="view">
+                <div class="glass-card">
+                    <h2>AIスクリプト手動読み込み</h2>
+                    <p>
+                        拡張機能等のセキュリティ設定によりCDNからスクリプトを読み込めない場合、直リンクでのダウンロード、またはローカルJSファイルのピッカー選択を行ってロードしてください。
+                    </p>
+
+                    <!-- JSファイルピッカー -->
+                    <div class="ptz-dropzone" onclick="triggerJsInput()">
+                        <span class="material-symbols-outlined" style="font-size: 40px; color: var(--ai-grad-1); margin-bottom: 8px;">javascript</span>
+                        <div style="font-weight: 700; font-size: 14px;">aimodel.js を選択</div>
+                        <div style="font-size: 12px; color: var(--text-sub); margin-top: 4px;">ファイルピッカーからJavaScriptファイルを指定</div>
+                        <input type="file" id="js-file-input" accept=".js" style="display: none;" onchange="handleJsFileSelect(event)">
+                    </div>
+
+                    <div style="display: flex; gap: 10px; margin-bottom: 16px;">
+                        <button class="ai-btn" style="width: 100%;" onclick="loadSelectedJsFile()">
+                            <span class="material-symbols-outlined">play_circle</span>
+                            ロードボタンを押す
+                        </button>
+                    </div>
+
+                    <div style="border-top: 1px solid var(--bg-secondary); padding-top: 16px;">
+                        <h2>直リンクダウンロード</h2>
+                        <p>CDNスクリプトを端末へ直接保存する場合は下記ボタンをご利用ください。</p>
+                        <a href="https://cdn.jsdelivr.net/gh/PolandBallHub-Operator/pbpark@main/nightly/labs/aiimageedge/aimodel.js" target="_blank" download="aimodel.js" style="text-decoration: none;">
+                            <button class="ai-btn ai-btn-secondary" style="width: 100%;">
+                                <span class="material-symbols-outlined">open_in_new</span>
+                                CDNからaimodel.jsを直リンクダウンロード
+                            </button>
+                        </a>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. PBpark Labs 情報ビュー -->
+            <section id="view-components" class="view">
+                <div class="glass-card">
+                    <div style="text-align: center; padding: 12px 0;">
+                        <img src="https://raw.githubusercontent.com/PolandBallHub-Operator/PBscreenshot/refs/heads/main/countryball_aiball.png" alt="CountryBall AI" style="width: 80px; height: 80px; border-radius: 50%; margin-bottom: 12px;">
+                        <h2 style="margin-bottom: 4px;">PBpark Labs</h2>
+                        <p style="margin-bottom: 16px;">便利AI技術試験ツールコレクション</p>
+                    </div>
+                    <p>
+                        PBpark Labs は、ブラウザで動作する軽量で実用的な便利AIツールを提供する試験運用プラットフォームです。完全クライアントサイドでOpenCV処理を実行します。
+                    </p>
+                    <div class="custom-list">
+                        <div class="list-item">
+                            <div>
+                                <div class="list-item-title">AI Engine</div>
+                                <div class="list-item-desc">OpenCV.js Edge Detector</div>
+                            </div>
+                            <span class="badge">Active</span>
+                        </div>
+                        <div class="list-item">
+                            <div>
+                                <div class="list-item-title">プライバシー</div>
+                                <div class="list-item-desc">サーバーレス・ローカル完全処理</div>
+                            </div>
+                            <span style="font-weight: 700; font-size: 13px; color: var(--ai-grad-1);">安全</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- 下付き固定ナビゲーションバー -->
+        <div class="bottom-nav-container">
+            <div class="nav-item active" data-view="view-home" onclick="switchView('view-home')">
+                <span class="material-symbols-outlined">auto_fix_high</span>
+                <span class="nav-label">エッジ検出</span>
+            </div>
+            <div class="nav-item" data-view="view-ptz" onclick="switchView('view-ptz')">
+                <span class="material-symbols-outlined">code</span>
+                <span class="nav-label">JS手動ロード</span>
+            </div>
+            <div class="nav-item" data-view="view-components" onclick="switchView('view-components')">
+                <span class="material-symbols-outlined">science</span>
+                <span class="nav-label">Labs情報</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- トースト通知 -->
+    <div class="toast" id="toast-message">メッセージ</div>
+
+    <script>
+        let isCvReady = false;
+        let lastLoadedImageSrc = null;
+        let selectedJsCode = null;
+
+        const fileInput = document.getElementById('fileInput');
+        const imgElement = document.getElementById('imageSrc');
+        const canvasOutput = document.getElementById('canvasOutput');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const edgeThreshSlider = document.getElementById('edgeThresh');
+        const runBtn = document.getElementById('runBtn');
+        const toast = document.getElementById('toast-message');
+        const themeBtn = document.getElementById('theme-btn');
+        const themeIcon = themeBtn.querySelector('span');
+
+        // OpenCV.js 初期化完了時のコールバック関数
+        window.onOpenCvReady = function() {
+            if (isCvReady) return;
+            isCvReady = true;
+            updateModelStatus(true);
+            if (lastLoadedImageSrc) {
+                runBtn.disabled = false;
+            }
+            console.log('OpenCV.js Engine Ready!');
+        };
+
+        // ループによるOpenCVランタイムの安全チェック
+        function checkCvLoop() {
+            if (isCvReady) return;
+            if (typeof cv !== 'undefined' && cv.Mat) {
+                window.onOpenCvReady();
+            } else {
+                setTimeout(checkCvLoop, 300);
+            }
+        }
+        checkCvLoop();
+
+        function updateModelStatus(isReady) {
+            const badge = document.getElementById('model-status-badge');
+            if (isReady) {
+                badge.textContent = "AIモデル準備完了";
+                badge.style.background = "var(--ai-gradient)";
+            } else {
+                badge.textContent = "AIモデル読み込み中...";
+                badge.style.background = "var(--bg-secondary)";
+            }
+        }
+
+        function triggerImageInput() {
+            fileInput.click();
+        }
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    imgElement.src = event.target.result;
+                    lastLoadedImageSrc = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        imgElement.onload = function() {
+            document.getElementById('no-image-placeholder').style.display = 'none';
+            canvasOutput.style.display = 'block';
+            downloadBtn.style.display = 'none';
+
+            // キャンバスへ一時プレビュー描画
+            const ctx = canvasOutput.getContext('2d');
+            canvasOutput.width = imgElement.naturalWidth;
+            canvasOutput.height = imgElement.naturalHeight;
+            ctx.drawImage(imgElement, 0, 0);
+
+            if (isCvReady) {
+                runBtn.disabled = false;
+            }
+            showToast('画像を読み込みました');
+        };
+
+        function triggerJsInput() {
+            document.getElementById('js-file-input').click();
+        }
+
+        function handleJsFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                selectedJsCode = e.target.result;
+                showToast(`${file.name} を選択しました。「ロードボタンを押す」を実行してください`);
+            };
+            reader.readAsText(file);
+        }
+
+        function loadSelectedJsFile() {
+            if (!selectedJsCode) {
+                showToast("JSファイルが選択されていません");
+                return;
+            }
+
+            if (typeof cv !== 'undefined' && cv.Mat) {
+                showToast("AIモデルはすでにロードされています");
+                window.onOpenCvReady();
+                return;
+            }
+
+            try {
+                const script = document.createElement('script');
+                script.textContent = selectedJsCode;
+                document.head.appendChild(script);
+                showToast("JSファイルをロードしました。初期化を確認中...");
+                checkCvLoop();
+            } catch (e) {
+                showToast("JSのロード中にエラーが発生しました");
+                console.error(e);
+            }
+        }
+
+        function updateThickSlider(fillId, labelId, val, unit) {
+            const label = document.getElementById(labelId);
+            const fill = document.getElementById(fillId);
+            if (label) label.textContent = `${val}${unit}`;
+            
+            if (fill) {
+                const input = fill.nextElementSibling;
+                if (input) {
+                    const min = parseFloat(input.min) || 0;
+                    const max = parseFloat(input.max) || 100;
+                    const percent = ((val - min) / (max - min)) * 100;
+                    fill.style.width = `${percent}%`;
+                }
+            }
+        }
+
+        function updateBgModeLabel(removeBg) {
+            const label = document.getElementById('bg-mode-label');
+            const desc = document.getElementById('bg-mode-desc');
+            if (removeBg) {
+                label.textContent = "背景を消す（切り抜き）";
+                desc.textContent = "オフにすると背景だけを残して対象を透過します";
+            } else {
+                label.textContent = "背景だけを残す";
+                desc.textContent = "オンにすると輪郭内部の対象のみ消去します";
+            }
+        }
+
+        function runEdgeDetectionAI() {
+            if (!lastLoadedImageSrc) {
+                showToast("画像を選択してください");
+                return;
+            }
+            if (!isCvReady) {
+                showToast("AIモデルがまだ読み込まれていません");
+                return;
+            }
+
+            const overlay = document.getElementById('ai-overlay');
+            const removeBg = document.getElementById('bg-toggle').checked;
+
+            // AI処理開始演出: 画像の上をぼかし & AIグラデーションオーバレイアクティブ
+            canvasOutput.classList.add('canvas-blurred');
+            overlay.classList.add('active');
+
+            setTimeout(() => {
+                try {
+                    processImageOpenCV(removeBg);
+                    showToast("AIエッジ処理が完了しました");
+                    downloadBtn.style.display = 'inline-flex';
+                } catch (err) {
+                    console.error(err);
+                    showToast("処理中にエラーが発生しました");
+                } finally {
+                    // 完成後の演出: ゆるやかにぼかしが消える
+                    overlay.classList.remove('active');
+                    canvasOutput.classList.remove('canvas-blurred');
+                }
+            }, 1800);
+        }
+
+        // OpenCV.jsのCanny & findContours処理（完全クライアントサイド）
+        function processImageOpenCV(removeBg) {
+            // 1. 画像読み込み
+            let src = cv.imread(imgElement);
+
+            // 2. RGBAに変換（背景透過用）
+            let rgba = new cv.Mat();
+            cv.cvtColor(src, rgba, cv.COLOR_RGBA2RGB, 0);
+            cv.cvtColor(rgba, rgba, cv.COLOR_RGB2RGBA, 0);
+
+            // 3. エッジ検出のための前処理 (グレースケール & ぼかし)
+            let gray = new cv.Mat();
+            cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
+            let blurred = new cv.Mat();
+            cv.GaussianBlur(gray, blurred, new cv.Size(5, 5), 0, 0, cv.BORDER_DEFAULT);
+
+            // 4. Canny法でエッジ検出
+            let edges = new cv.Mat();
+            let threshVal = parseInt(edgeThreshSlider.value);
+            cv.Canny(blurred, edges, threshVal, threshVal * 2.5);
+
+            // 5. 輪郭の隙間を埋める（膨張）
+            let M = cv.Mat.ones(3, 3, cv.CV_8U);
+            cv.dilate(edges, edges, M, new cv.Point(-1, -1), 1, cv.BORDER_CONSTANT, cv.morphologyDefaultBorderValue());
+
+            // 6. 輪郭抽出
+            let contours = new cv.MatVector();
+            let hierarchy = new cv.Mat();
+            cv.findContours(edges, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+
+            // 7. 最大の輪郭（対象物）を見つける
+            let maxArea = 0;
+            let maxContourIndex = -1;
+            for (let i = 0; i < contours.size(); ++i) {
+                let area = cv.contourArea(contours.get(i));
+                if (area > maxArea) {
+                    maxArea = area;
+                    maxContourIndex = i;
+                }
+            }
+
+            // 8. マスクを作成し、対象物の内側を白く塗りつぶす
+            let mask = cv.Mat.zeros(src.rows, src.cols, cv.CV_8UC1);
+            if (maxContourIndex !== -1) {
+                let color = new cv.Scalar(255);
+                cv.drawContours(mask, contours, maxContourIndex, color, -1, cv.LINE_8, hierarchy, 0);
+            } else {
+                mask.setTo(new cv.Scalar(255));
+            }
+
+            // 9. マスクを使って元のRGBA画像の透過アルファ値を操作
+            let maskData = mask.data;
+            let rgbaData = rgba.data;
+            let totalPixels = mask.rows * mask.cols;
+
+            for (let i = 0; i < totalPixels; i++) {
+                let maskVal = maskData[i];
+                if (removeBg) {
+                    if (maskVal === 0) {
+                        rgbaData[i * 4 + 3] = 0;
+                    }
+                } else {
+                    if (maskVal !== 0) {
+                        rgbaData[i * 4 + 3] = 0;
+                    }
+                }
+            }
+
+            // キャンバスへ出力
+            cv.imshow('canvasOutput', rgba);
+
+            // メモリ解放
+            src.delete();
+            rgba.delete();
+            gray.delete();
+            blurred.delete();
+            edges.delete();
+            M.delete();
+            contours.delete();
+            hierarchy.delete();
+            mask.delete();
+        }
+
+        function downloadResultImage() {
+            if (!lastLoadedImageSrc) return;
+
+            const link = document.createElement('a');
+            link.download = `edge_detected_${Date.now()}.png`;
+            link.href = canvasOutput.toDataURL('image/png');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast("画像をダウンロードしました");
+        }
+
+        // ビュー切り替え機構
+        const navItems = document.querySelectorAll('.nav-item');
+        const views = document.querySelectorAll('.view');
+
+        function switchView(viewId) {
+            navItems.forEach(n => {
+                n.classList.remove('active');
+                if (n.getAttribute('data-view') === viewId) {
+                    n.classList.add('active');
+                }
+            });
+
+            views.forEach(v => {
+                v.classList.remove('active');
+                if (v.id === viewId) {
+                    v.classList.add('active');
+                }
+            });
+        }
+
+        function showToast(msg) {
+            toast.textContent = msg;
+            toast.classList.add('active');
+            setTimeout(() => {
+                toast.classList.remove('active');
+            }, 2500);
+        }
+
+        function setTheme(isDark) {
+            document.body.classList.toggle('dark-mode', isDark);
+            themeIcon.textContent = isDark ? 'dark_mode' : 'light_mode';
+        }
+
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+        setTheme(prefersDark.matches);
+
+        themeBtn.addEventListener('click', () => {
+            setTheme(!document.body.classList.contains('dark-mode'));
+        });
+
+        // ドラッグ＆ドロップイベントハンドラー
+        const imageDropArea = document.getElementById('image-drop-area');
+        ['dragenter', 'dragover'].forEach(eventName => {
+            imageDropArea.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                imageDropArea.style.background = 'rgba(86, 121, 240, 0.1)';
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            imageDropArea.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                imageDropArea.style.background = 'rgba(0, 0, 0, 0.02)';
+            }, false);
+        });
+
+        imageDropArea.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            const file = dt.files[0];
+            if (file && file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    imgElement.src = event.target.result;
+                    lastLoadedImageSrc = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        window.onload = () => {
+            updateThickSlider('slider-edge-fill', 'val-edge-strength', 50, '');
+        };
+    </script>
+</body>
+</html>
