@@ -1,0 +1,1360 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>UKING - World Map Survivor</title>
+  
+  <!-- Leaflet OpenStreetMap Engine -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <style>
+    :root {
+      --myoui-sys-color-background: #0f172a;
+      --myoui-sys-color-surface-card: #1e293b;
+      --myoui-sys-color-surface-variant: #334155;
+      --myoui-sys-color-surface-dialog: #1e293b;
+      --myoui-sys-color-on-surface: #f8fafc;
+      --myoui-sys-color-on-surface-variant: #94a3b8;
+      --myoui-sys-color-primary: #10b981;
+      --myoui-sys-color-on-primary: #ffffff;
+      --myoui-sys-color-primary-container: #065f46;
+      --myoui-sys-color-on-primary-container: #a7f3d0;
+      --myoui-sys-color-outline: #475569;
+      --myoui-sys-color-outline-focused: #34d399;
+      
+      --myoui-radius-card: 20px;
+      --myoui-radius-dialog: 28px;
+      --myoui-radius-pill: 50px;
+      --myoui-radius-input: 12px;
+      --myoui-radius-btn: 24px;
+
+      --myoui-font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+      font-family: var(--myoui-font-family);
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: var(--myoui-sys-color-background);
+      color: var(--myoui-sys-color-on-surface);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .viewport-container {
+      position: relative;
+      width: 100%;
+      max-width: 480px;
+      height: 100%;
+      max-height: 920px;
+      background-color: #000000;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+    }
+
+    /* OpenStreetMap Interactive Canvas Layer */
+    #map {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      filter: brightness(0.85) contrast(1.1) saturate(0.9);
+      pointer-events: none;
+    }
+
+    /* Dynamic Canvas Overlay */
+    #gameCanvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 2;
+      pointer-events: none;
+    }
+
+    .ui-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 10;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 16px;
+    }
+
+    /* Dynamic HUD Component */
+    .hud-card {
+      background: rgba(30, 41, 59, 0.85);
+      backdrop-filter: blur(8px);
+      border-radius: var(--myoui-radius-card);
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      pointer-events: auto;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+    }
+
+    .hud-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 800;
+      font-size: 14px;
+    }
+
+    .hud-location {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #38bdf8;
+      font-size: 12px;
+    }
+
+    .exp-bar-container {
+      width: 100%;
+      height: 8px;
+      background-color: rgba(255,255,255,0.15);
+      border-radius: var(--myoui-radius-pill);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .exp-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #10b981, #34d399);
+      border-radius: var(--myoui-radius-pill);
+      transition: width 0.2s ease;
+    }
+
+    .joystick-zone {
+      position: absolute;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.08);
+      border: 2px solid rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(4px);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      pointer-events: auto;
+    }
+
+    .joystick-stick {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: var(--myoui-sys-color-primary);
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.5);
+      transition: transform 0.05s ease-out;
+    }
+
+    .screen-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 100;
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(12px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      gap: 20px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .screen-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .title-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .title-logo {
+      width: 90px;
+      height: 90px;
+      filter: drop-shadow(0 8px 16px rgba(0,0,0,0.5));
+      animation: floatLogo 3s ease-in-out infinite;
+    }
+
+    @keyframes floatLogo {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
+    .title-text {
+      font-size: 42px;
+      font-weight: 900;
+      letter-spacing: 2px;
+      background: linear-gradient(135deg, #10b981, #60a5fa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .title-subtitle {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--myoui-sys-color-on-surface-variant);
+      letter-spacing: 3px;
+      margin-top: -8px;
+    }
+
+    /* City Selector Cards */
+    .city-selector {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      width: 100%;
+    }
+
+    .city-btn {
+      background: var(--myoui-sys-color-surface-card);
+      border: 2px solid transparent;
+      border-radius: var(--myoui-radius-input);
+      padding: 10px;
+      color: var(--myoui-sys-color-on-surface);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: left;
+    }
+
+    .city-btn:hover, .city-btn.active {
+      border-color: var(--myoui-sys-color-primary);
+      background: var(--myoui-sys-color-surface-variant);
+      transform: translateY(-2px);
+    }
+
+    .city-btn img {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+
+    .city-btn-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .city-btn-name {
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .city-btn-desc {
+      font-size: 10px;
+      color: var(--myoui-sys-color-on-surface-variant);
+    }
+
+    .myoui-btn {
+      background: var(--myoui-sys-color-primary);
+      color: var(--myoui-sys-color-on-primary);
+      border: none;
+      padding: 14px 32px;
+      border-radius: var(--myoui-radius-btn);
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      cursor: pointer;
+      box-shadow: 0 8px 24px rgba(16, 185, 129, 0.4);
+      transition: transform 0.1s ease, background 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      justify-content: center;
+    }
+
+    .myoui-btn:active {
+      transform: scale(0.96);
+    }
+
+    .upgrade-dialog {
+      background-color: var(--myoui-sys-color-surface-dialog);
+      border-radius: var(--myoui-radius-dialog);
+      padding: 20px;
+      width: 100%;
+      max-width: 380px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
+      animation: dialogPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    @keyframes dialogPop {
+      0% { transform: scale(0.85); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .upgrade-title {
+      font-size: 18px;
+      font-weight: 800;
+      color: #38bdf8;
+      text-align: center;
+    }
+
+    .upgrade-card-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .upgrade-card {
+      background-color: var(--myoui-sys-color-surface-variant);
+      border-radius: var(--myoui-radius-card);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      transition: transform 0.2s, background-color 0.2s;
+    }
+
+    .upgrade-card:active {
+      transform: scale(0.97);
+      background-color: var(--myoui-sys-color-primary-container);
+    }
+
+    .upgrade-icon {
+      font-size: 28px;
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0,0,0,0.2);
+      border-radius: 12px;
+    }
+
+    .upgrade-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .upgrade-name {
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .upgrade-desc {
+      font-size: 11px;
+      color: var(--myoui-sys-color-on-surface-variant);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="viewport-container">
+    
+    <!-- Leaflet OpenStreetMap Background Map -->
+    <div id="map"></div>
+
+    <!-- HTML Canvas Interactive Game Engine View -->
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Game Playing HUD Layer -->
+    <div class="ui-layer">
+      <div class="hud-card">
+        <div class="hud-header">
+          <span id="playerLevelText">LV. 1 UK BALL</span>
+          <span id="gameTimerText">00:00</span>
+        </div>
+        <div class="exp-bar-container">
+          <div class="exp-bar-fill" id="expFill"></div>
+        </div>
+        <div class="hud-header" style="font-size: 11px; color: var(--myoui-sys-color-on-surface-variant);">
+          <span id="locationText">🇬🇧 London, UK</span>
+          <span id="killCountText">KILLS: 0</span>
+        </div>
+      </div>
+
+      <!-- Touch Joystick Control Zone -->
+      <div class="joystick-zone" id="joystickZone">
+        <div class="joystick-stick" id="joystickStick"></div>
+      </div>
+    </div>
+
+    <div class="screen-overlay active" id="titleScreen">
+      <div class="title-container">
+        <img src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/pbhuB2/happy.png" alt="UK Ball" class="title-logo" id="titleBallImg">
+        <div class="title-text">UKING</div>
+        <div class="title-subtitle">WORLD MAP SURVIVOR</div>
+      </div>
+
+      <div class="city-selector" id="citySelector">
+        <button class="city-btn active" onclick="selectCity('london')">
+          <img src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/pbhuB2/happy.png" alt="UK">
+          <div class="city-btn-info">
+            <span class="city-btn-name">🇬🇧 London</span>
+            <span class="city-btn-desc">Standard Map</span>
+          </div>
+        </button>
+        <button class="city-btn" onclick="selectCity('munich')">
+          <img src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/germany/normal.png" alt="Germany">
+          <div class="city-btn-info">
+            <span class="city-btn-name">🇩🇪 München</span>
+            <span class="city-btn-desc">🥨 Items x3</span>
+          </div>
+        </button>
+        <button class="city-btn" onclick="selectCity('tokyo')">
+          <img src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/japan/plot.png" alt="Japan">
+          <div class="city-btn-info">
+            <span class="city-btn-name">🇯🇵 Tokyo</span>
+            <span class="city-btn-desc">🍣🍵🍤🌸 Drop</span>
+          </div>
+        </button>
+        <button class="city-btn" onclick="selectCity('newyork')">
+          <img src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/usa/normal.png" alt="USA">
+          <div class="city-btn-info">
+            <span class="city-btn-name">🇺🇸 New York</span>
+            <span class="city-btn-desc">🔥 Size x2 & Hard</span>
+          </div>
+        </button>
+      </div>
+
+      <button class="myoui-btn" id="startBtn">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+        START SURVIVAL
+      </button>
+    </div>
+
+    <div class="screen-overlay" id="levelUpScreen">
+      <div class="upgrade-dialog">
+        <div class="upgrade-title">⚡ ROYAL LEVEL UP!</div>
+        <div class="upgrade-card-list" id="upgradeCardList">
+          <!-- Dynamic upgrades will be appended here -->
+        </div>
+      </div>
+    </div>
+
+    <div class="screen-overlay" id="gameOverScreen">
+      <div class="title-container">
+        <div class="title-text" style="background: linear-gradient(135deg, #ef4444, #f97316); -webkit-background-clip: text;">DEFEATED</div>
+        <div class="title-subtitle" id="finalStatsText">SURVIVED 00:00 - KILLS: 0</div>
+      </div>
+      <button class="myoui-btn" style="background: #ef4444;" onclick="restartToTitle()">
+        TRY AGAIN
+      </button>
+    </div>
+
+  </div>
+
+  <script type="module">
+    import { argbFromHex, hexFromArgb, Hct, SchemeTonalSpot } from 'https://esm.run/@material/material-color-utilities';
+
+    function initDynamicTheme() {
+      const hct = Hct.fromInt(argbFromHex("#10b981"));
+      const scheme = new SchemeTonalSpot(hct, true, 0.0);
+      const root = document.documentElement;
+
+      root.style.setProperty('--myoui-sys-color-primary', hexFromArgb(scheme.primary));
+      root.style.setProperty('--myoui-sys-color-on-primary', hexFromArgb(scheme.onPrimary));
+      root.style.setProperty('--myoui-sys-color-primary-container', hexFromArgb(scheme.primaryContainer));
+    }
+    initDynamicTheme();
+  </script>
+
+  <script>
+    class SoundEngine {
+      constructor() {
+        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      playShoot() {
+        if (this.ctx.state === 'suspended') this.ctx.resume();
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(600, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(150, this.ctx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.1);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.1);
+      }
+      playHit() {
+        if (this.ctx.state === 'suspended') this.ctx.resume();
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(120, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(40, this.ctx.currentTime + 0.08);
+        gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.08);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.08);
+      }
+      playItem() {
+        if (this.ctx.state === 'suspended') this.ctx.resume();
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(440, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(880, this.ctx.currentTime + 0.12);
+        gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.12);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.12);
+      }
+      playLevelUp() {
+        if (this.ctx.state === 'suspended') this.ctx.resume();
+        const notes = [261.63, 329.63, 392.00, 523.25];
+        notes.forEach((freq, idx) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.frequency.setValueAtTime(freq, this.ctx.currentTime + idx * 0.08);
+          gain.gain.setValueAtTime(0.15, this.ctx.currentTime + idx * 0.08);
+          gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + idx * 0.08 + 0.2);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(this.ctx.currentTime + idx * 0.08);
+          osc.stop(this.ctx.currentTime + idx * 0.08 + 0.2);
+        });
+      }
+    }
+
+    const sound = new SoundEngine();
+
+    const CITIES = {
+      london: {
+        name: "London, UK",
+        lat: 51.5074, lng: -0.1278,
+        ballImg: "https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/pbhuB2/happy.png",
+        itemMultiplier: 1,
+        items: ['🥪', '🫖', '🥧'],
+        sizeScale: 1,
+        diffScale: 1
+      },
+      munich: {
+        name: "München, Germany",
+        lat: 48.1351, lng: 11.5820,
+        ballImg: "https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/germany/normal.png",
+        itemMultiplier: 3,
+        items: ['🥨', '🍺', '🌭'],
+        sizeScale: 1,
+        diffScale: 1.1
+      },
+      tokyo: {
+        name: "Tokyo, Japan",
+        lat: 35.6762, lng: 139.6503,
+        ballImg: "https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/japan/plot.png",
+        itemMultiplier: 1,
+        items: ['🍣', '🍵', '🍤', '🌸'],
+        sizeScale: 1,
+        diffScale: 1.2
+      },
+      newyork: {
+        name: "New York, USA",
+        lat: 40.7128, lng: -74.0060,
+        ballImg: "https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/usa/normal.png",
+        itemMultiplier: 2,
+        items: ['🍕', '🌭', '🍟'],
+        sizeScale: 2,
+        diffScale: 2.0
+      }
+    };
+
+    let selectedCityKey = 'london';
+    let map = null;
+
+    function initLeafletMap() {
+      if (map) return;
+      const c = CITIES[selectedCityKey];
+      map = L.map('map', {
+        zoomControl: false,
+        attributionControl: false,
+        dragging: false,
+        touchZoom: false,
+        doubleClickZoom: false,
+        scrollWheelZoom: false,
+        boxZoom: false,
+        keyboard: false
+      }).setView([c.lat, c.lng], 17);
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19
+      }).addTo(map);
+    }
+
+    window.selectCity = function(key) {
+      selectedCityKey = key;
+      const buttons = document.querySelectorAll('.city-btn');
+      buttons.forEach(btn => btn.classList.remove('active'));
+      event.currentTarget.classList.add('active');
+      
+      const city = CITIES[key];
+      document.getElementById('titleBallImg').src = city.ballImg;
+      document.getElementById('locationText').textContent = city.name;
+    };
+
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    let width = 0;
+    let height = 0;
+
+    function resizeCanvas() {
+      width = canvas.parentElement.clientWidth;
+      height = canvas.parentElement.clientHeight;
+      canvas.width = width;
+      canvas.height = height;
+    }
+    window.addEventListener('resize', resizeCanvas);
+
+    // Expressions Assets
+    const playerImgHappy = new Image();
+    let happyLoaded = false;
+
+    function loadCityBallImage(url) {
+      happyLoaded = false;
+      playerImgHappy.src = url;
+      playerImgHappy.onload = () => { happyLoaded = true; };
+    }
+
+    // Main Game State Variables
+    let gameState = 'TITLE'; // TITLE, PLAYING, LEVELUP, GAMEOVER
+    let gameTime = 0;
+    let killCount = 0;
+    let lastFrameTime = performance.now();
+
+    // Map Center Player
+    const player = {
+      baseRadius: 22,
+      radius: 22,
+      speed: 3.5,
+      hp: 100,
+      maxHp: 100,
+      level: 1,
+      exp: 0,
+      nextExp: 10,
+      pickupRange: 100,
+      defense: 0,
+      shield: 0,
+      maxShield: 0,
+      hurtTimer: 0 // Expression Angry Timer
+    };
+
+    // Expanded Weapons Stats & Defense
+    const weapons = {
+      teaCup: { level: 1, timer: 0, interval: 50, damage: 30, speed: 8 },
+      royalGuard: { level: 0, count: 0, angle: 0, damage: 18, radius: 80 },
+      bigBen: { level: 0, timer: 0, interval: 180, damage: 50, range: 140 },
+      fishAndChips: { level: 0, timer: 0, interval: 70, damage: 20, speed: 7 },
+      doubleDecker: { level: 0, timer: 0, interval: 300, damage: 120 }
+    };
+
+    // World Relative Entities
+    let enemies = [];
+    let projectiles = [];
+    let buses = [];
+    let items = [];
+    let particles = [];
+    let floatingTexts = [];
+
+    // Food Enemy Configs (🍔, ☕, 🍪)
+    const ENEMY_TYPES = {
+      burger: { emoji: '🍔', radius: 22, speed: 1.3, hp: 80, exp: 8, type: 'tank' },
+      coffee: { emoji: '☕', radius: 14, speed: 2.8, hp: 25, exp: 3, type: 'fast' },
+      cookie: { emoji: '🍪', radius: 16, speed: 1.9, hp: 35, exp: 4, type: 'normal' }
+    };
+
+    const keys = {};
+    window.addEventListener('keydown', e => keys[e.key.toLowerCase()] = true);
+    window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
+
+    // Joystick Touch Control
+    const joystickZone = document.getElementById('joystickZone');
+    const joystickStick = document.getElementById('joystickStick');
+    let joystickActive = false;
+    let joystickVector = { x: 0, y: 0 };
+
+    joystickZone.addEventListener('pointerdown', e => {
+      joystickActive = true;
+      updateJoystick(e);
+    });
+
+    window.addEventListener('pointermove', e => {
+      if (joystickActive) updateJoystick(e);
+    });
+
+    window.addEventListener('pointerup', () => {
+      joystickActive = false;
+      joystickVector = { x: 0, y: 0 };
+      joystickStick.style.transform = `translate(0px, 0px)`;
+    });
+
+    function updateJoystick(e) {
+      const rect = joystickZone.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      let dx = e.clientX - centerX;
+      let dy = e.clientY - centerY;
+      const dist = Math.hypot(dx, dy);
+      const maxRadius = rect.width / 2 - 25;
+
+      if (dist > maxRadius) {
+        dx = (dx / dist) * maxRadius;
+        dy = (dy / dist) * maxRadius;
+      }
+
+      joystickStick.style.transform = `translate(${dx}px, ${dy}px)`;
+      joystickVector.x = dx / maxRadius;
+      joystickVector.y = dy / maxRadius;
+    }
+
+    function initGame() {
+      const city = CITIES[selectedCityKey];
+      loadCityBallImage(city.ballImg);
+
+      player.baseRadius = 22 * city.sizeScale;
+      player.radius = player.baseRadius;
+      player.hp = 100;
+      player.maxHp = 100;
+      player.level = 1;
+      player.exp = 0;
+      player.nextExp = 10;
+      player.speed = 3.5;
+      player.pickupRange = 100 * city.sizeScale;
+      player.defense = 0;
+      player.shield = 0;
+      player.maxShield = 0;
+      player.hurtTimer = 0;
+
+      weapons.teaCup = { level: 1, timer: 0, interval: 50, damage: 30, speed: 8 };
+      weapons.royalGuard = { level: 0, count: 0, angle: 0, damage: 18, radius: 80 * city.sizeScale };
+      weapons.bigBen = { level: 0, timer: 0, interval: 180, damage: 50, range: 140 * city.sizeScale };
+      weapons.fishAndChips = { level: 0, timer: 0, interval: 70, damage: 20, speed: 7 };
+      weapons.doubleDecker = { level: 0, timer: 0, interval: 300, damage: 120 };
+
+      enemies = [];
+      projectiles = [];
+      buses = [];
+      items = [];
+      particles = [];
+      floatingTexts = [];
+
+      gameTime = 0;
+      killCount = 0;
+
+      if (map) {
+        map.setView([city.lat, city.lng], 17, { animate: false });
+      }
+
+      document.getElementById('locationText').textContent = city.name;
+      updateHUD();
+    }
+
+    function spawnEnemies() {
+      if (gameState !== 'PLAYING') return;
+      const city = CITIES[selectedCityKey];
+
+      const spawnRate = Math.max(8, (50 - Math.floor(gameTime / 6)) / city.diffScale);
+      if (Math.random() * spawnRate < 1) {
+        const side = Math.floor(Math.random() * 4);
+        let ex, ey;
+
+        if (side === 0) { ex = (Math.random() - 0.5) * width; ey = -height / 2 - 40; }
+        else if (side === 1) { ex = width / 2 + 40; ey = (Math.random() - 0.5) * height; }
+        else if (side === 2) { ex = (Math.random() - 0.5) * width; ey = height / 2 + 40; }
+        else { ex = -width / 2 - 40; ey = (Math.random() - 0.5) * height; }
+
+        const randVal = Math.random();
+        let typeKey = 'cookie';
+        if (randVal < 0.25) typeKey = 'burger';
+        else if (randVal < 0.6) typeKey = 'coffee';
+
+        const cfg = ENEMY_TYPES[typeKey];
+        const sizeMult = (typeKey === 'burger' && selectedCityKey === 'newyork') ? 2 : 1;
+
+        enemies.push({
+          x: ex,
+          y: ey,
+          emoji: cfg.emoji,
+          radius: cfg.radius * sizeMult,
+          speed: cfg.speed,
+          hp: (cfg.hp + Math.floor(gameTime * 0.8)) * city.diffScale,
+          maxHp: (cfg.hp + Math.floor(gameTime * 0.8)) * city.diffScale,
+          exp: cfg.exp * (sizeMult > 1 ? 2 : 1),
+          typeKey: typeKey
+        });
+      }
+    }
+
+    function update(dt) {
+      if (gameState !== 'PLAYING') return;
+
+      gameTime += dt;
+      if (player.hurtTimer > 0) player.hurtTimer -= dt;
+
+      // Handle Directional Input
+      let inputX = 0, inputY = 0;
+      if (keys['w'] || keys['arrowup']) inputY -= 1;
+      if (keys['s'] || keys['arrowdown']) inputY += 1;
+      if (keys['a'] || keys['arrowleft']) inputX -= 1;
+      if (keys['d'] || keys['arrowright']) inputX += 1;
+
+      if (joystickActive) {
+        inputX = joystickVector.x;
+        inputY = joystickVector.y;
+      }
+
+      let moveX = 0, moveY = 0;
+      const len = Math.hypot(inputX, inputY);
+
+      if (len > 0) {
+        moveX = (inputX / (len > 1 ? len : 1)) * player.speed;
+        moveY = (inputY / (len > 1 ? len : 1)) * player.speed;
+
+        if (map) map.panBy([moveX, moveY], { animate: false });
+
+        enemies.forEach(e => { e.x -= moveX; e.y -= moveY; });
+        projectiles.forEach(p => { p.x -= moveX; p.y -= moveY; });
+        buses.forEach(b => { b.x -= moveX; b.y -= moveY; });
+        items.forEach(it => { it.x -= moveX; it.y -= moveY; });
+        particles.forEach(pt => { pt.x -= moveX; pt.y -= moveY; });
+        floatingTexts.forEach(ft => { ft.x -= moveX; ft.y -= moveY; });
+      }
+
+      // Weapons Logic - Teacup
+      weapons.teaCup.timer++;
+      if (weapons.teaCup.timer >= weapons.teaCup.interval) {
+        weapons.teaCup.timer = 0;
+        fireTeaCup();
+      }
+
+      // Weapons Logic - Fish & Chips (Spread Shot)
+      if (weapons.fishAndChips.level > 0) {
+        weapons.fishAndChips.timer++;
+        if (weapons.fishAndChips.timer >= weapons.fishAndChips.interval) {
+          weapons.fishAndChips.timer = 0;
+          fireFishAndChips();
+        }
+      }
+
+      // Weapons Logic - Double Decker Bus
+      if (weapons.doubleDecker.level > 0) {
+        weapons.doubleDecker.timer++;
+        if (weapons.doubleDecker.timer >= weapons.doubleDecker.interval) {
+          weapons.doubleDecker.timer = 0;
+          spawnDoubleDeckerBus();
+        }
+      }
+
+      // Weapons Logic - Big Ben
+      if (weapons.bigBen.level > 0) {
+        weapons.bigBen.timer++;
+        if (weapons.bigBen.timer >= weapons.bigBen.interval) {
+          weapons.bigBen.timer = 0;
+          triggerBigBenWave();
+        }
+      }
+
+      // Weapons Logic - Royal Guard
+      if (weapons.royalGuard.level > 0) {
+        weapons.royalGuard.angle += 0.04;
+      }
+
+      // Update Double Decker Buses
+      for (let i = buses.length - 1; i >= 0; i--) {
+        const b = buses[i];
+        b.x += b.vx;
+        b.y += b.vy;
+
+        enemies.forEach(e => {
+          if (Math.hypot(b.x - e.x, b.y - e.y) < 30 + e.radius) {
+            e.hp -= b.damage * 0.1;
+            sound.playHit();
+            addFloatingText(e.x + width/2, e.y + height/2, `-${b.damage}`, '#ef4444');
+          }
+        });
+
+        if (Math.hypot(b.x, b.y) > 800) buses.splice(i, 1);
+      }
+
+      // Update Projectiles
+      for (let i = projectiles.length - 1; i >= 0; i--) {
+        const p = projectiles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life--;
+
+        for (let j = enemies.length - 1; j >= 0; j--) {
+          const e = enemies[j];
+          const dist = Math.hypot(p.x - e.x, p.y - e.y);
+          if (dist < p.radius + e.radius) {
+            e.hp -= p.damage;
+            sound.playHit();
+            createParticles(e.x + width/2, e.y + height/2, '#fef08a', 4);
+            addFloatingText(e.x + width/2, e.y + height/2, `-${p.damage}`, '#ef4444');
+
+            if (p.type !== 'fish') {
+              projectiles.splice(i, 1);
+              break;
+            }
+          }
+        }
+
+        if (p.life <= 0 || Math.hypot(p.x, p.y) > 600) {
+          if (projectiles[i]) projectiles.splice(i, 1);
+        }
+      }
+
+      spawnEnemies();
+      for (let i = enemies.length - 1; i >= 0; i--) {
+        const e = enemies[i];
+        const angle = Math.atan2(-e.y, -e.x);
+        e.x += Math.cos(angle) * e.speed;
+        e.y += Math.sin(angle) * e.speed;
+
+        // Player Collision
+        const distToPlayer = Math.hypot(e.x, e.y);
+        if (distToPlayer < player.radius + e.radius) {
+          let rawDmg = 0.6;
+          rawDmg = Math.max(0.1, rawDmg - player.defense * 0.1);
+
+          if (player.shield > 0) {
+            player.shield = Math.max(0, player.shield - rawDmg);
+          } else {
+            player.hp -= rawDmg;
+            player.hurtTimer = 0.8; // Trigger Angry Expression on Damage
+          }
+
+          if (player.hp <= 0) triggerGameOver();
+        }
+
+        // Royal Guard Collision
+        if (weapons.royalGuard.level > 0) {
+          for (let g = 0; g < weapons.royalGuard.count; g++) {
+            const rotAngle = weapons.royalGuard.angle + (Math.PI * 2 / weapons.royalGuard.count) * g;
+            const gx = Math.cos(rotAngle) * weapons.royalGuard.radius;
+            const gy = Math.sin(rotAngle) * weapons.royalGuard.radius;
+            if (Math.hypot(gx - e.x, gy - e.y) < 16 + e.radius) {
+              e.hp -= weapons.royalGuard.damage * 0.1;
+              createParticles(e.x + width/2, e.y + height/2, '#fbbf24', 1);
+            }
+          }
+        }
+
+        // Enemy Defeated & City Drops
+        if (e.hp <= 0) {
+          killCount++;
+          const city = CITIES[selectedCityKey];
+          const dropCount = city.itemMultiplier;
+
+          for (let d = 0; d < dropCount; d++) {
+            const itemEmoji = city.items[Math.floor(Math.random() * city.items.length)];
+            items.push({
+              x: e.x + (Math.random() - 0.5) * 20,
+              y: e.y + (Math.random() - 0.5) * 20,
+              emoji: itemEmoji,
+              exp: 6,
+              heal: itemEmoji === '🍵' || itemEmoji === '🍺' ? 10 : 3
+            });
+          }
+
+          createParticles(e.x + width/2, e.y + height/2, '#f59e0b', 8);
+          enemies.splice(i, 1);
+        }
+      }
+
+      // Update Food Items
+      for (let i = items.length - 1; i >= 0; i--) {
+        const it = items[i];
+        const dist = Math.hypot(it.x, it.y);
+
+        if (dist < player.pickupRange) {
+          const angle = Math.atan2(-it.y, -it.x);
+          it.x += Math.cos(angle) * 8;
+          it.y += Math.sin(angle) * 8;
+        }
+
+        if (dist < player.radius + 12) {
+          player.exp += it.exp;
+          if (it.heal > 0) {
+            player.hp = Math.min(player.maxHp, player.hp + it.heal);
+            addFloatingText(width/2, height/2, `+${it.heal} HP`, '#4ade80');
+          }
+          sound.playItem();
+          items.splice(i, 1);
+
+          if (player.exp >= player.nextExp) levelUp();
+        }
+      }
+
+      // Particles & Texts
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx; p.y += p.vy; p.alpha -= 0.03;
+        if (p.alpha <= 0) particles.splice(i, 1);
+      }
+
+      for (let i = floatingTexts.length - 1; i >= 0; i--) {
+        const ft = floatingTexts[i];
+        ft.y -= 0.8; ft.alpha -= 0.02;
+        if (ft.alpha <= 0) floatingTexts.splice(i, 1);
+      }
+
+      updateHUD();
+    }
+
+    function fireTeaCup() {
+      let target = null, minDist = Infinity;
+      enemies.forEach(e => {
+        const d = Math.hypot(e.x, e.y);
+        if (d < minDist) { minDist = d; target = e; }
+      });
+
+      let vx = 0, vy = -weapons.teaCup.speed;
+      if (target) {
+        const angle = Math.atan2(target.y, target.x);
+        vx = Math.cos(angle) * weapons.teaCup.speed;
+        vy = Math.sin(angle) * weapons.teaCup.speed;
+      }
+
+      projectiles.push({
+        x: 0, y: 0, vx, vy, radius: 10, damage: weapons.teaCup.damage, life: 120, type: 'teacup'
+      });
+      sound.playShoot();
+    }
+
+    function fireFishAndChips() {
+      const angles = [-0.3, 0, 0.3];
+      angles.forEach(ang => {
+        projectiles.push({
+          x: 0, y: 0,
+          vx: Math.sin(ang) * weapons.fishAndChips.speed,
+          vy: -Math.cos(ang) * weapons.fishAndChips.speed,
+          radius: 12, damage: weapons.fishAndChips.damage, life: 80, type: 'fish'
+        });
+      });
+      sound.playShoot();
+    }
+
+    function spawnDoubleDeckerBus() {
+      buses.push({
+        x: -width / 2 - 50,
+        y: (Math.random() - 0.5) * (height * 0.5),
+        vx: 9, vy: 0,
+        damage: weapons.doubleDecker.damage
+      });
+      sound.playHit();
+    }
+
+    function triggerBigBenWave() {
+      sound.playLevelUp();
+      createParticles(width / 2, height / 2, '#60a5fa', 28);
+      enemies.forEach(e => {
+        if (Math.hypot(e.x, e.y) < weapons.bigBen.range) {
+          e.hp -= weapons.bigBen.damage;
+          addFloatingText(e.x + width/2, e.y + height/2, `-${weapons.bigBen.damage}`, '#60a5fa');
+        }
+      });
+    }
+
+    function levelUp() {
+      player.level++;
+      player.exp -= player.nextExp;
+      player.nextExp = Math.floor(player.nextExp * 1.45);
+      sound.playLevelUp();
+
+      gameState = 'LEVELUP';
+
+      const options = [
+        { id: 'tea', name: 'Hot Tea Attack', desc: 'Increases Teacup speed & damage', icon: '🫖' },
+        { id: 'guard', name: 'Royal Guard', desc: 'Summons orbiting crown barriers', icon: '👑' },
+        { id: 'ben', name: 'Big Ben Bell', desc: 'Acoustic shockwave attack', icon: '🔔' },
+        { id: 'fish', name: 'Fish & Chips', desc: 'Fires 3-way spread fish projectiles', icon: '🐟' },
+        { id: 'bus', name: 'Double Decker Bus', desc: 'Summons a heavy bus running across screen', icon: '🚌' },
+        { id: 'armor', name: 'Iron Guard', desc: 'Reduces incoming enemy collision damage', icon: '🛡️' },
+        { id: 'shield', name: 'Royal Shield', desc: 'Gives rechargeable absorption barrier', icon: '🔰' },
+        { id: 'speed', name: 'Royal Stroll', desc: 'Increases map movement speed', icon: '⚡' },
+        { id: 'hp', name: 'Royal Tea Break', desc: 'Restores HP and increases max health', icon: '🧁' },
+        { id: 'magnet', name: 'Royal Magnet', desc: 'Widens item collection range on map', icon: '🧲' }
+      ];
+
+      const selected = options.sort(() => 0.5 - Math.random()).slice(0, 3);
+      const container = document.getElementById('upgradeCardList');
+      container.innerHTML = '';
+
+      selected.forEach(opt => {
+        const card = document.createElement('div');
+        card.className = 'upgrade-card';
+        card.innerHTML = `
+          <div class="upgrade-icon">${opt.icon}</div>
+          <div class="upgrade-info">
+            <div class="upgrade-name">${opt.name}</div>
+            <div class="upgrade-desc">${opt.desc}</div>
+          </div>
+        `;
+        card.onclick = () => applyUpgrade(opt.id);
+        container.appendChild(card);
+      });
+
+      document.getElementById('levelUpScreen').classList.add('active');
+    }
+
+    function applyUpgrade(id) {
+      if (id === 'tea') {
+        weapons.teaCup.damage += 14;
+        weapons.teaCup.interval = Math.max(18, weapons.teaCup.interval - 5);
+      } else if (id === 'guard') {
+        weapons.royalGuard.level++;
+        weapons.royalGuard.count = Math.min(6, weapons.royalGuard.count + 1);
+        weapons.royalGuard.damage += 10;
+      } else if (id === 'ben') {
+        weapons.bigBen.level++;
+        weapons.bigBen.damage += 25;
+      } else if (id === 'fish') {
+        weapons.fishAndChips.level++;
+        weapons.fishAndChips.damage += 12;
+      } else if (id === 'bus') {
+        weapons.doubleDecker.level++;
+        weapons.doubleDecker.damage += 45;
+      } else if (id === 'armor') {
+        player.defense += 1.5;
+      } else if (id === 'shield') {
+        player.maxShield += 35;
+        player.shield = player.maxShield;
+      } else if (id === 'speed') {
+        player.speed += 0.5;
+      } else if (id === 'hp') {
+        player.maxHp += 25;
+        player.hp = Math.min(player.maxHp, player.hp + 50);
+      } else if (id === 'magnet') {
+        player.pickupRange += 45;
+      }
+
+      document.getElementById('levelUpScreen').classList.remove('active');
+      gameState = 'PLAYING';
+    }
+
+    function render() {
+      ctx.clearRect(0, 0, width, height);
+
+      const cx = width / 2;
+      const cy = height / 2;
+
+      if (gameState === 'PLAYING' || gameState === 'LEVELUP' || gameState === 'GAMEOVER') {
+
+        // Render Items
+        ctx.font = '22px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        items.forEach(it => {
+          ctx.fillText(it.emoji, cx + it.x, cy + it.y);
+        });
+
+        // Render Buses
+        buses.forEach(b => {
+          ctx.font = '36px sans-serif';
+          ctx.fillText('🚌', cx + b.x, cy + b.y);
+        });
+
+        // Render Projectiles
+        projectiles.forEach(p => {
+          ctx.font = p.type === 'fish' ? '20px sans-serif' : '18px sans-serif';
+          ctx.fillText(p.type === 'fish' ? '🐟' : '☕', cx + p.x, cy + p.y);
+        });
+
+        // Render Enemies
+        enemies.forEach(e => {
+          ctx.font = `${e.radius * 2}px sans-serif`;
+          ctx.fillText(e.emoji, cx + e.x, cy + e.y);
+
+          if (e.hp < e.maxHp) {
+            ctx.fillStyle = 'rgba(0,0,0,0.6)';
+            ctx.fillRect(cx + e.x - 14, cy + e.y - e.radius - 8, 28, 4);
+            ctx.fillStyle = '#ef4444';
+            ctx.fillRect(cx + e.x - 14, cy + e.y - e.radius - 8, (e.hp / e.maxHp) * 28, 4);
+          }
+        });
+
+        // Render Orbiting Guard
+        if (weapons.royalGuard.level > 0) {
+          for (let g = 0; g < weapons.royalGuard.count; g++) {
+            const rotAngle = weapons.royalGuard.angle + (Math.PI * 2 / weapons.royalGuard.count) * g;
+            const gx = cx + Math.cos(rotAngle) * weapons.royalGuard.radius;
+            const gy = cy + Math.sin(rotAngle) * weapons.royalGuard.radius;
+            ctx.font = '20px sans-serif';
+            ctx.fillText('👑', gx, gy);
+          }
+        }
+
+        // Render Center Player (Maintain selected city ball on damage with red flash & shake)
+        ctx.save();
+        
+        let shakeX = 0, shakeY = 0;
+        if (player.hurtTimer > 0) {
+          shakeX = (Math.random() - 0.5) * 6;
+          shakeY = (Math.random() - 0.5) * 6;
+        }
+
+        ctx.translate(cx + shakeX, cy + shakeY);
+
+        if (happyLoaded) {
+          ctx.beginPath();
+          ctx.arc(0, 0, player.radius, 0, Math.PI * 2);
+          ctx.clip();
+          ctx.drawImage(playerImgHappy, -player.radius, -player.radius, player.radius * 2, player.radius * 2);
+
+          // Dynamic damage feedback overlay (Red tint flash)
+          if (player.hurtTimer > 0) {
+            ctx.fillStyle = 'rgba(239, 68, 68, 0.45)';
+            ctx.beginPath();
+            ctx.arc(0, 0, player.radius, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        } else {
+          ctx.fillStyle = '#2563eb';
+          ctx.beginPath();
+          ctx.arc(0, 0, player.radius, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+
+        // Render Player Shield Barrier Effect
+        if (player.shield > 0) {
+          ctx.strokeStyle = '#38bdf8';
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.arc(cx, cy, player.radius + 6, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+
+        // Player HP Bar
+        ctx.fillStyle = 'rgba(0,0,0,0.7)';
+        ctx.fillRect(cx - 22, cy + player.radius + 8, 44, 6);
+        ctx.fillStyle = '#22c55e';
+        ctx.fillRect(cx - 22, cy + player.radius + 8, Math.max(0, (player.hp / player.maxHp) * 44), 6);
+
+        // Render FX
+        particles.forEach(p => {
+          ctx.globalAlpha = p.alpha;
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+          ctx.fill();
+        });
+        ctx.globalAlpha = 1.0;
+
+        floatingTexts.forEach(ft => {
+          ctx.globalAlpha = ft.alpha;
+          ctx.font = '700 14px system-ui';
+          ctx.fillStyle = ft.color;
+          ctx.fillText(ft.text, ft.x, ft.y);
+        });
+        ctx.globalAlpha = 1.0;
+      }
+    }
+
+    function createParticles(x, y, color, count) {
+      for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 3 + 1;
+        particles.push({
+          x, y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          color, alpha: 1
+        });
+      }
+    }
+
+    function addFloatingText(x, y, text, color) {
+      floatingTexts.push({ x, y, text, color, alpha: 1 });
+    }
+
+    function updateHUD() {
+      document.getElementById('playerLevelText').textContent = `LV. ${player.level} UK BALL`;
+      document.getElementById('expFill').style.width = `${Math.min(100, (player.exp / player.nextExp) * 100)}%`;
+      document.getElementById('killCountText').textContent = `KILLS: ${killCount}`;
+
+      const mins = Math.floor(gameTime / 60).toString().padStart(2, '0');
+      const secs = Math.floor(gameTime % 60).toString().padStart(2, '0');
+      document.getElementById('gameTimerText').textContent = `${mins}:${secs}`;
+    }
+
+    function triggerGameOver() {
+      gameState = 'GAMEOVER';
+      const mins = Math.floor(gameTime / 60).toString().padStart(2, '0');
+      const secs = Math.floor(gameTime % 60).toString().padStart(2, '0');
+      document.getElementById('finalStatsText').textContent = `SURVIVED ${mins}:${secs} - KILLS: ${killCount}`;
+      document.getElementById('gameOverScreen').classList.add('active');
+    }
+
+    window.restartToTitle = function() {
+      document.getElementById('gameOverScreen').classList.remove('active');
+      document.getElementById('titleScreen').classList.add('active');
+      gameState = 'TITLE';
+    };
+
+    document.getElementById('startBtn').onclick = () => {
+      document.getElementById('titleScreen').classList.remove('active');
+      initLeafletMap();
+      initGame();
+      gameState = 'PLAYING';
+    };
+
+    /* Main Animation Loop */
+    function gameLoop(now) {
+      const dt = (now - lastFrameTime) / 1000;
+      lastFrameTime = now;
+
+      update(dt);
+      render();
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    window.onload = () => {
+      resizeCanvas();
+      requestAnimationFrame(gameLoop);
+    };
+  </script>
+</body>
+</html>
