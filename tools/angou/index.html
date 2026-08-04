@@ -1,0 +1,1170 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+    <title>Tangleのだいたい暗号化 Engine</title>
+
+    <!-- Google Fonts & Material Symbols -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+
+    <style>
+        /* デフォルトテーマ（PTZ.jsonのデフォルト値と連動） */
+        :root {
+            --accent-primary: #3381FF;
+            --accent-active: #1A5FCC;
+            
+            /* PTZ 規格初期値 */
+            --ptz-theme-name: "Default Blue PTZ";
+            --ptz-card-radius: 24px;
+            --ptz-slider-height: 16px;
+            --ptz-toggle-width: 54px;
+            --ptz-toggle-height: 30px;
+            --ptz-toggle-knob-radius: 50%;
+            --ptz-toggle-knob-width: 22px;
+            --ptz-blur-intensity: 0px;
+
+            /* Light Mode ベースカラー */
+            --bg-base: #F7F7F7;
+            --glass-bg: #FFFFFF;
+            --text-main: #000000;
+            --text-sub: #666666;
+            --bg-secondary: #EEEEEE;
+            --nav-bg: #FFFFFF;
+            --nav-icon-active: #000000; /* アクティブ時は完全に黒 */
+            
+            --m3-easing: cubic-bezier(0.32, 0.72, 0, 1);
+            --transition-smooth: 0.35s var(--m3-easing);
+            --card-padding: 24px;
+        }
+
+        /* ダークモード */
+        .dark-mode {
+            --bg-base: #121212;
+            --glass-bg: #1E1E1E;
+            --text-main: #FFFFFF;
+            --text-sub: #A1A1A6;
+            --bg-secondary: #2C2C2E;
+            --nav-bg: #1E1E1E;
+            --nav-icon-active: #FFFFFF; /* アクティブ時は完全に白 */
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', 'Noto Sans JP', sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            transition: background-color var(--transition-smooth), color var(--transition-smooth);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* アプリ全体のコンテナ */
+        #app-viewport {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        /* ヘッダー（中央タイトル、境界線・シャドウなし） */
+        header {
+            height: 64px;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--glass-bg);
+            transition: background-color var(--transition-smooth);
+            position: relative;
+            flex-shrink: 0;
+        }
+        .logo {
+            font-weight: 700;
+            font-size: 18px;
+            letter-spacing: -0.5px;
+            color: var(--text-main);
+            text-align: center;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .tangle-header-img {
+            width: 28px;
+            height: 28px;
+            object-fit: contain;
+        }
+        .theme-toggle {
+            position: absolute;
+            right: 24px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: none;
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background var(--transition-smooth), transform 0.2s;
+        }
+        .theme-toggle:active {
+            transform: scale(0.9);
+        }
+
+        /* メインコンテンツ（スクロール可能） */
+        main {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 24px 20px 100px; /* ナビバー分の余白を考慮 */
+            max-width: 720px;
+            width: 100%;
+            margin: 0 auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* フラットソリッドカード（枠線なし、影なし。PTZ角丸対応） */
+        .glass-card {
+            background: var(--glass-bg);
+            border-radius: var(--ptz-card-radius);
+            padding: var(--card-padding);
+            margin-bottom: 20px;
+            box-shadow: none !important;
+            border: none !important;
+            transition: background-color var(--transition-smooth), border-radius var(--transition-smooth);
+        }
+
+        h2 { 
+            font-size: 18px; 
+            margin-top: 0; 
+            margin-bottom: 12px;
+            font-weight: 700; 
+            letter-spacing: -0.3px;
+        }
+        p {
+            font-size: 13.5px;
+            line-height: 1.5;
+            margin-top: 0;
+            margin-bottom: 16px;
+            color: var(--text-sub);
+        }
+
+        /* ------------------ UIコンポーネント設計 ------------------ */
+
+        /* 1. リストコンポーネント */
+        .custom-list {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            margin-bottom: 16px;
+        }
+        .list-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 4px;
+            border-bottom: 1px solid var(--bg-secondary);
+        }
+        .list-item:last-child {
+            border-bottom: none;
+        }
+        .list-item-title {
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .list-item-desc {
+            font-size: 12px;
+            color: var(--text-sub);
+        }
+
+        /* 2. 太いブルースライダー（つまみなし・直感的カラー表示） */
+        .slider-wrapper {
+            margin: 16px 0;
+        }
+        .slider-label-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        .thick-slider-container {
+            position: relative;
+            width: 100%;
+            height: var(--ptz-slider-height);
+            background: var(--bg-secondary);
+            border-radius: calc(var(--ptz-slider-height) / 2);
+            overflow: hidden;
+            cursor: pointer;
+            transition: height var(--transition-smooth);
+        }
+        .thick-slider-fill {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 50%;
+            background: var(--accent-primary);
+            transition: background-color var(--transition-smooth), width 0.1s ease-out;
+        }
+        .thick-slider-input {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+            margin: 0;
+        }
+
+        /* 3. トグルスイッチ */
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 4px;
+        }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: var(--ptz-toggle-width);
+            height: var(--ptz-toggle-height);
+            transition: width var(--transition-smooth), height var(--transition-smooth);
+        }
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--bg-secondary);
+            transition: var(--transition-smooth);
+            border-radius: calc(var(--ptz-toggle-height) / 2);
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: var(--ptz-toggle-knob-width);
+            width: var(--ptz-toggle-knob-width);
+            left: 4px;
+            bottom: calc((var(--ptz-toggle-height) - var(--ptz-toggle-knob-width)) / 2);
+            background: white;
+            transition: var(--transition-smooth);
+            border-radius: var(--ptz-toggle-knob-radius);
+        }
+        input:checked + .slider {
+            background: var(--accent-primary);
+        }
+        input:checked + .slider:before {
+            transform: translateX(calc(var(--ptz-toggle-width) - var(--ptz-toggle-knob-width) - 8px));
+        }
+
+        /* 4. アクションボタン */
+        .ai-btn {
+            border: none;
+            outline: none;
+            padding: 12px 24px;
+            border-radius: 14px;
+            font-weight: 600;
+            font-size: 14px;
+            color: white;
+            cursor: pointer;
+            background: var(--accent-primary);
+            transition: transform 0.2s, background-color var(--transition-smooth);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            justify-content: center;
+        }
+        .ai-btn:hover {
+            transform: scale(1.02);
+        }
+        .ai-btn:active {
+            background: var(--accent-active);
+            transform: scale(0.96);
+        }
+        .ai-btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-main);
+        }
+
+        /* インプットテキスト / テキストエリア */
+        .glass-input-wrapper {
+            margin-bottom: 14px;
+        }
+        .glass-input {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: none;
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            font-size: 14px;
+            font-family: inherit;
+            box-sizing: border-box;
+            transition: background var(--transition-smooth);
+        }
+        .glass-input:focus {
+            outline: 2px solid var(--accent-primary);
+        }
+        textarea.glass-input {
+            resize: vertical;
+            min-height: 100px;
+            line-height: 1.4;
+        }
+
+        /* 下付き固定ナビゲーションバー */
+        .bottom-nav-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 72px;
+            background: var(--nav-bg);
+            border-top: 1px solid var(--bg-secondary);
+            z-index: 500;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding-bottom: env(safe-area-inset-bottom);
+            transition: background-color var(--transition-smooth), border-color var(--transition-smooth);
+        }
+        .nav-item {
+            flex: 1;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-sub);
+            transition: color 0.25s var(--m3-easing);
+            position: relative;
+            gap: 4px;
+        }
+        .nav-item span.material-symbols-outlined {
+            font-size: 24px;
+            font-variation-settings: 'FILL' 0, 'wght' 400;
+            transition: font-variation-settings 0.2s, color 0.2s;
+        }
+        .nav-label {
+            font-size: 10px;
+            font-weight: 600;
+        }
+        .nav-item.active {
+            color: var(--nav-icon-active);
+        }
+        .nav-item.active span.material-symbols-outlined {
+            font-variation-settings: 'FILL' 1, 'wght' 700;
+        }
+
+        /* ビュー切り替え */
+        .view {
+            display: none;
+        }
+        .view.active {
+            display: block;
+            animation: viewIn 0.3s var(--m3-easing);
+        }
+        @keyframes viewIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ドロップゾーン */
+        .ptz-dropzone {
+            border: 2px dashed var(--text-sub);
+            border-radius: var(--ptz-card-radius);
+            padding: 24px;
+            text-align: center;
+            cursor: pointer;
+            background: rgba(0, 0, 0, 0.02);
+            transition: background 0.2s, border-color 0.2s;
+            margin-bottom: 16px;
+        }
+        .dark-mode .ptz-dropzone {
+            background: rgba(255, 255, 255, 0.02);
+        }
+        .ptz-dropzone:hover {
+            background: rgba(51, 129, 255, 0.05);
+            border-color: var(--accent-primary);
+        }
+
+        /* プリセットボタンリスト */
+        .preset-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .preset-btn {
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            border: none;
+            padding: 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            transition: background 0.2s, transform 0.1s;
+        }
+        .preset-btn:active {
+            transform: scale(0.97);
+        }
+
+        @keyframes squishy {
+            0% { transform: scale(1, 1); }
+            30% { transform: scale(1.06, 0.94); }
+            50% { transform: scale(0.97, 1.03); }
+            70% { transform: scale(1.01, 0.99); }
+            100% { transform: scale(1, 1); }
+        }
+        .squish-active {
+            animation: squishy 0.35s var(--m3-easing);
+        }
+
+        /* トースト通知 */
+        .toast {
+            position: fixed;
+            bottom: 84px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--text-main);
+            color: var(--glass-bg);
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s var(--m3-easing);
+            z-index: 2000;
+        }
+        .toast.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* ダイアログ */
+        .dialog-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000; display: flex; align-items: center; justify-content: center;
+            opacity: 0; visibility: hidden; transition: all 0.3s var(--m3-easing);
+        }
+        .dialog-overlay.active { opacity: 1; visibility: visible; }
+        .glass-dialog {
+            background: var(--glass-bg);
+            border-radius: var(--ptz-card-radius);
+            padding: 24px; max-width: 380px; width: 90%; text-align: center;
+            transform: scale(0.9) translateY(20px); transition: all 0.4s var(--m3-easing);
+        }
+        .dialog-overlay.active .glass-dialog { transform: scale(1) translateY(0); }
+
+        .badge {
+            background: var(--accent-primary);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 700;
+            display: inline-block;
+        }
+
+        /* Tangleキャラクター特有スタイル */
+        .tangle-hero {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+        .tangle-avatar {
+            width: 72px;
+            height: 72px;
+            object-fit: contain;
+            filter: drop-shadow(0 4px 12px rgba(0,0,0,0.1));
+            animation: floatBall 3s ease-in-out infinite;
+        }
+        @keyframes floatBall {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-6px) rotate(4deg); }
+        }
+        .tangle-speech {
+            position: relative;
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 12px 16px;
+            font-size: 13px;
+            font-weight: 600;
+            flex-grow: 1;
+        }
+        .tangle-speech::before {
+            content: "";
+            position: absolute;
+            left: -8px;
+            top: 50%;
+            transform: translateY(-50%);
+            border-width: 6px 8px 6px 0;
+            border-style: solid;
+            border-color: transparent var(--bg-secondary) transparent transparent;
+        }
+
+        .output-box {
+            word-break: break-all;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app-viewport">
+        <!-- ヘッダー（Tangleロゴ配置） -->
+        <header>
+            <div class="logo">
+                <img src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/ltangle/seen.png" alt="Tangle" class="tangle-header-img" onerror="this.style.display='none'">
+                <span>Tangleのだいたい暗号化</span>
+            </div>
+            <button class="theme-toggle" id="theme-btn" title="テーマ切り替え">
+                <span class="material-symbols-outlined">light_mode</span>
+            </button>
+        </header>
+
+        <!-- メインコンテンツ -->
+        <main>
+            <!-- 1. ホームビュー -->
+            <section id="view-home" class="view active">
+                <div class="glass-card">
+                    <div class="tangle-hero">
+                        <img src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/ltangle/seen.png" alt="Tangle Ball" class="tangle-avatar" onerror="this.src='https://placehold.co/72x72/3381FF/FFFFFF?text=Tangle'">
+                        <div class="tangle-speech" id="tangle-quote">
+                            「どんなキーでも任せるダス！日本語も絵文字も全部強力に『だいたい暗号化』するデス」
+                        </div>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span class="badge" id="current-theme-badge">AES-256-GCM + PBKDF2</span>
+                        <span style="font-size: 11px; color: var(--text-sub);">Web Crypto Engine 稼働中</span>
+                    </div>
+                    <h2>Tangle最強 暗号化システム</h2>
+                    <p>
+                        日本語、絵文字、英数字、あらゆる文字列を暗号化キーとして使用できます。
+                        ブラウザ内で軍用クラス（PBKDF2 100,000回試行 ＋ AES-256-GCM）の処理を行うため、データが外部へ送信されることはありません。
+                    </p>
+                    <div style="margin-top: 16px; display: flex; gap: 8px; flex-wrap: wrap;">
+                        <button class="ai-btn" onclick="switchView('view-cipher')">
+                            <span class="material-symbols-outlined">lock</span>
+                            文字列を暗号化
+                        </button>
+                        <button class="ai-btn ai-btn-secondary" onclick="switchView('view-files')">
+                            <span class="material-symbols-outlined">folder_zip</span>
+                            ファイルを暗号化
+                        </button>
+                    </div>
+                </div>
+
+                <!-- フラットなプレビューリスト -->
+                <div class="glass-card">
+                    <h2>暗号化エンジンのスペック</h2>
+                    <p>Tangleの「だいたい暗号化」は、だいたいどころか最強仕様です。責任は取れません。責任を取って欲しいなら別なツールをお勧めします。</p>
+                    
+                    <div class="custom-list">
+                        <div class="list-item">
+                            <div>
+                                <div class="list-item-title">暗号アルゴリズム</div>
+                                <div class="list-item-desc">AES-GCM 256bit 認証付き暗号</div>
+                            </div>
+                            <span style="font-weight: 700; font-size: 13px; color: var(--accent-primary);">最強</span>
+                        </div>
+
+                        <div class="list-item">
+                            <div>
+                                <div class="list-item-title">鍵導出関数 (KDF)</div>
+                                <div class="list-item-desc">PBKDF2 (SHA-256 / 100,000 Rounds)</div>
+                            </div>
+                            <span style="font-weight: 700; font-size: 13px; color: var(--accent-primary);">安全</span>
+                        </div>
+
+                        <div class="list-item">
+                            <div>
+                                <div class="list-item-title">暗号キーの対応範囲</div>
+                                <div class="list-item-desc">日本語・絵文字(😀)・特殊記号・無制限</div>
+                            </div>
+                            <span style="font-weight: 700; font-size: 13px; color: var(--accent-primary);">万能</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card">
+                    <h2>セキュリティ設定 & パラメータ</h2>
+                    <p>鍵導出時の反復回数を調整できます（高いほど安全性が向上します）。</p>
+                    
+                    <div class="slider-wrapper">
+                        <div class="slider-label-row">
+                            <span>PBKDF2 ストレッチング強度</span>
+                            <span id="val-kdf">100k 回</span>
+                        </div>
+                        <div class="thick-slider-container">
+                            <div class="thick-slider-fill" id="slider-kdf-fill" style="width: 50%;"></div>
+                            <input type="range" class="thick-slider-input" id="kdf-rounds-input" min="10" max="200" value="100" oninput="updateKdfSlider(this.value)">
+                        </div>
+                    </div>
+
+                    <div class="toggle-row">
+                        <div>
+                            <div class="list-item-title">高速モード</div>
+                            <div class="list-item-desc">ファイル処理時のメモリ消費を優先削減</div>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="fast-mode-toggle" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2. 文字列暗号化・復号化ビュー -->
+            <section id="view-cipher" class="view">
+                <div class="glass-card">
+                    <h2>文字列の「だいたい暗号化」</h2>
+                    <p>メッセージと暗号化キーを入力してください。日本語や絵文字のキーも完全に対応しています。</p>
+
+                    <!-- 共通キー入力 -->
+                    <div class="glass-input-wrapper">
+                        <label style="font-size: 12px; font-weight: 700; display: block; margin-bottom: 6px;">暗号化キー（秘密の言葉・絵文字・何でもOK）</label>
+                        <input type="text" class="glass-input" id="text-cipher-key" placeholder="例: 🔐たんぐる最強キー123！みかん🍊">
+                    </div>
+
+                    <!-- 原文・暗号文入力 -->
+                    <div class="glass-input-wrapper">
+                        <label style="font-size: 12px; font-weight: 700; display: block; margin-bottom: 6px;">テキスト（平文 または 暗号文）</label>
+                        <textarea class="glass-input" id="text-cipher-input" placeholder="暗号化したい秘密の文章、または復号化したい暗号文を入力..."></textarea>
+                    </div>
+
+                    <div style="display: flex; gap: 10px; margin-top: 16px;">
+                        <button class="ai-btn" style="flex: 1;" onclick="processTextEncryption(true)">
+                            <span class="material-symbols-outlined">lock</span>
+                            暗号化する
+                        </button>
+                        <button class="ai-btn ai-btn-secondary" style="flex: 1;" onclick="processTextEncryption(false)">
+                            <span class="material-symbols-outlined">key</span>
+                            復号化する
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 結果出力表示 -->
+                <div class="glass-card" id="text-result-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <h2>処理結果</h2>
+                        <button class="preset-btn" style="padding: 6px 12px; margin: 0;" onclick="copyResultText()">コピー</button>
+                    </div>
+                    <div class="glass-input output-box" id="text-cipher-output" style="min-height: 80px; user-select: all;">
+                        ここに結果が表示されます...
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. ファイル暗号化・復号化ビュー -->
+            <section id="view-files" class="view">
+                <div class="glass-card">
+                    <h2>ファイルの「だいたい暗号化」</h2>
+                    <p>画像、動画、文書など、あらゆるファイルを暗号化・復号化して保存できます。</p>
+
+                    <!-- 共通キー入力 -->
+                    <div class="glass-input-wrapper">
+                        <label style="font-size: 12px; font-weight: 700; display: block; margin-bottom: 6px;">暗号化キー</label>
+                        <input type="text" class="glass-input" id="file-cipher-key" placeholder="例: 📁TangleFileSecret2026#🍣">
+                    </div>
+
+                    <!-- ドロップゾーン -->
+                    <div class="ptz-dropzone" id="file-drop-area" onclick="triggerFileInput()">
+                        <span class="material-symbols-outlined" style="font-size: 40px; color: var(--accent-primary); margin-bottom: 8px;">upload_file</span>
+                        <div style="font-weight: 700; font-size: 14px;" id="file-selected-name">ここにファイルをドロップ、またはクリック</div>
+                        <div style="font-size: 12px; color: var(--text-sub); margin-top: 4px;" id="file-selected-size">暗号化するファイル / 暗号化済み(.tangle)ファイル</div>
+                        <input type="file" id="target-file-input" style="display: none;" onchange="handleFileSelect(event)">
+                    </div>
+
+                    <div style="display: flex; gap: 10px; margin-top: 16px;">
+                        <button class="ai-btn" style="flex: 1;" onclick="processFileEncryption(true)">
+                            <span class="material-symbols-outlined">enhanced_encryption</span>
+                            ファイル暗号化
+                        </button>
+                        <button class="ai-btn ai-btn-secondary" style="flex: 1;" onclick="processFileEncryption(false)">
+                            <span class="material-symbols-outlined">no_encryption</span>
+                            ファイル復号化
+                        </button>
+                    </div>
+                </div>
+
+                <div class="glass-card">
+                    <h2>操作のヒント</h2>
+                    <div class="custom-list">
+                        <div class="list-item">
+                            <div>
+                                <div class="list-item-title">暗号化後のファイル拡張子</div>
+                                <div class="list-item-desc">自動的に `.tangle` 拡張子が付与されます</div>
+                            </div>
+                        </div>
+                        <div class="list-item">
+                            <div>
+                                <div class="list-item-title">安全性のポイント</div>
+                                <div class="list-item-desc">キーを忘れるとTangleでも絶対に復元できません</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- 下付き固定ナビゲーションバー -->
+        <div class="bottom-nav-container">
+            <div class="nav-item active" data-view="view-home" onclick="switchView('view-home')">
+                <span class="material-symbols-outlined">shield</span>
+                <span class="nav-label">ホーム</span>
+            </div>
+            <div class="nav-item" data-view="view-cipher" onclick="switchView('view-cipher')">
+                <span class="material-symbols-outlined">lock</span>
+                <span class="nav-label">文字暗号化</span>
+            </div>
+            <div class="nav-item" data-view="view-files" onclick="switchView('view-files')">
+                <span class="material-symbols-outlined">folder_zip</span>
+                <span class="nav-label">ファイル暗号化</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Liquid Dialog (説明・メッセージ用カスタムダイアログ) -->
+    <div class="dialog-overlay" id="main-dialog">
+        <div class="glass-dialog">
+            <img src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/ltangle/seen.png" alt="Tangle" style="width: 56px; height: 56px; margin-bottom: 8px;" onerror="this.style.display='none'">
+            <h2 id="dialog-title" style="margin-top: 4px;">Tangleからのお知らせ</h2>
+            <p id="dialog-body" style="margin-bottom: 20px;">
+                暗号化処理が正常に完了しました！
+            </p>
+            <button class="ai-btn" style="width: 100%; justify-content: center;" onclick="closeDialog()">OK</button>
+        </div>
+    </div>
+
+    <!-- トースト通知 -->
+    <div class="toast" id="toast-message">メッセージをコピーしました</div>
+
+    <script>
+        /**
+         * Tangle Encryption App - Core JavaScript
+         */
+
+        const toast = document.getElementById('toast-message');
+        const themeBtn = document.getElementById('theme-btn');
+        const themeIcon = themeBtn.querySelector('span');
+
+        let selectedFile = null;
+        let kdfRounds = 100000; // デフォルト100k回
+
+        // --- 暗号エンジン (Web Crypto API: PBKDF2 + AES-256-GCM) ---
+        const FILE_MAGIC = new Uint8Array([84, 65, 78, 71, 76, 69, 95, 86, 49]); // "TANGLE_V1"
+
+        /**
+         * 任意の文字列（日本語・絵文字対応）から暗号鍵をPBKDF2で生成
+         */
+        async function deriveKey(secretPassword, salt) {
+            const enc = new TextEncoder();
+            const passwordBytes = enc.encode(secretPassword);
+
+            // パスワードインポート
+            const keyMaterial = await window.crypto.subtle.importKey(
+                "raw",
+                passwordBytes,
+                { name: "PBKDF2" },
+                false,
+                ["deriveKey"]
+            );
+
+            // PBKDF2でAES-GCM-256鍵を導出
+            return await window.crypto.subtle.deriveKey(
+                {
+                    name: "PBKDF2",
+                    salt: salt,
+                    iterations: kdfRounds,
+                    hash: "SHA-256"
+                },
+                keyMaterial,
+                { name: "AES-GCM", length: 256 },
+                false,
+                ["encrypt", "decrypt"]
+            );
+        }
+
+        /**
+         * テキストの暗号化
+         */
+        async function encryptText(plainText, password) {
+            const enc = new TextEncoder();
+            const data = enc.encode(plainText);
+            
+            const salt = window.crypto.getRandomValues(new Uint8Array(16));
+            const iv = window.crypto.getRandomValues(new Uint8Array(12));
+
+            const key = await deriveKey(password, salt);
+            const ciphertext = await window.crypto.subtle.encrypt(
+                { name: "AES-GCM", iv: iv },
+                key,
+                data
+            );
+
+            // Salt(16) + IV(12) + Ciphertext を結合して Base64化
+            const combined = new Uint8Array(salt.length + iv.length + ciphertext.byteLength);
+            combined.set(salt, 0);
+            combined.set(iv, salt.length);
+            combined.set(new Uint8Array(ciphertext), salt.length + iv.length);
+
+            // Base64に変換し、識別用プレフィックスを付与
+            let binary = "";
+            const len = combined.byteLength;
+            for (let i = 0; i < len; i++) {
+                binary += String.fromCharCode(combined[i]);
+            }
+            return "TANGLE1:" + btoa(binary);
+        }
+
+        /**
+         * テキストの復号化
+         */
+        async function decryptText(cipherPackage, password) {
+            if (!cipherPackage.startsWith("TANGLE1:")) {
+                throw new Error("Tangle暗号フォーマットではありません。");
+            }
+
+            const base64Data = cipherPackage.replace("TANGLE1:", "").trim();
+            const binary = atob(base64Data);
+            const combined = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) {
+                combined[i] = binary.charCodeAt(i);
+            }
+
+            if (combined.length < 28) {
+                throw new Error("暗号化データが破損しています。");
+            }
+
+            const salt = combined.slice(0, 16);
+            const iv = combined.slice(16, 28);
+            const data = combined.slice(28);
+
+            const key = await deriveKey(password, salt);
+
+            const decrypted = await window.crypto.subtle.decrypt(
+                { name: "AES-GCM", iv: iv },
+                key,
+                data
+            );
+
+            const dec = new TextDecoder();
+            return dec.decode(decrypted);
+        }
+
+        /**
+         * ファイルの暗号化/復号化処理
+         */
+        async function encryptFile(file, password) {
+            const arrayBuffer = await file.arrayBuffer();
+            const salt = window.crypto.getRandomValues(new Uint8Array(16));
+            const iv = window.crypto.getRandomValues(new Uint8Array(12));
+
+            const key = await deriveKey(password, salt);
+            const ciphertext = await window.crypto.subtle.encrypt(
+                { name: "AES-GCM", iv: iv },
+                key,
+                arrayBuffer
+            );
+
+            // ヘッダー + Salt(16) + IV(12) + 原本ファイル名長(2B) + 原本ファイル名 + 暗号本文
+            const enc = new TextEncoder();
+            const nameBytes = enc.encode(file.name);
+            const nameLen = nameBytes.length;
+            const nameLenBytes = new Uint8Array([ (nameLen >> 8) & 0xFF, nameLen & 0xFF ]);
+
+            const blob = new Blob([
+                FILE_MAGIC,
+                salt,
+                iv,
+                nameLenBytes,
+                nameBytes,
+                ciphertext
+            ], { type: "application/octet-stream" });
+
+            return {
+                blob: blob,
+                filename: file.name + ".tangle"
+            };
+        }
+
+        async function decryptFile(file, password) {
+            const arrayBuffer = await file.arrayBuffer();
+            const bytes = new Uint8Array(arrayBuffer);
+
+            // マジックナンバーチェック
+            for (let i = 0; i < FILE_MAGIC.length; i++) {
+                if (bytes[i] !== FILE_MAGIC[i]) {
+                    throw new Error("Tangle暗号化ファイルではありません。");
+                }
+            }
+
+            let offset = FILE_MAGIC.length;
+            const salt = bytes.slice(offset, offset + 16); offset += 16;
+            const iv = bytes.slice(offset, offset + 12); offset += 12;
+
+            const nameLen = (bytes[offset] << 8) | bytes[offset + 1]; offset += 2;
+            const nameBytes = bytes.slice(offset, offset + nameLen); offset += nameLen;
+            const dec = new TextDecoder();
+            let originalName = dec.decode(nameBytes) || "decrypted_file";
+
+            const ciphertext = bytes.slice(offset);
+
+            const key = await deriveKey(password, salt);
+            const decrypted = await window.crypto.subtle.decrypt(
+                { name: "AES-GCM", iv: iv },
+                key,
+                ciphertext
+            );
+
+            return {
+                blob: new Blob([decrypted]),
+                filename: originalName
+            };
+        }
+
+        // --- テキスト処理実行 ---
+        async function processTextEncryption(isEncrypt) {
+            const key = document.getElementById('text-cipher-key').value.trim();
+            const input = document.getElementById('text-cipher-input').value;
+            const outputBox = document.getElementById('text-cipher-output');
+
+            if (!key) {
+                openDialog("エラー", "暗号化キーを入力してください！（日本語や絵文字でもOK）");
+                return;
+            }
+            if (!input) {
+                openDialog("エラー", "処理対象のテキストを入力してください。");
+                return;
+            }
+
+            try {
+                if (isEncrypt) {
+                    const result = await encryptText(input, key);
+                    outputBox.textContent = result;
+                    showToast("テキストを暗号化しました！");
+                    updateTangleSpeech("暗号化完了！Tangleが完璧に隠しておいたよ！");
+                } else {
+                    const result = await decryptText(input, key);
+                    outputBox.textContent = result;
+                    showToast("テキストを解読しました！");
+                    updateTangleSpeech("復号化成功！無事に元通りになったよ！");
+                }
+            } catch (err) {
+                openDialog("復号化失敗", "暗号化キーが正しくないか、暗号テキストが破損しています。\n(" + err.message + ")");
+                updateTangleSpeech("あれ？キーが違うみたい…解読できなかったよ。");
+            }
+        }
+
+        function copyResultText() {
+            const text = document.getElementById('text-cipher-output').textContent;
+            if (!text || text.includes("ここに結果が表示されます")) {
+                showToast("コピーするテキストがありません");
+                return;
+            }
+            
+            const tempArea = document.createElement('textarea');
+            tempArea.value = text;
+            document.body.appendChild(tempArea);
+            tempArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempArea);
+
+            showToast("結果をクリップボードにコピーしました！");
+        }
+
+        // --- ファイル処理実行 ---
+        async function processFileEncryption(isEncrypt) {
+            const key = document.getElementById('file-cipher-key').value.trim();
+            if (!key) {
+                openDialog("エラー", "暗号化キーを入力してください。");
+                return;
+            }
+            if (!selectedFile) {
+                openDialog("エラー", "ファイルを選択またはドロップしてください。");
+                return;
+            }
+
+            showToast("ファイルを処理中...");
+
+            try {
+                let res;
+                if (isEncrypt) {
+                    res = await encryptFile(selectedFile, key);
+                    showToast("ファイル暗号化が完了しました！");
+                } else {
+                    res = await decryptFile(selectedFile, key);
+                    showToast("ファイル復号化が完了しました！");
+                }
+
+                // ダウンロード処理
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(res.blob);
+                link.download = res.filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                openDialog("成功", `ファイル [${res.filename}] の保存を開始しました。`);
+            } catch (err) {
+                openDialog("エラー", "ファイル処理に失敗しました。\nキーが合っているか確認してください。(" + err.message + ")");
+            }
+        }
+
+        // スライダー調整
+        function updateKdfSlider(val) {
+            const rawVal = parseInt(val, 10);
+            kdfRounds = rawVal * 1000;
+            document.getElementById('val-kdf').textContent = `${rawVal}k 回`;
+            
+            const fill = document.getElementById('slider-kdf-fill');
+            const percent = ((rawVal - 10) / (200 - 10)) * 100;
+            fill.style.width = `${percent}%`;
+        }
+
+        // Tangleの台詞更新
+        function updateTangleSpeech(msg) {
+            const el = document.getElementById('tangle-quote');
+            if (el) el.textContent = `「${msg}」`;
+        }
+
+        // ドラッグ＆ドロップ ＆ ファイル選択
+        function triggerFileInput() {
+            document.getElementById('target-file-input').click();
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            setSelectedFile(file);
+        }
+
+        function setSelectedFile(file) {
+            selectedFile = file;
+            document.getElementById('file-selected-name').textContent = `選択中: ${file.name}`;
+            document.getElementById('file-selected-size').textContent = `サイズ: ${(file.size / 1024).toFixed(1)} KB`;
+            showToast(`ファイル [${file.name}] を読み込みました`);
+        }
+
+        const dropArea = document.getElementById('file-drop-area');
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropArea.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                dropArea.style.background = 'rgba(51, 129, 255, 0.1)';
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                dropArea.style.background = 'rgba(0, 0, 0, 0.02)';
+            }, false);
+        });
+
+        dropArea.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            const file = dt.files[0];
+            if (file) {
+                setSelectedFile(file);
+            }
+        });
+
+        // --- ビュー切り替え機構 ---
+        const navItems = document.querySelectorAll('.nav-item');
+        const views = document.querySelectorAll('.view');
+
+        function switchView(viewId) {
+            navItems.forEach(n => {
+                n.classList.remove('active');
+                if (n.getAttribute('data-view') === viewId) {
+                    n.classList.add('active');
+                }
+            });
+
+            views.forEach(v => {
+                v.classList.remove('active');
+                if (v.id === viewId) {
+                    v.classList.add('active');
+                }
+            });
+        }
+
+        // --- ダイアログコントローラー ---
+        function openDialog(title, body) {
+            document.getElementById('dialog-title').textContent = title;
+            document.getElementById('dialog-body').textContent = body;
+            document.getElementById('main-dialog').classList.add('active');
+        }
+        function closeDialog() {
+            document.getElementById('main-dialog').classList.remove('active');
+        }
+
+        // --- トースト通知 ---
+        function showToast(msg) {
+            toast.textContent = msg;
+            toast.classList.add('active');
+            setTimeout(() => {
+                toast.classList.remove('active');
+            }, 2300);
+        }
+
+        // --- テーマ（ライト・ダーク）切替 ---
+        function setTheme(isDark) {
+            document.body.classList.toggle('dark-mode', isDark);
+            themeIcon.textContent = isDark ? 'dark_mode' : 'light_mode';
+        }
+
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+        setTheme(prefersDark.matches);
+
+        themeBtn.addEventListener('click', () => {
+            setTheme(!document.body.classList.contains('dark-mode'));
+        });
+
+        // 触感・ジェリー風バウンド演出
+        document.addEventListener('mousedown', (e) => {
+            const target = e.target.closest('.glass-card, .ai-btn, .nav-item, .preset-btn');
+            if (target) {
+                target.classList.remove('squish-active');
+                void target.offsetWidth;
+                target.classList.add('squish-active');
+                
+                setTimeout(() => {
+                    target.classList.remove('squish-active');
+                }, 350);
+            }
+        });
+
+        // 初期ロード
+        window.onload = () => {
+            updateKdfSlider(100);
+        };
+    </script>
+</body>
+</html>
