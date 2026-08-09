@@ -1,0 +1,1479 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>U👑King - Polandball Survivor</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Leaflet CSS for Map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&family=Cinzel:wght@700;900&display=swap" rel="stylesheet">
+    <!-- Tone.js for Sound FX -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+            overflow: hidden;
+            background-color: #0b0f19;
+            color: #fff;
+        }
+
+        .font-cinzel {
+            font-family: 'Cinzel', serif;
+        }
+
+        /* Hide Leaflet UI elements for seamless gameplay overlay */
+        .leaflet-control-container .leaflet-routing-container-hide,
+        .leaflet-control-zoom,
+        .leaflet-control-attribution {
+            display: none !important;
+        }
+
+        .leaflet-tile {
+            filter: brightness(0.6) contrast(1.15) saturate(1.2);
+        }
+
+        /* Glassmorphism Panel UI */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.90);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            box-shadow: 0 10px 40px 0 rgba(0, 0, 0, 0.8);
+        }
+
+        .royal-gold-text {
+            background: linear-gradient(135deg, #FFF5C0 0%, #FFD700 50%, #B8860B 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .royal-button {
+            background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%);
+            border: 2px solid #FFD700;
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+            transition: all 0.2s ease;
+        }
+
+        .royal-button:active {
+            transform: scale(0.96);
+            box-shadow: 0 0 25px rgba(255, 215, 0, 0.6);
+        }
+
+        /* Virtual Touch Joystick */
+        #joystick-zone {
+            position: absolute;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.08);
+            border: 2px solid rgba(255, 215, 0, 0.4);
+            touch-action: none;
+            z-index: 40;
+        }
+
+        #joystick-knob {
+            position: absolute;
+            width: 54px;
+            height: 54px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #FFD700 0%, #b48608 100%);
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.8);
+            top: 43px;
+            left: 43px;
+            pointer-events: none;
+        }
+
+        /* Scrollbar styles */
+        ::-webkit-scrollbar {
+            width: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.3);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #FFD700;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body class="w-screen h-screen relative flex items-center justify-center">
+
+    <div id="game-viewport" class="relative w-full h-full max-w-md mx-auto overflow-hidden shadow-2xl bg-black">
+        <!-- Leaflet Map Div (Background) -->
+        <div id="leaflet-map" class="absolute inset-0 z-0"></div>
+
+        <!-- Canvas Overlay (Entities, Weapons, Particles) -->
+        <canvas id="game-canvas" class="absolute inset-0 z-10 pointer-events-none"></canvas>
+
+        <!-- Title Screen -->
+        <div id="screen-title" class="absolute inset-0 z-50 flex flex-col items-center justify-between p-6 glass-panel text-center">
+            <div class="mt-6 flex flex-col items-center">
+                <div class="relative mb-2">
+                    <img id="title-uk-ball" src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/pbhuB2/happy.png" 
+                         class="w-24 h-24 object-contain animate-bounce drop-shadow-[0_0_20px_rgba(255,215,0,0.6)]" alt="UK Ball">
+                    <span class="absolute -top-4 -right-2 text-4xl">👑</span>
+                </div>
+                <h1 class="text-5xl font-black font-cinzel royal-gold-text tracking-wider drop-shadow-md">
+                    U<span class="text-amber-300">👑</span>KING
+                </h1>
+                <p class="text-xs text-blue-200 mt-1 tracking-widest font-bold">UNITED KINGDOM SURVIVOR</p>
+                <p class="text-[10px] text-gray-400 mt-1">Polandball Engine v3.0 - Infinity Horde Update</p>
+            </div>
+
+            <!-- Current Chapter & Destination Card -->
+            <div id="selected-city-card" class="w-full bg-slate-900/90 border border-amber-500/40 rounded-2xl p-4 text-left shadow-lg">
+                <div class="flex justify-between items-center mb-1">
+                    <span id="story-chapter-label" class="text-[10px] text-amber-400 font-bold uppercase tracking-wider">CHAPTER 1: THE LONDON RECOVERY</span>
+                    <span id="city-difficulty-badge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-600 text-white">UK - NORMAL</span>
+                </div>
+                <div class="flex items-center gap-3 mt-2">
+                    <img id="city-ball-icon" src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/pbhuB2/happy.png" class="w-12 h-12 object-contain">
+                    <div>
+                        <h3 id="city-name-text" class="text-lg font-bold text-white">LONDON (UK)</h3>
+                        <p id="city-desc-text" class="text-xs text-gray-300 leading-tight">Start with Standard Royal Pistol. Hold the perimeter!</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="w-full space-y-3 mb-2">
+                <button id="btn-play" class="w-full py-4 rounded-2xl font-black text-2xl text-amber-300 royal-button tracking-widest flex items-center justify-center gap-3">
+                    <i class="fa-solid fa-play"></i> START MISSION
+                </button>
+                <div class="grid grid-cols-2 gap-3">
+                    <button id="btn-open-story" class="py-3 bg-amber-900/80 hover:bg-amber-800 border border-amber-400/50 rounded-xl font-bold text-xs text-amber-100 flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-book-open"></i> STORY MODE
+                    </button>
+                    <button id="btn-open-cities" class="py-3 bg-indigo-900/80 hover:bg-indigo-800 border border-indigo-400/50 rounded-xl font-bold text-xs text-indigo-100 flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-infinity"></i> FREE SURVIVAL
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Story Campaign Modal -->
+        <div id="modal-story" class="absolute inset-0 z-50 glass-panel flex flex-col p-6 hidden">
+            <div class="flex justify-between items-center mb-3">
+                <h2 class="text-2xl font-black font-cinzel text-amber-400"><i class="fa-solid fa-crown"></i> STORY CAMPAIGN</h2>
+                <button id="btn-close-story" class="text-gray-400 hover:text-white text-2xl"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <p class="text-xs text-gray-300 mb-4">Complete timed missions with dialogues and strict survival goals (5m ~ 15m).</p>
+
+            <div class="flex-1 overflow-y-auto space-y-3 pr-1" id="story-chapters-container">
+                <!-- Injected via JS -->
+            </div>
+        </div>
+
+        <!-- Free Stage / City Select Modal -->
+        <div id="modal-cities" class="absolute inset-0 z-50 glass-panel flex flex-col p-6 hidden">
+            <div class="flex justify-between items-center mb-3">
+                <h2 class="text-2xl font-black font-cinzel text-amber-400"><i class="fa-solid fa-infinity"></i> FREE SURVIVAL</h2>
+                <button id="btn-close-cities" class="text-gray-400 hover:text-white text-2xl"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <p class="text-xs text-gray-300 mb-4">No time limits! No dialogues! Endless waves of scaling invader swarms.</p>
+            
+            <div class="flex-1 overflow-y-auto space-y-3 pr-1" id="cities-list-container">
+                <!-- Injected via JS -->
+            </div>
+        </div>
+
+        <!-- Story Dialogue Overlay -->
+        <div id="dialogue-overlay" class="absolute inset-0 z-50 bg-black/80 flex flex-col justify-end p-4 hidden">
+            <div class="bg-slate-900 border-2 border-amber-500 rounded-2xl p-4 shadow-2xl flex flex-col gap-3">
+                <div class="flex items-center gap-3">
+                    <img id="dialogue-speaker-img" src="" class="w-14 h-14 object-contain">
+                    <div>
+                        <h4 id="dialogue-speaker-name" class="font-extrabold text-amber-300 text-sm">UK BALL</h4>
+                        <span id="dialogue-speaker-title" class="text-[10px] text-gray-400">King of Great Britain</span>
+                    </div>
+                </div>
+                <p id="dialogue-text" class="text-xs text-gray-200 min-h-[40px] leading-relaxed"></p>
+                <button id="btn-next-dialogue" class="self-end px-4 py-2 bg-amber-500 text-black font-extrabold text-xs rounded-xl hover:bg-amber-400">
+                    NEXT <i class="fa-solid fa-chevron-right ml-1"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- HUD Overlay (In-Game) -->
+        <div id="ui-hud" class="absolute inset-0 z-30 pointer-events-none p-4 flex flex-col justify-between hidden">
+            <!-- Top Stats Header -->
+            <div class="w-full flex flex-col gap-2">
+                <!-- Level & EXP Bar -->
+                <div class="w-full bg-slate-900/90 border border-amber-500/40 rounded-full h-6 p-1 flex items-center relative shadow-lg">
+                    <div id="hud-exp-fill" class="bg-gradient-to-r from-amber-500 to-yellow-300 h-full rounded-full transition-all duration-200" style="width: 0%;"></div>
+                    <span id="hud-level-text" class="absolute inset-0 flex items-center justify-center text-xs font-black text-white drop-shadow-[0_1px_2px_rgba(0,0,0,1)]">LV. 1</span>
+                </div>
+
+                <!-- HP Bar & Kills/Timer -->
+                <div class="flex justify-between items-center text-xs font-bold">
+                    <div class="w-36 bg-slate-900/90 border border-red-500/40 rounded-full h-5 p-0.5 flex items-center relative">
+                        <div id="hud-hp-fill" class="bg-gradient-to-r from-red-600 to-emerald-400 h-full rounded-full transition-all duration-200" style="width: 100%;"></div>
+                        <span id="hud-hp-text" class="absolute inset-0 flex items-center justify-center text-[10px] text-white font-extrabold">100 / 100</span>
+                    </div>
+
+                    <div class="flex items-center gap-3 bg-slate-900/80 px-3 py-1 rounded-full border border-slate-700 text-amber-300">
+                        <span><i class="fa-solid fa-skull"></i> <span id="hud-kills">0</span></span>
+                        <span><i class="fa-regular fa-clock"></i> <span id="hud-timer">00:00</span></span>
+                    </div>
+                </div>
+
+                <!-- Active Weapons & Skills Indicators -->
+                <div id="hud-active-skills" class="flex gap-1.5 mt-1 overflow-x-auto">
+                    <!-- Dynamic Skill Icons -->
+                </div>
+            </div>
+
+            <!-- Virtual Joystick Zone -->
+            <div id="joystick-zone" class="pointer-events-auto">
+                <div id="joystick-knob"></div>
+            </div>
+        </div>
+
+        <!-- Level Up Choice Popup -->
+        <div id="modal-levelup" class="absolute inset-0 z-50 glass-panel flex flex-col p-6 items-center justify-center hidden">
+            <span class="text-amber-400 text-xs font-bold tracking-widest uppercase mb-1">LEVEL UP!</span>
+            <h2 class="text-2xl font-black font-cinzel text-white mb-4">SELECT ROYAL UPGRADE</h2>
+
+            <div id="levelup-choices" class="w-full space-y-3">
+                <!-- Choices generated via JS -->
+            </div>
+        </div>
+
+        <!-- Game Over / Victory Modal -->
+        <div id="modal-gameover" class="absolute inset-0 z-50 glass-panel flex flex-col p-6 items-center justify-center text-center hidden">
+            <h2 id="gameover-title" class="text-4xl font-black font-cinzel royal-gold-text mb-2">GAME OVER</h2>
+            <p id="gameover-sub" class="text-xs text-gray-300 mb-6">The invasion proved too overwhelming!</p>
+
+            <div class="w-full bg-slate-900/90 rounded-2xl p-4 border border-amber-500/30 space-y-3 text-left text-xs mb-6">
+                <div class="flex justify-between"><span class="text-gray-400">Survival Time:</span><span id="go-stat-time" class="font-bold text-amber-300">00:00</span></div>
+                <div class="flex justify-between"><span class="text-gray-400">Enemies Defeated:</span><span id="go-stat-kills" class="font-bold text-amber-300">0</span></div>
+                <div class="flex justify-between"><span class="text-gray-400">Level Reached:</span><span id="go-stat-level" class="font-bold text-amber-300">Lv.1</span></div>
+                <div class="flex justify-between"><span class="text-gray-400">Stage Status:</span><span id="go-stat-city" class="font-bold text-amber-300">London</span></div>
+            </div>
+
+            <div class="w-full space-y-3">
+                <button id="btn-restart" class="w-full py-4 rounded-2xl font-black text-xl text-amber-300 royal-button tracking-wider flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-rotate-right"></i> PLAY AGAIN
+                </button>
+                <button id="btn-return-menu" class="w-full py-3 rounded-xl font-bold text-sm bg-slate-800 border border-slate-600 text-gray-300 hover:text-white">
+                    RETURN TO MENU
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Image Assets
+        const IMAGES = {
+            ukHappy: "https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/pbhuB2/happy.png",
+            ukAngry: "https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/pbhuB2/angly.png",
+            germany: "https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/germany/normal.png",
+            japan: "https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/japan/plot.png",
+            usa: "https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/usa/normal.png"
+        };
+
+        const loadedImages = {};
+        let imagesReady = false;
+
+        function preloadImages() {
+            let loadedCount = 0;
+            const keys = Object.keys(IMAGES);
+            keys.forEach(key => {
+                const img = new Image();
+                img.crossOrigin = "Anonymous";
+                img.src = IMAGES[key];
+                img.onload = () => {
+                    loadedImages[key] = img;
+                    loadedCount++;
+                    if (loadedCount === keys.length) imagesReady = true;
+                };
+                img.onerror = () => {
+                    loadedCount++;
+                    if (loadedCount === keys.length) imagesReady = true;
+                };
+            });
+        }
+        preloadImages();
+
+        const CITIES = {
+            uk: {
+                id: 'uk',
+                name: 'LONDON (UK)',
+                ballImgKey: 'ukHappy',
+                coords: [51.5074, -0.1278],
+                diffName: 'NORMAL',
+                diffClass: 'bg-blue-600 text-white',
+                desc: 'Balanced invasion with Royal Tea & Biscuits drops.',
+                enemyEmojis: ['🍔', '☕', '🍪'],
+                drops: ['🍰', '🥪', '🫖', '🥧', '👑', '🔨'],
+                enemyScale: 1.0,
+                enemyHpMult: 1.0,
+                dropMult: 1.0
+            },
+            japan: {
+                id: 'japan',
+                name: 'TOKYO (JAPAN)',
+                ballImgKey: 'japan',
+                coords: [35.6762, 139.6503],
+                diffName: 'EASY',
+                diffClass: 'bg-emerald-600 text-white',
+                desc: 'Fast sushi swarms with high exp drop rate!',
+                enemyEmojis: ['🍔', '☕', '🍪'],
+                drops: ['🍣', '🍵', '🍤', '🌸', '🏯', '🥋', '🍱'],
+                enemyScale: 0.85,
+                enemyHpMult: 0.75,
+                dropMult: 1.5
+            },
+            germany: {
+                id: 'germany',
+                name: 'MÜNCHEN (GERMANY)',
+                ballImgKey: 'germany',
+                coords: [48.1351, 11.5820],
+                diffName: 'HARD',
+                diffClass: 'bg-amber-600 text-white',
+                desc: 'Heavy Pretzel 🥨 & Beer 🍺 invasion waves!',
+                enemyEmojis: ['🍔', '☕', '🍪'],
+                drops: ['🥨', '🍺', '🥨', '🥨', '🍰', '🔨'],
+                enemyScale: 1.1,
+                enemyHpMult: 1.4,
+                dropMult: 2.0
+            },
+            usa: {
+                id: 'usa',
+                name: 'NEW YORK (USA)',
+                ballImgKey: 'usa',
+                coords: [40.7128, -74.0060],
+                diffName: 'EXTREME',
+                diffClass: 'bg-red-600 font-black text-white animate-pulse',
+                desc: 'Gigantic double burgers 🍔 with massive health pools!',
+                enemyEmojis: ['🍔', '🌭', '🗽', '🦬'],
+                drops: ['🥩', '🍖', '🍿', '🎬', '👑', '🔨'],
+                enemyScale: 1.8,
+                enemyHpMult: 2.5,
+                dropMult: 2.0
+            }
+        };
+
+        const STORY_CHAPTERS = [
+            {
+                id: 1,
+                title: "Chapter 1: Dawn of Big Ben",
+                cityKey: "uk",
+                targetSec: 300, // 5 minutes
+                targetKills: 120,
+                desc: "5-Minute Mission: Hold the London perimeter with your Normal Royal Gun!",
+                introDialogues: [
+                    { speaker: "UK BALL", img: IMAGES.ukAngry, text: "Bloody hell! Fast food in Parliament Square?!" },
+                    { speaker: "UK BALL", img: IMAGES.ukHappy, text: "Ready the Royal GUN. Maintain order for 5 minutes!" }
+                ]
+            },
+            {
+                id: 2,
+                title: "Chapter 2: Tokyo Tea Alliance",
+                cityKey: "japan",
+                targetSec: 600, // 10 minutes
+                targetKills: 250,
+                desc: "10-Minute Mission: Defend Tokyo Tower while gathering green tea supplies.",
+                introDialogues: [
+                    { speaker: "JAPAN BALL", img: IMAGES.japan, text: "Konnichiwa, U-King! Assist us in clearing Tokyo Tower!" },
+                    { speaker: "UK BALL", img: IMAGES.ukHappy, text: "Right-o! aircraft support deployed!" }
+                ]
+            },
+            {
+                id: 3,
+                title: "Chapter 3: The Oktoberfest Siege",
+                cityKey: "germany",
+                targetSec: 900, // 15 minutes
+                targetKills: 500,
+                desc: "15-Minute Mission: A huge amount of pretzels in Munich!?",
+                introDialogues: [
+                    { speaker: "GERMANY BALL", img: IMAGES.germany, text: "Achtung! A huge amount of pretzels in Munich!?" },
+                    { speaker: "UK BALL", img: IMAGES.ukAngry, text: "Unacceptable! Shields up! We hold the line for 15 minutes!" }
+                ]
+            }
+        ];
+
+        // Skill Catalogue (Unlimited Stacking for Shield/Crowns/Plane/Gun)
+        const SKILL_CATALOG = [
+            { id: 'normal_gun', name: 'Royal Gun', icon: '🔫', type: 'weapon', desc: 'Standard precise handgun. Fires continuous rapid shots.' },
+            { id: 'king_shield', name: 'King Shield', icon: '🛡️', type: 'weapon', desc: 'A royal shield orbits you (+1 shield per rank, no limit).' },
+            { id: 'airplane', name: 'Royal Aircraft', icon: '🛩️', type: 'weapon', desc: 'Air support plane swoops around freely, bombing foes.' },
+            { id: 'crown_orbit', name: 'Crown Orbit', icon: '👑', type: 'weapon', desc: 'Floating crowns orbit you (+1 crown per rank, no limit).' },
+            { id: 'shotgun', name: 'Royal Shotgun', icon: '💥', type: 'weapon', desc: 'Fires wide multi-pellet spread bursts.' },
+            { id: 'tea_blast', name: 'Earl Grey Splash', icon: '🫖', type: 'weapon', desc: 'Shoots tea pots outwards continuously.' },
+            { id: 'hammer_smash', name: 'Brexit Hammer', icon: '🔨', type: 'weapon', desc: 'Heavy hammer smashes nearby enemies.' },
+            { id: 'big_ben', name: 'Big Ben Chime', icon: '🔔', type: 'weapon', desc: 'Periodic shockwave clearing nearby area.' },
+            { id: 'speed_boots', name: 'Royal Gait', icon: '👟', type: 'passive', desc: 'Boosts movement speed by 15%.' },
+            { id: 'magnet_tea', name: 'Tea Magnet', icon: '🧲', type: 'passive', desc: 'Increases item collection radius.' },
+            { id: 'power_scone', name: 'Scone Power', icon: '🧁', type: 'passive', desc: 'Increases all attack damage by 20%.' }
+        ];
+
+        // Sound Engine using Tone.js
+        const SoundFX = {
+            init() {
+                try {
+                    this.synth = new Tone.Synth().toDestination();
+                    this.polySynth = new Tone.PolySynth().toDestination();
+                } catch(e){}
+            },
+            playShoot() {
+                try { if (this.synth) this.synth.triggerAttackRelease("C4", "32n"); } catch(e){}
+            },
+            playHit() {
+                try { if (this.synth) this.synth.triggerAttackRelease("G2", "16n"); } catch(e){}
+            },
+            playXp() {
+                try { if (this.synth) this.synth.triggerAttackRelease("E5", "16n"); } catch(e){}
+            },
+            playLevelUp() {
+                try { if (this.polySynth) this.polySynth.triggerAttackRelease(["C4", "E4", "G4", "C5"], "8n"); } catch(e){}
+            }
+        };
+
+        let leafletMap = null;
+        function initLeafletMap(coords) {
+            if (!leafletMap) {
+                leafletMap = L.map('leaflet-map', {
+                    zoomControl: false,
+                    attributionControl: false,
+                    dragging: false,
+                    scrollWheelZoom: false,
+                    doubleClickZoom: false,
+                    touchZoom: false
+                }).setView(coords, 17);
+
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19
+                }).addTo(leafletMap);
+            } else {
+                leafletMap.setView(coords, 17, { animate: false });
+            }
+        }
+
+        let currentCityKey = 'uk';
+        let currentChapterId = 1;
+        let isStoryMode = false; // Default to free mode unless chosen
+        let gameState = 'TITLE'; // TITLE, DIALOGUE, PLAYING, LEVELUP, GAMEOVER
+        let canvas, ctx;
+        let animationFrameId = null;
+
+        let player = {
+            x: 0,
+            y: 0,
+            lat: 51.5074,
+            lng: -0.1278,
+            radius: 22,
+            hp: 100,
+            maxHp: 100,
+            level: 1,
+            exp: 0,
+            nextExp: 100,
+            speed: 3.5,
+            damageMult: 1.0,
+            magnetRadius: 90,
+            isAngry: false,
+            angryTimer: 0
+        };
+
+        let activeSkills = {}; 
+        let enemies = [];
+        let projectiles = [];
+        let items = [];
+        let particles = [];
+        let damageTexts = [];
+
+        let gameTimer = 0;
+        let killCount = 0;
+        let lastTimestamp = 0;
+        let enemySpawnTimer = 0;
+
+        // Joystick Controls
+        let joystickActive = false;
+        let joystickVector = { x: 0, y: 0 };
+        const joystickZone = document.getElementById('joystick-zone');
+        const joystickKnob = document.getElementById('joystick-knob');
+
+        // Dialogue System State
+        let currentDialogueIndex = 0;
+        let activeDialogueList = [];
+
+        function setupControls() {
+            const handleStart = (e) => {
+                joystickActive = true;
+                handleMove(e);
+            };
+
+            const handleMove = (e) => {
+                if (!joystickActive) return;
+                const touch = e.touches ? e.touches[0] : e;
+                const rect = joystickZone.getBoundingClientRect();
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+
+                let dx = touch.clientX - centerX;
+                let dy = touch.clientY - centerY;
+                let dist = Math.hypot(dx, dy);
+                const maxDist = 42;
+
+                if (dist > maxDist) {
+                    dx = (dx / dist) * maxDist;
+                    dy = (dy / dist) * maxDist;
+                }
+
+                joystickKnob.style.transform = `translate(${dx}px, ${dy}px)`;
+                joystickVector.x = dx / maxDist;
+                joystickVector.y = dy / maxDist;
+            };
+
+            const handleEnd = () => {
+                joystickActive = false;
+                joystickKnob.style.transform = `translate(0px, 0px)`;
+                joystickVector = { x: 0, y: 0 };
+            };
+
+            joystickZone.addEventListener('mousedown', handleStart);
+            window.addEventListener('mousemove', handleMove);
+            window.addEventListener('mouseup', handleEnd);
+
+            joystickZone.addEventListener('touchstart', handleStart, { passive: false });
+            window.addEventListener('touchmove', handleMove, { passive: false });
+            window.addEventListener('touchend', handleEnd);
+
+            const keys = {};
+            window.addEventListener('keydown', (e) => { keys[e.key] = true; updateKeyVector(); });
+            window.addEventListener('keyup', (e) => { keys[e.key] = false; updateKeyVector(); });
+
+            function updateKeyVector() {
+                if (joystickActive) return;
+                let dx = 0, dy = 0;
+                if (keys['ArrowLeft'] || keys['a']) dx -= 1;
+                if (keys['ArrowRight'] || keys['d']) dx += 1;
+                if (keys['ArrowUp'] || keys['w']) dy -= 1;
+                if (keys['ArrowDown'] || keys['s']) dy += 1;
+
+                if (dx !== 0 && dy !== 0) { dx *= 0.7071; dy *= 0.7071; }
+                joystickVector.x = dx;
+                joystickVector.y = dy;
+            }
+        }
+
+        function initCanvas() {
+            canvas = document.getElementById('game-canvas');
+            ctx = canvas.getContext('2d');
+
+            function resize() {
+                const viewport = document.getElementById('game-viewport');
+                canvas.width = viewport.clientWidth;
+                canvas.height = viewport.clientHeight;
+                player.x = canvas.width / 2;
+                player.y = canvas.height / 2;
+            }
+            window.addEventListener('resize', resize);
+            resize();
+        }
+
+        function startStoryChapter(chapId) {
+            currentChapterId = chapId;
+            isStoryMode = true;
+            const chap = STORY_CHAPTERS.find(c => c.id === chapId);
+            currentCityKey = chap.cityKey;
+
+            activeDialogueList = chap.introDialogues;
+            currentDialogueIndex = 0;
+
+            document.getElementById('screen-title').classList.add('hidden');
+            document.getElementById('modal-story').classList.add('hidden');
+            
+            showDialogueStep();
+        }
+
+        function showDialogueStep() {
+            if (currentDialogueIndex >= activeDialogueList.length) {
+                document.getElementById('dialogue-overlay').classList.add('hidden');
+                startGame();
+                return;
+            }
+
+            const step = activeDialogueList[currentDialogueIndex];
+            document.getElementById('dialogue-speaker-img').src = step.img;
+            document.getElementById('dialogue-speaker-name').innerText = step.speaker;
+            document.getElementById('dialogue-text').innerText = step.text;
+            document.getElementById('dialogue-overlay').classList.remove('hidden');
+        }
+
+        document.getElementById('btn-next-dialogue').onclick = () => {
+            currentDialogueIndex++;
+            showDialogueStep();
+        };
+
+        function startGame() {
+            const city = CITIES[currentCityKey];
+            initLeafletMap(city.coords);
+
+            // Resets player
+            player.hp = player.maxHp = 100;
+            player.level = 1;
+            player.exp = 0;
+            player.nextExp = 100;
+            player.speed = 3.5;
+            player.damageMult = 1.0;
+            player.magnetRadius = 90;
+            player.lat = city.coords[0];
+            player.lng = city.coords[1];
+
+            enemies = [];
+            projectiles = [];
+            items = [];
+            particles = [];
+            damageTexts = [];
+            gameTimer = 0;
+            killCount = 0;
+
+            // DEFAULT WEAPON: Normal Pistol Gun Level 1
+            activeSkills = {
+                'normal_gun': 1
+            };
+
+            updateHud();
+            document.getElementById('screen-title').classList.add('hidden');
+            document.getElementById('modal-cities').classList.add('hidden');
+            document.getElementById('modal-story').classList.add('hidden');
+            document.getElementById('modal-gameover').classList.add('hidden');
+            document.getElementById('modal-levelup').classList.add('hidden');
+            document.getElementById('ui-hud').classList.remove('hidden');
+
+            gameState = 'PLAYING';
+            lastTimestamp = performance.now();
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            animationFrameId = requestAnimationFrame(gameLoop);
+
+            SoundFX.init();
+        }
+
+        function spawnEnemy() {
+            const city = CITIES[currentCityKey];
+            // Horde Scaling: Increase number of enemies per spawn tick over time
+            const swarmCount = Math.min(8, 1 + Math.floor(gameTimer / 45));
+
+            for (let s = 0; s < swarmCount; s++) {
+                const angle = Math.random() * Math.PI * 2;
+                const dist = Math.max(canvas.width, canvas.height) / 2 + 40 + Math.random() * 60;
+
+                const spawnX = player.x + Math.cos(angle) * dist;
+                const spawnY = player.y + Math.sin(angle) * dist;
+
+                let emoji = city.enemyEmojis[Math.floor(Math.random() * city.enemyEmojis.length)];
+                
+                // Introduce elite/boss variants as time progresses
+                const isBoss = Math.random() < Math.min(0.20, 0.04 + gameTimer * 0.0005);
+                if (isBoss && gameTimer > 60) {
+                    const bossTypes = ['👹', '🧟', '🧌', '👾', '🔥'];
+                    emoji = bossTypes[Math.floor(Math.random() * bossTypes.length)];
+                }
+
+                const scale = (isBoss ? 2.0 : 1.0) * city.enemyScale;
+                const baseHp = (isBoss ? 150 : 25) * city.enemyHpMult * (1 + gameTimer * 0.02);
+
+                enemies.push({
+                    x: spawnX,
+                    y: spawnY,
+                    radius: 18 * scale,
+                    hp: baseHp,
+                    maxHp: baseHp,
+                    speed: (1.2 + Math.random() * 0.9) * (isBoss ? 0.9 : 1.0),
+                    emoji: emoji,
+                    scale: scale,
+                    isBoss: isBoss
+                });
+            }
+        }
+
+        let weaponTimers = {
+            normal_gun: 0,
+            shotgun: 0,
+            tea_blast: 0,
+            hammer_smash: 0,
+            big_ben: 0,
+            airplane: 0
+        };
+
+        function updateWeapons(delta) {
+            // 1. DEFAULT: Normal Royal Pistol
+            const gunLvl = activeSkills['normal_gun'] || 0;
+            if (gunLvl > 0) {
+                weaponTimers.normal_gun += delta;
+                const fireInterval = Math.max(0.12, 0.45 - (gunLvl * 0.03));
+                if (weaponTimers.normal_gun >= fireInterval) {
+                    weaponTimers.normal_gun = 0;
+                    
+                    let targetAngle = -Math.PI / 2;
+                    let nearest = null;
+                    let minDist = 450;
+                    enemies.forEach(e => {
+                        const d = Math.hypot(e.x - player.x, e.y - player.y);
+                        if (d < minDist) { minDist = d; nearest = e; }
+                    });
+
+                    if (nearest) {
+                        targetAngle = Math.atan2(nearest.y - player.y, nearest.x - player.x);
+                    } else if (joystickVector.x !== 0 || joystickVector.y !== 0) {
+                        targetAngle = Math.atan2(joystickVector.y, joystickVector.x);
+                    }
+
+                    // Multi-bullet stream based on gunLvl
+                    const streamBullets = 1 + Math.floor((gunLvl - 1) / 2);
+                    for (let b = 0; b < streamBullets; b++) {
+                        const spreadAngle = targetAngle + (b - (streamBullets - 1) / 2) * 0.12;
+                        projectiles.push({
+                            x: player.x,
+                            y: player.y,
+                            vx: Math.cos(spreadAngle) * 12,
+                            vy: Math.sin(spreadAngle) * 12,
+                            radius: 6,
+                            damage: (20 + gunLvl * 4) * player.damageMult,
+                            life: 0.8,
+                            emoji: '🔫'
+                        });
+                    }
+                    SoundFX.playShoot();
+                }
+            }
+
+            // 2. Royal Shotgun
+            const shotgunLvl = activeSkills['shotgun'] || 0;
+            if (shotgunLvl > 0) {
+                weaponTimers.shotgun += delta;
+                if (weaponTimers.shotgun >= Math.max(0.4, 1.2 - shotgunLvl * 0.08)) {
+                    weaponTimers.shotgun = 0;
+                    
+                    let targetAngle = -Math.PI / 2;
+                    let nearest = null;
+                    let minDist = 400;
+                    enemies.forEach(e => {
+                        const d = Math.hypot(e.x - player.x, e.y - player.y);
+                        if (d < minDist) { minDist = d; nearest = e; }
+                    });
+
+                    if (nearest) {
+                        targetAngle = Math.atan2(nearest.y - player.y, nearest.x - player.x);
+                    } else if (joystickVector.x !== 0 || joystickVector.y !== 0) {
+                        targetAngle = Math.atan2(joystickVector.y, joystickVector.x);
+                    }
+
+                    const pellets = 3 + shotgunLvl;
+                    for (let i = 0; i < pellets; i++) {
+                        const spreadAngle = targetAngle + (i - (pellets - 1) / 2) * 0.12;
+                        projectiles.push({
+                            x: player.x,
+                            y: player.y,
+                            vx: Math.cos(spreadAngle) * 9,
+                            vy: Math.sin(spreadAngle) * 9,
+                            radius: 8,
+                            damage: 18 * player.damageMult,
+                            life: 0.6,
+                            emoji: '💥'
+                        });
+                    }
+                }
+            }
+
+            // 3. Royal Aircraft (🛩️) - Freely flies in figure-8 & shoots
+            const planeLvl = activeSkills['airplane'] || 0;
+            if (planeLvl > 0) {
+                weaponTimers.airplane += delta;
+                if (weaponTimers.airplane >= Math.max(0.2, 0.7 - planeLvl * 0.05)) {
+                    weaponTimers.airplane = 0;
+
+                    // Plane coordinates following lemniscate (figure 8)
+                    const planeDist = 110;
+                    const planeAngle = gameTimer * 2.5;
+                    const px = player.x + Math.cos(planeAngle) * planeDist;
+                    const py = player.y + Math.sin(planeAngle * 2) * (planeDist * 0.6);
+
+                    // Shoot small missile downwards/at enemy
+                    let targetAngle = Math.random() * Math.PI * 2;
+                    if (enemies.length > 0) {
+                        const e = enemies[Math.floor(Math.random() * enemies.length)];
+                        targetAngle = Math.atan2(e.y - py, e.x - px);
+                    }
+
+                    projectiles.push({
+                        x: px,
+                        y: py,
+                        vx: Math.cos(targetAngle) * 8,
+                        vy: Math.sin(targetAngle) * 8,
+                        radius: 8,
+                        damage: (25 + planeLvl * 5) * player.damageMult,
+                        life: 0.9,
+                        emoji: '🚀'
+                    });
+                }
+            }
+
+            // 4. Earl Grey Splash
+            const teaLvl = activeSkills['tea_blast'] || 0;
+            if (teaLvl > 0) {
+                weaponTimers.tea_blast += delta;
+                if (weaponTimers.tea_blast >= Math.max(0.5, 1.5 - teaLvl * 0.15)) {
+                    weaponTimers.tea_blast = 0;
+                    const count = 3 + teaLvl;
+                    for (let i = 0; i < count; i++) {
+                        const angle = (Math.PI * 2 / count) * i + (gameTimer * 2);
+                        projectiles.push({
+                            x: player.x,
+                            y: player.y,
+                            vx: Math.cos(angle) * 7,
+                            vy: Math.sin(angle) * 7,
+                            radius: 12,
+                            damage: 22 * player.damageMult,
+                            life: 1.4,
+                            emoji: '🫖'
+                        });
+                    }
+                }
+            }
+
+            // 5. Brexit Hammer
+            const hammerLvl = activeSkills['hammer_smash'] || 0;
+            if (hammerLvl > 0) {
+                weaponTimers.hammer_smash += delta;
+                if (weaponTimers.hammer_smash >= Math.max(0.8, 2.2 - hammerLvl * 0.2)) {
+                    weaponTimers.hammer_smash = 0;
+                    let nearest = null;
+                    let minDist = 300;
+                    enemies.forEach(e => {
+                        const d = Math.hypot(e.x - player.x, e.y - player.y);
+                        if (d < minDist) { minDist = d; nearest = e; }
+                    });
+
+                    const targetAngle = nearest ? Math.atan2(nearest.y - player.y, nearest.x - player.x) : Math.random() * Math.PI * 2;
+                    projectiles.push({
+                        x: player.x + Math.cos(targetAngle) * 50,
+                        y: player.y + Math.sin(targetAngle) * 50,
+                        vx: Math.cos(targetAngle) * 2,
+                        vy: Math.sin(targetAngle) * 2,
+                        radius: 35,
+                        damage: 55 * player.damageMult,
+                        life: 0.4,
+                        emoji: '🔨'
+                    });
+                }
+            }
+
+            // 6. Big Ben Shockwave
+            const benLvl = activeSkills['big_ben'] || 0;
+            if (benLvl > 0) {
+                weaponTimers.big_ben += delta;
+                if (weaponTimers.big_ben >= Math.max(1.5, 4.0 - benLvl * 0.3)) {
+                    weaponTimers.big_ben = 0;
+                    enemies.forEach(e => {
+                        const dist = Math.hypot(e.x - player.x, e.y - player.y);
+                        if (dist < 200) {
+                            e.hp -= (70 + benLvl * 10) * player.damageMult;
+                            const angle = Math.atan2(e.y - player.y, e.x - player.x);
+                            e.x += Math.cos(angle) * 80;
+                            e.y += Math.sin(angle) * 80;
+                            spawnDamageText(e.x, e.y, Math.round((70 + benLvl * 10) * player.damageMult));
+                        }
+                    });
+                    particles.push({ x: player.x, y: player.y, radius: 10, maxRadius: 200, alpha: 1.0, color: '#f59e0b' });
+                }
+            }
+        }
+
+        function update(delta) {
+            if (gameState !== 'PLAYING') return;
+
+            gameTimer += delta;
+            if (player.angryTimer > 0) {
+                player.angryTimer -= delta;
+                if (player.angryTimer <= 0) player.isAngry = false;
+            }
+
+            // Move Player & Map Lat/Lng Sync
+            if (joystickVector.x !== 0 || joystickVector.y !== 0) {
+                const moveDist = player.speed;
+                const dx = joystickVector.x * moveDist;
+                const dy = joystickVector.y * moveDist;
+
+                const latShift = -dy * 0.00002;
+                const lngShift = dx * 0.00002;
+                player.lat += latShift;
+                player.lng += lngShift;
+
+                if (leafletMap) {
+                    leafletMap.panBy([dx, dy], { animate: false });
+                }
+
+                // Entity positions move smoothly
+                enemies.forEach(e => { e.x -= dx; e.y -= dy; });
+                projectiles.forEach(p => { p.x -= dx; p.y -= dy; });
+                items.forEach(it => { it.x -= dx; it.y -= dy; });
+                particles.forEach(pt => { pt.x -= dx; pt.y -= dy; });
+                damageTexts.forEach(dt => { dt.x -= dx; dt.y -= dy; });
+            }
+
+            // Continuous Scaling Enemy Spawning
+            enemySpawnTimer += delta;
+            const spawnInterval = Math.max(0.2, 1.2 - gameTimer * 0.008);
+            if (enemySpawnTimer >= spawnInterval) {
+                enemySpawnTimer = 0;
+                spawnEnemy();
+            }
+
+            updateWeapons(delta);
+
+            // Orbiting Shields (🛡️) - Unlimited stacking (+1 per level)
+            const shieldLvl = activeSkills['king_shield'] || 0;
+            if (shieldLvl > 0) {
+                const shieldCount = shieldLvl; // 1 shield per rank, unlimited
+                const orbitRadius = 65;
+                for (let i = 0; i < shieldCount; i++) {
+                    const angle = (Math.PI * 2 / shieldCount) * i + (gameTimer * 2.5);
+                    const sx = player.x + Math.cos(angle) * orbitRadius;
+                    const sy = player.y + Math.sin(angle) * orbitRadius;
+
+                    enemies.forEach(e => {
+                        const d = Math.hypot(e.x - sx, e.y - sy);
+                        if (d < e.radius + 16) {
+                            const dmg = (12 + shieldLvl * 2) * player.damageMult;
+                            e.hp -= dmg;
+                            spawnDamageText(e.x, e.y, Math.round(dmg));
+                            player.isAngry = true;
+                            player.angryTimer = 0.3;
+                        }
+                    });
+                }
+            }
+
+            // Orbiting Crowns (👑) - Unlimited stacking (+1 per level)
+            const crownLvl = activeSkills['crown_orbit'] || 0;
+            if (crownLvl > 0) {
+                const crownCount = crownLvl + 2; // +1 crown per rank
+                const orbitRadius = 90;
+                for (let i = 0; i < crownCount; i++) {
+                    const angle = (Math.PI * 2 / crownCount) * i - (gameTimer * 3.2);
+                    const cx = player.x + Math.cos(angle) * orbitRadius;
+                    const cy = player.y + Math.sin(angle) * orbitRadius;
+
+                    enemies.forEach(e => {
+                        const d = Math.hypot(e.x - cx, e.y - cy);
+                        if (d < e.radius + 15) {
+                            const dmg = (10 + crownLvl * 2) * player.damageMult;
+                            e.hp -= dmg;
+                            spawnDamageText(e.x, e.y, Math.round(dmg));
+                        }
+                    });
+                }
+            }
+
+            // Update Projectiles
+            for (let i = projectiles.length - 1; i >= 0; i--) {
+                const p = projectiles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.life -= delta;
+
+                enemies.forEach(e => {
+                    const dist = Math.hypot(e.x - p.x, e.y - p.y);
+                    if (dist < e.radius + p.radius) {
+                        e.hp -= p.damage;
+                        p.life = -1;
+                        spawnDamageText(e.x, e.y, Math.round(p.damage));
+                        SoundFX.playHit();
+                        player.isAngry = true;
+                        player.angryTimer = 0.4;
+                    }
+                });
+
+                if (p.life <= 0) projectiles.splice(i, 1);
+            }
+
+            // Update Enemies & Contact Damage
+            const city = CITIES[currentCityKey];
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                const e = enemies[i];
+                const angle = Math.atan2(player.y - e.y, player.x - e.x);
+                e.x += Math.cos(angle) * e.speed;
+                e.y += Math.sin(angle) * e.speed;
+
+                // Collision with player
+                const distToPlayer = Math.hypot(player.x - e.x, player.y - e.y);
+                if (distToPlayer < player.radius + e.radius) {
+                    player.hp -= 8 * delta * 60 * 0.15; // Smooth DPS damage
+                    player.isAngry = true;
+                    player.angryTimer = 0.8;
+
+                    if (player.hp <= 0) {
+                        triggerGameOver(false);
+                        return;
+                    }
+                }
+
+                // Enemy Defeated
+                if (e.hp <= 0) {
+                    killCount++;
+                    const dropEmoji = city.drops[Math.floor(Math.random() * city.drops.length)];
+                    const xpVal = (e.isBoss ? 60 : 18) * city.dropMult;
+                    items.push({ x: e.x, y: e.y, emoji: dropEmoji, xp: xpVal, radius: 14 });
+
+                    for (let k = 0; k < 4; k++) {
+                        particles.push({
+                            x: e.x, y: e.y,
+                            vx: (Math.random() - 0.5) * 4,
+                            vy: (Math.random() - 0.5) * 4,
+                            radius: 3, maxRadius: 3, alpha: 1.0, color: '#f59e0b'
+                        });
+                    }
+
+                    enemies.splice(i, 1);
+                }
+            }
+
+            // Magnet item collection
+            for (let i = items.length - 1; i >= 0; i--) {
+                const it = items[i];
+                const dist = Math.hypot(player.x - it.x, player.y - it.y);
+
+                if (dist < player.magnetRadius) {
+                    const angle = Math.atan2(player.y - it.y, player.x - it.x);
+                    it.x += Math.cos(angle) * 9;
+                    it.y += Math.sin(angle) * 9;
+                }
+
+                if (dist < player.radius + it.radius) {
+                    player.exp += it.xp;
+                    SoundFX.playXp();
+
+                    if (player.exp >= player.nextExp) {
+                        triggerLevelUp();
+                    }
+
+                    items.splice(i, 1);
+                }
+            }
+
+            // Particles & Damage Text updates
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const pt = particles[i];
+                if (pt.maxRadius > 10) {
+                    pt.radius += 10;
+                    pt.alpha -= 0.05;
+                } else {
+                    pt.x += pt.vx;
+                    pt.y += pt.vy;
+                    pt.alpha -= 0.02;
+                }
+                if (pt.alpha <= 0) particles.splice(i, 1);
+            }
+
+            for (let i = damageTexts.length - 1; i >= 0; i--) {
+                const dt = damageTexts[i];
+                dt.y -= 1;
+                dt.alpha -= 0.02;
+                if (dt.alpha <= 0) damageTexts.splice(i, 1);
+            }
+
+            // STORY MODE VICTORY CHECK ONLY (Free Mode has NO time limit)
+            if (isStoryMode) {
+                const chap = STORY_CHAPTERS.find(c => c.id === currentChapterId);
+                if (chap && gameTimer >= chap.targetSec && killCount >= chap.targetKills) {
+                    triggerGameOver(true);
+                    return;
+                }
+            }
+
+            updateHud();
+        }
+
+        function spawnDamageText(x, y, text) {
+            damageTexts.push({ x: x, y: y, text: text, alpha: 1.0 });
+        }
+
+        function render() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw Shockwaves & Particles
+            particles.forEach(pt => {
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, pt.alpha);
+                if (pt.maxRadius > 10) {
+                    ctx.strokeStyle = '#f59e0b';
+                    ctx.lineWidth = 4;
+                    ctx.beginPath();
+                    ctx.arc(pt.x, pt.y, pt.radius, 0, Math.PI * 2);
+                    ctx.stroke();
+                } else {
+                    ctx.fillStyle = pt.color;
+                    ctx.beginPath();
+                    ctx.arc(pt.x, pt.y, pt.radius, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.restore();
+            });
+
+            // Draw Collectible Loot
+            ctx.font = '20px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            items.forEach(it => {
+                ctx.fillText(it.emoji, it.x, it.y);
+            });
+
+            // Draw Orbiting Shields (🛡️)
+            const shieldLvl = activeSkills['king_shield'] || 0;
+            if (shieldLvl > 0) {
+                const shieldCount = shieldLvl;
+                const orbitRadius = 65;
+                for (let i = 0; i < shieldCount; i++) {
+                    const angle = (Math.PI * 2 / shieldCount) * i + (gameTimer * 2.5);
+                    const sx = player.x + Math.cos(angle) * orbitRadius;
+                    const sy = player.y + Math.sin(angle) * orbitRadius;
+                    ctx.font = '22px sans-serif';
+                    ctx.fillText('🛡️', sx, sy);
+                }
+            }
+
+            // Draw Orbiting Crowns (👑)
+            const crownLvl = activeSkills['crown_orbit'] || 0;
+            if (crownLvl > 0) {
+                const crownCount = crownLvl + 2;
+                const orbitRadius = 90;
+                for (let i = 0; i < crownCount; i++) {
+                    const angle = (Math.PI * 2 / crownCount) * i - (gameTimer * 3.2);
+                    const cx = player.x + Math.cos(angle) * orbitRadius;
+                    const cy = player.y + Math.sin(angle) * orbitRadius;
+                    ctx.font = '22px sans-serif';
+                    ctx.fillText('👑', cx, cy);
+                }
+            }
+
+            // Draw Royal Aircraft Support (🛩️)
+            const planeLvl = activeSkills['airplane'] || 0;
+            if (planeLvl > 0) {
+                const planeDist = 110;
+                const planeAngle = gameTimer * 2.5;
+                const px = player.x + Math.cos(planeAngle) * planeDist;
+                const py = player.y + Math.sin(planeAngle * 2) * (planeDist * 0.6);
+                ctx.font = '26px sans-serif';
+                ctx.fillText('🛩️', px, py);
+            }
+
+            // Draw Projectiles
+            projectiles.forEach(p => {
+                ctx.font = `${p.radius * 1.6}px sans-serif`;
+                ctx.fillText(p.emoji, p.x, p.y);
+            });
+
+            // Draw Invader Enemies
+            enemies.forEach(e => {
+                ctx.font = `${28 * e.scale}px sans-serif`;
+                ctx.fillText(e.emoji, e.x, e.y);
+
+                if (e.hp < e.maxHp) {
+                    const barW = 30 * e.scale;
+                    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+                    ctx.fillRect(e.x - barW / 2, e.y - e.radius - 8, barW, 4);
+                    ctx.fillStyle = e.isBoss ? '#f59e0b' : '#ef4444';
+                    ctx.fillRect(e.x - barW / 2, e.y - e.radius - 8, barW * Math.max(0, e.hp / e.maxHp), 4);
+                }
+            });
+
+            // Draw Main Character (UK Ball)
+            ctx.save();
+            const playerImg = player.isAngry ? loadedImages.ukAngry : loadedImages.ukHappy;
+            if (playerImg && imagesReady) {
+                ctx.shadowColor = 'rgba(255, 215, 0, 0.6)';
+                ctx.shadowBlur = 15;
+                ctx.drawImage(playerImg, player.x - player.radius, player.y - player.radius, player.radius * 2, player.radius * 2);
+            } else {
+                ctx.fillStyle = '#1e3a8a';
+                ctx.beginPath();
+                ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.font = '16px sans-serif';
+                ctx.fillText(player.isAngry ? '😡' : '🇬🇧', player.x, player.y);
+            }
+            // Crown on top
+            ctx.font = '22px sans-serif';
+            ctx.fillText('👑', player.x, player.y - player.radius - 4);
+            ctx.restore();
+
+            // Draw Damage Text Indicators
+            damageTexts.forEach(dt => {
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, dt.alpha);
+                ctx.font = '900 16px Outfit, sans-serif';
+                ctx.fillStyle = '#facc15';
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 3;
+                ctx.strokeText(dt.text, dt.x, dt.y);
+                ctx.fillText(dt.text, dt.x, dt.y);
+                ctx.restore();
+            });
+        }
+
+        function gameLoop(timestamp) {
+            const delta = Math.min((timestamp - lastTimestamp) / 1000, 0.1);
+            lastTimestamp = timestamp;
+
+            if (gameState === 'PLAYING') {
+                update(delta);
+                render();
+            }
+
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+
+        function triggerLevelUp() {
+            gameState = 'LEVELUP';
+            SoundFX.playLevelUp();
+
+            player.level++;
+            player.exp -= player.nextExp;
+            player.nextExp = Math.round(player.nextExp * 1.35);
+
+            const choicesContainer = document.getElementById('levelup-choices');
+            choicesContainer.innerHTML = '';
+
+            const shuffled = [...SKILL_CATALOG].sort(() => 0.5 - Math.random()).slice(0, 3);
+
+            shuffled.forEach(skill => {
+                const curLvl = activeSkills[skill.id] || 0;
+                const card = document.createElement('div');
+                card.className = "w-full bg-slate-900/90 hover:bg-amber-950/80 border-2 border-amber-500/50 hover:border-amber-400 rounded-2xl p-3 flex items-center gap-3 cursor-pointer transition-all transform active:scale-95 shadow-lg";
+                card.innerHTML = `
+                    <div class="text-3xl bg-amber-500/20 w-12 h-12 rounded-xl flex items-center justify-center border border-amber-400/30">${skill.icon}</div>
+                    <div class="flex-1 text-left">
+                        <div class="flex justify-between items-center">
+                            <h4 class="font-extrabold text-amber-300 text-sm">${skill.name}</h4>
+                            <span class="text-[10px] px-2 py-0.5 rounded bg-amber-500/30 text-amber-200 font-bold">LV.${curLvl + 1}</span>
+                        </div>
+                        <p class="text-[11px] text-gray-300 mt-0.5">${skill.desc}</p>
+                    </div>
+                `;
+                card.onclick = () => selectSkillUpgrade(skill.id);
+                choicesContainer.appendChild(card);
+            });
+
+            document.getElementById('modal-levelup').classList.remove('hidden');
+        }
+
+        function selectSkillUpgrade(skillId) {
+            activeSkills[skillId] = (activeSkills[skillId] || 0) + 1;
+
+            if (skillId === 'speed_boots') player.speed += 0.5;
+            if (skillId === 'power_scone') player.damageMult += 0.2;
+            if (skillId === 'magnet_tea') player.magnetRadius += 35;
+
+            document.getElementById('modal-levelup').classList.add('hidden');
+            gameState = 'PLAYING';
+            lastTimestamp = performance.now();
+        }
+
+        function triggerGameOver(isWin) {
+            gameState = 'GAMEOVER';
+            document.getElementById('gameover-title').innerText = isWin ? "VICTORY ROYAL!" : "GAME OVER";
+            document.getElementById('gameover-sub').innerText = isWin ? "Chapter mission accomplished! Kingship defended!" : "The invader swarms proved too immense!";
+
+            document.getElementById('go-stat-time').innerText = formatTime(gameTimer);
+            document.getElementById('go-stat-kills').innerText = killCount;
+            document.getElementById('go-stat-level').innerText = `Lv. ${player.level}`;
+            document.getElementById('go-stat-city').innerText = CITIES[currentCityKey].name;
+
+            document.getElementById('modal-gameover').classList.remove('hidden');
+        }
+
+        function returnToMenu() {
+            gameState = 'TITLE';
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+
+            document.getElementById('modal-gameover').classList.add('hidden');
+            document.getElementById('modal-levelup').classList.add('hidden');
+            document.getElementById('ui-hud').classList.add('hidden');
+            document.getElementById('screen-title').classList.remove('hidden');
+        }
+
+        function updateHud() {
+            document.getElementById('hud-exp-fill').style.width = `${Math.min(100, (player.exp / player.nextExp) * 100)}%`;
+            document.getElementById('hud-level-text').innerText = `LV. ${player.level}`;
+
+            document.getElementById('hud-hp-fill').style.width = `${Math.max(0, (player.hp / player.maxHp) * 100)}%`;
+            document.getElementById('hud-hp-text').innerText = `${Math.max(0, Math.round(player.hp))} / ${player.maxHp}`;
+
+            document.getElementById('hud-kills').innerText = killCount;
+            document.getElementById('hud-timer').innerText = formatTime(gameTimer);
+
+            // Active Skill Icons Bar
+            const skillHud = document.getElementById('hud-active-skills');
+            skillHud.innerHTML = '';
+            Object.keys(activeSkills).forEach(sId => {
+                const sk = SKILL_CATALOG.find(x => x.id === sId);
+                if (sk) {
+                    const badge = document.createElement('span');
+                    badge.className = "px-2 py-0.5 rounded-full bg-slate-900/90 border border-amber-500/40 text-[10px] font-bold text-amber-300 flex items-center gap-1 shadow";
+                    badge.innerHTML = `${sk.icon} ${activeSkills[sId]}`;
+                    skillHud.appendChild(badge);
+                }
+            });
+        }
+
+        function formatTime(seconds) {
+            const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+            const s = Math.floor(seconds % 60).toString().padStart(2, '0');
+            return `${m}:${s}`;
+        }
+
+        function renderStoryChaptersList() {
+            const container = document.getElementById('story-chapters-container');
+            container.innerHTML = '';
+
+            STORY_CHAPTERS.forEach(chap => {
+                const city = CITIES[chap.cityKey];
+                const isSelected = chap.id === currentChapterId && isStoryMode;
+
+                const card = document.createElement('div');
+                card.className = `p-4 rounded-2xl border-2 cursor-pointer transition-all ${
+                    isSelected ? 'bg-amber-950/70 border-amber-400 shadow-[0_0_15px_rgba(255,215,0,0.3)]' : 'bg-slate-900/80 border-slate-800 hover:border-slate-600'
+                }`;
+                card.innerHTML = `
+                    <div class="flex items-center justify-between mb-2">
+                        <h4 class="font-black text-amber-300 text-sm">${chap.title}</h4>
+                        <span class="text-[10px] px-2 py-0.5 rounded-full font-bold ${city.diffClass}">${city.diffName}</span>
+                    </div>
+                    <p class="text-xs text-gray-300 mb-3">${chap.desc}</p>
+                    <div class="flex justify-between items-center text-[10px] text-amber-400 font-bold border-t border-slate-800 pt-2">
+                        <span><i class="fa-regular fa-clock"></i> Time Limit: ${formatTime(chap.targetSec)}</span>
+                        <span><i class="fa-solid fa-skull"></i> Target Kills: ${chap.targetKills}</span>
+                    </div>
+                `;
+                card.onclick = () => {
+                    startStoryChapter(chap.id);
+                };
+                container.appendChild(card);
+            });
+        }
+
+        function renderCityList() {
+            const container = document.getElementById('cities-list-container');
+            container.innerHTML = '';
+
+            Object.keys(CITIES).forEach(key => {
+                const city = CITIES[key];
+                const isSelected = key === currentCityKey && !isStoryMode;
+                const card = document.createElement('div');
+                card.className = `p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-center justify-between ${
+                    isSelected ? 'bg-amber-950/60 border-amber-400 shadow-[0_0_15px_rgba(255,215,0,0.3)]' : 'bg-slate-900/70 border-slate-700 hover:border-slate-500'
+                }`;
+                card.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <img src="${IMAGES[city.ballImgKey]}" class="w-12 h-12 object-contain">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <h4 class="font-extrabold text-white text-base">${city.name}</h4>
+                                <span class="text-[10px] px-2 py-0.5 rounded-full font-bold ${city.diffClass}">${city.diffName}</span>
+                            </div>
+                            <p class="text-xs text-gray-300 mt-1">${city.desc}</p>
+                        </div>
+                    </div>
+                    <i class="fa-solid ${isSelected ? 'fa-circle-check text-amber-400 text-2xl' : 'fa-circle text-gray-600 text-xl'}"></i>
+                `;
+                card.onclick = () => {
+                    currentCityKey = key;
+                    isStoryMode = false;
+                    updateTitleCityCard();
+                    renderCityList();
+                };
+                container.appendChild(card);
+            });
+        }
+
+        function updateTitleCityCard() {
+            if (isStoryMode) {
+                const chap = STORY_CHAPTERS.find(c => c.id === currentChapterId);
+                const city = CITIES[chap.cityKey];
+                document.getElementById('story-chapter-label').innerText = chap.title.toUpperCase();
+                document.getElementById('city-name-text').innerText = city.name;
+                document.getElementById('city-desc-text').innerText = chap.desc;
+                document.getElementById('city-ball-icon').src = IMAGES[city.ballImgKey];
+
+                const badge = document.getElementById('city-difficulty-badge');
+                badge.innerText = city.diffName;
+                badge.className = `px-2 py-0.5 rounded-full text-[10px] font-bold ${city.diffClass}`;
+            } else {
+                const city = CITIES[currentCityKey];
+                document.getElementById('story-chapter-label').innerText = 'FREE SURVIVAL MODE (NO TIME LIMIT)';
+                document.getElementById('city-name-text').innerText = city.name;
+                document.getElementById('city-desc-text').innerText = city.desc;
+                document.getElementById('city-ball-icon').src = IMAGES[city.ballImgKey];
+
+                const badge = document.getElementById('city-difficulty-badge');
+                badge.innerText = city.diffName;
+                badge.className = `px-2 py-0.5 rounded-full text-[10px] font-bold ${city.diffClass}`;
+            }
+        }
+
+        function bindUiEvents() {
+            document.getElementById('btn-play').onclick = () => {
+                if (isStoryMode) {
+                    startStoryChapter(currentChapterId);
+                } else {
+                    startGame();
+                }
+            };
+
+            document.getElementById('btn-open-story').onclick = () => {
+                renderStoryChaptersList();
+                document.getElementById('modal-story').classList.remove('hidden');
+            };
+            document.getElementById('btn-close-story').onclick = () => {
+                document.getElementById('modal-story').classList.add('hidden');
+            };
+
+            document.getElementById('btn-open-cities').onclick = () => {
+                renderCityList();
+                document.getElementById('modal-cities').classList.remove('hidden');
+            };
+            document.getElementById('btn-close-cities').onclick = () => {
+                document.getElementById('modal-cities').classList.add('hidden');
+            };
+
+            document.getElementById('btn-restart').onclick = () => {
+                if (isStoryMode) {
+                    startStoryChapter(currentChapterId);
+                } else {
+                    startGame();
+                }
+            };
+
+            document.getElementById('btn-return-menu').onclick = () => {
+                returnToMenu();
+            };
+        }
+
+        window.onload = function() {
+            initCanvas();
+            setupControls();
+            bindUiEvents();
+
+            initLeafletMap(CITIES.uk.coords);
+            updateTitleCityCard();
+        };
+    </script>
+</body>
+</html>
