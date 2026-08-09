@@ -1,0 +1,1416 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>カントリーボールマージ - POLANDBALL MERGE</title>
+
+  <!-- Cool Heavy Fonts for PB Merge Logo -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&family=Rubik+Mono+One&display=swap" rel="stylesheet">
+  
+  <!-- Matter.js & PeerJS CDNs -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
+
+  <style>
+    :root {
+      --myoui-sys-color-background: #edf4e8;
+      --myoui-sys-color-surface-card: #f7fcf0;
+      --myoui-sys-color-surface-variant: #e0e8d8;
+      --myoui-sys-color-primary: #2d6a4f;
+      --myoui-sys-color-on-primary: #ffffff;
+      --myoui-sys-color-primary-container: #b7e4c7;
+      --myoui-sys-color-on-primary-container: #081c15;
+      --myoui-sys-color-accent: #ffb703;
+      --myoui-sys-color-outline: #74796e;
+      
+      --myoui-radius-card: 20px;
+      --myoui-radius-dialog: 28px;
+      --myoui-radius-pill: 50px;
+      --myoui-radius-input: 12px;
+
+      --font-family: 'Montserrat', system-ui, -apple-system, sans-serif;
+      --font-logo: 'Rubik Mono One', sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: var(--font-family);
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+
+    /* Prevent mobile address bar overflow using 100dvh */
+    html, body {
+      width: 100%;
+      height: 100%;
+      height: 100dvh;
+      overflow: hidden;
+      background-color: var(--myoui-sys-color-background);
+      color: var(--myoui-sys-color-on-primary-container);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* Screen manager */
+    .screen {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      max-width: 500px;
+      margin: 0 auto;
+      background-color: var(--myoui-sys-color-background);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      overflow-y: auto;
+      z-index: 10;
+    }
+
+    .screen.active {
+      display: flex;
+    }
+
+    /* Cool PB Merge Logo Styling */
+    .logo-container {
+      text-align: center;
+      margin-bottom: 30px;
+      animation: float 3.5s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-8px) rotate(1deg); }
+    }
+
+    .app-title-pb {
+      font-family: var(--font-logo);
+      font-size: 32px;
+      color: #1a4331;
+      text-transform: uppercase;
+      letter-spacing: -1px;
+      text-shadow: 3px 3px 0px #b7e4c7, 6px 6px 0px rgba(0,0,0,0.15);
+      line-height: 1.1;
+    }
+
+    .app-title-merge {
+      font-family: var(--font-logo);
+      font-size: 42px;
+      background: linear-gradient(135deg, #ffb703 0%, #fb8500 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: drop-shadow(2px 3px 0px #081c15);
+      margin-top: -2px;
+      letter-spacing: 1px;
+    }
+
+    .app-subtitle {
+      font-size: 12px;
+      font-weight: 900;
+      color: var(--myoui-sys-color-outline);
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      margin-top: 6px;
+    }
+
+    .menu-card {
+      background-color: var(--myoui-sys-color-surface-card);
+      border-radius: var(--myoui-radius-card);
+      padding: 20px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.05);
+    }
+
+    .myoui-btn {
+      width: 100%;
+      height: 52px;
+      border: none;
+      border-radius: var(--myoui-radius-pill);
+      font-size: 15px;
+      font-weight: 900;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: all 0.2s cubic-bezier(0.1, 0.9, 0.2, 1);
+    }
+
+    .btn-filled {
+      background-color: var(--myoui-sys-color-primary);
+      color: var(--myoui-sys-color-on-primary);
+      box-shadow: 0 4px 12px rgba(45, 106, 79, 0.3);
+    }
+
+    .btn-filled:active {
+      transform: scale(0.97);
+      background-color: #204f3b;
+    }
+
+    .btn-container {
+      background-color: var(--myoui-sys-color-primary-container);
+      color: var(--myoui-sys-color-on-primary-container);
+    }
+
+    .btn-outlined {
+      background-color: transparent;
+      border: 2px solid var(--myoui-sys-color-outline);
+      color: var(--myoui-sys-color-primary);
+    }
+
+    .myoui-input-box {
+      position: relative;
+      width: 100%;
+    }
+
+    .myoui-input {
+      width: 100%;
+      height: 52px;
+      border: 2px solid var(--myoui-sys-color-outline);
+      border-radius: var(--myoui-radius-input);
+      padding: 0 16px;
+      font-size: 15px;
+      font-weight: 700;
+      background: transparent;
+      outline: none;
+    }
+
+    .myoui-input-label {
+      position: absolute;
+      left: 12px;
+      top: -10px;
+      background-color: var(--myoui-sys-color-surface-card);
+      padding: 0 6px;
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--myoui-sys-color-outline);
+    }
+
+    /* Sound Control Button Floating Header */
+    .audio-control-btn {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background-color: var(--myoui-sys-color-surface-card);
+      border: 2px solid var(--myoui-sys-color-primary-container);
+      color: var(--myoui-sys-color-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 100;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+      transition: transform 0.2s;
+    }
+
+    .audio-control-btn:active {
+      transform: scale(0.9);
+    }
+
+    /* Game Screen & Fixed 9:16 Canvas Aspect-Ratio Container */
+    .game-screen {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100dvh;
+      display: none;
+      flex-direction: column;
+      background-color: var(--myoui-sys-color-background);
+      overflow: hidden;
+    }
+
+    .game-screen.active {
+      display: flex;
+    }
+
+    .game-header-hud {
+      height: 50px;
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 20;
+    }
+
+    .hud-card {
+      background-color: var(--myoui-sys-color-surface-card);
+      padding: 6px 14px;
+      border-radius: var(--myoui-radius-pill);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 900;
+      color: var(--myoui-sys-color-primary);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+
+    .next-ball-preview {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background-size: cover;
+      background-position: top center;
+      background-color: #ccc;
+    }
+
+    /* Main Board Layout Area */
+    .boards-wrapper {
+      flex: 1;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 6px;
+      gap: 10px;
+      overflow: hidden;
+    }
+
+    /* Strictly 9:16 Fixed Basket Frame */
+    .basket-frame {
+      position: relative;
+      aspect-ratio: 9 / 16;
+      height: 100%;
+      max-height: calc(100dvh - 120px);
+      max-width: 100%;
+      background-color: #fcfdfe;
+      border: 3px solid var(--myoui-sys-color-primary);
+      border-radius: 12px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .basket-frame.opponent {
+      border-color: #d9534f;
+      background-color: #f7ede8;
+    }
+
+    canvas.game-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      touch-action: none;
+    }
+
+    /* Evolution Wheel Footer Track */
+    .evolution-wheel-container {
+      height: 60px;
+      width: 100%;
+      background-color: var(--myoui-sys-color-surface-card);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 8px;
+      border-top: 1px solid var(--myoui-sys-color-surface-variant);
+      z-index: 10;
+    }
+
+    .evolution-node {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1px;
+    }
+
+    .evolution-node img {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      border: 1px solid var(--myoui-sys-color-outline);
+      background-color: white;
+      object-fit: cover;
+      object-position: top;
+    }
+
+    .evolution-node .size-tag {
+      font-size: 8px;
+      font-weight: 800;
+      background: var(--myoui-sys-color-primary);
+      color: white;
+      padding: 0 3px;
+      border-radius: 4px;
+    }
+
+    .evolution-arrow {
+      font-size: 9px;
+      color: var(--myoui-sys-color-outline);
+    }
+
+    /* Score Overlay list & Dialogs */
+    .score-list {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 220px;
+      overflow-y: auto;
+      margin-top: 10px;
+    }
+
+    .score-item {
+      background-color: var(--myoui-sys-color-surface-variant);
+      padding: 10px 14px;
+      border-radius: var(--myoui-radius-input);
+      display: flex;
+      justify-content: space-between;
+      font-weight: 800;
+      font-size: 13px;
+    }
+
+    .dialog-backdrop {
+      position: fixed;
+      inset: 0;
+      background-color: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(3px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 1000;
+    }
+
+    .dialog-backdrop.active {
+      display: flex;
+    }
+
+    .myoui-dialog {
+      background-color: var(--myoui-sys-color-surface-card);
+      border-radius: var(--myoui-radius-dialog);
+      padding: 24px;
+      width: 100%;
+      max-width: 320px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      text-align: center;
+    }
+
+    .dialog-title {
+      font-size: 22px;
+      font-weight: 900;
+      color: var(--myoui-sys-color-primary);
+    }
+
+    .deadline-marker {
+      position: absolute;
+      top: 50px; /* Logical threshold inside 9:16 canvas */
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: repeating-linear-gradient(90deg, #ff4d4d, #ff4d4d 6px, transparent 6px, transparent 12px);
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    #toast-msg {
+      position: fixed;
+      bottom: 70px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: var(--myoui-sys-color-on-primary-container);
+      color: var(--myoui-sys-color-background);
+      padding: 10px 20px;
+      border-radius: var(--myoui-radius-pill);
+      font-size: 13px;
+      font-weight: 800;
+      opacity: 0;
+      transition: opacity 0.3s;
+      z-index: 2000;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+
+    .loading-overlay {
+      position: absolute;
+      inset: 0;
+      background-color: rgba(237, 244, 232, 0.95);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      z-index: 100;
+    }
+
+    .spinner {
+      width: 36px;
+      height: 36px;
+      border: 4px solid var(--myoui-sys-color-primary-container);
+      border-top-color: var(--myoui-sys-color-primary);
+      border-radius: 50%;
+      animation: spin 0.8s infinite linear;
+    }
+
+    @keyframes spin { 100% { transform: rotate(360deg); } }
+  </style>
+
+  <script type="module">
+    import { argbFromHex, hexFromArgb, Hct, SchemeTonalSpot } from 'https://esm.run/@material/material-color-utilities';
+
+    function injectDynamicPalette(seedColorHex) {
+      try {
+        const argb = argbFromHex(seedColorHex);
+        const hct = Hct.fromInt(argb);
+        const scheme = new SchemeTonalSpot(hct, false, 0.0);
+
+        const root = document.documentElement;
+        root.style.setProperty('--myoui-sys-color-background', hexFromArgb(scheme.background));
+        root.style.setProperty('--myoui-sys-color-surface-card', hexFromArgb(scheme.surfaceContainerLow));
+        root.style.setProperty('--myoui-sys-color-surface-variant', hexFromArgb(scheme.surfaceVariant));
+        root.style.setProperty('--myoui-sys-color-primary', hexFromArgb(scheme.primary));
+        root.style.setProperty('--myoui-sys-color-on-primary', hexFromArgb(scheme.onPrimary));
+        root.style.setProperty('--myoui-sys-color-primary-container', hexFromArgb(scheme.primaryContainer));
+        root.style.setProperty('--myoui-sys-color-on-primary-container', hexFromArgb(scheme.onPrimaryContainer));
+        root.style.setProperty('--myoui-sys-color-outline', hexFromArgb(scheme.outline));
+      } catch (e) {
+        console.warn("Theme dynamic generation skipped.");
+      }
+    }
+    window.addEventListener('DOMContentLoaded', () => injectDynamicPalette("#2d6a4f"));
+  </script>
+</head>
+<body>
+
+  <!-- Audio BGM Element -->
+  <audio id="bgm-audio" loop src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbpark/refs/heads/main/games/polandballgame/polandballgame.mp3" preload="auto"></audio>
+
+  <!-- Audio Control Button -->
+  <button class="audio-control-btn" id="audio-toggle-btn" onclick="toggleBGM()" title="BGM ON/OFF">
+    <svg id="icon-sound-on" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+    <svg id="icon-sound-off" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display: none;"><line x1="1" y1="1" x2="23" y2="23"/><path d="M9 9v6a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"/></svg>
+  </button>
+
+  <div id="toast-msg"></div>
+
+  <!-- MAIN MENU SCREEN -->
+  <div id="screen-main" class="screen active">
+    <div class="logo-container">
+      <div class="app-title-pb">POLANDBALL</div>
+      <div class="app-title-merge">MERGE！</div>
+      <div class="app-subtitle">カントリーボールゲーム</div>
+    </div>
+
+    <div class="menu-card">
+      <button class="myoui-btn btn-filled" onclick="startSoloGame()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
+        1人でプレイ
+      </button>
+
+      <button class="myoui-btn btn-container" onclick="openMultiplaySetup()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 1 0 7.75"/></svg>
+        2人でオンラインプレイ
+      </button>
+
+      <button class="myoui-btn btn-outlined" onclick="openScores()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
+        ハイスコア
+      </button>
+    </div>
+  </div>
+
+  <!-- MULTIPLAYER SETUP SCREEN -->
+  <div id="screen-multi-setup" class="screen">
+    <div class="logo-container">
+      <div class="app-title-pb" style="font-size: 24px;">ONLINE MATCH</div>
+      <div class="app-title-merge" style="font-size: 32px;">マルチ接続</div>
+    </div>
+
+    <div class="menu-card">
+      <div style="font-size: 12px; text-align: center; color: var(--myoui-sys-color-outline); font-weight:700; margin-bottom: 4px;">
+        完全同一のカゴ(9:16)・物理サイズで勝負！
+      </div>
+
+      <div class="myoui-input-box" style="margin-top: 6px;">
+        <input type="text" id="my-peer-id" class="myoui-input" readonly placeholder="ID取得中...">
+        <span class="myoui-input-label">あなたの接続ID</span>
+      </div>
+
+      <button class="myoui-btn btn-container" style="height: 42px; font-size: 13px;" onclick="copyMyPeerId()">
+        IDをコピー
+      </button>
+
+      <hr style="border: 0; border-top: 1px solid var(--myoui-sys-color-surface-variant); margin: 6px 0;">
+
+      <div class="myoui-input-box">
+        <input type="text" id="target-peer-id" class="myoui-input" placeholder="相手のIDを入力">
+        <span class="myoui-input-label">友達の接続ID</span>
+      </div>
+
+      <button class="myoui-btn btn-filled" onclick="connectToFriend()">
+        対戦を開始する
+      </button>
+
+      <button class="myoui-btn btn-outlined" onclick="goToScreen('screen-main')" style="height: 42px; font-size: 13px;">
+        戻る
+      </button>
+    </div>
+
+    <div id="peerjs-loading" class="loading-overlay" style="display: none;">
+      <div class="spinner"></div>
+      <div id="peerjs-status-text" style="font-weight: 800; color: var(--myoui-sys-color-primary);">サーバーに接続中...</div>
+      <button class="myoui-btn btn-outlined" onclick="cancelPeerJSSetup()" style="width: auto; height: 38px; padding: 0 16px;">キャンセル</button>
+    </div>
+  </div>
+
+  <!-- SCORES SCREEN -->
+  <div id="screen-scores" class="screen">
+    <div class="logo-container">
+      <div class="app-title-pb" style="font-size: 24px;">RECORDS</div>
+      <div class="app-title-merge" style="font-size: 32px;">ハイスコア</div>
+    </div>
+
+    <div class="menu-card">
+      <div class="score-list" id="scores-container"></div>
+
+      <button class="myoui-btn btn-filled" onclick="clearScores()" style="height: 42px; font-size:13px; background-color:#d9534f; margin-top: 6px;">
+        記録をリセット
+      </button>
+
+      <button class="myoui-btn btn-outlined" onclick="goToScreen('screen-main')" style="height: 42px; font-size:13px;">
+        戻る
+      </button>
+    </div>
+  </div>
+
+  <!-- GAME SCREEN WITH FIXED 9:16 CANVAS BASKET -->
+  <div id="screen-game" class="game-screen">
+    <div class="game-header-hud">
+      <div class="hud-card">
+        <span>SCORE:</span>
+        <span id="game-score-val">0</span>
+      </div>
+      <div class="hud-card" id="hud-next-container" style="display: none;">
+        <span>NEXT:</span>
+        <div class="next-ball-preview" id="hud-next-preview"></div>
+      </div>
+      <button class="hud-card" style="pointer-events: auto; cursor: pointer; border: none;" onclick="exitGameAndSave()">
+        <span>終了</span>
+      </button>
+    </div>
+
+    <!-- 9:16 Canvas Boards Area -->
+    <div class="boards-wrapper" id="boards-wrapper">
+      <!-- Self Board -->
+      <div class="basket-frame" id="frame-self">
+        <div class="deadline-marker"></div>
+        <canvas id="canvas-self" class="game-canvas"></canvas>
+      </div>
+
+      <!-- Opponent Board (Online Mode) -->
+      <div class="basket-frame opponent" id="frame-opponent" style="display: none;">
+        <div class="deadline-marker"></div>
+        <div style="position: absolute; top: 6px; right: 8px; background: rgba(0,0,0,0.6); color: white; padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: 800; z-index: 10;">
+          相手 (SCORE: <span id="opponent-score-val">0</span>)
+        </div>
+        <canvas id="canvas-opponent" class="game-canvas"></canvas>
+      </div>
+    </div>
+
+    <!-- Dynamic Evolution Footer -->
+    <div class="evolution-wheel-container" id="evo-track"></div>
+  </div>
+
+  <!-- GAME OVER DIALOG -->
+  <div class="dialog-backdrop" id="game-over-backdrop">
+    <div class="myoui-dialog">
+      <div class="dialog-title" id="game-over-title">GAME OVER</div>
+      <div style="font-weight: 800; font-size: 15px;">
+        獲得スコア: <span id="final-score-val" style="color: var(--myoui-sys-color-accent); font-size: 26px;">0</span>
+      </div>
+      <div id="multiplay-result-status" style="font-weight: 800; font-size: 16px; color: var(--myoui-sys-color-primary);"></div>
+      <button class="myoui-btn btn-filled" onclick="restartCurrentMode()">もう一度プレイ</button>
+      <button class="myoui-btn btn-outlined" onclick="exitGameAndSave()">メニューへ</button>
+    </div>
+  </div>
+
+  <script>
+    // Fixed Standard Basket Coordinate Dimensions (9:16 Aspect Ratio)
+    const GAME_WIDTH = 360;
+    const GAME_HEIGHT = 640;
+
+    // Asset Specifications
+    const BASE_URL = 'https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/';
+    const COUNTRIES = ['germany', 'japan', 'china', 'italy', 'sierraleone', 'russia', 'france', 'poland', 'england472x600', 'usa'];
+    const EMOTIONS = ['anger.png', 'dissatisfaction.png', 'happy.png', 'itome.png', 'lol.png', 'normal.png', 'plot.png', 'smile.png', 'surprise.png'];
+
+    // App State
+    let currentScreen = 'screen-main';
+    let localScore = 0;
+    let opponentScore = 0;
+    let evolutionWheel = []; 
+    let isMultiplayer = false;
+    let isGameOver = false;
+
+    // Matter.js Physics Engine
+    let engineSelf, runnerSelf;
+    let nextSpawnBall = null;
+    let isSpawnReady = true;
+
+    // PeerJS Networking
+    let peer = null;
+    let peerConn = null;
+    let amIHost = false;
+
+    // Canvases
+    const canvasSelf = document.getElementById('canvas-self');
+    const canvasOpponent = document.getElementById('canvas-opponent');
+    const ctxSelf = canvasSelf.getContext('2d');
+    const ctxOpponent = canvasOpponent.getContext('2d');
+
+    // Preloader cache & Audio
+    const imgCache = {};
+    let isBgmPlaying = false;
+    let audioCtx = null;
+
+    // Ensure fixed logical 9:16 resolution on canvases
+    canvasSelf.width = GAME_WIDTH;
+    canvasSelf.height = GAME_HEIGHT;
+    canvasOpponent.width = GAME_WIDTH;
+    canvasOpponent.height = GAME_HEIGHT;
+
+    // BGM Control Functions
+    function toggleBGM() {
+      const bgm = document.getElementById('bgm-audio');
+      const iconOn = document.getElementById('icon-sound-on');
+      const iconOff = document.getElementById('icon-sound-off');
+
+      if (isBgmPlaying) {
+        bgm.pause();
+        isBgmPlaying = false;
+        iconOn.style.display = 'none';
+        iconOff.style.display = 'block';
+      } else {
+        bgm.play().then(() => {
+          isBgmPlaying = true;
+          iconOn.style.display = 'block';
+          iconOff.style.display = 'none';
+        }).catch(err => console.log("Audio autoplay restricted. User interaction needed."));
+      }
+    }
+
+    function autoStartBGM() {
+      if (!isBgmPlaying) {
+        const bgm = document.getElementById('bgm-audio');
+        bgm.play().then(() => {
+          isBgmPlaying = true;
+          document.getElementById('icon-sound-on').style.display = 'block';
+          document.getElementById('icon-sound-off').style.display = 'none';
+        }).catch(() => {});
+      }
+    }
+
+    function playSynthSound(type) {
+      try {
+        if (!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        if (type === 'merge') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(320, audioCtx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(640, audioCtx.currentTime + 0.15);
+          gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+          gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.18);
+          osc.start();
+          osc.stop(audioCtx.currentTime + 0.18);
+        } else if (type === 'drop') {
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(160, audioCtx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(90, audioCtx.currentTime + 0.1);
+          gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+          gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.12);
+          osc.start();
+          osc.stop(audioCtx.currentTime + 0.12);
+        } else if (type === 'gameover') {
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(220, audioCtx.currentTime);
+          osc.frequency.linearRampToValueAtTime(50, audioCtx.currentTime + 0.7);
+          gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+          gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.7);
+          osc.start();
+          osc.stop(audioCtx.currentTime + 0.7);
+        }
+      } catch (err) {}
+    }
+
+    function showToast(message) {
+      const toast = document.getElementById('toast-msg');
+      toast.innerText = message;
+      toast.style.opacity = '1';
+      setTimeout(() => { toast.style.opacity = '0'; }, 3000);
+    }
+
+    function goToScreen(screenId) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.game-screen').forEach(s => s.classList.remove('active'));
+      const scr = document.getElementById(screenId);
+      if (scr) scr.classList.add('active');
+      currentScreen = screenId;
+    }
+
+    // Generate Standard Evolution Sequence with Fixed Proportional Radii
+    function generateEvolutionWheel() {
+      let countriesShuffled = [...COUNTRIES].sort(() => Math.random() - 0.5);
+      let numStages = 8;
+      let wheel = [];
+      
+      // Fixed Base Radius for absolute consistency across devices (18px to 90px)
+      let radii = [18, 26, 36, 48, 62, 76, 90, 106];
+
+      for (let i = 0; i < numStages; i++) {
+        let country = countriesShuffled[i % countriesShuffled.length];
+        let emotion = EMOTIONS[Math.floor(Math.random() * EMOTIONS.length)];
+
+        wheel.push({
+          stage: i,
+          country: country,
+          emotion: emotion,
+          radius: radii[i]
+        });
+      }
+      return wheel;
+    }
+
+    function renderEvolutionTrackUI() {
+      const track = document.getElementById('evo-track');
+      track.innerHTML = '';
+      evolutionWheel.forEach((node, i) => {
+        const url = `${BASE_URL}${node.country}/${node.emotion}`;
+        
+        const nodeDiv = document.createElement('div');
+        nodeDiv.className = 'evolution-node';
+        
+        const img = document.createElement('img');
+        img.src = url;
+        img.onerror = () => {
+          img.style.display = 'none';
+          const fallback = document.createElement('div');
+          fallback.style.width = '24px';
+          fallback.style.height = '24px';
+          fallback.style.borderRadius = '50%';
+          fallback.style.background = '#bbb';
+          fallback.style.fontSize = '9px';
+          fallback.style.fontWeight = '800';
+          fallback.style.display = 'flex';
+          fallback.style.alignItems = 'center';
+          fallback.style.justifyContent = 'center';
+          fallback.innerText = node.country.substring(0,2).toUpperCase();
+          nodeDiv.insertBefore(fallback, nodeDiv.firstChild);
+        };
+
+        const label = document.createElement('div');
+        label.className = 'size-tag';
+        label.innerText = `r:${node.radius}`;
+
+        nodeDiv.appendChild(img);
+        nodeDiv.appendChild(label);
+        track.appendChild(nodeDiv);
+
+        if (i < evolutionWheel.length - 1) {
+          const arrow = document.createElement('div');
+          arrow.className = 'evolution-arrow';
+          arrow.innerText = '➔';
+          track.appendChild(arrow);
+        }
+      });
+    }
+
+    function preloadWheelImages(wheel, callback) {
+      let loaded = 0;
+      let total = wheel.length;
+      if (total === 0) return callback();
+
+      wheel.forEach(node => {
+        const url = `${BASE_URL}${node.country}/${node.emotion}`;
+        if (imgCache[url]) {
+          loaded++;
+          if (loaded === total) callback();
+          return;
+        }
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          imgCache[url] = img;
+          loaded++;
+          if (loaded === total) callback();
+        };
+        img.onerror = () => {
+          const dummy = document.createElement('canvas');
+          dummy.width = 100;
+          dummy.height = 100;
+          const dCtx = dummy.getContext('2d');
+          dCtx.fillStyle = '#2d6a4f';
+          dCtx.beginPath();
+          dCtx.arc(50, 50, 45, 0, Math.PI * 2);
+          dCtx.fill();
+          dCtx.fillStyle = '#fff';
+          dCtx.font = 'bold 30px sans-serif';
+          dCtx.textAlign = 'center';
+          dCtx.textBaseline = 'middle';
+          dCtx.fillText(node.country.substring(0, 2).toUpperCase(), 50, 50);
+          
+          const fallbackImg = new Image();
+          fallbackImg.src = dummy.toDataURL();
+          imgCache[url] = fallbackImg;
+          
+          loaded++;
+          if (loaded === total) callback();
+        };
+        img.src = url;
+      });
+    }
+
+    function initPhysicsWorld() {
+      autoStartBGM();
+      localScore = 0;
+      document.getElementById('game-score-val').innerText = '0';
+      isGameOver = false;
+      isSpawnReady = true;
+      document.getElementById('game-over-backdrop').classList.remove('active');
+
+      if (runnerSelf) Matter.Runner.stop(runnerSelf);
+      if (engineSelf) Matter.World.clear(engineSelf.world);
+
+      engineSelf = Matter.Engine.create({
+        gravity: { y: 1.0, x: 0 }
+      });
+
+      // Rigid boundaries on 360x640 logical canvas
+      const wallThickness = 60;
+      const ground = Matter.Bodies.rectangle(GAME_WIDTH / 2, GAME_HEIGHT + wallThickness/2, GAME_WIDTH * 2, wallThickness, { isStatic: true });
+      const leftWall = Matter.Bodies.rectangle(-wallThickness/2, GAME_HEIGHT/2, wallThickness, GAME_HEIGHT * 2, { isStatic: true });
+      const rightWall = Matter.Bodies.rectangle(GAME_WIDTH + wallThickness/2, GAME_HEIGHT/2, wallThickness, GAME_HEIGHT * 2, { isStatic: true });
+
+      Matter.Composite.add(engineSelf.world, [ground, leftWall, rightWall]);
+
+      runnerSelf = Matter.Runner.create();
+      Matter.Runner.run(runnerSelf, engineSelf);
+
+      setNextSpawnBall();
+      requestAnimationFrame(gameLoopTick);
+
+      const frameSelf = document.getElementById('frame-self');
+      frameSelf.onpointerdown = handleBoardTap;
+
+      Matter.Events.on(engineSelf, 'collisionStart', handleCollisions);
+    }
+
+    function setNextSpawnBall() {
+      const randomStage = Math.floor(Math.random() * Math.min(3, evolutionWheel.length));
+      nextSpawnBall = {
+        stage: randomStage,
+        node: evolutionWheel[randomStage]
+      };
+
+      const nextContainer = document.getElementById('hud-next-container');
+      const nextPreview = document.getElementById('hud-next-preview');
+      const url = `${BASE_URL}${nextSpawnBall.node.country}/${nextSpawnBall.node.emotion}`;
+      
+      nextPreview.style.backgroundImage = `url('${url}')`;
+      nextContainer.style.display = 'flex';
+    }
+
+    function handleBoardTap(e) {
+      if (!isSpawnReady || isGameOver) return;
+
+      const frameSelf = document.getElementById('frame-self');
+      const rect = frameSelf.getBoundingClientRect();
+      
+      // Normalize pointer click into 0-360 logical coordinate
+      const relativeX = (e.clientX - rect.left) / rect.width;
+      const clickX = relativeX * GAME_WIDTH;
+
+      isSpawnReady = false;
+
+      const stage = nextSpawnBall.stage;
+      const node = nextSpawnBall.node;
+      const radius = node.radius;
+
+      const boundedX = Math.max(radius + 5, Math.min(GAME_WIDTH - radius - 5, clickX));
+      const spawnY = 40;
+
+      const ball = Matter.Bodies.circle(boundedX, spawnY, radius, {
+        restitution: 0.2,
+        friction: 0.1,
+        label: 'ball',
+        plugin: {
+          stage: stage,
+          country: node.country,
+          emotion: node.emotion,
+          radius: radius,
+          imageSrc: `${BASE_URL}${node.country}/${node.emotion}`
+        }
+      });
+
+      Matter.Composite.add(engineSelf.world, ball);
+      playSynthSound('drop');
+
+      setTimeout(() => {
+        if (!isGameOver) {
+          setNextSpawnBall();
+          isSpawnReady = true;
+        }
+      }, 650);
+    }
+
+    function handleCollisions(event) {
+      const pairs = event.pairs;
+      for (let i = 0; i < pairs.length; i++) {
+        const pair = pairs[i];
+        const bodyA = pair.bodyA;
+        const bodyB = pair.bodyB;
+
+        if (bodyA.label === 'ball' && bodyB.label === 'ball') {
+          const stageA = bodyA.plugin.stage;
+          const stageB = bodyB.plugin.stage;
+
+          if (stageA === stageB) {
+            const nextStage = stageA + 1;
+            
+            if (nextStage < evolutionWheel.length) {
+              const node = evolutionWheel[nextStage];
+              const radius = node.radius;
+
+              const midX = (bodyA.position.x + bodyB.position.x) / 2;
+              const midY = (bodyA.position.y + bodyB.position.y) / 2;
+
+              if (bodyA.id && bodyB.id) {
+                Matter.Composite.remove(engineSelf.world, bodyA);
+                Matter.Composite.remove(engineSelf.world, bodyB);
+
+                bodyA.id = null;
+                bodyB.id = null;
+
+                const evolvedBall = Matter.Bodies.circle(midX, midY, radius, {
+                  restitution: 0.2,
+                  friction: 0.1,
+                  label: 'ball',
+                  plugin: {
+                    stage: nextStage,
+                    country: node.country,
+                    emotion: node.emotion,
+                    radius: radius,
+                    imageSrc: `${BASE_URL}${node.country}/${node.emotion}`
+                  }
+                });
+
+                Matter.Composite.add(engineSelf.world, evolvedBall);
+                
+                localScore += (nextStage + 1) * 10;
+                document.getElementById('game-score-val').innerText = localScore;
+
+                playSynthSound('merge');
+
+                if (isMultiplayer && peerConn) {
+                  peerConn.send({ type: 'score_update', score: localScore });
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    function gameLoopTick() {
+      if (currentScreen !== 'screen-game') return;
+
+      ctxSelf.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+
+      // Draw dashed deadline threshold line
+      ctxSelf.beginPath();
+      ctxSelf.strokeStyle = '#ff4d4d';
+      ctxSelf.lineWidth = 2;
+      ctxSelf.setLineDash([6, 6]);
+      ctxSelf.moveTo(0, 50);
+      ctxSelf.lineTo(GAME_WIDTH, 50);
+      ctxSelf.stroke();
+      ctxSelf.setLineDash([]);
+
+      let bodies = Matter.Composite.allBodies(engineSelf.world);
+      let overflowDetected = false;
+
+      bodies.forEach(body => {
+        if (body.label === 'ball') {
+          const { x, y } = body.position;
+          const radius = body.plugin.radius;
+          const imgUrl = body.plugin.imageSrc;
+
+          ctxSelf.save();
+          ctxSelf.translate(x, y);
+          ctxSelf.rotate(body.angle);
+          
+          if (imgCache[imgUrl]) {
+            ctxSelf.beginPath();
+            ctxSelf.arc(0, 0, radius, 0, Math.PI * 2);
+            ctxSelf.clip();
+            const img = imgCache[imgUrl];
+            if (body.plugin.country === 'england472x600') {
+              const sWidth = img.naturalWidth || 472;
+              const sHeight = Math.min(sWidth, 472); // 縦600の上から472px分を切り取り
+              ctxSelf.drawImage(img, 0, 0, sWidth, sHeight, -radius, -radius, radius * 2, radius * 2);
+            } else {
+              ctxSelf.drawImage(img, -radius, -radius, radius * 2, radius * 2);
+            }
+          } else {
+            ctxSelf.beginPath();
+            ctxSelf.arc(0, 0, radius, 0, Math.PI * 2);
+            ctxSelf.fillStyle = '#bbb';
+            ctxSelf.fill();
+            ctxSelf.fillStyle = '#333';
+            ctxSelf.font = `bold ${radius * 0.4}px var(--font-family)`;
+            ctxSelf.textAlign = 'center';
+            ctxSelf.textBaseline = 'middle';
+            ctxSelf.fillText(body.plugin.country.substring(0,3).toUpperCase(), 0, 0);
+          }
+          
+          ctxSelf.restore();
+
+          if (y - radius < 50 && body.velocity.y < 0.1) {
+            overflowDetected = true;
+          }
+        }
+      });
+
+      if (overflowDetected) {
+        if (!this.deadlineViolationTime) {
+          this.deadlineViolationTime = Date.now();
+        } else if (Date.now() - this.deadlineViolationTime > 2200) {
+          triggerGameOver();
+        }
+      } else {
+        this.deadlineViolationTime = null;
+      }
+
+      if (isMultiplayer && peerConn) {
+        syncPhysicsToPeer(bodies);
+      }
+
+      if (!isGameOver) {
+        requestAnimationFrame(gameLoopTick);
+      }
+    }
+
+    function syncPhysicsToPeer(bodies) {
+      const stateList = [];
+      bodies.forEach(body => {
+        if (body.label === 'ball') {
+          stateList.push({
+            x: body.position.x,
+            y: body.position.y,
+            radius: body.plugin.radius,
+            stage: body.plugin.stage,
+            country: body.plugin.country,
+            emotion: body.plugin.emotion,
+            angle: body.angle
+          });
+        }
+      });
+
+      peerConn.send({ type: 'physics_state', balls: stateList });
+    }
+
+    function drawOpponentCanvas(ballsList) {
+      ctxOpponent.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+
+      ctxOpponent.beginPath();
+      ctxOpponent.strokeStyle = '#ff4d4d';
+      ctxOpponent.lineWidth = 2;
+      ctxOpponent.setLineDash([6, 6]);
+      ctxOpponent.moveTo(0, 50);
+      ctxOpponent.lineTo(GAME_WIDTH, 50);
+      ctxOpponent.stroke();
+      ctxOpponent.setLineDash([]);
+
+      ballsList.forEach(ball => {
+        const { x, y, radius } = ball;
+        const imgUrl = `${BASE_URL}${ball.country}/${ball.emotion}`;
+
+        ctxOpponent.save();
+        ctxOpponent.translate(x, y);
+        ctxOpponent.rotate(ball.angle);
+
+        if (imgCache[imgUrl]) {
+          ctxOpponent.beginPath();
+          ctxOpponent.arc(0, 0, radius, 0, Math.PI * 2);
+          ctxOpponent.clip();
+          const img = imgCache[imgUrl];
+          if (ball.country === 'england472x600') {
+            const sWidth = img.naturalWidth || 472;
+            const sHeight = Math.min(sWidth, 472); // 縦600の上から472px分を切り取り
+            ctxOpponent.drawImage(img, 0, 0, sWidth, sHeight, -radius, -radius, radius * 2, radius * 2);
+          } else {
+            ctxOpponent.drawImage(img, -radius, -radius, radius * 2, radius * 2);
+          }
+        } else {
+          ctxOpponent.beginPath();
+          ctxOpponent.arc(0, 0, radius, 0, Math.PI * 2);
+          ctxOpponent.fillStyle = '#bbb';
+          ctxOpponent.fill();
+        }
+        ctxOpponent.restore();
+      });
+    }
+
+    function startSoloGame() {
+      isMultiplayer = false;
+      document.getElementById('frame-opponent').style.display = 'none';
+
+      evolutionWheel = generateEvolutionWheel();
+      renderEvolutionTrackUI();
+
+      const loading = document.createElement('div');
+      loading.className = 'loading-overlay';
+      loading.innerHTML = '<div class="spinner"></div><div style="font-weight:800;">ルールを読み込み中...</div>';
+      document.body.appendChild(loading);
+
+      preloadWheelImages(evolutionWheel, () => {
+        loading.remove();
+        goToScreen('screen-game');
+        initPhysicsWorld();
+      });
+    }
+
+    function restartCurrentMode() {
+      if (isMultiplayer) {
+        if (amIHost) {
+          evolutionWheel = generateEvolutionWheel();
+          preloadWheelImages(evolutionWheel, () => {
+            peerConn.send({ type: 'start_match', wheel: evolutionWheel });
+            renderEvolutionTrackUI();
+            goToScreen('screen-game');
+            initPhysicsWorld();
+          });
+        } else {
+          showToast("ホストの開始を待っています...");
+        }
+      } else {
+        startSoloGame();
+      }
+    }
+
+    function triggerGameOver() {
+      if (isGameOver) return;
+      isGameOver = true;
+      playSynthSound('gameover');
+
+      if (runnerSelf) Matter.Runner.stop(runnerSelf);
+
+      document.getElementById('final-score-val').innerText = localScore;
+      document.getElementById('game-over-backdrop').classList.add('active');
+
+      saveHighScore(localScore);
+
+      if (isMultiplayer && peerConn) {
+        peerConn.send({ type: 'game_over_state', finalScore: localScore });
+        evaluateMultiplayerResult();
+      } else {
+        document.getElementById('multiplay-result-status').innerText = '';
+      }
+    }
+
+    function evaluateMultiplayerResult() {
+      const resultStatus = document.getElementById('multiplay-result-status');
+      if (localScore > opponentScore) {
+        resultStatus.innerText = '勝利しました！🏆';
+        resultStatus.style.color = '#2d6a4f';
+      } else if (localScore < opponentScore) {
+        resultStatus.innerText = '敗北しました...😢';
+        resultStatus.style.color = '#d9534f';
+      } else {
+        resultStatus.innerText = '引き分けです！🤝';
+        resultStatus.style.color = 'var(--myoui-sys-color-primary)';
+      }
+    }
+
+    function exitGameAndSave() {
+      if (runnerSelf) Matter.Runner.stop(runnerSelf);
+      saveHighScore(localScore);
+      document.getElementById('game-over-backdrop').classList.remove('active');
+
+      if (isMultiplayer && peerConn) {
+        peerConn.close();
+      }
+
+      goToScreen('screen-main');
+    }
+
+    function saveHighScore(score) {
+      if (score <= 0) return;
+      let scores = JSON.parse(localStorage.getItem('pb_suika_scores') || '[]');
+      const dateStr = new Date().toLocaleDateString();
+      scores.push({ score: score, date: dateStr });
+      scores.sort((a, b) => b.score - a.score);
+      scores = scores.slice(0, 10);
+      localStorage.setItem('pb_suika_scores', JSON.stringify(scores));
+    }
+
+    function openScores() {
+      const container = document.getElementById('scores-container');
+      container.innerHTML = '';
+      const scores = JSON.parse(localStorage.getItem('pb_suika_scores') || '[]');
+
+      if (scores.length === 0) {
+        container.innerHTML = '<div style="text-align:center; color:var(--myoui-sys-color-outline); padding:16px; font-weight:700;">記録がありません</div>';
+      } else {
+        scores.forEach((entry, idx) => {
+          const item = document.createElement('div');
+          item.className = 'score-item';
+          item.innerHTML = `
+            <span>#${idx + 1} - ${entry.date}</span>
+            <span style="color:var(--myoui-sys-color-primary);">${entry.score} pts</span>
+          `;
+          container.appendChild(item);
+        });
+      }
+      goToScreen('screen-scores');
+    }
+
+    function clearScores() {
+      localStorage.removeItem('pb_suika_scores');
+      openScores();
+      showToast("記録を消去しました");
+    }
+
+    function openMultiplaySetup() {
+      goToScreen('screen-multi-setup');
+      document.getElementById('peerjs-loading').style.display = 'flex';
+
+      if (!peer) {
+        const customId = 'pb-merge-' + Math.floor(1000 + Math.random() * 9000);
+        peer = new Peer(customId);
+
+        peer.on('open', (id) => {
+          document.getElementById('my-peer-id').value = id;
+          document.getElementById('peerjs-loading').style.display = 'none';
+        });
+
+        peer.on('connection', (conn) => {
+          peerConn = conn;
+          amIHost = true;
+          setupConnectionListeners();
+        });
+
+        peer.on('error', (err) => {
+          showToast("PeerJS接続エラーが発生しました");
+          document.getElementById('peerjs-loading').style.display = 'none';
+        });
+      } else {
+        document.getElementById('my-peer-id').value = peer.id;
+        document.getElementById('peerjs-loading').style.display = 'none';
+      }
+    }
+
+    function cancelPeerJSSetup() {
+      document.getElementById('peerjs-loading').style.display = 'none';
+      goToScreen('screen-main');
+    }
+
+    function copyMyPeerId() {
+      const idInput = document.getElementById('my-peer-id');
+      idInput.select();
+      document.execCommand('copy');
+      showToast("接続IDをコピーしました！");
+    }
+
+    function connectToFriend() {
+      const targetId = document.getElementById('target-peer-id').value.trim();
+      if (!targetId) {
+        showToast("相手のIDを入力してください");
+        return;
+      }
+
+      document.getElementById('peerjs-loading').style.display = 'flex';
+      document.getElementById('peerjs-status-text').innerText = '接続中...';
+
+      peerConn = peer.connect(targetId);
+      amIHost = false;
+      setupConnectionListeners();
+    }
+
+    function setupConnectionListeners() {
+      peerConn.on('open', () => {
+        document.getElementById('peerjs-loading').style.display = 'none';
+        showToast("対戦相手と接続されました！");
+
+        isMultiplayer = true;
+        document.getElementById('frame-opponent').style.display = 'flex';
+
+        opponentScore = 0;
+        document.getElementById('opponent-score-val').innerText = '0';
+
+        if (amIHost) {
+          evolutionWheel = generateEvolutionWheel();
+          preloadWheelImages(evolutionWheel, () => {
+            peerConn.send({ type: 'start_match', wheel: evolutionWheel });
+            renderEvolutionTrackUI();
+            goToScreen('screen-game');
+            initPhysicsWorld();
+          });
+        }
+      });
+
+      peerConn.on('data', (data) => {
+        if (data.type === 'start_match') {
+          evolutionWheel = data.wheel;
+          renderEvolutionTrackUI();
+          
+          const loading = document.createElement('div');
+          loading.className = 'loading-overlay';
+          loading.innerHTML = '<div class="spinner"></div><div style="font-weight:800;">マップを受信中...</div>';
+          document.body.appendChild(loading);
+
+          preloadWheelImages(evolutionWheel, () => {
+            loading.remove();
+            goToScreen('screen-game');
+            initPhysicsWorld();
+          });
+        }
+        else if (data.type === 'physics_state') {
+          if (data.balls) drawOpponentCanvas(data.balls);
+        }
+        else if (data.type === 'score_update') {
+          opponentScore = data.score;
+          document.getElementById('opponent-score-val').innerText = opponentScore;
+        }
+        else if (data.type === 'game_over_state') {
+          opponentScore = data.finalScore;
+          document.getElementById('opponent-score-val').innerText = opponentScore;
+          showToast("相手がゲームオーバーになりました！");
+          if (isGameOver) evaluateMultiplayerResult();
+        }
+      });
+
+      peerConn.on('close', () => {
+        showToast("通信が切断されました");
+        isMultiplayer = false;
+        document.getElementById('frame-opponent').style.display = 'none';
+      });
+    }
+  </script>
+</body>
+</html>
