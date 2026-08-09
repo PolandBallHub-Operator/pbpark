@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>U👑King - Polandball Survivor</title>
 
     <!-- Tailwind CSS -->
@@ -19,13 +19,22 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
 
     <style>
-        body {
+        :root {
+            --app-height: 100%;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            height: 100dvh;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
             font-family: 'Outfit', sans-serif;
             touch-action: none;
             user-select: none;
             -webkit-user-select: none;
-            overflow: hidden;
-            background-color: #0b0f19;
+            background-color: #050811;
             color: #fff;
         }
 
@@ -33,7 +42,22 @@
             font-family: 'Cinzel', serif;
         }
 
-        /* Hide Leaflet UI elements for seamless gameplay overlay */
+        /* Prevent bottom bar clipping on Samsung Internet & Mobile Safari */
+        .full-viewport-container {
+            width: 100%;
+            height: 100%;
+            height: 100dvh;
+            max-width: 480px;
+            margin: 0 auto;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            padding-bottom: env(safe-area-inset-bottom, 0px);
+            padding-top: env(safe-area-inset-top, 0px);
+            box-sizing: border-box;
+        }
+
         .leaflet-control-container .leaflet-routing-container-hide,
         .leaflet-control-zoom,
         .leaflet-control-attribution {
@@ -41,16 +65,16 @@
         }
 
         .leaflet-tile {
-            filter: brightness(0.6) contrast(1.15) saturate(1.2);
+            filter: brightness(0.65) contrast(1.15) saturate(1.2);
         }
 
         /* Glassmorphism Panel UI */
         .glass-panel {
-            background: rgba(15, 23, 42, 0.90);
-            backdrop-filter: blur(14px);
-            -webkit-backdrop-filter: blur(14px);
-            border: 1px solid rgba(255, 215, 0, 0.3);
-            box-shadow: 0 10px 40px 0 rgba(0, 0, 0, 0.8);
+            background: rgba(15, 23, 42, 0.92);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 215, 0, 0.35);
+            box-shadow: 0 10px 40px 0 rgba(0, 0, 0, 0.85);
         }
 
         .royal-gold-text {
@@ -63,44 +87,44 @@
             background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%);
             border: 2px solid #FFD700;
             box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
-            transition: all 0.2s ease;
+            transition: all 0.15s ease-out;
         }
 
         .royal-button:active {
             transform: scale(0.96);
-            box-shadow: 0 0 25px rgba(255, 215, 0, 0.6);
+            box-shadow: 0 0 25px rgba(255, 215, 0, 0.7);
         }
 
         /* Virtual Touch Joystick */
         #joystick-zone {
             position: absolute;
-            bottom: 25px;
+            bottom: max(20px, calc(15px + env(safe-area-inset-bottom)));
             left: 50%;
             transform: translateX(-50%);
-            width: 140px;
-            height: 140px;
+            width: 130px;
+            height: 130px;
             border-radius: 50%;
-            background: rgba(255, 255, 255, 0.08);
-            border: 2px solid rgba(255, 215, 0, 0.4);
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 215, 0, 0.45);
             touch-action: none;
             z-index: 40;
         }
 
         #joystick-knob {
             position: absolute;
-            width: 54px;
-            height: 54px;
+            width: 50px;
+            height: 50px;
             border-radius: 50%;
             background: radial-gradient(circle, #FFD700 0%, #b48608 100%);
             box-shadow: 0 0 15px rgba(255, 215, 0, 0.8);
-            top: 43px;
-            left: 43px;
+            top: 40px;
+            left: 40px;
             pointer-events: none;
         }
 
         /* Scrollbar styles */
         ::-webkit-scrollbar {
-            width: 5px;
+            width: 4px;
         }
         ::-webkit-scrollbar-track {
             background: rgba(0,0,0,0.3);
@@ -111,55 +135,69 @@
         }
     </style>
 </head>
-<body class="w-screen h-screen relative flex items-center justify-center">
+<body class="w-full h-full flex items-center justify-center bg-slate-950">
 
-    <div id="game-viewport" class="relative w-full h-full max-w-md mx-auto overflow-hidden shadow-2xl bg-black">
+    <div id="game-viewport" class="full-viewport-container shadow-2xl bg-black">
         <!-- Leaflet Map Div (Background) -->
         <div id="leaflet-map" class="absolute inset-0 z-0"></div>
 
         <!-- Canvas Overlay (Entities, Weapons, Particles) -->
         <canvas id="game-canvas" class="absolute inset-0 z-10 pointer-events-none"></canvas>
 
-        <!-- Title Screen -->
-        <div id="screen-title" class="absolute inset-0 z-50 flex flex-col items-center justify-between p-6 glass-panel text-center">
-            <div class="mt-6 flex flex-col items-center">
+        <!-- Sound Audio Elements -->
+        <audio id="bgm-audio" loop preload="auto">
+            <source src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbpark/refs/heads/main/games/ukingio2/uking.mp3" type="audio/mpeg">
+        </audio>
+
+        <!-- Sound Toggle Button Header (Always accessible top right) -->
+        <div class="absolute top-3 right-3 z-50 flex items-center gap-2 pointer-events-auto">
+            <button id="btn-toggle-bgm" class="w-10 h-10 rounded-full bg-slate-900/90 border border-amber-400/60 text-amber-300 flex items-center justify-center shadow-lg active:scale-95 transition-all">
+                <i id="bgm-icon" class="fa-solid fa-music text-sm"></i>
+            </button>
+            <button id="btn-toggle-sfx" class="w-10 h-10 rounded-full bg-slate-900/90 border border-amber-400/60 text-amber-300 flex items-center justify-center shadow-lg active:scale-95 transition-all">
+                <i id="sfx-icon" class="fa-solid fa-volume-high text-sm"></i>
+            </button>
+        </div>
+
+        <div id="screen-title" class="absolute inset-0 z-40 flex flex-col items-center justify-between p-5 glass-panel text-center overflow-y-auto">
+            <div class="mt-4 flex flex-col items-center">
                 <div class="relative mb-2">
                     <img id="title-uk-ball" src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/pbhuB2/happy.png" 
-                         class="w-24 h-24 object-contain animate-bounce drop-shadow-[0_0_20px_rgba(255,215,0,0.6)]" alt="UK Ball">
-                    <span class="absolute -top-4 -right-2 text-4xl">👑</span>
+                         class="w-20 h-20 object-contain animate-bounce drop-shadow-[0_0_20px_rgba(255,215,0,0.6)]" alt="UK Ball">
+                    <span class="absolute -top-3 -right-2 text-3xl">👑</span>
                 </div>
-                <h1 class="text-5xl font-black font-cinzel royal-gold-text tracking-wider drop-shadow-md">
+                <h1 class="text-4xl font-black font-cinzel royal-gold-text tracking-wider drop-shadow-md">
                     U<span class="text-amber-300">👑</span>KING
                 </h1>
-                <p class="text-xs text-blue-200 mt-1 tracking-widest font-bold">UNITED KINGDOM SURVIVOR</p>
-                <p class="text-[10px] text-gray-400 mt-1">Polandball Engine v3.0 - Infinity Horde Update</p>
+                <p class="text-[11px] text-blue-200 mt-0.5 tracking-widest font-bold">UNITED KINGDOM SURVIVOR</p>
+                <p class="text-[9px] text-gray-400 mt-0.5">Polandball Engine v3.5 - Audio & Mobile Fix</p>
             </div>
 
             <!-- Current Chapter & Destination Card -->
-            <div id="selected-city-card" class="w-full bg-slate-900/90 border border-amber-500/40 rounded-2xl p-4 text-left shadow-lg">
+            <div id="selected-city-card" class="w-full bg-slate-900/90 border border-amber-500/40 rounded-2xl p-3.5 text-left shadow-lg my-2">
                 <div class="flex justify-between items-center mb-1">
                     <span id="story-chapter-label" class="text-[10px] text-amber-400 font-bold uppercase tracking-wider">CHAPTER 1: THE LONDON RECOVERY</span>
-                    <span id="city-difficulty-badge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-600 text-white">UK - NORMAL</span>
+                    <span id="city-difficulty-badge" class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-blue-600 text-white">UK - NORMAL</span>
                 </div>
-                <div class="flex items-center gap-3 mt-2">
-                    <img id="city-ball-icon" src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/pbhuB2/happy.png" class="w-12 h-12 object-contain">
+                <div class="flex items-center gap-3 mt-1.5">
+                    <img id="city-ball-icon" src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/pbhuB2/happy.png" class="w-11 h-11 object-contain">
                     <div>
-                        <h3 id="city-name-text" class="text-lg font-bold text-white">LONDON (UK)</h3>
-                        <p id="city-desc-text" class="text-xs text-gray-300 leading-tight">Start with Standard Royal Pistol. Hold the perimeter!</p>
+                        <h3 id="city-name-text" class="text-base font-bold text-white">LONDON (UK)</h3>
+                        <p id="city-desc-text" class="text-[11px] text-gray-300 leading-tight">Start with Standard Royal Pistol. Hold the perimeter!</p>
                     </div>
                 </div>
             </div>
 
             <!-- Action Buttons -->
-            <div class="w-full space-y-3 mb-2">
-                <button id="btn-play" class="w-full py-4 rounded-2xl font-black text-2xl text-amber-300 royal-button tracking-widest flex items-center justify-center gap-3">
+            <div class="w-full space-y-2.5 mb-2">
+                <button id="btn-play" class="sfx-btn w-full py-3.5 rounded-2xl font-black text-xl text-amber-300 royal-button tracking-widest flex items-center justify-center gap-3">
                     <i class="fa-solid fa-play"></i> START MISSION
                 </button>
-                <div class="grid grid-cols-2 gap-3">
-                    <button id="btn-open-story" class="py-3 bg-amber-900/80 hover:bg-amber-800 border border-amber-400/50 rounded-xl font-bold text-xs text-amber-100 flex items-center justify-center gap-2">
+                <div class="grid grid-cols-2 gap-2.5">
+                    <button id="btn-open-story" class="sfx-btn py-2.5 bg-amber-900/80 hover:bg-amber-800 border border-amber-400/50 rounded-xl font-bold text-xs text-amber-100 flex items-center justify-center gap-1.5">
                         <i class="fa-solid fa-book-open"></i> STORY MODE
                     </button>
-                    <button id="btn-open-cities" class="py-3 bg-indigo-900/80 hover:bg-indigo-800 border border-indigo-400/50 rounded-xl font-bold text-xs text-indigo-100 flex items-center justify-center gap-2">
+                    <button id="btn-open-cities" class="sfx-btn py-2.5 bg-indigo-900/80 hover:bg-indigo-800 border border-indigo-400/50 rounded-xl font-bold text-xs text-indigo-100 flex items-center justify-center gap-1.5">
                         <i class="fa-solid fa-infinity"></i> FREE SURVIVAL
                     </button>
                 </div>
@@ -167,12 +205,12 @@
         </div>
 
         <!-- Story Campaign Modal -->
-        <div id="modal-story" class="absolute inset-0 z-50 glass-panel flex flex-col p-6 hidden">
+        <div id="modal-story" class="absolute inset-0 z-50 glass-panel flex flex-col p-5 hidden">
             <div class="flex justify-between items-center mb-3">
-                <h2 class="text-2xl font-black font-cinzel text-amber-400"><i class="fa-solid fa-crown"></i> STORY CAMPAIGN</h2>
-                <button id="btn-close-story" class="text-gray-400 hover:text-white text-2xl"><i class="fa-solid fa-xmark"></i></button>
+                <h2 class="text-xl font-black font-cinzel text-amber-400"><i class="fa-solid fa-crown"></i> STORY CAMPAIGN</h2>
+                <button id="btn-close-story" class="sfx-btn text-gray-400 hover:text-white text-2xl p-1"><i class="fa-solid fa-xmark"></i></button>
             </div>
-            <p class="text-xs text-gray-300 mb-4">Complete timed missions with dialogues and strict survival goals (5m ~ 15m).</p>
+            <p class="text-xs text-gray-300 mb-3">Complete timed missions with dialogues and strict survival goals (5m ~ 15m).</p>
 
             <div class="flex-1 overflow-y-auto space-y-3 pr-1" id="story-chapters-container">
                 <!-- Injected via JS -->
@@ -180,12 +218,12 @@
         </div>
 
         <!-- Free Stage / City Select Modal -->
-        <div id="modal-cities" class="absolute inset-0 z-50 glass-panel flex flex-col p-6 hidden">
+        <div id="modal-cities" class="absolute inset-0 z-50 glass-panel flex flex-col p-5 hidden">
             <div class="flex justify-between items-center mb-3">
-                <h2 class="text-2xl font-black font-cinzel text-amber-400"><i class="fa-solid fa-infinity"></i> FREE SURVIVAL</h2>
-                <button id="btn-close-cities" class="text-gray-400 hover:text-white text-2xl"><i class="fa-solid fa-xmark"></i></button>
+                <h2 class="text-xl font-black font-cinzel text-amber-400"><i class="fa-solid fa-infinity"></i> FREE SURVIVAL</h2>
+                <button id="btn-close-cities" class="sfx-btn text-gray-400 hover:text-white text-2xl p-1"><i class="fa-solid fa-xmark"></i></button>
             </div>
-            <p class="text-xs text-gray-300 mb-4">No time limits! No dialogues! Endless waves of scaling invader swarms.</p>
+            <p class="text-xs text-gray-300 mb-3">No time limits! Endless scaling invader swarms in endless survival.</p>
             
             <div class="flex-1 overflow-y-auto space-y-3 pr-1" id="cities-list-container">
                 <!-- Injected via JS -->
@@ -194,16 +232,16 @@
 
         <!-- Story Dialogue Overlay -->
         <div id="dialogue-overlay" class="absolute inset-0 z-50 bg-black/80 flex flex-col justify-end p-4 hidden">
-            <div class="bg-slate-900 border-2 border-amber-500 rounded-2xl p-4 shadow-2xl flex flex-col gap-3">
+            <div class="bg-slate-900 border-2 border-amber-500 rounded-2xl p-4 shadow-2xl flex flex-col gap-3 mb-4">
                 <div class="flex items-center gap-3">
-                    <img id="dialogue-speaker-img" src="" class="w-14 h-14 object-contain">
+                    <img id="dialogue-speaker-img" src="" class="w-12 h-12 object-contain">
                     <div>
                         <h4 id="dialogue-speaker-name" class="font-extrabold text-amber-300 text-sm">UK BALL</h4>
                         <span id="dialogue-speaker-title" class="text-[10px] text-gray-400">King of Great Britain</span>
                     </div>
                 </div>
-                <p id="dialogue-text" class="text-xs text-gray-200 min-h-[40px] leading-relaxed"></p>
-                <button id="btn-next-dialogue" class="self-end px-4 py-2 bg-amber-500 text-black font-extrabold text-xs rounded-xl hover:bg-amber-400">
+                <p id="dialogue-text" class="text-xs text-gray-200 min-h-[38px] leading-relaxed"></p>
+                <button id="btn-next-dialogue" class="sfx-btn self-end px-4 py-2 bg-amber-500 text-black font-extrabold text-xs rounded-xl hover:bg-amber-400">
                     NEXT <i class="fa-solid fa-chevron-right ml-1"></i>
                 </button>
             </div>
@@ -212,28 +250,28 @@
         <!-- HUD Overlay (In-Game) -->
         <div id="ui-hud" class="absolute inset-0 z-30 pointer-events-none p-4 flex flex-col justify-between hidden">
             <!-- Top Stats Header -->
-            <div class="w-full flex flex-col gap-2">
+            <div class="w-full flex flex-col gap-1.5 pr-12">
                 <!-- Level & EXP Bar -->
-                <div class="w-full bg-slate-900/90 border border-amber-500/40 rounded-full h-6 p-1 flex items-center relative shadow-lg">
+                <div class="w-full bg-slate-900/90 border border-amber-500/40 rounded-full h-5 p-0.5 flex items-center relative shadow-lg">
                     <div id="hud-exp-fill" class="bg-gradient-to-r from-amber-500 to-yellow-300 h-full rounded-full transition-all duration-200" style="width: 0%;"></div>
-                    <span id="hud-level-text" class="absolute inset-0 flex items-center justify-center text-xs font-black text-white drop-shadow-[0_1px_2px_rgba(0,0,0,1)]">LV. 1</span>
+                    <span id="hud-level-text" class="absolute inset-0 flex items-center justify-center text-[10px] font-black text-white drop-shadow-[0_1px_2px_rgba(0,0,0,1)]">LV. 1</span>
                 </div>
 
                 <!-- HP Bar & Kills/Timer -->
                 <div class="flex justify-between items-center text-xs font-bold">
-                    <div class="w-36 bg-slate-900/90 border border-red-500/40 rounded-full h-5 p-0.5 flex items-center relative">
+                    <div class="w-32 bg-slate-900/90 border border-red-500/40 rounded-full h-4.5 p-0.5 flex items-center relative">
                         <div id="hud-hp-fill" class="bg-gradient-to-r from-red-600 to-emerald-400 h-full rounded-full transition-all duration-200" style="width: 100%;"></div>
-                        <span id="hud-hp-text" class="absolute inset-0 flex items-center justify-center text-[10px] text-white font-extrabold">100 / 100</span>
+                        <span id="hud-hp-text" class="absolute inset-0 flex items-center justify-center text-[9px] text-white font-extrabold">100 / 100</span>
                     </div>
 
-                    <div class="flex items-center gap-3 bg-slate-900/80 px-3 py-1 rounded-full border border-slate-700 text-amber-300">
+                    <div class="flex items-center gap-2.5 bg-slate-900/80 px-2.5 py-0.5 rounded-full border border-slate-700 text-amber-300 text-[11px]">
                         <span><i class="fa-solid fa-skull"></i> <span id="hud-kills">0</span></span>
                         <span><i class="fa-regular fa-clock"></i> <span id="hud-timer">00:00</span></span>
                     </div>
                 </div>
 
                 <!-- Active Weapons & Skills Indicators -->
-                <div id="hud-active-skills" class="flex gap-1.5 mt-1 overflow-x-auto">
+                <div id="hud-active-skills" class="flex gap-1 mt-0.5 overflow-x-auto">
                     <!-- Dynamic Skill Icons -->
                 </div>
             </div>
@@ -245,32 +283,32 @@
         </div>
 
         <!-- Level Up Choice Popup -->
-        <div id="modal-levelup" class="absolute inset-0 z-50 glass-panel flex flex-col p-6 items-center justify-center hidden">
+        <div id="modal-levelup" class="absolute inset-0 z-50 glass-panel flex flex-col p-5 items-center justify-center hidden">
             <span class="text-amber-400 text-xs font-bold tracking-widest uppercase mb-1">LEVEL UP!</span>
-            <h2 class="text-2xl font-black font-cinzel text-white mb-4">SELECT ROYAL UPGRADE</h2>
+            <h2 class="text-xl font-black font-cinzel text-white mb-3">SELECT ROYAL UPGRADE</h2>
 
-            <div id="levelup-choices" class="w-full space-y-3">
+            <div id="levelup-choices" class="w-full space-y-2.5">
                 <!-- Choices generated via JS -->
             </div>
         </div>
 
         <!-- Game Over / Victory Modal -->
-        <div id="modal-gameover" class="absolute inset-0 z-50 glass-panel flex flex-col p-6 items-center justify-center text-center hidden">
-            <h2 id="gameover-title" class="text-4xl font-black font-cinzel royal-gold-text mb-2">GAME OVER</h2>
-            <p id="gameover-sub" class="text-xs text-gray-300 mb-6">The invasion proved too overwhelming!</p>
+        <div id="modal-gameover" class="absolute inset-0 z-50 glass-panel flex flex-col p-5 items-center justify-center text-center hidden">
+            <h2 id="gameover-title" class="text-3xl font-black font-cinzel royal-gold-text mb-1">GAME OVER</h2>
+            <p id="gameover-sub" class="text-xs text-gray-300 mb-5">The invasion proved too overwhelming!</p>
 
-            <div class="w-full bg-slate-900/90 rounded-2xl p-4 border border-amber-500/30 space-y-3 text-left text-xs mb-6">
+            <div class="w-full bg-slate-900/90 rounded-2xl p-3.5 border border-amber-500/30 space-y-2 text-left text-xs mb-5">
                 <div class="flex justify-between"><span class="text-gray-400">Survival Time:</span><span id="go-stat-time" class="font-bold text-amber-300">00:00</span></div>
                 <div class="flex justify-between"><span class="text-gray-400">Enemies Defeated:</span><span id="go-stat-kills" class="font-bold text-amber-300">0</span></div>
                 <div class="flex justify-between"><span class="text-gray-400">Level Reached:</span><span id="go-stat-level" class="font-bold text-amber-300">Lv.1</span></div>
                 <div class="flex justify-between"><span class="text-gray-400">Stage Status:</span><span id="go-stat-city" class="font-bold text-amber-300">London</span></div>
             </div>
 
-            <div class="w-full space-y-3">
-                <button id="btn-restart" class="w-full py-4 rounded-2xl font-black text-xl text-amber-300 royal-button tracking-wider flex items-center justify-center gap-2">
+            <div class="w-full space-y-2.5">
+                <button id="btn-restart" class="sfx-btn w-full py-3.5 rounded-2xl font-black text-lg text-amber-300 royal-button tracking-wider flex items-center justify-center gap-2">
                     <i class="fa-solid fa-rotate-right"></i> PLAY AGAIN
                 </button>
-                <button id="btn-return-menu" class="w-full py-3 rounded-xl font-bold text-sm bg-slate-800 border border-slate-600 text-gray-300 hover:text-white">
+                <button id="btn-return-menu" class="sfx-btn w-full py-2.5 rounded-xl font-bold text-xs bg-slate-800 border border-slate-600 text-gray-300 hover:text-white">
                     RETURN TO MENU
                 </button>
             </div>
@@ -278,7 +316,90 @@
     </div>
 
     <script>
-        // Image Assets
+        // Audio Engine Management
+        let isBgmMuted = false;
+        let isSfxMuted = false;
+        const bgmAudio = document.getElementById('bgm-audio');
+        bgmAudio.volume = 0.45;
+
+        // Sound FX Engine using Tone.js / Web Audio API
+        const SoundFX = {
+            synth: null,
+            polySynth: null,
+            buttonSynth: null,
+            initialized: false,
+
+            init() {
+                if (this.initialized) return;
+                try {
+                    Tone.start();
+                    this.synth = new Tone.Synth({
+                        oscillator: { type: "square" },
+                        envelope: { attack: 0.005, decay: 0.1, sustain: 0.0, release: 0.1 }
+                    }).toDestination();
+                    this.synth.volume.value = -12;
+
+                    this.polySynth = new Tone.PolySynth(Tone.Synth).toDestination();
+                    this.polySynth.volume.value = -8;
+
+                    this.buttonSynth = new Tone.MembraneSynth({
+                        pitchDecay: 0.05,
+                        octaves: 4,
+                        oscillator: { type: "sine" },
+                        envelope: { attack: 0.001, decay: 0.2, sustain: 0, release: 0.1 }
+                    }).toDestination();
+                    this.buttonSynth.volume.value = -6;
+
+                    this.initialized = true;
+                } catch (e) {
+                    console.warn("Audio init warning:", e);
+                }
+            },
+            playBtnClick() {
+                if (isSfxMuted) return;
+                this.init();
+                try {
+                    if (this.buttonSynth) this.buttonSynth.triggerAttackRelease("C3", "16n");
+                } catch(e){}
+            },
+            playShoot() {
+                if (isSfxMuted) return;
+                this.init();
+                try {
+                    if (this.synth) this.synth.triggerAttackRelease("C4", "32n");
+                } catch(e){}
+            },
+            playHit() {
+                if (isSfxMuted) return;
+                this.init();
+                try {
+                    if (this.synth) this.synth.triggerAttackRelease("G2", "16n");
+                } catch(e){}
+            },
+            playXp() {
+                if (isSfxMuted) return;
+                this.init();
+                try {
+                    if (this.synth) this.synth.triggerAttackRelease("E5", "16n");
+                } catch(e){}
+            },
+            playLevelUp() {
+                if (isSfxMuted) return;
+                this.init();
+                try {
+                    if (this.polySynth) this.polySynth.triggerAttackRelease(["C4", "E4", "G4", "C5"], "8n");
+                } catch(e){}
+            }
+        };
+
+        function startBgm() {
+            if (!isBgmMuted) {
+                bgmAudio.play().catch(e => {
+                    console.log("Autoplay waiting for user interaction:", e);
+                });
+            }
+        }
+
         const IMAGES = {
             ukHappy: "https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/pbhuB2/happy.png",
             ukAngry: "https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/pbhuB2/angly.png",
@@ -374,7 +495,7 @@
                 id: 1,
                 title: "Chapter 1: Dawn of Big Ben",
                 cityKey: "uk",
-                targetSec: 300, // 5 minutes
+                targetSec: 300,
                 targetKills: 120,
                 desc: "5-Minute Mission: Hold the London perimeter with your Normal Royal Gun!",
                 introDialogues: [
@@ -386,7 +507,7 @@
                 id: 2,
                 title: "Chapter 2: Tokyo Tea Alliance",
                 cityKey: "japan",
-                targetSec: 600, // 10 minutes
+                targetSec: 600,
                 targetKills: 250,
                 desc: "10-Minute Mission: Defend Tokyo Tower while gathering green tea supplies.",
                 introDialogues: [
@@ -398,7 +519,7 @@
                 id: 3,
                 title: "Chapter 3: The Oktoberfest Siege",
                 cityKey: "germany",
-                targetSec: 900, // 15 minutes
+                targetSec: 900,
                 targetKills: 500,
                 desc: "15-Minute Mission: A huge amount of pretzels in Munich!?",
                 introDialogues: [
@@ -408,7 +529,6 @@
             }
         ];
 
-        // Skill Catalogue (Unlimited Stacking for Shield/Crowns/Plane/Gun)
         const SKILL_CATALOG = [
             { id: 'normal_gun', name: 'Royal Gun', icon: '🔫', type: 'weapon', desc: 'Standard precise handgun. Fires continuous rapid shots.' },
             { id: 'king_shield', name: 'King Shield', icon: '🛡️', type: 'weapon', desc: 'A royal shield orbits you (+1 shield per rank, no limit).' },
@@ -422,28 +542,6 @@
             { id: 'magnet_tea', name: 'Tea Magnet', icon: '🧲', type: 'passive', desc: 'Increases item collection radius.' },
             { id: 'power_scone', name: 'Scone Power', icon: '🧁', type: 'passive', desc: 'Increases all attack damage by 20%.' }
         ];
-
-        // Sound Engine using Tone.js
-        const SoundFX = {
-            init() {
-                try {
-                    this.synth = new Tone.Synth().toDestination();
-                    this.polySynth = new Tone.PolySynth().toDestination();
-                } catch(e){}
-            },
-            playShoot() {
-                try { if (this.synth) this.synth.triggerAttackRelease("C4", "32n"); } catch(e){}
-            },
-            playHit() {
-                try { if (this.synth) this.synth.triggerAttackRelease("G2", "16n"); } catch(e){}
-            },
-            playXp() {
-                try { if (this.synth) this.synth.triggerAttackRelease("E5", "16n"); } catch(e){}
-            },
-            playLevelUp() {
-                try { if (this.polySynth) this.polySynth.triggerAttackRelease(["C4", "E4", "G4", "C5"], "8n"); } catch(e){}
-            }
-        };
 
         let leafletMap = null;
         function initLeafletMap(coords) {
@@ -467,8 +565,8 @@
 
         let currentCityKey = 'uk';
         let currentChapterId = 1;
-        let isStoryMode = false; // Default to free mode unless chosen
-        let gameState = 'TITLE'; // TITLE, DIALOGUE, PLAYING, LEVELUP, GAMEOVER
+        let isStoryMode = false;
+        let gameState = 'TITLE';
         let canvas, ctx;
         let animationFrameId = null;
 
@@ -477,7 +575,7 @@
             y: 0,
             lat: 51.5074,
             lng: -0.1278,
-            radius: 22,
+            radius: 20,
             hp: 100,
             maxHp: 100,
             level: 1,
@@ -528,7 +626,7 @@
                 let dx = touch.clientX - centerX;
                 let dy = touch.clientY - centerY;
                 let dist = Math.hypot(dx, dy);
-                const maxDist = 42;
+                const maxDist = 38;
 
                 if (dist > maxDist) {
                     dx = (dx / dist) * maxDist;
@@ -622,6 +720,7 @@
         };
 
         function startGame() {
+            startBgm();
             const city = CITIES[currentCityKey];
             initLeafletMap(city.coords);
 
@@ -644,10 +743,8 @@
             gameTimer = 0;
             killCount = 0;
 
-            // DEFAULT WEAPON: Normal Pistol Gun Level 1
-            activeSkills = {
-                'normal_gun': 1
-            };
+            // DEFAULT WEAPON: Normal Gun
+            activeSkills = { 'normal_gun': 1 };
 
             updateHud();
             document.getElementById('screen-title').classList.add('hidden');
@@ -661,13 +758,10 @@
             lastTimestamp = performance.now();
             if (animationFrameId) cancelAnimationFrame(animationFrameId);
             animationFrameId = requestAnimationFrame(gameLoop);
-
-            SoundFX.init();
         }
 
         function spawnEnemy() {
             const city = CITIES[currentCityKey];
-            // Horde Scaling: Increase number of enemies per spawn tick over time
             const swarmCount = Math.min(8, 1 + Math.floor(gameTimer / 45));
 
             for (let s = 0; s < swarmCount; s++) {
@@ -679,7 +773,6 @@
 
                 let emoji = city.enemyEmojis[Math.floor(Math.random() * city.enemyEmojis.length)];
                 
-                // Introduce elite/boss variants as time progresses
                 const isBoss = Math.random() < Math.min(0.20, 0.04 + gameTimer * 0.0005);
                 if (isBoss && gameTimer > 60) {
                     const bossTypes = ['👹', '🧟', '🧌', '👾', '🔥'];
@@ -704,16 +797,11 @@
         }
 
         let weaponTimers = {
-            normal_gun: 0,
-            shotgun: 0,
-            tea_blast: 0,
-            hammer_smash: 0,
-            big_ben: 0,
-            airplane: 0
+            normal_gun: 0, shotgun: 0, tea_blast: 0, hammer_smash: 0, big_ben: 0, airplane: 0
         };
 
         function updateWeapons(delta) {
-            // 1. DEFAULT: Normal Royal Pistol
+            // 1. Royal Pistol
             const gunLvl = activeSkills['normal_gun'] || 0;
             if (gunLvl > 0) {
                 weaponTimers.normal_gun += delta;
@@ -735,19 +823,14 @@
                         targetAngle = Math.atan2(joystickVector.y, joystickVector.x);
                     }
 
-                    // Multi-bullet stream based on gunLvl
                     const streamBullets = 1 + Math.floor((gunLvl - 1) / 2);
                     for (let b = 0; b < streamBullets; b++) {
                         const spreadAngle = targetAngle + (b - (streamBullets - 1) / 2) * 0.12;
                         projectiles.push({
-                            x: player.x,
-                            y: player.y,
-                            vx: Math.cos(spreadAngle) * 12,
-                            vy: Math.sin(spreadAngle) * 12,
-                            radius: 6,
-                            damage: (20 + gunLvl * 4) * player.damageMult,
-                            life: 0.8,
-                            emoji: '🔫'
+                            x: player.x, y: player.y,
+                            vx: Math.cos(spreadAngle) * 12, vy: Math.sin(spreadAngle) * 12,
+                            radius: 6, damage: (20 + gunLvl * 4) * player.damageMult,
+                            life: 0.8, emoji: '🔫'
                         });
                     }
                     SoundFX.playShoot();
@@ -760,7 +843,6 @@
                 weaponTimers.shotgun += delta;
                 if (weaponTimers.shotgun >= Math.max(0.4, 1.2 - shotgunLvl * 0.08)) {
                     weaponTimers.shotgun = 0;
-                    
                     let targetAngle = -Math.PI / 2;
                     let nearest = null;
                     let minDist = 400;
@@ -769,43 +851,32 @@
                         if (d < minDist) { minDist = d; nearest = e; }
                     });
 
-                    if (nearest) {
-                        targetAngle = Math.atan2(nearest.y - player.y, nearest.x - player.x);
-                    } else if (joystickVector.x !== 0 || joystickVector.y !== 0) {
-                        targetAngle = Math.atan2(joystickVector.y, joystickVector.x);
-                    }
+                    if (nearest) targetAngle = Math.atan2(nearest.y - player.y, nearest.x - player.x);
 
                     const pellets = 3 + shotgunLvl;
                     for (let i = 0; i < pellets; i++) {
                         const spreadAngle = targetAngle + (i - (pellets - 1) / 2) * 0.12;
                         projectiles.push({
-                            x: player.x,
-                            y: player.y,
-                            vx: Math.cos(spreadAngle) * 9,
-                            vy: Math.sin(spreadAngle) * 9,
-                            radius: 8,
-                            damage: 18 * player.damageMult,
-                            life: 0.6,
-                            emoji: '💥'
+                            x: player.x, y: player.y,
+                            vx: Math.cos(spreadAngle) * 9, vy: Math.sin(spreadAngle) * 9,
+                            radius: 8, damage: 18 * player.damageMult, life: 0.6, emoji: '💥'
                         });
                     }
                 }
             }
 
-            // 3. Royal Aircraft (🛩️) - Freely flies in figure-8 & shoots
+            // 3. Royal Aircraft (🛩️)
             const planeLvl = activeSkills['airplane'] || 0;
             if (planeLvl > 0) {
                 weaponTimers.airplane += delta;
                 if (weaponTimers.airplane >= Math.max(0.2, 0.7 - planeLvl * 0.05)) {
                     weaponTimers.airplane = 0;
 
-                    // Plane coordinates following lemniscate (figure 8)
                     const planeDist = 110;
                     const planeAngle = gameTimer * 2.5;
                     const px = player.x + Math.cos(planeAngle) * planeDist;
                     const py = player.y + Math.sin(planeAngle * 2) * (planeDist * 0.6);
 
-                    // Shoot small missile downwards/at enemy
                     let targetAngle = Math.random() * Math.PI * 2;
                     if (enemies.length > 0) {
                         const e = enemies[Math.floor(Math.random() * enemies.length)];
@@ -813,14 +884,10 @@
                     }
 
                     projectiles.push({
-                        x: px,
-                        y: py,
-                        vx: Math.cos(targetAngle) * 8,
-                        vy: Math.sin(targetAngle) * 8,
-                        radius: 8,
-                        damage: (25 + planeLvl * 5) * player.damageMult,
-                        life: 0.9,
-                        emoji: '🚀'
+                        x: px, y: py,
+                        vx: Math.cos(targetAngle) * 8, vy: Math.sin(targetAngle) * 8,
+                        radius: 8, damage: (25 + planeLvl * 5) * player.damageMult,
+                        life: 0.9, emoji: '🚀'
                     });
                 }
             }
@@ -835,14 +902,9 @@
                     for (let i = 0; i < count; i++) {
                         const angle = (Math.PI * 2 / count) * i + (gameTimer * 2);
                         projectiles.push({
-                            x: player.x,
-                            y: player.y,
-                            vx: Math.cos(angle) * 7,
-                            vy: Math.sin(angle) * 7,
-                            radius: 12,
-                            damage: 22 * player.damageMult,
-                            life: 1.4,
-                            emoji: '🫖'
+                            x: player.x, y: player.y,
+                            vx: Math.cos(angle) * 7, vy: Math.sin(angle) * 7,
+                            radius: 12, damage: 22 * player.damageMult, life: 1.4, emoji: '🫖'
                         });
                     }
                 }
@@ -865,12 +927,8 @@
                     projectiles.push({
                         x: player.x + Math.cos(targetAngle) * 50,
                         y: player.y + Math.sin(targetAngle) * 50,
-                        vx: Math.cos(targetAngle) * 2,
-                        vy: Math.sin(targetAngle) * 2,
-                        radius: 35,
-                        damage: 55 * player.damageMult,
-                        life: 0.4,
-                        emoji: '🔨'
+                        vx: Math.cos(targetAngle) * 2, vy: Math.sin(targetAngle) * 2,
+                        radius: 35, damage: 55 * player.damageMult, life: 0.4, emoji: '🔨'
                     });
                 }
             }
@@ -905,7 +963,7 @@
                 if (player.angryTimer <= 0) player.isAngry = false;
             }
 
-            // Move Player & Map Lat/Lng Sync
+            // Player Movement & Leaflet Sync
             if (joystickVector.x !== 0 || joystickVector.y !== 0) {
                 const moveDist = player.speed;
                 const dx = joystickVector.x * moveDist;
@@ -916,11 +974,8 @@
                 player.lat += latShift;
                 player.lng += lngShift;
 
-                if (leafletMap) {
-                    leafletMap.panBy([dx, dy], { animate: false });
-                }
+                if (leafletMap) leafletMap.panBy([dx, dy], { animate: false });
 
-                // Entity positions move smoothly
                 enemies.forEach(e => { e.x -= dx; e.y -= dy; });
                 projectiles.forEach(p => { p.x -= dx; p.y -= dy; });
                 items.forEach(it => { it.x -= dx; it.y -= dy; });
@@ -928,7 +983,7 @@
                 damageTexts.forEach(dt => { dt.x -= dx; dt.y -= dy; });
             }
 
-            // Continuous Scaling Enemy Spawning
+            // Spawn Enemies
             enemySpawnTimer += delta;
             const spawnInterval = Math.max(0.2, 1.2 - gameTimer * 0.008);
             if (enemySpawnTimer >= spawnInterval) {
@@ -938,10 +993,10 @@
 
             updateWeapons(delta);
 
-            // Orbiting Shields (🛡️) - Unlimited stacking (+1 per level)
+            // Orbiting Shields
             const shieldLvl = activeSkills['king_shield'] || 0;
             if (shieldLvl > 0) {
-                const shieldCount = shieldLvl; // 1 shield per rank, unlimited
+                const shieldCount = shieldLvl;
                 const orbitRadius = 65;
                 for (let i = 0; i < shieldCount; i++) {
                     const angle = (Math.PI * 2 / shieldCount) * i + (gameTimer * 2.5);
@@ -961,10 +1016,10 @@
                 }
             }
 
-            // Orbiting Crowns (👑) - Unlimited stacking (+1 per level)
+            // Orbiting Crowns
             const crownLvl = activeSkills['crown_orbit'] || 0;
             if (crownLvl > 0) {
-                const crownCount = crownLvl + 2; // +1 crown per rank
+                const crownCount = crownLvl + 2;
                 const orbitRadius = 90;
                 for (let i = 0; i < crownCount; i++) {
                     const angle = (Math.PI * 2 / crownCount) * i - (gameTimer * 3.2);
@@ -1004,7 +1059,7 @@
                 if (p.life <= 0) projectiles.splice(i, 1);
             }
 
-            // Update Enemies & Contact Damage
+            // Update Enemies
             const city = CITIES[currentCityKey];
             for (let i = enemies.length - 1; i >= 0; i--) {
                 const e = enemies[i];
@@ -1012,10 +1067,9 @@
                 e.x += Math.cos(angle) * e.speed;
                 e.y += Math.sin(angle) * e.speed;
 
-                // Collision with player
                 const distToPlayer = Math.hypot(player.x - e.x, player.y - e.y);
                 if (distToPlayer < player.radius + e.radius) {
-                    player.hp -= 8 * delta * 60 * 0.15; // Smooth DPS damage
+                    player.hp -= 8 * delta * 60 * 0.15;
                     player.isAngry = true;
                     player.angryTimer = 0.8;
 
@@ -1025,7 +1079,6 @@
                     }
                 }
 
-                // Enemy Defeated
                 if (e.hp <= 0) {
                     killCount++;
                     const dropEmoji = city.drops[Math.floor(Math.random() * city.drops.length)];
@@ -1035,8 +1088,7 @@
                     for (let k = 0; k < 4; k++) {
                         particles.push({
                             x: e.x, y: e.y,
-                            vx: (Math.random() - 0.5) * 4,
-                            vy: (Math.random() - 0.5) * 4,
+                            vx: (Math.random() - 0.5) * 4, vy: (Math.random() - 0.5) * 4,
                             radius: 3, maxRadius: 3, alpha: 1.0, color: '#f59e0b'
                         });
                     }
@@ -1045,7 +1097,7 @@
                 }
             }
 
-            // Magnet item collection
+            // Item Magnet Logic
             for (let i = items.length - 1; i >= 0; i--) {
                 const it = items[i];
                 const dist = Math.hypot(player.x - it.x, player.y - it.y);
@@ -1068,7 +1120,7 @@
                 }
             }
 
-            // Particles & Damage Text updates
+            // Particles and Text
             for (let i = particles.length - 1; i >= 0; i--) {
                 const pt = particles[i];
                 if (pt.maxRadius > 10) {
@@ -1089,7 +1141,7 @@
                 if (dt.alpha <= 0) damageTexts.splice(i, 1);
             }
 
-            // STORY MODE VICTORY CHECK ONLY (Free Mode has NO time limit)
+            // STORY MODE WIN CHECK
             if (isStoryMode) {
                 const chap = STORY_CHAPTERS.find(c => c.id === currentChapterId);
                 if (chap && gameTimer >= chap.targetSec && killCount >= chap.targetKills) {
@@ -1108,7 +1160,7 @@
         function render() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Draw Shockwaves & Particles
+            // Particles
             particles.forEach(pt => {
                 ctx.save();
                 ctx.globalAlpha = Math.max(0, pt.alpha);
@@ -1127,7 +1179,7 @@
                 ctx.restore();
             });
 
-            // Draw Collectible Loot
+            // Items
             ctx.font = '20px sans-serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
@@ -1135,7 +1187,7 @@
                 ctx.fillText(it.emoji, it.x, it.y);
             });
 
-            // Draw Orbiting Shields (🛡️)
+            // Shields
             const shieldLvl = activeSkills['king_shield'] || 0;
             if (shieldLvl > 0) {
                 const shieldCount = shieldLvl;
@@ -1149,7 +1201,7 @@
                 }
             }
 
-            // Draw Orbiting Crowns (👑)
+            // Crowns
             const crownLvl = activeSkills['crown_orbit'] || 0;
             if (crownLvl > 0) {
                 const crownCount = crownLvl + 2;
@@ -1163,7 +1215,7 @@
                 }
             }
 
-            // Draw Royal Aircraft Support (🛩️)
+            // Aircraft
             const planeLvl = activeSkills['airplane'] || 0;
             if (planeLvl > 0) {
                 const planeDist = 110;
@@ -1174,13 +1226,13 @@
                 ctx.fillText('🛩️', px, py);
             }
 
-            // Draw Projectiles
+            // Projectiles
             projectiles.forEach(p => {
                 ctx.font = `${p.radius * 1.6}px sans-serif`;
                 ctx.fillText(p.emoji, p.x, p.y);
             });
 
-            // Draw Invader Enemies
+            // Enemies
             enemies.forEach(e => {
                 ctx.font = `${28 * e.scale}px sans-serif`;
                 ctx.fillText(e.emoji, e.x, e.y);
@@ -1194,7 +1246,7 @@
                 }
             });
 
-            // Draw Main Character (UK Ball)
+            // Main Character (UK Ball)
             ctx.save();
             const playerImg = player.isAngry ? loadedImages.ukAngry : loadedImages.ukHappy;
             if (playerImg && imagesReady) {
@@ -1209,16 +1261,15 @@
                 ctx.font = '16px sans-serif';
                 ctx.fillText(player.isAngry ? '😡' : '🇬🇧', player.x, player.y);
             }
-            // Crown on top
             ctx.font = '22px sans-serif';
             ctx.fillText('👑', player.x, player.y - player.radius - 4);
             ctx.restore();
 
-            // Draw Damage Text Indicators
+            // Damage Numbers
             damageTexts.forEach(dt => {
                 ctx.save();
                 ctx.globalAlpha = Math.max(0, dt.alpha);
-                ctx.font = '900 16px Outfit, sans-serif';
+                ctx.font = '900 15px Outfit, sans-serif';
                 ctx.fillStyle = '#facc15';
                 ctx.strokeStyle = '#000';
                 ctx.lineWidth = 3;
@@ -1256,15 +1307,15 @@
             shuffled.forEach(skill => {
                 const curLvl = activeSkills[skill.id] || 0;
                 const card = document.createElement('div');
-                card.className = "w-full bg-slate-900/90 hover:bg-amber-950/80 border-2 border-amber-500/50 hover:border-amber-400 rounded-2xl p-3 flex items-center gap-3 cursor-pointer transition-all transform active:scale-95 shadow-lg";
+                card.className = "sfx-btn w-full bg-slate-900/90 hover:bg-amber-950/80 border-2 border-amber-500/50 hover:border-amber-400 rounded-2xl p-2.5 flex items-center gap-3 cursor-pointer transition-all transform active:scale-95 shadow-lg";
                 card.innerHTML = `
-                    <div class="text-3xl bg-amber-500/20 w-12 h-12 rounded-xl flex items-center justify-center border border-amber-400/30">${skill.icon}</div>
+                    <div class="text-2xl bg-amber-500/20 w-10 h-10 rounded-xl flex items-center justify-center border border-amber-400/30">${skill.icon}</div>
                     <div class="flex-1 text-left">
                         <div class="flex justify-between items-center">
-                            <h4 class="font-extrabold text-amber-300 text-sm">${skill.name}</h4>
-                            <span class="text-[10px] px-2 py-0.5 rounded bg-amber-500/30 text-amber-200 font-bold">LV.${curLvl + 1}</span>
+                            <h4 class="font-extrabold text-amber-300 text-xs">${skill.name}</h4>
+                            <span class="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/30 text-amber-200 font-bold">LV.${curLvl + 1}</span>
                         </div>
-                        <p class="text-[11px] text-gray-300 mt-0.5">${skill.desc}</p>
+                        <p class="text-[10px] text-gray-300 mt-0.5">${skill.desc}</p>
                     </div>
                 `;
                 card.onclick = () => selectSkillUpgrade(skill.id);
@@ -1319,14 +1370,13 @@
             document.getElementById('hud-kills').innerText = killCount;
             document.getElementById('hud-timer').innerText = formatTime(gameTimer);
 
-            // Active Skill Icons Bar
             const skillHud = document.getElementById('hud-active-skills');
             skillHud.innerHTML = '';
             Object.keys(activeSkills).forEach(sId => {
                 const sk = SKILL_CATALOG.find(x => x.id === sId);
                 if (sk) {
                     const badge = document.createElement('span');
-                    badge.className = "px-2 py-0.5 rounded-full bg-slate-900/90 border border-amber-500/40 text-[10px] font-bold text-amber-300 flex items-center gap-1 shadow";
+                    badge.className = "px-1.5 py-0.5 rounded-full bg-slate-900/90 border border-amber-500/40 text-[9px] font-bold text-amber-300 flex items-center gap-1 shadow";
                     badge.innerHTML = `${sk.icon} ${activeSkills[sId]}`;
                     skillHud.appendChild(badge);
                 }
@@ -1348,18 +1398,18 @@
                 const isSelected = chap.id === currentChapterId && isStoryMode;
 
                 const card = document.createElement('div');
-                card.className = `p-4 rounded-2xl border-2 cursor-pointer transition-all ${
+                card.className = `sfx-btn p-3.5 rounded-2xl border-2 cursor-pointer transition-all ${
                     isSelected ? 'bg-amber-950/70 border-amber-400 shadow-[0_0_15px_rgba(255,215,0,0.3)]' : 'bg-slate-900/80 border-slate-800 hover:border-slate-600'
                 }`;
                 card.innerHTML = `
-                    <div class="flex items-center justify-between mb-2">
-                        <h4 class="font-black text-amber-300 text-sm">${chap.title}</h4>
-                        <span class="text-[10px] px-2 py-0.5 rounded-full font-bold ${city.diffClass}">${city.diffName}</span>
+                    <div class="flex items-center justify-between mb-1.5">
+                        <h4 class="font-black text-amber-300 text-xs">${chap.title}</h4>
+                        <span class="text-[9px] px-2 py-0.5 rounded-full font-bold ${city.diffClass}">${city.diffName}</span>
                     </div>
-                    <p class="text-xs text-gray-300 mb-3">${chap.desc}</p>
-                    <div class="flex justify-between items-center text-[10px] text-amber-400 font-bold border-t border-slate-800 pt-2">
+                    <p class="text-[11px] text-gray-300 mb-2">${chap.desc}</p>
+                    <div class="flex justify-between items-center text-[10px] text-amber-400 font-bold border-t border-slate-800 pt-1.5">
                         <span><i class="fa-regular fa-clock"></i> Time Limit: ${formatTime(chap.targetSec)}</span>
-                        <span><i class="fa-solid fa-skull"></i> Target Kills: ${chap.targetKills}</span>
+                        <span><i class="fa-solid fa-skull"></i> Kills Goal: ${chap.targetKills}</span>
                     </div>
                 `;
                 card.onclick = () => {
@@ -1377,21 +1427,21 @@
                 const city = CITIES[key];
                 const isSelected = key === currentCityKey && !isStoryMode;
                 const card = document.createElement('div');
-                card.className = `p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-center justify-between ${
+                card.className = `sfx-btn p-3.5 rounded-2xl border-2 cursor-pointer transition-all flex items-center justify-between ${
                     isSelected ? 'bg-amber-950/60 border-amber-400 shadow-[0_0_15px_rgba(255,215,0,0.3)]' : 'bg-slate-900/70 border-slate-700 hover:border-slate-500'
                 }`;
                 card.innerHTML = `
                     <div class="flex items-center gap-3">
-                        <img src="${IMAGES[city.ballImgKey]}" class="w-12 h-12 object-contain">
+                        <img src="${IMAGES[city.ballImgKey]}" class="w-10 h-10 object-contain">
                         <div>
                             <div class="flex items-center gap-2">
-                                <h4 class="font-extrabold text-white text-base">${city.name}</h4>
-                                <span class="text-[10px] px-2 py-0.5 rounded-full font-bold ${city.diffClass}">${city.diffName}</span>
+                                <h4 class="font-extrabold text-white text-sm">${city.name}</h4>
+                                <span class="text-[9px] px-2 py-0.5 rounded-full font-bold ${city.diffClass}">${city.diffName}</span>
                             </div>
-                            <p class="text-xs text-gray-300 mt-1">${city.desc}</p>
+                            <p class="text-[11px] text-gray-300 mt-0.5">${city.desc}</p>
                         </div>
                     </div>
-                    <i class="fa-solid ${isSelected ? 'fa-circle-check text-amber-400 text-2xl' : 'fa-circle text-gray-600 text-xl'}"></i>
+                    <i class="fa-solid ${isSelected ? 'fa-circle-check text-amber-400 text-xl' : 'fa-circle text-gray-600 text-lg'}"></i>
                 `;
                 card.onclick = () => {
                     currentCityKey = key;
@@ -1414,7 +1464,7 @@
 
                 const badge = document.getElementById('city-difficulty-badge');
                 badge.innerText = city.diffName;
-                badge.className = `px-2 py-0.5 rounded-full text-[10px] font-bold ${city.diffClass}`;
+                badge.className = `px-2 py-0.5 rounded-full text-[9px] font-bold ${city.diffClass}`;
             } else {
                 const city = CITIES[currentCityKey];
                 document.getElementById('story-chapter-label').innerText = 'FREE SURVIVAL MODE (NO TIME LIMIT)';
@@ -1424,11 +1474,51 @@
 
                 const badge = document.getElementById('city-difficulty-badge');
                 badge.innerText = city.diffName;
-                badge.className = `px-2 py-0.5 rounded-full text-[10px] font-bold ${city.diffClass}`;
+                badge.className = `px-2 py-0.5 rounded-full text-[9px] font-bold ${city.diffClass}`;
             }
         }
 
         function bindUiEvents() {
+            // Audio Toggles
+            const bgmBtn = document.getElementById('btn-toggle-bgm');
+            const bgmIcon = document.getElementById('bgm-icon');
+            bgmBtn.onclick = () => {
+                SoundFX.playBtnClick();
+                isBgmMuted = !isBgmMuted;
+                if (isBgmMuted) {
+                    bgmAudio.pause();
+                    bgmIcon.className = "fa-solid fa-music-slash text-sm text-gray-500";
+                    bgmBtn.classList.add('border-gray-600');
+                } else {
+                    bgmAudio.play();
+                    bgmIcon.className = "fa-solid fa-music text-sm text-amber-300";
+                    bgmBtn.classList.remove('border-gray-600');
+                }
+            };
+
+            const sfxBtn = document.getElementById('btn-toggle-sfx');
+            const sfxIcon = document.getElementById('sfx-icon');
+            sfxBtn.onclick = () => {
+                isSfxMuted = !isSfxMuted;
+                if (!isSfxMuted) SoundFX.playBtnClick();
+                if (isSfxMuted) {
+                    sfxIcon.className = "fa-solid fa-volume-xmark text-sm text-gray-500";
+                    sfxBtn.classList.add('border-gray-600');
+                } else {
+                    sfxIcon.className = "fa-solid fa-volume-high text-sm text-amber-300";
+                    sfxBtn.classList.remove('border-gray-600');
+                }
+            };
+
+            // Global sound trigger for interactive buttons
+            document.addEventListener('click', (e) => {
+                const target = e.target.closest('.sfx-btn, button, #joystick-zone');
+                if (target && target.id !== 'btn-toggle-sfx') {
+                    SoundFX.playBtnClick();
+                    startBgm();
+                }
+            });
+
             document.getElementById('btn-play').onclick = () => {
                 if (isStoryMode) {
                     startStoryChapter(currentChapterId);
