@@ -1,0 +1,1186 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>輪!ドイツ! Ring!Deutschland!</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Three.js & OrbitControls -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=M+PLUS+Rounded+1c:wght@500;700;800&display=swap');
+
+        body {
+            font-family: 'M PLUS Rounded 1c', 'Fredoka', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+            overflow: hidden;
+            background-color: #1a1a24;
+            color: #ffffff;
+        }
+
+        /* UK image special crop style for standard HTML tags */
+        .uk-crop-container {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            overflow: hidden;
+            position: relative;
+            border-radius: 9999px;
+        }
+        .uk-crop-img {
+            width: 100%;
+            height: 127%; /* 600/472 approx ratio */
+            object-fit: cover;
+            object-position: top;
+        }
+
+        /* Glassmorphism elements */
+        .glass-panel {
+            background: rgba(20, 20, 30, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        /* Animated floating balls on Start screen */
+        @keyframes float-around {
+            0% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(8deg); }
+            100% { transform: translateY(0px) rotate(0deg); }
+        }
+        .animate-float {
+            animation: float-around 3.5s ease-in-out infinite;
+        }
+
+        /* Pulse aura for game buttons */
+        @keyframes ring-pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.6); }
+            70% { box-shadow: 0 0 0 18px rgba(255, 215, 0, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0); }
+        }
+        .btn-pulse {
+            animation: ring-pulse 2s infinite;
+        }
+
+        /* Airplane escape animation */
+        @keyframes fly-away {
+            0% {
+                transform: translate(0, 0) scale(1) rotate(0deg);
+                opacity: 1;
+            }
+            20% {
+                transform: translate(-20px, 10px) scale(1.05) rotate(-10deg);
+            }
+            100% {
+                transform: translate(600px, -600px) scale(0.3) rotate(25deg);
+                opacity: 0;
+            }
+        }
+        .animate-fly-away {
+            animation: fly-away 1.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+
+        /* Speech bubble */
+        .speech-bubble {
+            position: absolute;
+            top: -45px;
+            background: #ffffff;
+            color: #0f172a;
+            font-weight: 800;
+            font-size: 13px;
+            padding: 6px 14px;
+            border-radius: 20px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+            white-space: nowrap;
+            z-index: 30;
+            border: 2px solid #3b82f6;
+        }
+        .speech-bubble::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 8px 8px 0;
+            border-style: solid;
+            border-color: #ffffff transparent;
+            display: block;
+            width: 0;
+        }
+    </style>
+</head>
+<body class="w-full h-screen relative bg-slate-900 text-white select-none">
+
+    <!-- START SCREEN -->
+    <div id="start-screen" class="absolute inset-0 z-50 flex flex-col items-center justify-between p-6 bg-gradient-to-b from-amber-950 via-red-950 to-slate-950">
+        <!-- Floating background decoration balls -->
+        <div class="absolute inset-0 overflow-hidden pointer-events-none opacity-40">
+            <img src="https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/germany/happy.png" class="absolute w-24 h-24 top-10 left-6 animate-float" style="animation-delay: 0s;">
+            <img src="https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/germany/lol.png" class="absolute w-32 h-32 top-1/4 right-8 animate-float" style="animation-delay: 1s;">
+            <img src="https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/germany/smile.png" class="absolute w-28 h-28 bottom-1/3 left-10 animate-float" style="animation-delay: 0.5s;">
+            <img src="https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/germany/surprise.png" class="absolute w-36 h-36 bottom-16 right-12 animate-float" style="animation-delay: 1.8s;">
+        </div>
+
+        <div class="mt-12 text-center z-10">
+            <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-black/50 border border-amber-400/40 text-amber-300 text-xs font-bold mb-3 tracking-widest uppercase">
+                <i class="fa-solid fa-location-dot"></i> Real GPS Map Adventure
+            </div>
+            <h1 class="text-4xl md:text-6xl font-extrabold tracking-wider drop-shadow-lg text-white mb-1">
+                輪!ドイツ!
+            </h1>
+            <h2 class="text-2xl md:text-3xl font-bold tracking-widest text-amber-400 drop-shadow">
+                Ring! Deutschland!
+            </h2>
+            <p class="text-xs md:text-sm text-slate-300 mt-3 max-w-xs mx-auto leading-relaxed">
+                ドイツの三色リング「DE-Ring」を投げて、街にいるカントリーボールたちを集めよう！
+            </p>
+        </div>
+
+        <!-- Center Germany Ball Hero Graphic -->
+        <div class="relative z-10 my-auto flex flex-col items-center">
+            <div class="relative w-44 h-44 md:w-56 md:h-56">
+                <!-- Ring Glow around Ball -->
+                <div class="absolute -inset-4 rounded-full bg-gradient-to-r from-amber-500 via-red-600 to-black opacity-75 blur-xl animate-pulse"></div>
+                <img src="https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/germany/happy.png" class="relative w-full h-full object-contain drop-shadow-2xl animate-float">
+            </div>
+        </div>
+
+        <!-- Controls / Start Options -->
+        <div class="w-full max-w-sm flex flex-col gap-3 z-10 mb-6">
+            <button id="btn-start-gps" class="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-amber-400 via-red-500 to-slate-900 text-white font-extrabold text-lg shadow-xl hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-3 border border-amber-300/40 btn-pulse">
+                <i class="fa-solid fa-compass text-2xl text-amber-300"></i>
+                <span>現在地でスタート (GPS)</span>
+            </button>
+            <button id="btn-start-demo" class="w-full py-3 px-6 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 text-slate-300 font-semibold text-sm border border-slate-600/50 transition-all flex items-center justify-center gap-2">
+                <i class="fa-solid fa-city"></i>
+                <span>デモモード (ベルリン中心街)</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- MAIN GAME CANVAS & UI -->
+    <div id="game-view" class="relative w-full h-full hidden">
+        <!-- 3D Three.js Container -->
+        <div id="canvas-container" class="absolute inset-0 w-full h-full bg-slate-900"></div>
+
+        <!-- Top Navigation / Stats Header -->
+        <div class="absolute top-4 left-4 right-4 z-20 flex items-center justify-between pointer-events-none">
+            <div class="glass-panel px-4 py-2.5 rounded-2xl flex items-center gap-3 shadow-lg pointer-events-auto">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-red-600 flex items-center justify-center border border-white/20 shadow">
+                    <img src="https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/germany/smile.png" class="w-8 h-8 object-contain">
+                </div>
+                <div>
+                    <div class="text-[10px] text-amber-300 font-bold uppercase tracking-wider">プレイヤー位置</div>
+                    <div id="gps-status-text" class="text-xs font-bold text-white max-w-[130px] truncate">GPS受信中...</div>
+                </div>
+            </div>
+
+            <div class="glass-panel px-4 py-2.5 rounded-2xl flex items-center gap-3 shadow-lg pointer-events-auto">
+                <i class="fa-solid fa-book-bookmark text-amber-400 text-lg"></i>
+                <div>
+                    <div class="text-[10px] text-slate-300 font-bold">図鑑コレクション</div>
+                    <div class="text-xs font-extrabold text-amber-300"><span id="dex-count">0</span> / 90</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Distance Alert Toast -->
+        <div id="distance-toast" class="absolute top-20 left-1/2 -translate-x-1/2 z-30 hidden px-5 py-2.5 rounded-2xl bg-red-600/95 text-white font-bold text-xs shadow-2xl border border-red-300/40 flex items-center gap-2 transition-all animate-bounce">
+            <i class="fa-solid fa-triangle-exclamation text-amber-300 text-sm"></i>
+            <span id="toast-message">ボールが遠すぎます！もっと近づいてね</span>
+        </div>
+
+        <!-- Radar & Controls Overlay -->
+        <div class="absolute bottom-6 left-4 right-4 z-20 flex items-end justify-between pointer-events-none">
+            <div class="flex flex-col gap-2 pointer-events-auto">
+                <button id="btn-recenter" class="w-12 h-12 rounded-2xl glass-panel text-white flex items-center justify-center shadow-lg active:scale-95 transition-all border border-white/20 hover:bg-slate-800">
+                    <i class="fa-solid fa-location-crosshairs text-xl text-amber-400"></i>
+                </button>
+                <button id="btn-camera-toggle" class="w-12 h-12 rounded-2xl glass-panel text-white flex items-center justify-center shadow-lg active:scale-95 transition-all border border-white/20 hover:bg-slate-800">
+                    <i class="fa-solid fa-arrows-spin text-xl text-amber-400"></i>
+                </button>
+            </div>
+
+            <!-- Dex Button -->
+            <button id="btn-open-dex" class="pointer-events-auto px-6 py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 via-red-500 to-slate-900 text-white font-extrabold text-sm shadow-xl flex items-center gap-3 border border-amber-300/40 active:scale-95 transition-all">
+                <i class="fa-solid fa-book-open text-lg text-amber-300"></i>
+                <span>図鑑を開く</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- CATCH / RING THROW MODAL -->
+    <div id="catch-modal" class="absolute inset-0 z-40 hidden flex flex-col items-center justify-between p-6 bg-slate-950/80 backdrop-blur-md">
+        <!-- Header -->
+        <div class="w-full flex justify-between items-center z-10 pt-2">
+            <div class="glass-panel px-4 py-2 rounded-xl flex items-center gap-2">
+                <i class="fa-solid fa-circle-dot text-red-500 text-xs animate-ping"></i>
+                <span id="target-country-name" class="font-bold text-sm text-white">野生のカントリーボール</span>
+            </div>
+            <button id="btn-flee-catch" class="w-10 h-10 rounded-xl glass-panel flex items-center justify-center text-slate-300 hover:text-white">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+
+        <!-- Catch Arena 3D Viewport / Canvas -->
+        <div id="catch-canvas-container" class="relative w-full flex-1 max-w-md my-2 rounded-3xl overflow-hidden glass-panel border border-amber-400/30 flex items-center justify-center">
+            
+            <!-- Target Speech Bubble -->
+            <div id="target-speech-bubble" class="speech-bubble hidden">
+                帰るんよ！ ✈️
+            </div>
+
+            <!-- Airplane Graphic (Overlay when fleeing) -->
+            <div id="airplane-overlay" class="absolute hidden z-30 pointer-events-none text-sky-400 drop-shadow-lg text-6xl -top-6 -right-6">
+                <i class="fa-solid fa-plane-departure"></i>
+            </div>
+
+            <!-- Target Countryball Graphic -->
+            <div id="target-ball-wrapper" class="relative z-10 flex flex-col items-center transition-transform duration-75">
+                <div class="relative w-40 h-40 md:w-52 md:h-52">
+                    <div id="uk-crop-target" class="w-full h-full hidden">
+                        <img id="target-ball-img-uk" src="" class="uk-crop-img drop-shadow-2xl">
+                    </div>
+                    <img id="target-ball-img-normal" src="" class="w-full h-full object-contain drop-shadow-2xl">
+                </div>
+                <div id="target-expression-tag" class="mt-2 px-3 py-1 rounded-full bg-slate-900/80 border border-slate-700 text-xs font-bold text-amber-300">
+                    normal
+                </div>
+            </div>
+
+            <!-- Throw Guide Swipe Indicator -->
+            <div id="throw-guide" class="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 opacity-70 pointer-events-none animate-bounce z-10">
+                <i class="fa-solid fa-chevron-up text-amber-400 text-xl"></i>
+                <span class="text-[11px] font-bold text-amber-200">DE-Ringを上にスワイプして投入！</span>
+            </div>
+
+            <!-- Interactive Throwing Area Canvas Overlay -->
+            <canvas id="throw-canvas" class="absolute inset-0 w-full h-full z-20 cursor-grab active:cursor-grabbing touch-none"></canvas>
+            
+            <!-- Quick Throw Fallback Button for guaranteed throwing -->
+            <button id="btn-quick-throw" class="absolute bottom-3 right-3 z-30 px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-400 to-red-500 hover:brightness-110 text-slate-950 font-extrabold text-xs shadow-lg flex items-center gap-1.5 active:scale-95 transition-all border border-amber-300/80">
+                <i class="fa-solid fa-paper-plane text-slate-900"></i>
+                <span>リング投げる!</span>
+            </button>
+        </div>
+
+        <!-- Status message -->
+        <div id="catch-message" class="h-8 font-bold text-amber-300 text-sm flex items-center justify-center text-center">
+            黒・赤・金のDE-Ringで輪投げを成功させよう！
+        </div>
+    </div>
+
+    <!-- DEDICATED POKEDEX MODAL -->
+    <div id="dex-modal" class="absolute inset-0 z-50 hidden glass-panel bg-slate-950/95 flex flex-col p-4 md:p-6 overflow-hidden">
+        <!-- Top bar -->
+        <div class="flex items-center justify-between pb-4 border-b border-slate-800">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-red-600 flex items-center justify-center text-white shadow">
+                    <i class="fa-solid fa-book-bookmark text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-extrabold text-white">ボール図鑑 (Polandball Dex)</h3>
+                    <p class="text-xs text-slate-400">10か国 × 9表情 = 全90種コンプリートを目指そう</p>
+                </div>
+            </div>
+            <button id="btn-close-dex" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+
+        <!-- Dex Content Grid -->
+        <div class="flex-1 overflow-y-auto my-4 pr-1">
+            <div id="dex-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                <!-- Country cards will be populated dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- GET SUCCESS POPUP MODAL -->
+    <div id="success-popup" class="absolute inset-0 z-50 hidden bg-black/75 backdrop-blur-sm flex items-center justify-center p-6">
+        <div class="w-full max-w-sm glass-panel p-6 rounded-3xl border-2 border-amber-400/50 flex flex-col items-center text-center shadow-2xl animate-bounce-short">
+            <div class="w-20 h-20 rounded-full bg-gradient-to-tr from-amber-400 via-red-500 to-slate-900 p-1 mb-3 flex items-center justify-center shadow-lg">
+                <img id="pop-ball-img" src="" class="w-16 h-16 object-contain">
+            </div>
+            <h4 class="text-xs font-bold text-amber-400 uppercase tracking-widest mb-1">ゲット成功！</h4>
+            <h3 id="pop-ball-title" class="text-xl font-extrabold text-white mb-2">ドイツボール (happy)</h3>
+            <p class="text-xs text-slate-300 mb-6">図鑑に新しく登録されました！仲間が増えました！</p>
+            <button id="btn-close-success" class="w-full py-3 rounded-xl bg-gradient-to-r from-amber-400 to-red-500 font-extrabold text-white text-sm shadow-lg hover:brightness-110 active:scale-95 transition-all">
+                OK
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Assets Configuration
+        const BASE_IMAGE_URL = 'https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/';
+        const CATCH_MAX_DISTANCE = 85; // Maximum distance (meters) to catch a ball
+
+        // 10 Countries
+        const COUNTRIES = [
+            { id: 'germany', name: 'ドイツ', flag: '🇩🇪' },
+            { id: 'japan', name: '日本', flag: '🇯🇵' },
+            { id: 'china', name: '中国', flag: '🇨🇳' },
+            { id: 'italy', name: 'イタリア', flag: '🇮🇹' },
+            { id: 'sierraleone', name: 'シエラレオネ', flag: '🇸🇱' },
+            { id: 'russia', name: 'ロシア', flag: '🇷🇺' },
+            { id: 'france', name: 'フランス', flag: '🇫🇷' },
+            { id: 'poland', name: 'ポーランド', flag: '🇵🇱' },
+            { id: 'england472x600', name: 'イギリス', flag: '🇬🇧', isUK: true },
+            { id: 'usa', name: 'アメリカ', flag: '🇺🇸' }
+        ];
+
+        // 9 Expressions
+        const EXPRESSIONS = [
+            'anger',
+            'dissatisfaction',
+            'happy',
+            'itome',
+            'lol',
+            'normal',
+            'plot',
+            'smile',
+            'surprise'
+        ];
+
+        // State Storage
+        let userDex = {}; // format: { 'germany-happy': true, ... }
+        let wildSpawns = []; // Active balls on map
+        let currentPos = { lat: 52.5200, lon: 13.4050 }; // Default Berlin center
+        let activeCatchTarget = null;
+        let isGpsActive = false;
+        let isTargetFleeing = false; // State for airplane flee sequence
+
+        class SoundFX {
+            constructor() {
+                this.ctx = null;
+            }
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            }
+            playThrow() {
+                this.init();
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(200, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(600, this.ctx.currentTime + 0.15);
+                gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.15);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.15);
+            }
+            playSuccess() {
+                this.init();
+                if (!this.ctx) return;
+                const notes = [440, 554.37, 659.25, 880];
+                notes.forEach((freq, idx) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime + idx * 0.08);
+                    gain.gain.setValueAtTime(0.2, this.ctx.currentTime + idx * 0.08);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + idx * 0.08 + 0.25);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(this.ctx.currentTime + idx * 0.08);
+                    osc.stop(this.ctx.currentTime + idx * 0.08 + 0.25);
+                });
+            }
+            playFlee() {
+                this.init();
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(300, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(800, this.ctx.currentTime + 0.8);
+                gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.8);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.8);
+            }
+            playError() {
+                this.init();
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(160, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(90, this.ctx.currentTime + 0.2);
+                gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.2);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.2);
+            }
+        }
+        const sfx = new SoundFX();
+
+        let toastTimeout = null;
+        function showToast(msg) {
+            const toast = document.getElementById('distance-toast');
+            const msgEl = document.getElementById('toast-message');
+            if (!toast || !msgEl) return;
+            msgEl.innerText = msg;
+            toast.classList.remove('hidden');
+            if (toastTimeout) clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 3200);
+        }
+
+        let scene, camera, renderer, controls;
+        let mapGroup, playerMarker, spawnsGroup;
+        let tileCache = {};
+        const TILE_ZOOM = 16;
+        const GRID_SIZE = 9; // Load 9x9 grid around player
+
+        function init3DMap() {
+            const container = document.getElementById('canvas-container');
+            container.innerHTML = '';
+
+            // Scene setup
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xa0c8f0);
+            scene.fog = new THREE.FogExp2(0xa0c8f0, 0.0012);
+
+            // Camera setup - Bird View Angle
+            camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 1, 3000);
+            camera.position.set(0, 220, 180);
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            container.appendChild(renderer.domElement);
+
+            // OrbitControls
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enablePan = false;
+            controls.minDistance = 60;
+            controls.maxDistance = 450;
+            controls.minPolarAngle = Math.PI / 6;
+            controls.maxPolarAngle = Math.PI / 2.3;
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.08;
+
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
+            scene.add(ambientLight);
+
+            const sunLight = new THREE.DirectionalLight(0xfffaed, 0.6);
+            sunLight.position.set(200, 400, 150);
+            scene.add(sunLight);
+
+            // Vast ground plane
+            const vastGroundGeo = new THREE.PlaneGeometry(10000, 10000);
+            const vastGroundMat = new THREE.MeshBasicMaterial({ color: 0x88bb77 });
+            const vastGround = new THREE.Mesh(vastGroundGeo, vastGroundMat);
+            vastGround.rotation.x = -Math.PI / 2;
+            vastGround.position.y = -2;
+            scene.add(vastGround);
+
+            // Groups
+            mapGroup = new THREE.Group();
+            spawnsGroup = new THREE.Group();
+            scene.add(mapGroup);
+            scene.add(spawnsGroup);
+
+            // Player Marker
+            createPlayerMarker();
+
+            // Raycaster for clicking on 3D balls
+            setupRaycaster(container);
+
+            window.addEventListener('resize', onWindowResize);
+            animate3DMap();
+        }
+
+        function onWindowResize() {
+            const container = document.getElementById('canvas-container');
+            if (!container || !camera || !renderer) return;
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+
+        function animate3DMap() {
+            requestAnimationFrame(animate3DMap);
+            if (controls) controls.update();
+            
+            // Subtle floating animation for wild countryballs on the map
+            const time = Date.now() * 0.003;
+            if (spawnsGroup && spawnsGroup.children) {
+                spawnsGroup.children.forEach((child, idx) => {
+                    child.position.y = 12 + Math.sin(time + idx * 0.5) * 1.5;
+                });
+            }
+
+            if (renderer && scene && camera) {
+                renderer.render(scene, camera);
+            }
+        }
+
+        function createPlayerMarker() {
+            const playerGroup = new THREE.Group();
+
+            const loader = new THREE.TextureLoader();
+            const textureUrl = `${BASE_IMAGE_URL}germany/happy.png`;
+            loader.load(textureUrl, (tex) => {
+                const mat = new THREE.SpriteMaterial({ map: tex });
+                const sprite = new THREE.Sprite(mat);
+                sprite.scale.set(22, 22, 1);
+                sprite.position.y = 11;
+                playerGroup.add(sprite);
+            });
+
+            // German Tricolor Ring below player
+            const ringGeo = new THREE.RingGeometry(8, 11, 32);
+            const ringMat = new THREE.MeshBasicMaterial({ color: 0xffd700, side: THREE.DoubleSide });
+            const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+            ringMesh.rotation.x = -Math.PI / 2;
+            ringMesh.position.y = 0.2;
+            playerGroup.add(ringMesh);
+
+            playerMarker = playerGroup;
+            scene.add(playerMarker);
+        }
+
+        function lon2tile(lon, zoom) {
+            return Math.floor((lon + 180) / 360 * Math.pow(2, zoom));
+        }
+
+        function lat2tile(lat, zoom) {
+            return Math.floor((1 - Math.log(Math.tan(lat * Math.PI / 180) + 1 / Math.cos(lat * Math.PI / 180)) / Math.PI) / 2 * Math.pow(2, zoom));
+        }
+
+        function tile2lon(x, z) {
+            return (x / Math.pow(2, z) * 360 - 180);
+        }
+
+        function tile2lat(y, z) {
+            const n = Math.PI - 2 * Math.PI * y / Math.pow(2, z);
+            return (180 / Math.PI * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n))));
+        }
+
+        function gpsToMeters(lat1, lon1, lat2, lon2) {
+            const R = 6371000;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const x = dLon * Math.cos((lat1 + lat2) / 2 * Math.PI / 180) * R;
+            const z = -dLat * R;
+            return { x, z };
+        }
+
+        function updateMapTiles(lat, lon) {
+            const centerTileX = lon2tile(lon, TILE_ZOOM);
+            const centerTileY = lat2tile(lat, TILE_ZOOM);
+
+            const halfGrid = Math.floor(GRID_SIZE / 2);
+            const textureLoader = new THREE.TextureLoader();
+
+            const p1 = { lat: tile2lat(centerTileY, TILE_ZOOM), lon: tile2lon(centerTileX, TILE_ZOOM) };
+            const p2 = { lat: tile2lat(centerTileY + 1, TILE_ZOOM), lon: tile2lon(centerTileX + 1, TILE_ZOOM) };
+            const tileMeters = gpsToMeters(p1.lat, p1.lon, p2.lat, p2.lon);
+            const tileSizeX = Math.abs(tileMeters.x);
+            const tileSizeZ = Math.abs(tileMeters.z);
+
+            for (let dx = -halfGrid; dx <= halfGrid; dx++) {
+                for (let dy = -halfGrid; dy <= halfGrid; dy++) {
+                    const tileX = centerTileX + dx;
+                    const tileY = centerTileY + dy;
+                    const key = `${TILE_ZOOM}_${tileX}_${tileY}`;
+
+                    if (!tileCache[key]) {
+                        const tileGeo = new THREE.PlaneGeometry(tileSizeX, tileSizeZ);
+                        const tileMat = new THREE.MeshLambertMaterial({ color: 0xdddddd });
+                        const mesh = new THREE.Mesh(tileGeo, tileMat);
+
+                        mesh.rotation.x = -Math.PI / 2;
+                        mesh.position.x = dx * tileSizeX;
+                        mesh.position.z = dy * tileSizeZ;
+
+                        mapGroup.add(mesh);
+                        tileCache[key] = mesh;
+
+                        const tileUrl = `https://tile.openstreetmap.org/${TILE_ZOOM}/${tileX}/${tileY}.png`;
+                        textureLoader.load(tileUrl, (texture) => {
+                            texture.minFilter = THREE.LinearFilter;
+                            mesh.material.map = texture;
+                            mesh.material.needsUpdate = true;
+                        });
+                    }
+                }
+            }
+        }
+
+        function generateWildSpawns(centerLat, centerLon) {
+            // Clear existing
+            while (spawnsGroup.children.length > 0) {
+                const child = spawnsGroup.children[0];
+                spawnsGroup.remove(child);
+            }
+            wildSpawns = [];
+
+            // 全体数を少なく(計6個)、全て1km以上、遠くへ行くほど多くなるゾーン設定
+            const spawnZones = [
+                { minDist: 1000, maxDist: 1500, count: 1 }, // 1.0km ~ 1.5km (1個)
+                { minDist: 1500, maxDist: 2200, count: 2 }, // 1.5km ~ 2.2km (2個)
+                { minDist: 2200, maxDist: 3200, count: 3 }  // 2.2km ~ 3.2km (3個: 遠いほど増える)
+            ];
+
+            const MIN_BALL_SPACING = 300; // ボール同士の間隔(m)
+            const loader = new THREE.TextureLoader();
+
+            spawnZones.forEach(zone => {
+                let spawnedInZone = 0;
+                let zoneAttempts = 0;
+
+                while (spawnedInZone < zone.count && zoneAttempts < 200) {
+                    zoneAttempts++;
+                    const distance = zone.minDist + Math.random() * (zone.maxDist - zone.minDist);
+                    const angle = Math.random() * Math.PI * 2;
+
+                    const dx = Math.cos(angle) * distance;
+                    const dz = Math.sin(angle) * distance;
+
+                    const isTooClose = wildSpawns.some(s => Math.hypot(s.position.x - dx, s.position.z - dz) < MIN_BALL_SPACING);
+                    if (isTooClose) continue;
+
+                    const country = COUNTRIES[Math.floor(Math.random() * COUNTRIES.length)];
+                    const expr = EXPRESSIONS[Math.floor(Math.random() * EXPRESSIONS.length)];
+
+                    const movePattern = Math.floor(Math.random() * 3);
+                    const moveSpeed = 0.8 + Math.random() * 1.4;
+
+                    const imgUrl = `${BASE_IMAGE_URL}${country.id}/${expr}.png`;
+
+                    loader.load(imgUrl, (texture) => {
+                        if (country.isUK) {
+                            texture.repeat.set(1, 472 / 600);
+                            texture.offset.set(0, (600 - 472) / 600);
+                        }
+
+                        const mat = new THREE.SpriteMaterial({ map: texture, transparent: true });
+                        const sprite = new THREE.Sprite(mat);
+                        sprite.scale.set(24, 24, 1);
+                        sprite.position.set(dx, 12, dz);
+
+                        const spawnData = {
+                            id: `spawn_${wildSpawns.length}_${Date.now()}`,
+                            country: country,
+                            expression: expr,
+                            movePattern: movePattern,
+                            moveSpeed: moveSpeed,
+                            sprite: sprite,
+                            position: { x: dx, z: dz }
+                        };
+
+                        sprite.userData = spawnData;
+                        spawnsGroup.add(sprite);
+                        wildSpawns.push(spawnData);
+                    });
+
+                    spawnedInZone++;
+                }
+            });
+        }
+
+        function setupRaycaster(container) {
+            const raycaster = new THREE.Raycaster();
+            const mouse = new THREE.Vector2();
+            const worldPos = new THREE.Vector3();
+
+            container.addEventListener('pointerdown', (e) => {
+                const rect = container.getBoundingClientRect();
+                mouse.x = ((e.clientX - rect.left) / container.clientWidth) * 2 - 1;
+                mouse.y = -((e.clientY - rect.top) / container.clientHeight) * 2 + 1;
+
+                raycaster.setFromCamera(mouse, camera);
+                const intersects = raycaster.intersectObjects(spawnsGroup.children);
+
+                if (intersects.length > 0) {
+                    const hitSprite = intersects[0].object;
+                    if (hitSprite.userData && hitSprite.userData.country) {
+                        // キャラクターのワールド座標を取得し、プレイヤー現在地からのリアルタイム距離を計算
+                        hitSprite.getWorldPosition(worldPos);
+                        const distToPlayer = Math.hypot(worldPos.x, worldPos.z);
+                        
+                        if (distToPlayer > CATCH_MAX_DISTANCE) {
+                            sfx.playError();
+                            const distKm = (distToPlayer / 1000).toFixed(2);
+                            showToast(`距離: ${distKm}km (${Math.round(distToPlayer)}m) - 遠すぎて捕まえられません！もっと近くへ歩いてね`);
+                            return;
+                        }
+                        startCatchGame(hitSprite.userData);
+                    }
+                }
+            });
+        }
+
+        let lastGpsCoords = null;
+
+        function initGPS() {
+            if ("geolocation" in navigator) {
+                navigator.geolocation.watchPosition(
+                    (pos) => {
+                        const newLat = pos.coords.latitude;
+                        const newLon = pos.coords.longitude;
+                        isGpsActive = true;
+                        
+                        document.getElementById('gps-status-text').innerText = 
+                            `${newLat.toFixed(4)}, ${newLon.toFixed(4)}`;
+
+                        if (lastGpsCoords) {
+                            const deltaMeters = gpsToMeters(lastGpsCoords.lat, lastGpsCoords.lon, newLat, newLon);
+                            
+                            mapGroup.position.x -= deltaMeters.x;
+                            mapGroup.position.z -= deltaMeters.z;
+                            spawnsGroup.position.x -= deltaMeters.x;
+                            spawnsGroup.position.z -= deltaMeters.z;
+                        }
+
+                        lastGpsCoords = { lat: newLat, lon: newLon };
+                        currentPos.lat = newLat;
+                        currentPos.lon = newLon;
+
+                        updateMapTiles(currentPos.lat, currentPos.lon);
+                    },
+                    (err) => {
+                        console.warn("GPS Warning:", err.message);
+                        document.getElementById('gps-status-text').innerText = "ベルリン (デモモード)";
+                        updateMapTiles(currentPos.lat, currentPos.lon);
+                    },
+                    { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+                );
+            } else {
+                document.getElementById('gps-status-text').innerText = "GPS非対応 (デモ)";
+                updateMapTiles(currentPos.lat, currentPos.lon);
+            }
+        }
+
+        let throwCanvas, throwCtx;
+        let isDragging = false;
+        let ringPos = { x: 0, y: 0 };
+        let ringVel = { x: 0, y: 0 };
+        let isRingFlying = false;
+        let catchAnimFrameId = null;
+        let motionTime = 0;
+
+        function startCatchGame(targetData) {
+            activeCatchTarget = targetData;
+            isTargetFleeing = false;
+
+            // Reset Flee Visual Elements
+            const targetWrapper = document.getElementById('target-ball-wrapper');
+            const speechBubble = document.getElementById('target-speech-bubble');
+            const airplaneOverlay = document.getElementById('airplane-overlay');
+            
+            targetWrapper.className = "relative z-10 flex flex-col items-center transition-transform duration-75";
+            targetWrapper.style.transform = "translate(0px, 0px)";
+            speechBubble.classList.add('hidden');
+            airplaneOverlay.classList.add('hidden');
+
+            // Update Target UI
+            document.getElementById('target-country-name').innerText = `${targetData.country.flag} ${targetData.country.name}`;
+            
+            let moveTypeLabel = "移動: 静止";
+            if (targetData.movePattern === 1) moveTypeLabel = "移動: 左右に往復";
+            if (targetData.movePattern === 2) moveTypeLabel = "移動: ゆらゆらダンス";
+            document.getElementById('target-expression-tag').innerText = `表情: ${targetData.expression} (${moveTypeLabel})`;
+
+            const normalImg = document.getElementById('target-ball-img-normal');
+            const ukContainer = document.getElementById('uk-crop-target');
+            const ukImg = document.getElementById('target-ball-img-uk');
+
+            const fullUrl = `${BASE_IMAGE_URL}${targetData.country.id}/${targetData.expression}.png`;
+
+            if (targetData.country.isUK) {
+                normalImg.classList.add('hidden');
+                ukContainer.classList.remove('hidden');
+                ukImg.src = fullUrl;
+            } else {
+                ukContainer.classList.add('hidden');
+                normalImg.classList.remove('hidden');
+                normalImg.src = fullUrl;
+            }
+
+            document.getElementById('catch-message').innerText = "DE-Ringを上にスワイプするかボタンで投入！";
+            document.getElementById('catch-modal').classList.remove('hidden');
+
+            initThrowCanvas();
+        }
+
+        function initThrowCanvas() {
+            throwCanvas = document.getElementById('throw-canvas');
+            const container = document.getElementById('catch-canvas-container');
+            
+            const dpr = window.devicePixelRatio || 1;
+            const cWidth = container.clientWidth;
+            const cHeight = container.clientHeight;
+
+            throwCanvas.width = cWidth * dpr;
+            throwCanvas.height = cHeight * dpr;
+            throwCtx = throwCanvas.getContext('2d');
+            throwCtx.scale(dpr, dpr);
+
+            ringPos.x = cWidth / 2;
+            ringPos.y = cHeight - 75;
+            ringVel = { x: 0, y: 0 };
+            isRingFlying = false;
+
+            let touchStartY = 0;
+            let touchStartX = 0;
+            let touchStartTime = 0;
+
+            const startDrag = (clientX, clientY) => {
+                if (isRingFlying || isTargetFleeing) return;
+                isDragging = true;
+                touchStartX = clientX;
+                touchStartY = clientY;
+                touchStartTime = Date.now();
+            };
+
+            const moveDrag = (clientX, clientY) => {
+                if (!isDragging || isRingFlying || isTargetFleeing) return;
+                const rect = throwCanvas.getBoundingClientRect();
+                ringPos.x = clientX - rect.left;
+                ringPos.y = Math.max(cHeight - 160, clientY - rect.top);
+            };
+
+            const endDrag = (clientX, clientY) => {
+                if (!isDragging || isRingFlying || isTargetFleeing) return;
+                isDragging = false;
+                
+                const rect = throwCanvas.getBoundingClientRect();
+                const deltaY = clientY - touchStartY;
+                const deltaX = clientX - touchStartX;
+                const deltaTime = Math.max(Date.now() - touchStartTime, 15);
+
+                if (deltaY < -20) {
+                    const vy = Math.min((deltaY / deltaTime) * 14, -18);
+                    const vx = (deltaX / deltaTime) * 8;
+                    triggerThrow(vx, vy);
+                } else {
+                    ringPos.x = cWidth / 2;
+                    ringPos.y = cHeight - 75;
+                }
+            };
+
+            throwCanvas.onpointerdown = (e) => {
+                try { throwCanvas.setPointerCapture(e.pointerId); } catch(err){}
+                startDrag(e.clientX, e.clientY);
+            };
+
+            throwCanvas.onpointermove = (e) => {
+                moveDrag(e.clientX, e.clientY);
+            };
+
+            throwCanvas.onpointerup = (e) => {
+                endDrag(e.clientX, e.clientY);
+            };
+
+            throwCanvas.onpointercancel = () => {
+                isDragging = false;
+                ringPos.x = cWidth / 2;
+                ringPos.y = cHeight - 75;
+            };
+
+            const btnQuick = document.getElementById('btn-quick-throw');
+            if (btnQuick) {
+                btnQuick.onclick = () => {
+                    if (!isRingFlying && !isTargetFleeing) {
+                        triggerThrow((Math.random() - 0.5) * 4, -22);
+                    }
+                };
+            }
+
+            if (catchAnimFrameId) cancelAnimationFrame(catchAnimFrameId);
+            drawThrowLoop(cWidth, cHeight);
+        }
+
+        function triggerThrow(vx, vy) {
+            sfx.playThrow();
+            isRingFlying = true;
+            ringVel.x = Math.max(-10, Math.min(10, vx));
+            ringVel.y = Math.max(-28, Math.min(-14, vy));
+            const guide = document.getElementById('throw-guide');
+            if (guide) guide.classList.add('opacity-0');
+        }
+
+        function drawThrowLoop(cWidth, cHeight) {
+            if (document.getElementById('catch-modal').classList.contains('hidden')) {
+                return;
+            }
+
+            catchAnimFrameId = requestAnimationFrame(() => drawThrowLoop(cWidth, cHeight));
+
+            throwCtx.clearRect(0, 0, cWidth, cHeight);
+
+            // 1. Move target ball according to its motion pattern
+            motionTime += 0.035;
+            let targetOffsetX = 0;
+            let targetOffsetY = 0;
+
+            if (activeCatchTarget && !isTargetFleeing) {
+                const pat = activeCatchTarget.movePattern;
+                const spd = activeCatchTarget.moveSpeed || 1.0;
+
+                if (pat === 1) {
+                    // Horizontal Sine Movement
+                    targetOffsetX = Math.sin(motionTime * spd) * (cWidth * 0.28);
+                } else if (pat === 2) {
+                    // Erratic / Figure-8 Dance
+                    targetOffsetX = Math.sin(motionTime * spd) * (cWidth * 0.24);
+                    targetOffsetY = Math.cos(motionTime * spd * 1.8) * 22;
+                }
+
+                const targetWrapper = document.getElementById('target-ball-wrapper');
+                if (targetWrapper) {
+                    targetWrapper.style.transform = `translate(${targetOffsetX}px, ${targetOffsetY}px)`;
+                }
+            }
+
+            // 2. Update Ring Physics
+            if (isRingFlying && !isTargetFleeing) {
+                ringPos.x += ringVel.x;
+                ringPos.y += ringVel.y;
+                ringVel.y += 0.65; // Gravity acceleration
+
+                // Target center in canvas coordinates (accounting for moving offset)
+                const currentTargetX = cWidth / 2 + targetOffsetX;
+                const currentTargetY = cHeight * 0.38 + targetOffsetY;
+
+                const dist = Math.hypot(ringPos.x - currentTargetX, ringPos.y - currentTargetY);
+
+                // Collision detection with target ball
+                if (dist < 60 && ringPos.y <= currentTargetY + 30 && ringPos.y >= currentTargetY - 45) {
+                    isRingFlying = false;
+                    onCatchSuccess();
+                    return;
+                }
+
+                // Missed throw (Ring goes out of bounds) -> Trigger "帰るんよ" Airplane Flee!
+                if (ringPos.y < -60 || ringPos.y > cHeight + 60 || ringPos.x < -60 || ringPos.x > cWidth + 60) {
+                    isRingFlying = false;
+                    triggerAirplaneEscape();
+                }
+            }
+
+            // 3. Draw Ring (DE-Ring Colors: Black, Red, Gold)
+            if (!isTargetFleeing) {
+                const rx = ringPos.x;
+                const ry = ringPos.y;
+                const radius = isRingFlying ? Math.max(22, 48 * (ry / cHeight)) : 48;
+
+                throwCtx.lineWidth = 9;
+
+                // Outer Black
+                throwCtx.strokeStyle = '#111111';
+                throwCtx.beginPath();
+                throwCtx.arc(rx, ry, radius + 4, 0, Math.PI * 2);
+                throwCtx.stroke();
+
+                // Middle Red
+                throwCtx.strokeStyle = '#e11d48';
+                throwCtx.beginPath();
+                throwCtx.arc(rx, ry, radius, 0, Math.PI * 2);
+                throwCtx.stroke();
+
+                // Inner Gold
+                throwCtx.strokeStyle = '#fbbf24';
+                throwCtx.beginPath();
+                throwCtx.arc(rx, ry, radius - 4, 0, Math.PI * 2);
+                throwCtx.stroke();
+            }
+        }
+
+        // Airplane Fleeing Sequence ("帰るんよ！")
+        function triggerAirplaneEscape() {
+            isTargetFleeing = true;
+            sfx.playFlee();
+
+            const targetWrapper = document.getElementById('target-ball-wrapper');
+            const speechBubble = document.getElementById('target-speech-bubble');
+            const airplaneOverlay = document.getElementById('airplane-overlay');
+            const catchMsg = document.getElementById('catch-message');
+
+            catchMsg.innerText = "失敗！ボールは「帰るんよ！」と言って飛行機で去っていった…";
+
+            // Show Airplane Overlay and Speech Bubble
+            speechBubble.classList.remove('hidden');
+            airplaneOverlay.classList.remove('hidden');
+
+            // Apply Flight CSS Animation
+            targetWrapper.className = "relative z-10 flex flex-col items-center animate-fly-away";
+
+            // After animation finishes, remove ball from map and close catch modal
+            setTimeout(() => {
+                if (activeCatchTarget) {
+                    spawnsGroup.remove(activeCatchTarget.sprite);
+                    wildSpawns = wildSpawns.filter(s => s.id !== activeCatchTarget.id);
+                }
+                document.getElementById('catch-modal').classList.add('hidden');
+                isTargetFleeing = false;
+            }, 1800);
+        }
+
+        function onCatchSuccess() {
+            sfx.playSuccess();
+
+            // Save to Dex State
+            const key = `${activeCatchTarget.country.id}-${activeCatchTarget.expression}`;
+            userDex[key] = true;
+            updateDexCountUI();
+
+            // Remove from 3D Map
+            spawnsGroup.remove(activeCatchTarget.sprite);
+            wildSpawns = wildSpawns.filter(s => s.id !== activeCatchTarget.id);
+
+            // Close Catch Modal & Show Victory Popup
+            document.getElementById('catch-modal').classList.add('hidden');
+
+            const popImg = document.getElementById('pop-ball-img');
+            popImg.src = `${BASE_IMAGE_URL}${activeCatchTarget.country.id}/${activeCatchTarget.expression}.png`;
+            
+            document.getElementById('pop-ball-title').innerText = `${activeCatchTarget.country.flag} ${activeCatchTarget.country.name} (${activeCatchTarget.expression})`;
+            document.getElementById('success-popup').classList.remove('hidden');
+        }
+
+        function updateDexCountUI() {
+            const count = Object.keys(userDex).length;
+            document.getElementById('dex-count').innerText = count;
+        }
+
+        function renderDexUI() {
+            const grid = document.getElementById('dex-grid');
+            grid.innerHTML = '';
+
+            COUNTRIES.forEach((country) => {
+                const countryCard = document.createElement('div');
+                countryCard.className = 'glass-panel p-4 rounded-2xl border border-slate-700/60 flex flex-col gap-3';
+
+                let caughtInCountry = 0;
+                EXPRESSIONS.forEach(e => { if (userDex[`${country.id}-${e}`]) caughtInCountry++; });
+
+                countryCard.innerHTML = `
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                        <div class="flex items-center gap-2">
+                            <span class="text-2xl">${country.flag}</span>
+                            <span class="font-extrabold text-sm text-white">${country.name}</span>
+                        </div>
+                        <span class="text-xs font-bold text-amber-300">${caughtInCountry} / 9</span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2">
+                        ${EXPRESSIONS.map(expr => {
+                            const isUnlocked = userDex[`${country.id}-${expr}`];
+                            const imgUrl = `${BASE_IMAGE_URL}${country.id}/${expr}.png`;
+
+                            let imgHtml = '';
+                            if (country.isUK) {
+                                imgHtml = `
+                                    <div class="uk-crop-container ${isUnlocked ? '' : 'brightness-0 opacity-40'}">
+                                        <img src="${imgUrl}" class="uk-crop-img">
+                                    </div>
+                                `;
+                            } else {
+                                imgHtml = `
+                                    <div class="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center ${isUnlocked ? '' : 'brightness-0 opacity-40'}">
+                                        <img src="${imgUrl}" class="w-full h-full object-contain">
+                                    </div>
+                                `;
+                            }
+
+                            return `
+                                <div class="flex flex-col items-center bg-slate-900/60 p-2 rounded-xl border border-slate-800">
+                                    ${imgHtml}
+                                    <span class="text-[9px] font-bold mt-1 ${isUnlocked ? 'text-amber-300' : 'text-slate-500'} truncate w-full text-center">
+                                        ${expr}
+                                    </span>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+
+                grid.appendChild(countryCard);
+            });
+        }
+
+        window.onload = function() {
+            // Start Buttons
+            document.getElementById('btn-start-gps').addEventListener('click', () => {
+                document.getElementById('start-screen').classList.add('hidden');
+                document.getElementById('game-view').classList.remove('hidden');
+                init3DMap();
+                initGPS();
+                generateWildSpawns(currentPos.lat, currentPos.lon);
+            });
+
+            document.getElementById('btn-start-demo').addEventListener('click', () => {
+                document.getElementById('start-screen').classList.add('hidden');
+                document.getElementById('game-view').classList.remove('hidden');
+                init3DMap();
+                updateMapTiles(currentPos.lat, currentPos.lon);
+                generateWildSpawns(currentPos.lat, currentPos.lon);
+            });
+
+            // Recenter
+            document.getElementById('btn-recenter').addEventListener('click', () => {
+                if (controls) {
+                    controls.target.set(0, 0, 0);
+                    camera.position.set(0, 220, 180);
+                }
+            });
+
+            // Camera View Switch
+            document.getElementById('btn-camera-toggle').addEventListener('click', () => {
+                if (camera) {
+                    const currentY = camera.position.y;
+                    if (currentY > 300) {
+                        camera.position.set(0, 180, 140);
+                    } else {
+                        camera.position.set(0, 380, 280);
+                    }
+                }
+            });
+
+            // Catch Cancel
+            document.getElementById('btn-flee-catch').addEventListener('click', () => {
+                document.getElementById('catch-modal').classList.add('hidden');
+            });
+
+            // Dex Open / Close
+            document.getElementById('btn-open-dex').addEventListener('click', () => {
+                renderDexUI();
+                document.getElementById('dex-modal').classList.remove('hidden');
+            });
+
+            document.getElementById('btn-close-dex').addEventListener('click', () => {
+                document.getElementById('dex-modal').classList.add('hidden');
+            });
+
+            // Success Popup Close
+            document.getElementById('btn-close-success').addEventListener('click', () => {
+                document.getElementById('success-popup').classList.add('hidden');
+            });
+        };
+    </script>
+</body>
+</html>
