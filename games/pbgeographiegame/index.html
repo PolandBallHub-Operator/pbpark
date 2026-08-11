@@ -286,12 +286,18 @@
                 </div>
                 <div>
                     <h3 class="text-lg font-extrabold text-white">ボール図鑑 (Polandball Dex)</h3>
-                    <p class="text-xs text-slate-400">10か国 × 9表情 = 全90種コンプリートを目指そう</p>
+                    <p class="text-xs text-slate-400">10か国 × 9表情 = 全90種コンプリートを目指そう <span class="inline-block ml-2 px-2 py-0.5 rounded bg-emerald-900/60 text-emerald-300 border border-emerald-500/40 text-[10px]"><i class="fa-solid fa-database mr-1"></i>IndexedDB保存</span></p>
                 </div>
             </div>
-            <button id="btn-close-dex" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center">
-                <i class="fa-solid fa-xmark text-lg"></i>
-            </button>
+            <div class="flex items-center gap-2">
+                <button id="btn-reset-db" title="図鑑データをリセット" class="px-2.5 py-2 rounded-xl bg-red-900/40 hover:bg-red-800/60 text-red-300 text-xs border border-red-500/30 flex items-center gap-1.5 transition-all active:scale-95">
+                    <i class="fa-solid fa-trash-can"></i>
+                    <span class="hidden sm:inline">リセット</span>
+                </button>
+                <button id="btn-close-dex" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
         </div>
 
         <!-- Dex Content Grid -->
@@ -356,6 +362,107 @@
         let activeCatchTarget = null;
         let isGpsActive = false;
         let isTargetFleeing = false; // State for airplane flee sequence
+
+        const DB_NAME = 'RingDeutschlandDB';
+        const DB_VERSION = 1;
+        const STORE_NAME = 'capturedBalls';
+        let db = null;
+
+        // Initialize IndexedDB database
+        function initIndexedDB() {
+            return new Promise((resolve) => {
+                if (!window.indexedDB) {
+                    console.warn("IndexedDB is not supported in this browser environment.");
+                    resolve(null);
+                    return;
+                }
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+                request.onupgradeneeded = (event) => {
+                    const database = event.target.result;
+                    if (!database.objectStoreNames.contains(STORE_NAME)) {
+                        database.createObjectStore(STORE_NAME, { keyPath: 'id' });
+                    }
+                };
+                request.onsuccess = (event) => {
+                    db = event.target.result;
+                    resolve(db);
+                };
+                request.onerror = (event) => {
+                    console.error("IndexedDB initialization error:", event.target.error);
+                    resolve(null);
+                };
+            });
+        }
+
+        // Load saved captured balls from IndexedDB
+        async function loadDexFromIndexedDB() {
+            if (!db) await initIndexedDB();
+            if (!db) return;
+
+            return new Promise((resolve) => {
+                try {
+                    const transaction = db.transaction([STORE_NAME], 'readonly');
+                    const store = transaction.objectStore(STORE_NAME);
+                    const request = store.getAll();
+
+                    request.onsuccess = () => {
+                        const items = request.result || [];
+                        userDex = {};
+                        items.forEach(item => {
+                            if (item.id) userDex[item.id] = true;
+                        });
+                        updateDexCountUI();
+                        resolve(userDex);
+                    };
+                    request.onerror = (err) => {
+                        console.error("Error reading from IndexedDB:", err);
+                        resolve(userDex);
+                    };
+                } catch (e) {
+                    console.error("IndexedDB Transaction Error:", e);
+                    resolve(userDex);
+                }
+            });
+        }
+
+        // Save a single captured ball entry to IndexedDB
+        async function saveDexToIndexedDB(key) {
+            if (!db) await initIndexedDB();
+            if (!db) return;
+
+            try {
+                const transaction = db.transaction([STORE_NAME], 'readwrite');
+                const store = transaction.objectStore(STORE_NAME);
+                store.put({ id: key, capturedAt: new Date().toISOString() });
+            } catch (e) {
+                console.error("IndexedDB Write Error:", e);
+            }
+        }
+
+        // Clear all captured balls data from IndexedDB
+        async function clearIndexedDB() {
+            if (!db) await initIndexedDB();
+            if (!db) return;
+
+            return new Promise((resolve) => {
+                try {
+                    const transaction = db.transaction([STORE_NAME], 'readwrite');
+                    const store = transaction.objectStore(STORE_NAME);
+                    const request = store.clear();
+
+                    request.onsuccess = () => {
+                        userDex = {};
+                        updateDexCountUI();
+                        renderDexUI();
+                        showToast("図鑑の保存データをリセットしました！");
+                        resolve();
+                    };
+                } catch (e) {
+                    console.error("IndexedDB Clear Error:", e);
+                    resolve();
+                }
+            });
+        }
 
         class SoundFX {
             constructor() {
@@ -1049,6 +1156,8 @@
             userDex[key] = true;
             updateDexCountUI();
 
+            saveDexToIndexedDB(key);
+
             // Remove from 3D Map
             spawnsGroup.remove(activeCatchTarget.sprite);
             wildSpawns = wildSpawns.filter(s => s.id !== activeCatchTarget.id);
@@ -1124,6 +1233,10 @@
         }
 
         window.onload = function() {
+            initIndexedDB().then(() => {
+                loadDexFromIndexedDB();
+            });
+
             // Start Buttons
             document.getElementById('btn-start-gps').addEventListener('click', () => {
                 document.getElementById('start-screen').classList.add('hidden');
@@ -1175,6 +1288,32 @@
             document.getElementById('btn-close-dex').addEventListener('click', () => {
                 document.getElementById('dex-modal').classList.add('hidden');
             });
+
+            // Dex Reset Data Button
+            let resetConfirmState = false;
+            const btnReset = document.getElementById('btn-reset-db');
+            if (btnReset) {
+                btnReset.addEventListener('click', () => {
+                    if (!resetConfirmState) {
+                        resetConfirmState = true;
+                        btnReset.classList.remove('bg-red-900/40', 'text-red-300');
+                        btnReset.classList.add('bg-red-600', 'text-white', 'animate-pulse');
+                        btnReset.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> 本当に削除？`;
+                        setTimeout(() => {
+                            resetConfirmState = false;
+                            btnReset.classList.remove('bg-red-600', 'text-white', 'animate-pulse');
+                            btnReset.classList.add('bg-red-900/40', 'text-red-300');
+                            btnReset.innerHTML = `<i class="fa-solid fa-trash-can"></i> <span class="hidden sm:inline">リセット</span>`;
+                        }, 3000);
+                    } else {
+                        resetConfirmState = false;
+                        btnReset.classList.remove('bg-red-600', 'text-white', 'animate-pulse');
+                        btnReset.classList.add('bg-red-900/40', 'text-red-300');
+                        btnReset.innerHTML = `<i class="fa-solid fa-trash-can"></i> <span class="hidden sm:inline">リセット</span>`;
+                        clearIndexedDB();
+                    }
+                });
+            }
 
             // Success Popup Close
             document.getElementById('btn-close-success').addEventListener('click', () => {
