@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PBchess - Polandball Chess</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chess.js library for complete chess rules -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+    <!-- Tone.js for sound effects -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone.js/14.8.49/Tone.js"></script>
+    <!-- FontAwesome icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+            color: #f8fafc;
+            min-height: 100vh;
+        }
+
+        .font-pixel {
+            font-family: 'Press Start 2P', monospace;
+        }
+
+        /* Chess Board Styles */
+        .chess-board {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            grid-template-rows: repeat(8, 1fr);
+            aspect-ratio: 1 / 1;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+            border: 4px solid #334155;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .square {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            user-select: none;
+            cursor: pointer;
+            transition: background-color 0.15s ease;
+        }
+
+        .square.light {
+            background-color: #f1f5f9;
+        }
+
+        .square.dark {
+            background-color: #64748b;
+        }
+
+        .square.selected {
+            background-color: #f59e0b !important;
+        }
+
+        .square.last-move {
+            background-color: #fcd34d !important;
+            opacity: 0.85;
+        }
+
+        .square.in-check {
+            background-color: #ef4444 !important;
+            animation: pulse-red 1s infinite alternate;
+        }
+
+        @keyframes pulse-red {
+            from { background-color: #ef4444; }
+            to { background-color: #991b1b; }
+        }
+
+        .move-dot {
+            width: 28%;
+            height: 28%;
+            background-color: rgba(16, 185, 129, 0.7);
+            border-radius: 50%;
+            pointer-events: none;
+            box-shadow: 0 0 8px rgba(16, 185, 129, 0.9);
+        }
+
+        .capture-ring {
+            width: 82%;
+            height: 82%;
+            border: 4px solid rgba(239, 68, 68, 0.8);
+            border-radius: 50%;
+            position: absolute;
+            pointer-events: none;
+        }
+
+        /* Chess Piece Visuals */
+        .piece {
+            font-size: clamp(1.8rem, 4.5vw, 3.2rem);
+            line-height: 1;
+            filter: drop-shadow(0 4px 3px rgba(0,0,0,0.4));
+            transition: transform 0.15s ease, filter 0.15s ease;
+            z-index: 10;
+        }
+
+        .square:hover .piece {
+            transform: scale(1.12);
+        }
+
+        .piece.w {
+            color: #ffffff;
+            text-shadow: 0 0 2px #000, 0 2px 4px rgba(0,0,0,0.8);
+        }
+
+        .piece.b {
+            color: #1e293b;
+            text-shadow: 0 0 2px #fff, 0 2px 4px rgba(0,0,0,0.6);
+        }
+
+        /* Polandball Avatar Containers & Trimming for UK */
+        .pb-avatar-box {
+            position: relative;
+            width: 110px;
+            height: 110px;
+            border-radius: 50%;
+            overflow: hidden;
+            background: radial-gradient(circle, #334155 0%, #0f172a 100%);
+            border: 3px solid #64748b;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
+            flex-shrink: 0;
+        }
+
+        /* Critical handling for Polandball image & UK top 472 cropping */
+        .pb-ball-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: top; /* Handles UK 472x600 -> top 472x472 slice requirement */
+            transition: transform 0.3s ease;
+        }
+
+        .pb-avatar-box:hover .pb-ball-img {
+            transform: scale(1.08);
+        }
+
+        /* Speech Bubble */
+        .speech-bubble {
+            position: relative;
+            background: #1e293b;
+            border: 2px solid #475569;
+            border-radius: 12px;
+            padding: 10px 14px;
+            font-size: 0.875rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+        }
+
+        .speech-bubble::before {
+            content: '';
+            position: absolute;
+            top: 20px;
+            width: 0;
+            height: 0;
+            border: 8px solid transparent;
+        }
+
+        .speech-left::before {
+            left: -18px;
+            border-right-color: #475569;
+        }
+
+        .speech-right::before {
+            right: -18px;
+            border-left-color: #475569;
+        }
+
+        /* Eval Bar */
+        .eval-bar-container {
+            width: 12px;
+            height: 100%;
+            background: #334155;
+            border-radius: 6px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .eval-bar-fill {
+            width: 100%;
+            background: #e2e8f0;
+            transition: height 0.4s ease;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen">
+    <!-- Header Navbar -->
+    <header class="bg-slate-900/80 backdrop-blur border-b border-slate-800 sticky top-0 z-50 px-4 py-3">
+        <div class="max-w-6xl mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="bg-amber-500 text-slate-950 p-2 rounded-lg text-xl font-bold">
+                    <i class="fa-solid fa-chess"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-extrabold tracking-wide text-amber-400 font-pixel">PBchess</h1>
+                    <p class="text-xs text-slate-400">Polandball 1v1 Chess Championship</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <button id="btn-sound" onclick="toggleSound()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-2 rounded-lg text-sm border border-slate-700 transition flex items-center gap-2">
+                    <i id="sound-icon" class="fa-solid fa-volume-high text-amber-400"></i>
+                    <span class="hidden sm:inline">Sound</span>
+                </button>
+                <button onclick="openSettingsModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-lg transition flex items-center gap-2">
+                    <i class="fa-solid fa-sliders"></i>
+                    <span>対戦相手選択 / 設定</span>
+                </button>
+                <button onclick="resetGame()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-2 rounded-lg text-sm border border-slate-700 transition" title="リセット">
+                    <i class="fa-solid fa-rotate-right"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Game Container -->
+    <main class="flex-1 max-w-6xl w-full mx-auto p-3 sm:p-6 flex flex-col gap-6">
+        
+        <!-- Players Info Banner (Mobile / Compact View) -->
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+            
+            <!-- AI / Player 2 Panel (Black) -->
+            <div class="md:col-span-4 bg-slate-800/80 border border-slate-700/80 rounded-2xl p-4 flex items-center gap-4 relative shadow-xl">
+                <div class="pb-avatar-box ring-2 ring-rose-500/50">
+                    <img id="black-avatar" src="" alt="Black Ball" class="pb-ball-img" onerror="this.src='https://placehold.co/150x150/333/fff?text=PB'">
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs font-bold px-2 py-0.5 rounded bg-rose-950 text-rose-300 border border-rose-800/50">BLACK</span>
+                        <h2 id="black-name" class="font-bold text-slate-100 truncate">Germany</h2>
+                    </div>
+                    <p id="black-difficulty" class="text-xs text-amber-400 mt-0.5 font-medium">★6 (最強)</p>
+                    <!-- Speech Bubble -->
+                    <div class="speech-bubble speech-left mt-2 text-xs text-slate-300 italic">
+                        "<span id="black-speech">Guten Tag! Let us play chess.</span>"
+                    </div>
+                </div>
+            </div>
+
+            <!-- Match Status & Eval Center -->
+            <div class="md:col-span-4 flex flex-col items-center justify-center bg-slate-900/60 rounded-xl p-3 border border-slate-800">
+                <div id="turn-badge" class="text-xs font-pixel px-3 py-1 rounded-full bg-amber-500 text-slate-950 font-bold mb-2 shadow">
+                    WHITE'S TURN
+                </div>
+                <div id="game-status-text" class="text-sm font-semibold text-slate-200 text-center">
+                    対局中...
+                </div>
+                <div class="w-full bg-slate-800 h-2 rounded-full mt-3 overflow-hidden border border-slate-700 flex">
+                    <div id="eval-bar-white" class="bg-slate-200 h-full transition-all duration-300" style="width: 50%;"></div>
+                    <div id="eval-bar-black" class="bg-slate-900 h-full transition-all duration-300" style="width: 50%;"></div>
+                </div>
+                <div class="flex justify-between w-full text-[10px] text-slate-400 mt-1 px-1">
+                    <span>WHITE (<span id="eval-score-w">50%</span>)</span>
+                    <span>BLACK (<span id="eval-score-b">50%</span>)</span>
+                </div>
+            </div>
+
+            <!-- Player 1 Panel (White) -->
+            <div class="md:col-span-4 bg-slate-800/80 border border-slate-700/80 rounded-2xl p-4 flex items-center justify-between gap-4 relative shadow-xl">
+                <div class="flex-1 min-w-0 text-right">
+                    <div class="flex items-center justify-end gap-2">
+                        <h2 id="white-name" class="font-bold text-slate-100 truncate">Japan</h2>
+                        <span class="text-xs font-bold px-2 py-0.5 rounded bg-slate-200 text-slate-900">WHITE</span>
+                    </div>
+                    <p id="white-difficulty" class="text-xs text-slate-400 mt-0.5 font-medium">Player 1</p>
+                    <div class="speech-bubble speech-right mt-2 text-xs text-slate-300 italic">
+                        "<span id="white-speech">よろしくおねがいします！</span>"
+                    </div>
+                </div>
+                <div class="pb-avatar-box ring-2 ring-slate-400/50">
+                    <img id="white-avatar" src="" alt="White Ball" class="pb-ball-img" onerror="this.src='https://placehold.co/150x150/333/fff?text=PB'">
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Center Arena Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            
+            <!-- Captured Pieces Left Sidebar -->
+            <div class="hidden lg:flex lg:col-span-2 bg-slate-800/50 border border-slate-800 rounded-xl p-3 flex-col gap-4">
+                <h3 class="text-xs font-bold text-slate-400 tracking-wider uppercase border-b border-slate-700 pb-2">獲った駒 (Captured)</h3>
+                <div>
+                    <span class="text-xs text-slate-400 block mb-1">Black's Takes:</span>
+                    <div id="captured-by-black" class="flex flex-wrap gap-1 min-h-[30px] text-slate-200 text-lg"></div>
+                </div>
+                <div>
+                    <span class="text-xs text-slate-400 block mb-1">White's Takes:</span>
+                    <div id="captured-by-white" class="flex flex-wrap gap-1 min-h-[30px] text-slate-200 text-lg"></div>
+                </div>
+            </div>
+
+            <!-- Chess Board Center (8 Cols) -->
+            <div class="lg:col-span-7 flex justify-center">
+                <div class="w-full max-w-[540px] aspect-square relative">
+                    <!-- Thinking Overlay Indicator -->
+                    <div id="thinking-indicator" class="hidden absolute inset-0 bg-slate-950/40 backdrop-blur-[2px] z-30 rounded-lg flex flex-col items-center justify-center gap-2">
+                        <div class="animate-spin text-amber-400 text-4xl"><i class="fa-solid fa-dharmachakra"></i></div>
+                        <span class="text-xs font-pixel text-amber-300 tracking-widest bg-slate-900/90 px-3 py-1 rounded border border-amber-500/40">THINKING...</span>
+                    </div>
+
+                    <!-- Chess Board Grid -->
+                    <div id="chess-board" class="chess-board w-full h-full"></div>
+                </div>
+            </div>
+
+            <!-- Move History & Controls Right Sidebar -->
+            <div class="lg:col-span-3 bg-slate-800/60 border border-slate-700/60 rounded-xl p-4 flex flex-col h-[540px] shadow-xl">
+                <div class="flex items-center justify-between border-b border-slate-700 pb-2 mb-3">
+                    <h3 class="font-bold text-slate-200 text-sm flex items-center gap-2">
+                        <i class="fa-solid fa-list-ol text-amber-400"></i>
+                        棋譜 (Move History)
+                    </h3>
+                    <span id="move-count-badge" class="text-[10px] bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full">0 moves</span>
+                </div>
+
+                <div id="move-history-container" class="flex-1 overflow-y-auto space-y-1 pr-1 text-xs font-mono">
+                    <!-- Dynamically populated move logs -->
+                </div>
+
+                <!-- Action Controls -->
+                <div class="pt-3 border-t border-slate-700 flex flex-col gap-2 mt-2">
+                    <button onclick="undoMove()" class="w-full bg-slate-700 hover:bg-slate-600 text-slate-200 py-2 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-rotate-left"></i>
+                        1手待った (Undo)
+                    </button>
+                    <button onclick="openSettingsModal()" class="w-full bg-indigo-600/80 hover:bg-indigo-600 text-white py-2 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-users text-indigo-200"></i>
+                        対戦国を変更
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Match Setup / Settings Modal -->
+    <div id="settings-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-2xl w-full p-6 shadow-2xl flex flex-col gap-6 max-h-[90vh] overflow-y-auto">
+            
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div class="flex items-center gap-3">
+                    <i class="fa-solid fa-chess-board text-2xl text-amber-400"></i>
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-100">PBchess 対戦設定</h2>
+                        <p class="text-xs text-slate-400">ポーランドボールを選択して対局をスタート！</p>
+                    </div>
+                </div>
+                <button onclick="closeSettingsModal()" class="text-slate-400 hover:text-white text-xl">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Game Mode Switcher -->
+            <div class="space-y-2">
+                <label class="text-xs font-bold text-slate-300 uppercase tracking-wider">対戦モード</label>
+                <div class="grid grid-cols-2 gap-3">
+                    <button id="mode-pve-btn" onclick="setGameMode('pve')" class="p-3 rounded-xl border border-indigo-500 bg-indigo-950/50 text-indigo-200 font-semibold text-sm flex items-center justify-center gap-2 transition">
+                        <i class="fa-solid fa-robot text-indigo-400"></i> 1 Player vs AI
+                    </button>
+                    <button id="mode-pvp-btn" onclick="setGameMode('pvp')" class="p-3 rounded-xl border border-slate-700 bg-slate-800 text-slate-400 font-semibold text-sm flex items-center justify-center gap-2 transition">
+                        <i class="fa-solid fa-user-group"></i> 2 Players (Local)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Player Country Selection Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                
+                <!-- White Player Select -->
+                <div class="space-y-2">
+                    <label class="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-2">
+                        <i class="fa-solid fa-circle text-[10px]"></i> 白手番 (Player 1)
+                    </label>
+                    <select id="select-white-country" onchange="previewCountrySelect()" class="w-full bg-slate-800 border border-slate-700 text-slate-200 rounded-xl p-3 text-sm focus:outline-none focus:border-amber-500">
+                        <!-- Options generated dynamically -->
+                    </select>
+                    <div class="bg-slate-800/50 p-3 rounded-xl border border-slate-800 flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-full overflow-hidden bg-slate-950 flex-shrink-0">
+                            <img id="preview-white-img" src="" class="pb-ball-img">
+                        </div>
+                        <p id="preview-white-desc" class="text-xs text-slate-300 line-clamp-2"></p>
+                    </div>
+                </div>
+
+                <!-- Black Player Select -->
+                <div class="space-y-2">
+                    <label class="text-xs font-bold text-rose-400 uppercase tracking-wider flex items-center gap-2">
+                        <i class="fa-solid fa-circle text-[10px]"></i> 黒手番 (AI / Player 2)
+                    </label>
+                    <select id="select-black-country" onchange="previewCountrySelect()" class="w-full bg-slate-800 border border-slate-700 text-slate-200 rounded-xl p-3 text-sm focus:outline-none focus:border-rose-500">
+                        <!-- Options generated dynamically -->
+                    </select>
+                    <div class="bg-slate-800/50 p-3 rounded-xl border border-slate-800 flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-full overflow-hidden bg-slate-950 flex-shrink-0">
+                            <img id="preview-black-img" src="" class="pb-ball-img">
+                        </div>
+                        <p id="preview-black-desc" class="text-xs text-slate-300 line-clamp-2"></p>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Start Button -->
+            <button onclick="applySettingsAndStart()" class="w-full bg-gradient-to-r from-amber-500 to-indigo-600 hover:from-amber-400 hover:to-indigo-500 text-slate-950 font-extrabold text-base py-3.5 rounded-xl shadow-lg transition flex items-center justify-center gap-2">
+                <i class="fa-solid fa-play"></i>
+                対局を開始する
+            </button>
+
+        </div>
+    </div>
+
+    <!-- Promotion Dialog Modal -->
+    <div id="promotion-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-amber-500/50 rounded-2xl p-6 max-w-sm w-full text-center shadow-2xl">
+            <h3 class="text-lg font-bold text-amber-400 mb-2">ポーンのプロモーション</h3>
+            <p class="text-xs text-slate-300 mb-4">昇格させる駒を選択してください</p>
+            <div class="grid grid-cols-4 gap-2 text-3xl">
+                <button onclick="selectPromotion('q')" class="bg-slate-800 hover:bg-amber-500 hover:text-slate-950 p-3 rounded-xl border border-slate-700 transition">♛</button>
+                <button onclick="selectPromotion('r')" class="bg-slate-800 hover:bg-amber-500 hover:text-slate-950 p-3 rounded-xl border border-slate-700 transition">♜</button>
+                <button onclick="selectPromotion('b')" class="bg-slate-800 hover:bg-amber-500 hover:text-slate-950 p-3 rounded-xl border border-slate-700 transition">♝</button>
+                <button onclick="selectPromotion('n')" class="bg-slate-800 hover:bg-amber-500 hover:text-slate-950 p-3 rounded-xl border border-slate-700 transition">♞</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Polandball Country Database
+        // Strict adherence to required country keys & UK 'england472x600'
+        const COUNTRIES = {
+            germany: {
+                name: 'ドイツ (Germany)',
+                path: 'germany',
+                level: 6,
+                difficultyText: '★6 (最強 / Reich Precision)',
+                quote: 'Guten Tag. Absoluter Sieg durch deutsche Präzision.',
+                aiDepth: 3,
+                style: 'tactical'
+            },
+            russia: {
+                name: 'ロシア (Russia)',
+                path: 'russia',
+                level: 5,
+                difficultyText: '★5 (上級)',
+                quote: 'Cyka Blyat! Iron fortress defense activated.',
+                aiDepth: 3,
+                style: 'defensive'
+            },
+            usa: {
+                name: 'アメリカ (USA)',
+                path: 'usa',
+                level: 4,
+                difficultyText: '★4 (中上級)',
+                quote: 'Time for some freedom chess tactics, baby!',
+                aiDepth: 2,
+                style: 'aggressive'
+            },
+            china: {
+                name: '中国 (China)',
+                path: 'china',
+                level: 4,
+                difficultyText: '★4 (中上級)',
+                quote: 'Strategic expansion on every single rank.',
+                aiDepth: 2,
+                style: 'positional'
+            },
+            japan: {
+                name: '日本 (Japan)',
+                path: 'japan',
+                level: 3,
+                difficultyText: '★3 (中級)',
+                quote: '将棋の心でチェスも指します！よろしく！',
+                aiDepth: 2,
+                style: 'balanced'
+            },
+            france: {
+                name: 'フランス (France)',
+                path: 'france',
+                level: 3,
+                difficultyText: '★3 (中級)',
+                quote: 'En passant is mandatory! Sacré bleu!',
+                aiDepth: 2,
+                style: 'tricky'
+            },
+            england472x600: {
+                name: 'イギリス (UK)',
+                path: 'england472x600',
+                level: 3,
+                difficultyText: '★3 (中級)',
+                quote: 'Jolly good match, old chap. Fancy some tea?',
+                aiDepth: 2,
+                style: 'classic'
+            },
+            italy: {
+                name: 'イタリア (Italy)',
+                path: 'italy',
+                level: 2,
+                difficultyText: '★2 (初級)',
+                quote: 'Mamma mia! Is my King left wide open?',
+                aiDepth: 1,
+                style: 'careless'
+            },
+            sierraleone: {
+                name: 'シエラレオネ (Sierra Leone)',
+                path: 'sierraleone',
+                level: 2,
+                difficultyText: '★2 (初級)',
+                quote: 'Let us enjoy a peaceful and friendly game!',
+                aiDepth: 1,
+                style: 'casual'
+            },
+            poland: {
+                name: 'ポーランド (Poland)',
+                path: 'poland',
+                level: 1,
+                difficultyText: '★1 (超初心者)',
+                quote: 'Poland can into space? ...I mean Chess?!',
+                aiDepth: 1,
+                style: 'blunder'
+            }
+        };
+
+        // Standard Expressions List
+        const EXPRESSIONS = [
+            'anger', 'dissatisfaction', 'happy', 'itome', 'lol', 'normal', 'plot', 'sample', 'smile', 'surprise'
+        ];
+
+        // Piece Unicode Mapping
+        const PIECE_UNICODE = {
+            'p': '♟', 'r': '♜', 'n': '♞', 'b': '♝', 'q': '♛', 'k': '♚',
+            'P': '♙', 'R': '♖', 'N': '♘', 'B': '♗', 'Q': '♕', 'K': '♔'
+        };
+
+        // Global State Variables
+        let game = new Chess();
+        let selectedSquare = null;
+        let possibleMoves = [];
+        let pendingPromotionMove = null;
+        let soundEnabled = true;
+
+        let gameMode = 'pve'; // 'pve' or 'pvp'
+        let whiteCountryKey = 'japan';
+        let blackCountryKey = 'germany';
+
+        let whiteExpression = 'normal';
+        let blackExpression = 'normal';
+
+        // Tone.js Sound Synthesizers
+        let synth, noiseSynth;
+
+        // Get URL for Polandball image (Strict adherence to requirement)
+        function getBallImageUrl(countryKey, expression = 'normal') {
+            const country = COUNTRIES[countryKey] || COUNTRIES['poland'];
+            const exp = EXPRESSIONS.includes(expression) ? expression : 'normal';
+            return `https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/${country.path}/${exp}.png`;
+        }
+
+        function initAudio() {
+            try {
+                synth = new Tone.PolySynth(Tone.Synth, {
+                    oscillator: { type: "triangle" },
+                    envelope: { attack: 0.005, decay: 0.1, sustain: 0, release: 0.1 }
+                }).toDestination();
+
+                noiseSynth = new Tone.NoiseSynth({
+                    noise: { type: 'pink' },
+                    envelope: { attack: 0.001, decay: 0.05, sustain: 0 }
+                }).toDestination();
+            } catch(e) {
+                console.log("Audio init deferred or suppressed", e);
+            }
+        }
+
+        function playSound(type) {
+            if (!soundEnabled) return;
+            try {
+                if (Tone.context.state !== 'running') {
+                    Tone.start();
+                }
+                if (type === 'move') {
+                    synth.triggerAttackRelease("C4", "16n");
+                } else if (type === 'capture') {
+                    synth.triggerAttackRelease("G3", "16n");
+                    noiseSynth.triggerAttackRelease("16n");
+                } else if (type === 'check') {
+                    synth.triggerAttackRelease(["E5", "G5"], "8n");
+                } else if (type === 'win') {
+                    synth.triggerAttackRelease(["C4", "E4", "G4", "C5"], "4n");
+                } else if (type === 'lose') {
+                    synth.triggerAttackRelease(["C3", "D#3", "G3"], "2n");
+                }
+            } catch(e) {}
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            const icon = document.getElementById('sound-icon');
+            if (soundEnabled) {
+                icon.className = "fa-solid fa-volume-high text-amber-400";
+            } else {
+                icon.className = "fa-solid fa-volume-xmark text-slate-500";
+            }
+        }
+
+        function renderBoard() {
+            const boardEl = document.getElementById('chess-board');
+            boardEl.innerHTML = '';
+
+            const board = game.board();
+            const history = game.history({ verbose: true });
+            const lastMove = history.length > 0 ? history[history.length - 1] : null;
+            const inCheck = game.in_check();
+            const turn = game.turn();
+
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    const squareSquare = String.fromCharCode(97 + c) + (8 - r);
+                    const isLight = (r + c) % 2 === 0;
+                    const piece = board[r][c];
+
+                    const sqEl = document.createElement('div');
+                    sqEl.className = `square ${isLight ? 'light' : 'dark'}`;
+                    sqEl.dataset.square = squareSquare;
+
+                    // Last move highlight
+                    if (lastMove && (lastMove.from === squareSquare || lastMove.to === squareSquare)) {
+                        sqEl.classList.add('last-move');
+                    }
+
+                    // Selection highlight
+                    if (selectedSquare === squareSquare) {
+                        sqEl.classList.add('selected');
+                    }
+
+                    // Check highlight for King
+                    if (inCheck && piece && piece.type === 'k' && piece.color === turn) {
+                        sqEl.classList.add('in-check');
+                    }
+
+                    // Move dots / capture rings
+                    const isPossibleMove = possibleMoves.find(m => m.to === squareSquare);
+                    if (isPossibleMove) {
+                        if (piece) {
+                            const ring = document.createElement('div');
+                            ring.className = 'capture-ring';
+                            sqEl.appendChild(ring);
+                        } else {
+                            const dot = document.createElement('div');
+                            dot.className = 'move-dot';
+                            sqEl.appendChild(dot);
+                        }
+                    }
+
+                    // Chess Piece
+                    if (piece) {
+                        const pieceEl = document.createElement('div');
+                        pieceEl.className = `piece ${piece.color}`;
+                        // Use uniform Unicode pieces
+                        pieceEl.innerHTML = PIECE_UNICODE[piece.color === 'w' ? piece.type.toUpperCase() : piece.type];
+                        sqEl.appendChild(pieceEl);
+                    }
+
+                    sqEl.addEventListener('click', () => handleSquareClick(squareSquare));
+                    boardEl.appendChild(sqEl);
+                }
+            }
+
+            updateUIInfo();
+        }
+
+        function handleSquareClick(square) {
+            if (game.game_over()) return;
+
+            // If it's PVE and AI's turn, ignore user clicks
+            if (gameMode === 'pve' && game.turn() === 'b') return;
+
+            const piece = game.get(square);
+
+            // If a square is already selected
+            if (selectedSquare) {
+                // If clicking on same square -> deselect
+                if (selectedSquare === square) {
+                    selectedSquare = null;
+                    possibleMoves = [];
+                    renderBoard();
+                    return;
+                }
+
+                // Check if target square is a valid move
+                const moveObj = possibleMoves.find(m => m.to === square);
+                if (moveObj) {
+                    // Check for Pawn Promotion
+                    if (moveObj.flags.includes('p')) {
+                        pendingPromotionMove = moveObj;
+                        document.getElementById('promotion-modal').classList.remove('hidden');
+                        return;
+                    }
+
+                    makeMove({ from: selectedSquare, to: square });
+                    selectedSquare = null;
+                    possibleMoves = [];
+                    return;
+                }
+            }
+
+            // Select a piece if it belongs to current player
+            if (piece && piece.color === game.turn()) {
+                selectedSquare = square;
+                possibleMoves = game.moves({ square: square, verbose: true });
+                renderBoard();
+            } else {
+                selectedSquare = null;
+                possibleMoves = [];
+                renderBoard();
+            }
+        }
+
+        function makeMove(moveConfig) {
+            const isCapture = game.get(moveConfig.to) !== null;
+            const result = game.move(moveConfig);
+
+            if (result) {
+                if (isCapture) {
+                    playSound('capture');
+                } else if (game.in_check()) {
+                    playSound('check');
+                } else {
+                    playSound('move');
+                }
+
+                // Expression & Chat updates based on game state
+                updateAvatarsAndExpressions(result);
+
+                renderBoard();
+
+                // Check game over
+                if (game.game_over()) {
+                    handleGameOver();
+                    return;
+                }
+
+                // If PVE and Black's turn, trigger AI think
+                if (gameMode === 'pve' && game.turn() === 'b') {
+                    triggerAIMove();
+                }
+            }
+        }
+
+        function selectPromotion(pieceType) {
+            document.getElementById('promotion-modal').classList.add('hidden');
+            if (pendingPromotionMove) {
+                makeMove({
+                    from: pendingPromotionMove.from,
+                    to: pendingPromotionMove.to,
+                    promotion: pieceType
+                });
+                pendingPromotionMove = null;
+            }
+        }
+
+        function triggerAIMove() {
+            document.getElementById('thinking-indicator').classList.remove('hidden');
+            
+            // Set thinking expression for AI
+            blackExpression = 'itome';
+            updateAvatarImages();
+
+            // AI delay for realism
+            const delay = Math.min(Math.max(300, COUNTRIES[blackCountryKey].level * 200), 1000);
+
+            setTimeout(() => {
+                const bestMove = computeAIMove(blackCountryKey);
+                document.getElementById('thinking-indicator').classList.add('hidden');
+
+                if (bestMove) {
+                    makeMove(bestMove);
+                }
+            }, delay);
+        }
+
+        // Evaluation functions & Minimax AI
+        function computeAIMove(countryKey) {
+            const country = COUNTRIES[countryKey] || COUNTRIES['germany'];
+            const level = country.level;
+            const validMoves = game.moves({ verbose: true });
+
+            if (validMoves.length === 0) return null;
+
+            // Level 1 (Poland): Highly chaotic / random with basic capture priority
+            if (level === 1) {
+                if (Math.random() < 0.7) {
+                    return validMoves[Math.floor(Math.random() * validMoves.length)];
+                }
+            }
+
+            // Level 2 (Italy / Sierra Leone): Depth 1
+            if (level <= 2) {
+                return getBestMoveMinimax(1);
+            }
+
+            // Level 3 & 4 (Japan, France, UK, USA, China): Depth 2
+            if (level <= 4) {
+                return getBestMoveMinimax(2);
+            }
+
+            // Level 5 & 6 (Russia, Germany): Depth 3 + Advanced evaluation for Germany
+            return getBestMoveMinimax(countryKey === 'germany' ? 3 : 3);
+        }
+
+        // Piece Values for Minimax Evaluation
+        const PIECE_VALUES = { p: 10, n: 30, b: 32, r: 50, q: 90, k: 900 };
+
+        // Position tables (PST) to encourage central control & development
+        const PAWN_PST = [
+            0,  0,  0,  0,  0,  0,  0,  0,
+            50, 50, 50, 50, 50, 50, 50, 50,
+            10, 10, 20, 30, 30, 20, 10, 10,
+             5,  5, 10, 25, 25, 10,  5,  5,
+             0,  0,  0, 20, 20,  0,  0,  0,
+             5, -5,-10,  0,  0,-10, -5,  5,
+             5, 10, 10,-20,-20, 10, 10,  5,
+             0,  0,  0,  0,  0,  0,  0,  0
+        ];
+
+        const KNIGHT_PST = [
+            -50,-40,-30,-30,-30,-30,-40,-50,
+            -40,-20,  0,  0,  0,  0,-20,-40,
+            -30,  0, 10, 15, 15, 10,  0,-30,
+            -30,  5, 15, 20, 20, 15,  5,-30,
+            -30,  0, 15, 20, 20, 15,  0,-30,
+            -30,  5, 10, 15, 15, 10,  5,-30,
+            -40,-20,  0,  5,  5,  0,-20,-40,
+            -50,-40,-30,-30,-30,-30,-40,-50
+        ];
+
+        function evaluateBoard() {
+            let totalEval = 0;
+            const board = game.board();
+
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    const piece = board[r][c];
+                    if (piece) {
+                        const val = PIECE_VALUES[piece.type];
+                        let pstVal = 0;
+                        const sqIndex = r * 8 + c;
+
+                        if (piece.type === 'p') pstVal = PAWN_PST[piece.color === 'w' ? sqIndex : 63 - sqIndex];
+                        if (piece.type === 'n') pstVal = KNIGHT_PST[sqIndex];
+
+                        const score = val + (pstVal * 0.1);
+                        totalEval += (piece.color === 'w' ? score : -score);
+                    }
+                }
+            }
+            return totalEval;
+        }
+
+        function getBestMoveMinimax(depth) {
+            let moves = game.moves({ verbose: true });
+            if (moves.length === 0) return null;
+
+            // Move ordering: Prioritize captures to optimize alpha-beta pruning
+            moves.sort((a, b) => (b.captured ? 1 : 0) - (a.captured ? 1 : 0));
+
+            let bestMove = null;
+            let bestValue = game.turn() === 'w' ? -Infinity : Infinity;
+            let alpha = -Infinity;
+            let beta = Infinity;
+
+            for (let i = 0; i < moves.length; i++) {
+                const move = moves[i];
+                game.move(move);
+                let value = minimax(depth - 1, alpha, beta, game.turn() === 'w');
+                game.undo();
+
+                if (game.turn() === 'w') {
+                    if (value > bestValue) {
+                        bestValue = value;
+                        bestMove = move;
+                    }
+                    alpha = Math.max(alpha, bestValue);
+                } else {
+                    if (value < bestValue) {
+                        bestValue = value;
+                        bestMove = move;
+                    }
+                    beta = Math.min(beta, bestValue);
+                }
+
+                if (beta <= alpha) break;
+            }
+
+            // Fallback
+            return bestMove || moves[Math.floor(Math.random() * moves.length)];
+        }
+
+        function minimax(depth, alpha, beta, isMaximizing) {
+            if (depth === 0 || game.game_over()) {
+                return evaluateBoard();
+            }
+
+            const moves = game.moves({ verbose: true });
+
+            if (isMaximizing) {
+                let maxEval = -Infinity;
+                for (let i = 0; i < moves.length; i++) {
+                    game.move(moves[i]);
+                    let evaluation = minimax(depth - 1, alpha, beta, false);
+                    game.undo();
+                    maxEval = Math.max(maxEval, evaluation);
+                    alpha = Math.max(alpha, evaluation);
+                    if (beta <= alpha) break;
+                }
+                return maxEval;
+            } else {
+                let minEval = Infinity;
+                for (let i = 0; i < moves.length; i++) {
+                    game.move(moves[i]);
+                    let evaluation = minimax(depth - 1, alpha, beta, true);
+                    game.undo();
+                    minEval = Math.min(minEval, evaluation);
+                    beta = Math.min(beta, evaluation);
+                    if (beta <= alpha) break;
+                }
+                return minEval;
+            }
+        }
+
+        function updateAvatarsAndExpressions(lastMove) {
+            const evalScore = evaluateBoard();
+            const inCheck = game.in_check();
+            const turn = game.turn();
+
+            // Default
+            whiteExpression = 'normal';
+            blackExpression = 'normal';
+
+            // Check reaction
+            if (inCheck) {
+                if (turn === 'w') {
+                    whiteExpression = 'surprise';
+                    blackExpression = 'plot';
+                    setSpeech('white', '王手！？落ち着かねば...');
+                    setSpeech('black', 'Check! Complete calculation.');
+                } else {
+                    blackExpression = 'surprise';
+                    whiteExpression = 'plot';
+                    setSpeech('black', 'Nani?! A check on me?');
+                    setSpeech('white', '王手！ここから畳み掛けます！');
+                }
+                return;
+            }
+
+            // Capture reaction
+            if (lastMove && lastMove.captured) {
+                if (lastMove.color === 'w') {
+                    whiteExpression = 'smile';
+                    blackExpression = 'dissatisfaction';
+                    setSpeech('white', '駒をゲット！いい流れです。');
+                    setSpeech('black', 'Mein Gott... a minor loss.');
+                } else {
+                    blackExpression = 'lol';
+                    whiteExpression = 'anger';
+                    setSpeech('black', 'Ha! Tactical piece capture!');
+                    setSpeech('white', 'くっ... 駒を取られた！');
+                }
+                return;
+            }
+
+            // Eval balance reaction
+            if (evalScore > 30) {
+                whiteExpression = 'happy';
+                blackExpression = 'dissatisfaction';
+            } else if (evalScore < -30) {
+                blackExpression = 'smile';
+                whiteExpression = 'dissatisfaction';
+            }
+
+            updateAvatarImages();
+        }
+
+        function setSpeech(color, text) {
+            document.getElementById(`${color}-speech`).innerText = text;
+        }
+
+        function updateAvatarImages() {
+            document.getElementById('white-avatar').src = getBallImageUrl(whiteCountryKey, whiteExpression);
+            document.getElementById('black-avatar').src = getBallImageUrl(blackCountryKey, blackExpression);
+        }
+
+        function updateUIInfo() {
+            // Turn Badge
+            const turnBadge = document.getElementById('turn-badge');
+            if (game.turn() === 'w') {
+                turnBadge.className = "text-xs font-pixel px-3 py-1 rounded-full bg-slate-200 text-slate-950 font-bold mb-2 shadow";
+                turnBadge.innerText = "WHITE'S TURN";
+            } else {
+                turnBadge.className = "text-xs font-pixel px-3 py-1 rounded-full bg-rose-600 text-white font-bold mb-2 shadow";
+                turnBadge.innerText = "BLACK'S TURN";
+            }
+
+            // Eval Bar
+            const currentEval = evaluateBoard();
+            // Map eval score (-100 to +100) to percentage (0 to 100%)
+            let whitePct = Math.min(Math.max(50 + (currentEval / 2), 5), 95);
+            let blackPct = 100 - whitePct;
+
+            document.getElementById('eval-bar-white').style.width = `${whitePct}%`;
+            document.getElementById('eval-bar-black').style.width = `${blackPct}%`;
+            document.getElementById('eval-score-w').innerText = `${Math.round(whitePct)}%`;
+            document.getElementById('eval-score-b').innerText = `${Math.round(blackPct)}%`;
+
+            // Captured Pieces List
+            renderCapturedPieces();
+
+            // Move History List
+            renderMoveHistory();
+        }
+
+        function renderCapturedPieces() {
+            const history = game.history({ verbose: true });
+            const capturedByWhite = [];
+            const capturedByBlack = [];
+
+            history.forEach(m => {
+                if (m.captured) {
+                    const pieceSym = PIECE_UNICODE[m.color === 'w' ? m.captured.toUpperCase() : m.captured];
+                    if (m.color === 'w') {
+                        capturedByWhite.push(pieceSym);
+                    } else {
+                        capturedByBlack.push(pieceSym);
+                    }
+                }
+            });
+
+            document.getElementById('captured-by-white').innerText = capturedByWhite.join(' ') || '-';
+            document.getElementById('captured-by-black').innerText = capturedByBlack.join(' ') || '-';
+        }
+
+        function renderMoveHistory() {
+            const history = game.history();
+            const container = document.getElementById('move-history-container');
+            container.innerHTML = '';
+
+            document.getElementById('move-count-badge').innerText = `${history.length} moves`;
+
+            for (let i = 0; i < history.length; i += 2) {
+                const moveNum = Math.floor(i / 2) + 1;
+                const whiteMove = history[i] || '';
+                const blackMove = history[i + 1] || '';
+
+                const row = document.createElement('div');
+                row.className = "flex items-center justify-between py-1 px-2 rounded bg-slate-900/40 text-slate-300 border-b border-slate-800/40";
+                row.innerHTML = `
+                    <span class="text-slate-500 w-8">${moveNum}.</span>
+                    <span class="flex-1 font-semibold text-amber-300">${whiteMove}</span>
+                    <span class="flex-1 font-semibold text-rose-300 text-right">${blackMove}</span>
+                `;
+                container.appendChild(row);
+            }
+
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function handleGameOver() {
+            let statusText = "";
+            if (game.in_checkmate()) {
+                const winner = game.turn() === 'w' ? 'Black' : 'White';
+                statusText = `チェックメイト！ ${winner} の勝利！`;
+                
+                if (winner === 'White') {
+                    whiteExpression = 'happy';
+                    blackExpression = 'anger';
+                    setSpeech('white', '勝利！見事な対局でした！');
+                    setSpeech('black', 'Unmöglich! Defeat is unacceptable!');
+                    playSound('win');
+                } else {
+                    blackExpression = 'lol';
+                    whiteExpression = 'anger';
+                    setSpeech('black', 'Checkmate! German precision prevails!');
+                    setSpeech('white', '負けました... 次こそは！');
+                    playSound('lose');
+                }
+            } else if (game.in_draw()) {
+                statusText = "引き分け (Draw)!";
+                whiteExpression = 'normal';
+                blackExpression = 'normal';
+                setSpeech('white', 'いい勝負でした（引き分け）。');
+                setSpeech('black', 'A balanced deadlock.');
+            }
+
+            document.getElementById('game-status-text').innerText = statusText;
+            updateAvatarImages();
+        }
+
+        function undoMove() {
+            if (game.history().length === 0) return;
+
+            // In PVE, undo 2 moves (Player + AI)
+            if (gameMode === 'pve') {
+                game.undo();
+                game.undo();
+            } else {
+                game.undo();
+            }
+
+            selectedSquare = null;
+            possibleMoves = [];
+            document.getElementById('game-status-text').innerText = "対局中...";
+            renderBoard();
+        }
+
+        function resetGame() {
+            game.reset();
+            selectedSquare = null;
+            possibleMoves = [];
+            whiteExpression = 'normal';
+            blackExpression = 'normal';
+
+            const whiteCountry = COUNTRIES[whiteCountryKey];
+            const blackCountry = COUNTRIES[blackCountryKey];
+
+            setSpeech('white', whiteCountry.quote);
+            setSpeech('black', blackCountry.quote);
+
+            document.getElementById('game-status-text').innerText = "対局中...";
+            updateAvatarImages();
+            renderBoard();
+        }
+
+        function populateCountrySelects() {
+            const selectW = document.getElementById('select-white-country');
+            const selectB = document.getElementById('select-black-country');
+
+            selectW.innerHTML = '';
+            selectB.innerHTML = '';
+
+            Object.keys(COUNTRIES).forEach(key => {
+                const c = COUNTRIES[key];
+                const optW = document.createElement('option');
+                optW.value = key;
+                optW.innerText = `${c.name} [${c.difficultyText}]`;
+                selectW.appendChild(optW);
+
+                const optB = document.createElement('option');
+                optB.value = key;
+                optB.innerText = `${c.name} [${c.difficultyText}]`;
+                selectB.appendChild(optB);
+            });
+
+            selectW.value = whiteCountryKey;
+            selectB.value = blackCountryKey;
+
+            previewCountrySelect();
+        }
+
+        function previewCountrySelect() {
+            const wKey = document.getElementById('select-white-country').value;
+            const bKey = document.getElementById('select-black-country').value;
+
+            document.getElementById('preview-white-img').src = getBallImageUrl(wKey, 'normal');
+            document.getElementById('preview-white-desc').innerText = COUNTRIES[wKey].quote;
+
+            document.getElementById('preview-black-img').src = getBallImageUrl(bKey, 'normal');
+            document.getElementById('preview-black-desc').innerText = COUNTRIES[bKey].quote;
+        }
+
+        function setGameMode(mode) {
+            gameMode = mode;
+            const pveBtn = document.getElementById('mode-pve-btn');
+            const pvpBtn = document.getElementById('mode-pvp-btn');
+
+            if (mode === 'pve') {
+                pveBtn.className = "p-3 rounded-xl border border-indigo-500 bg-indigo-950/50 text-indigo-200 font-semibold text-sm flex items-center justify-center gap-2 transition";
+                pvpBtn.className = "p-3 rounded-xl border border-slate-700 bg-slate-800 text-slate-400 font-semibold text-sm flex items-center justify-center gap-2 transition";
+            } else {
+                pvpBtn.className = "p-3 rounded-xl border border-indigo-500 bg-indigo-950/50 text-indigo-200 font-semibold text-sm flex items-center justify-center gap-2 transition";
+                pveBtn.className = "p-3 rounded-xl border border-slate-700 bg-slate-800 text-slate-400 font-semibold text-sm flex items-center justify-center gap-2 transition";
+            }
+        }
+
+        function openSettingsModal() {
+            document.getElementById('settings-modal').classList.remove('hidden');
+            populateCountrySelects();
+        }
+
+        function closeSettingsModal() {
+            document.getElementById('settings-modal').classList.add('hidden');
+        }
+
+        function applySettingsAndStart() {
+            whiteCountryKey = document.getElementById('select-white-country').value;
+            blackCountryKey = document.getElementById('select-black-country').value;
+
+            const w = COUNTRIES[whiteCountryKey];
+            const b = COUNTRIES[blackCountryKey];
+
+            document.getElementById('white-name').innerText = w.name;
+            document.getElementById('white-difficulty').innerText = "Player 1";
+
+            document.getElementById('black-name').innerText = b.name;
+            document.getElementById('black-difficulty').innerText = gameMode === 'pve' ? b.difficultyText : "Player 2";
+
+            closeSettingsModal();
+            resetGame();
+        }
+
+        window.onload = function() {
+            initAudio();
+            populateCountrySelects();
+            applySettingsAndStart();
+        };
+    </script>
+</body>
+</html>
