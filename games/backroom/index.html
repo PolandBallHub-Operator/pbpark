@@ -1,0 +1,1130 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Polandball Backrooms</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #0d0f09;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            max-width: 600px;
+            margin: 0 auto;
+            overflow: hidden;
+            background: #000;
+            box-shadow: 0 0 50px rgba(0,0,0,0.8);
+        }
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        /* Custom UI overlays */
+        .vignette {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            background: radial-gradient(circle, transparent 55%, rgba(10, 10, 5, 0.75) 100%);
+            z-index: 5;
+        }
+        .scanlines {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.15) 50%);
+            background-size: 100% 4px;
+            z-index: 6;
+            opacity: 0.6;
+        }
+        /* Joystick styles */
+        #joystick-zone {
+            position: absolute;
+            bottom: 25px;
+            left: 25px;
+            width: 130px;
+            height: 130px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.12);
+            border: 2px solid rgba(255, 255, 200, 0.3);
+            z-index: 20;
+            touch-action: none;
+            backdrop-filter: blur(4px);
+        }
+        #joystick-knob {
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 50px; height: 50px;
+            margin-top: -25px; margin-left: -25px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #fce080, #c4a133);
+            box-shadow: 0 0 15px rgba(245, 212, 91, 0.6);
+            pointer-events: none;
+            transition: transform 0.05s linear;
+        }
+        #touch-look-area {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 65%;
+            z-index: 10;
+            touch-action: none;
+        }
+        .hud-glass {
+            background: rgba(20, 20, 15, 0.65);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(230, 210, 140, 0.25);
+        }
+        /* Custom Keyframe pulse */
+        @keyframes pulseGlow {
+            0%, 100% { opacity: 0.3; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.08); }
+        }
+        .heartbeat-anim {
+            animation: pulseGlow 0.8s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center bg-zinc-950">
+
+    <div id="game-container">
+        <!-- 3D Canvas Layer -->
+        <div id="canvas-wrapper" class="w-full h-full absolute inset-0"></div>
+
+        <!-- Visual Effects overlays -->
+        <div class="vignette"></div>
+        <div class="scanlines"></div>
+
+        <!-- Upper Touch Zone for Rotating Camera -->
+        <div id="touch-look-area"></div>
+
+        <!-- HUD Layer -->
+        <div id="hud-layer" class="absolute inset-0 pointer-events-none z-20 hidden flex flex-col justify-between p-4">
+            <!-- Top HUD Bar -->
+            <div class="flex justify-between items-start w-full">
+                <div class="hud-glass rounded-xl p-3 text-yellow-100 flex flex-col gap-1 shadow-lg border border-yellow-500/20">
+                    <div class="text-xs font-semibold tracking-wider text-yellow-400 uppercase flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-yellow-400 animate-pulse"></span>
+                        <span id="hud-mode-title">散策モード</span>
+                    </div>
+                    <div id="hud-status" class="text-sm font-medium text-zinc-200">探索中...</div>
+                    <div id="escape-objective" class="hidden text-xs text-amber-300 font-bold mt-1">
+                        🔑 カードキー: <span id="keycard-count">0</span> / 3
+                    </div>
+                </div>
+
+                <!-- Minimap & Radar -->
+                <div class="hud-glass rounded-xl p-2 relative shadow-lg flex flex-col items-center">
+                    <canvas id="minimap-canvas" width="84" height="84" class="rounded-lg bg-zinc-900/90"></canvas>
+                    <span class="text-[10px] text-yellow-300/80 font-mono mt-1">RADAR</span>
+                </div>
+            </div>
+
+            <!-- Heartbeat indicator (Escape Mode) -->
+            <div id="danger-indicator" class="hidden absolute top-20 left-1/2 -translate-x-1/2 flex items-center gap-2 hud-glass px-4 py-1.5 rounded-full border-red-500/40 text-red-400 text-xs font-bold">
+                <span class="w-3 h-3 rounded-full bg-red-600 heartbeat-anim"></span>
+                <span>気配が近づいている...</span>
+            </div>
+
+            <!-- Bottom Control Overlay -->
+            <div class="flex justify-between items-end w-full pb-2">
+                <!-- Virtual Joystick (Left) -->
+                <div id="joystick-zone" class="pointer-events-auto">
+                    <div id="joystick-knob"></div>
+                </div>
+
+                <!-- Action & Sprint Buttons (Right) -->
+                <div class="flex flex-col gap-3 pointer-events-auto items-end">
+                    <button id="sprint-btn" class="hidden hud-glass w-14 h-14 rounded-full flex items-center justify-center text-yellow-300 font-bold text-xs active:scale-95 transition border border-yellow-500/40 shadow-lg">
+                        🏃 DASH
+                    </button>
+                    <button id="interact-btn" class="hud-glass w-16 h-16 rounded-full flex items-center justify-center text-yellow-200 font-bold text-sm active:scale-95 transition border border-yellow-400/50 shadow-lg bg-yellow-500/10">
+                        ACTION
+                    </button>
+                </div>
+            </div>
+
+            <!-- Interaction Prompt Toast -->
+            <div id="action-prompt" class="absolute bottom-28 left-1/2 -translate-x-1/2 hud-glass px-4 py-2 rounded-full text-yellow-200 text-xs font-semibold shadow-xl hidden border border-yellow-400/30 flex items-center gap-2">
+                <span>💬 [ACTION] タップして話しかける</span>
+            </div>
+        </div>
+
+        <!-- Dialogue Modal -->
+        <div id="dialogue-modal" class="absolute inset-0 z-30 bg-black/60 backdrop-blur-md hidden flex items-end justify-center p-4">
+            <div class="hud-glass w-full max-w-md rounded-2xl p-5 border border-yellow-500/30 shadow-2xl flex flex-col gap-4 text-white">
+                <div class="flex items-center gap-4">
+                    <div class="w-20 h-20 rounded-2xl bg-zinc-800/80 p-2 flex items-center justify-center border border-yellow-500/30 shadow-inner overflow-hidden">
+                        <img id="dialogue-ball-img" src="" class="w-full h-full object-contain filter drop-shadow-md" alt="Polandball">
+                    </div>
+                    <div>
+                        <h3 id="dialogue-country-name" class="text-xl font-black text-yellow-400 tracking-wide">JAPAN</h3>
+                        <p id="dialogue-status-badge" class="text-xs text-yellow-200/70 font-mono mt-0.5">Backrooms Survivor</p>
+                    </div>
+                </div>
+                <div class="bg-zinc-900/80 p-4 rounded-xl border border-zinc-700/50 min-h-[90px] text-sm text-zinc-200 leading-relaxed" id="dialogue-text">
+                    ...
+                </div>
+                <button id="dialogue-close-btn" class="w-full py-3 bg-yellow-500 hover:bg-yellow-400 text-zinc-950 font-bold rounded-xl text-center text-sm shadow-lg active:scale-[0.98] transition">
+                    閉じる
+                </button>
+            </div>
+        </div>
+
+        <!-- Start / Mode Selection Screen -->
+        <div id="start-screen" class="absolute inset-0 z-40 bg-zinc-950/95 flex flex-col justify-between p-6 text-yellow-100 overflow-y-auto">
+            <div class="flex flex-col items-center text-center mt-6">
+                <div class="w-16 h-16 rounded-3xl bg-yellow-500/20 border border-yellow-500/40 flex items-center justify-center mb-3 shadow-lg shadow-yellow-500/10">
+                    <span class="text-3xl">🟡</span>
+                </div>
+                <h1 class="text-2xl font-black text-yellow-400 tracking-wider">ポーランドボール</h1>
+                <h2 class="text-3xl font-black text-white tracking-widest mt-0.5">BACKROOMS</h2>
+                <p class="text-xs text-yellow-200/60 mt-2 max-w-xs leading-relaxed">
+                    無限に続く黄色い廊下と湿ったカーペット...。<br>世界中の国ボールたちが迷い込んでいる。
+                </p>
+            </div>
+
+            <!-- Mode Buttons -->
+            <div class="flex flex-col gap-4 my-auto w-full max-w-xs mx-auto">
+                <button id="mode-explore-btn" class="group relative overflow-hidden p-4 rounded-2xl bg-gradient-to-r from-amber-600/30 to-yellow-600/30 border border-yellow-500/40 text-left active:scale-[0.98] transition shadow-xl">
+                    <div class="flex items-center justify-between">
+                        <span class="text-lg font-bold text-yellow-300">🗺️ 散策モード</span>
+                        <span class="text-xs bg-yellow-500/20 px-2 py-0.5 rounded text-yellow-200">EASY</span>
+                    </div>
+                    <p class="text-xs text-zinc-300 mt-1">広いバックルームズを自由散策。迷い込んだ国ボールたちと会話を楽しもう。</p>
+                </button>
+
+                <button id="mode-escape-btn" class="group relative overflow-hidden p-4 rounded-2xl bg-gradient-to-r from-red-900/40 to-amber-900/40 border border-red-500/40 text-left active:scale-[0.98] transition shadow-xl">
+                    <div class="flex items-center justify-between">
+                        <span class="text-lg font-bold text-red-400">😱 逃げるモード</span>
+                        <span class="text-xs bg-red-500/20 px-2 py-0.5 rounded text-red-300">SURVIVAL</span>
+                    </div>
+                    <p class="text-xs text-zinc-300 mt-1">迫り来る追跡ボールから逃げながら、3つのカードキーを集めて脱出せよ！</p>
+                </button>
+            </div>
+
+            <div class="text-center text-[11px] text-zinc-500 mb-2">
+                画面下のスティックで移動 • 上部タッチで視点変更
+            </div>
+        </div>
+
+        <!-- Game Over Modal -->
+        <div id="gameover-modal" class="absolute inset-0 z-50 bg-red-950/90 backdrop-blur-lg hidden flex flex-col items-center justify-center p-6 text-center text-white">
+            <span class="text-6xl mb-4">💥</span>
+            <h2 class="text-3xl font-black text-red-500 tracking-wider">GAME OVER</h2>
+            <p id="gameover-reason" class="text-sm text-zinc-300 mt-2 max-w-xs">追跡ボールに捕まってしまった...</p>
+            <button id="restart-btn" class="mt-8 px-8 py-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl shadow-xl active:scale-95 transition text-sm">
+                もう一度挑戦
+            </button>
+        </div>
+
+        <!-- Victory Modal -->
+        <div id="victory-modal" class="absolute inset-0 z-50 bg-emerald-950/90 backdrop-blur-lg hidden flex flex-col items-center justify-center p-6 text-center text-white">
+            <span class="text-6xl mb-4">🚪✨</span>
+            <h2 class="text-3xl font-black text-emerald-400 tracking-wider">ESCAPE SUCCESS!</h2>
+            <p class="text-sm text-zinc-300 mt-2 max-w-xs">エレベーターを起動し、Backroomsからの脱出に成功した！</p>
+            <button id="victory-restart-btn" class="mt-8 px-8 py-3 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold rounded-xl shadow-xl active:scale-95 transition text-sm">
+                タイトルに戻る
+            </button>
+        </div>
+    </div>
+
+    <script>
+        /* Modern Single-File Game Logic for Polandball Backrooms */
+
+        // Supported Countries & Expression Files
+        const COUNTRIES = [
+            'germany', 'japan', 'china', 'italy', 'sierraleone', 
+            'russia', 'france', 'poland', 'england472x600', 'usa'
+        ];
+
+        const EXPRESSIONS = [
+            'normal', 'happy', 'smile', 'surprise', 
+            'anger', 'dissatisfaction', 'itome', 'lol', 'plot'
+        ];
+
+        // Unique dialogues per country
+        const COUNTRY_DIALOGUES = {
+            japan: {
+                name: '日本 (Japan)',
+                normal: 'ここはどこでしょう...？ 蛍光灯の不快なブーンという音が響いていますね。',
+                happy: 'アーモンドウォーターを見つけました！ これで喉の渇きが潤せます！',
+                surprise: 'うわぁっ！ 壁の向こうから足音が聞こえます...！'
+            },
+            poland: {
+                name: 'ポーランド (Poland)',
+                normal: 'Poland cannot into space... but Poland can into Backrooms?! Oh no!',
+                happy: 'Kurwa! I found another survivor! We must stay together!',
+                anger: 'Why is this maze so big?! I keep walking in circles!'
+            },
+            usa: {
+                name: 'アメリカ (USA)',
+                normal: 'Hey buddy, this looks like an endless yellow liminal office. Where is the exit?',
+                happy: 'Awesome! Got some energy drinks! Freedom is near!',
+                surprise: 'Whoa! Did you see that shadow moving in the hallway?'
+            },
+            germany: {
+                name: 'ドイツ (Germany)',
+                normal: 'This efficiency-less layout is illogical. 38x38 grid without proper safety exits.',
+                plot: 'If I calculate the optimal route, we can escape in 14.2 minutes.',
+                dissatisfaction: 'The carpet is damp and smells like old water. Unacceptable!'
+            },
+            england472x600: {
+                name: 'イギリス (UK)',
+                normal: 'Blimey, quite a dreary corridor, isn\'t it? Could really use a warm cup of tea right now.',
+                smile: 'Cheerio! Good to see another civilized ball in this yellow labyrinth.',
+                dissatisfaction: 'The carpet humidity is terribly ruining my monocle.'
+            },
+            russia: {
+                name: 'ロシア (Russia)',
+                normal: 'Yellow walls everywhere... Reminds me of infinite siberian corridor.',
+                anger: 'If monster comes, I will show him true strength!',
+                itome: 'Stay quiet. I hear something lurking nearby...'
+            },
+            france: {
+                name: 'フランス (France)',
+                normal: 'Mon dieu... endless mono-yellow office spaces. Sacré bleu!',
+                happy: 'Ah, at least the lighting gives a warm aesthetic tone.',
+                dissatisfaction: 'Non non non! Zero bakeries or baguettes in Level 0!'
+            },
+            italy: {
+                name: 'イタリア (Italy)',
+                normal: 'Mamma mia! I lost my way to the pizzeria and ended up here!',
+                lol: 'Haha! If we run fast enough, maybe we find the elevator!',
+                surprise: 'Mamma mia! What was that strange noise?!'
+            },
+            china: {
+                name: '中国 (China)',
+                normal: 'Ni hao! Be careful, this maze is full of tricky dead ends.',
+                smile: 'Together we can search for the keycards and get out!',
+                plot: 'I noticed keycards usually hide in room corners.'
+            },
+            sierraleone: {
+                name: 'シエラレオネ (Sierra Leone)',
+                normal: 'Hello friend! Don\'t lose hope in this endless yellow hall!',
+                happy: 'Stay positive! We will surely find the exit elevator soon!',
+                smile: 'Keep moving forward, don\'t look back!'
+            }
+        };
+
+        const GRID_SIZE = 36; // Huge 36x36 grid!
+        const CELL_SIZE = 4.0;
+        const WALL_HEIGHT = 3.2;
+
+        let scene, camera, renderer;
+        let mapGrid = []; // 0 = empty floor, 1 = wall
+        let wallMaterial, floorMaterial, ceilingMaterial;
+        let loadedTextures = {}; // Cache for preprocessed Canvas Textures
+        let activeSprites = [];  // Array of active 3D Polandball Sprites in scene
+        let keycardObjects = []; // Keycard meshes in scene
+        let elevatorObject = null;
+
+        // Player state
+        let playerPos = new THREE.Vector3(2 * CELL_SIZE, 1.2, 2 * CELL_SIZE);
+        let playerYaw = 0;
+        let playerPitch = 0;
+        let currentGameMode = 'explore'; // 'explore' or 'escape'
+        let collectedKeycards = 0;
+        let isGameOver = false;
+
+        // Monster state (Escape Mode)
+        let monsterMesh = null;
+        let monsterPos = new THREE.Vector3();
+        let monsterSpeed = 0.055;
+
+        // Touch Control Inputs
+        let moveInput = { x: 0, y: 0 };
+        let isSprinting = false;
+        let lookTouchId = null;
+        let lastTouchPos = { x: 0, y: 0 };
+
+        // Audio System
+        let audioCtx = null;
+        let humOsc = null;
+
+        // Preprocess Polandball Images from GitHub repo
+        function getBallImageUrl(country, expression) {
+            return `https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/${country}/${expression}.png`;
+        }
+
+        // UK Crop Functionality: Crop top 472px out of 472x600 image to 472x472
+        function loadCroppedBallTexture(country, expression, callback) {
+            const cacheKey = `${country}_${expression}`;
+            if (loadedTextures[cacheKey]) {
+                callback(loadedTextures[cacheKey]);
+                return;
+            }
+
+            const img = new Image();
+            img.crossOrigin = 'Anonymous';
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = 472;
+                canvas.height = 472;
+                const ctx = canvas.getContext('2d');
+
+                if (country === 'england472x600') {
+                    // Crop top 472px from 600px height
+                    ctx.drawImage(img, 0, 0, 472, 472, 0, 0, 472, 472);
+                } else {
+                    // Draw normal image onto square canvas
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                }
+
+                const texture = new THREE.CanvasTexture(canvas);
+                texture.needsUpdate = true;
+                loadedTextures[cacheKey] = texture;
+                callback(texture);
+            };
+
+            img.onerror = () => {
+                // Fallback procedural canvas texture if network fails
+                const canvas = document.createElement('canvas');
+                canvas.width = 256; canvas.height = 256;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = '#f59e0b';
+                ctx.beginPath(); ctx.arc(128, 128, 110, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath(); ctx.arc(90, 110, 20, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(166, 110, 20, 0, Math.PI * 2); ctx.fill();
+                const texture = new THREE.CanvasTexture(canvas);
+                loadedTextures[cacheKey] = texture;
+                callback(texture);
+            };
+
+            img.src = getBallImageUrl(country, expression);
+        }
+
+        function generateBackroomsMap() {
+            mapGrid = Array(GRID_SIZE).fill(0).map(() => Array(GRID_SIZE).fill(1));
+
+            // Room and Corridor Procedural Generator
+            function carveRoom(rx, ry, rw, rh) {
+                for (let r = ry; r < ry + rh && r < GRID_SIZE - 1; r++) {
+                    for (let c = rx; c < rx + rw && c < GRID_SIZE - 1; c++) {
+                        if (r > 0 && c > 0) mapGrid[r][c] = 0;
+                    }
+                }
+            }
+
+            // Create several large room hubs with pillars
+            const rooms = [
+                { x: 2, y: 2, w: 6, h: 6 },
+                { x: 12, y: 4, w: 7, h: 7 },
+                { x: 24, y: 3, w: 8, h: 6 },
+                { x: 5, y: 15, w: 8, h: 8 },
+                { x: 18, y: 16, w: 7, h: 7 },
+                { x: 28, y: 14, w: 6, h: 7 },
+                { x: 4, y: 26, w: 7, h: 7 },
+                { x: 16, y: 27, w: 8, h: 6 },
+                { x: 27, y: 26, w: 7, h: 7 }
+            ];
+
+            rooms.forEach(rm => carveRoom(rm.x, rm.y, rm.w, rm.h));
+
+            // Add center pillars in larger rooms for authentic Backrooms look
+            rooms.forEach(rm => {
+                if (rm.w >= 6 && rm.h >= 6) {
+                    const px = Math.floor(rm.x + rm.w / 2);
+                    const py = Math.floor(rm.y + rm.h / 2);
+                    mapGrid[py][px] = 1;
+                }
+            });
+
+            // Carve long winding corridors connecting the rooms
+            for (let i = 0; i < rooms.length - 1; i++) {
+                let r1 = rooms[i];
+                let r2 = rooms[i + 1];
+                let cx = Math.floor(r1.x + r1.w / 2);
+                let cy = Math.floor(r1.y + r1.h / 2);
+                let targetX = Math.floor(r2.x + r2.w / 2);
+                let targetY = Math.floor(r2.y + r2.h / 2);
+
+                while (cx !== targetX) {
+                    mapGrid[cy][cx] = 0;
+                    cx += (targetX > cx) ? 1 : -1;
+                }
+                while (cy !== targetY) {
+                    mapGrid[cy][cx] = 0;
+                    cy += (targetY > cy) ? 1 : -1;
+                }
+            }
+
+            // Random extra maze paths to ensure sprawling corridors
+            for (let r = 2; r < GRID_SIZE - 2; r += 2) {
+                for (let c = 2; c < GRID_SIZE - 2; c += 2) {
+                    if (Math.random() < 0.65) {
+                        mapGrid[r][c] = 0;
+                        if (Math.random() < 0.5) mapGrid[r + 1][c] = 0;
+                        else mapGrid[r][c + 1] = 0;
+                    }
+                }
+            }
+
+            // Ensure outer boundaries are solid walls
+            for (let i = 0; i < GRID_SIZE; i++) {
+                mapGrid[0][i] = 1;
+                mapGrid[GRID_SIZE - 1][i] = 1;
+                mapGrid[i][0] = 1;
+                mapGrid[i][GRID_SIZE - 1] = 1;
+            }
+        }
+
+        function createBackroomsTextures() {
+            // Procedural Wallpaper Canvas
+            const wallCanvas = document.createElement('canvas');
+            wallCanvas.width = 256; wallCanvas.height = 256;
+            const wCtx = wallCanvas.getContext('2d');
+            wCtx.fillStyle = '#d4c079'; wCtx.fillRect(0, 0, 256, 256);
+            wCtx.fillStyle = '#b8a35f';
+            for (let x = 0; x < 256; x += 16) {
+                for (let y = 0; y < 256; y += 16) {
+                    if ((x + y) % 32 === 0) {
+                        wCtx.fillRect(x + 2, y + 2, 12, 12);
+                    }
+                }
+            }
+            const wallTex = new THREE.CanvasTexture(wallCanvas);
+            wallTex.wrapS = THREE.RepeatWrapping;
+            wallTex.wrapT = THREE.RepeatWrapping;
+
+            // Carpet Canvas
+            const carpetCanvas = document.createElement('canvas');
+            carpetCanvas.width = 128; carpetCanvas.height = 128;
+            const cCtx = carpetCanvas.getContext('2d');
+            cCtx.fillStyle = '#9e8c52'; cCtx.fillRect(0, 0, 128, 128);
+            cCtx.fillStyle = '#82723e';
+            for (let i = 0; i < 600; i++) {
+                cCtx.fillRect(Math.random() * 128, Math.random() * 128, 2, 2);
+            }
+            const carpetTex = new THREE.CanvasTexture(carpetCanvas);
+            carpetTex.wrapS = THREE.RepeatWrapping;
+            carpetTex.wrapT = THREE.RepeatWrapping;
+
+            // Ceiling Grid Canvas
+            const ceilCanvas = document.createElement('canvas');
+            ceilCanvas.width = 128; ceilCanvas.height = 128;
+            const clCtx = ceilCanvas.getContext('2d');
+            clCtx.fillStyle = '#e8dec3'; clCtx.fillRect(0, 0, 128, 128);
+            clCtx.strokeStyle = '#a39779'; clCtx.lineWidth = 4;
+            clCtx.strokeRect(0, 0, 128, 128);
+            const ceilTex = new THREE.CanvasTexture(ceilCanvas);
+            ceilTex.wrapS = THREE.RepeatWrapping;
+            ceilTex.wrapT = THREE.RepeatWrapping;
+
+            wallMaterial = new THREE.MeshLambertMaterial({ map: wallTex, color: 0xe6d18a });
+            floorMaterial = new THREE.MeshLambertMaterial({ map: carpetTex });
+            ceilingMaterial = new THREE.MeshLambertMaterial({ map: ceilTex });
+        }
+
+        function build3DEnvironment() {
+            // Count wall instances
+            let wallCount = 0;
+            for (let r = 0; r < GRID_SIZE; r++) {
+                for (let c = 0; c < GRID_SIZE; c++) {
+                    if (mapGrid[r][c] === 1) wallCount++;
+                }
+            }
+
+            // Wall Instanced Mesh
+            const wallGeo = new THREE.BoxGeometry(CELL_SIZE, WALL_HEIGHT, CELL_SIZE);
+            const wallMesh = new THREE.InstancedMesh(wallGeo, wallMaterial, wallCount);
+            const dummy = new THREE.Object3D();
+            let idx = 0;
+
+            for (let r = 0; r < GRID_SIZE; r++) {
+                for (let c = 0; c < GRID_SIZE; c++) {
+                    if (mapGrid[r][c] === 1) {
+                        dummy.position.set(
+                            c * CELL_SIZE + CELL_SIZE / 2,
+                            WALL_HEIGHT / 2,
+                            r * CELL_SIZE + CELL_SIZE / 2
+                        );
+                        dummy.updateMatrix();
+                        wallMesh.setMatrixAt(idx++, dummy.matrix);
+                    }
+                }
+            }
+            wallMesh.instanceMatrix.needsUpdate = true;
+            scene.add(wallMesh);
+
+            // Floor & Ceiling Plane
+            const mapTotalSize = GRID_SIZE * CELL_SIZE;
+            floorMaterial.map.repeat.set(GRID_SIZE, GRID_SIZE);
+            const floorGeo = new THREE.PlaneGeometry(mapTotalSize, mapTotalSize);
+            const floorMesh = new THREE.Mesh(floorGeo, floorMaterial);
+            floorMesh.rotation.x = -Math.PI / 2;
+            floorMesh.position.set(mapTotalSize / 2, 0, mapTotalSize / 2);
+            scene.add(floorMesh);
+
+            ceilingMaterial.map.repeat.set(GRID_SIZE, GRID_SIZE);
+            const ceilMesh = new THREE.Mesh(floorGeo, ceilingMaterial);
+            ceilMesh.rotation.x = Math.PI / 2;
+            ceilMesh.position.set(mapTotalSize / 2, WALL_HEIGHT, mapTotalSize / 2);
+            scene.add(ceilMesh);
+
+            // Overhead Fluorescent Lights & PointLights
+            const lightGeo = new THREE.BoxGeometry(1.6, 0.05, 0.8);
+            const lightMat = new THREE.MeshBasicMaterial({ color: 0xfffcdb });
+
+            for (let r = 2; r < GRID_SIZE - 2; r += 4) {
+                for (let c = 2; c < GRID_SIZE - 2; c += 4) {
+                    if (mapGrid[r][c] === 0) {
+                        const fixture = new THREE.Mesh(lightGeo, lightMat);
+                        fixture.position.set(
+                            c * CELL_SIZE + CELL_SIZE / 2,
+                            WALL_HEIGHT - 0.03,
+                            r * CELL_SIZE + CELL_SIZE / 2
+                        );
+                        scene.add(fixture);
+
+                        const pLight = new THREE.PointLight(0xfff5cc, 0.45, 14);
+                        pLight.position.set(
+                            c * CELL_SIZE + CELL_SIZE / 2,
+                            WALL_HEIGHT - 0.3,
+                            r * CELL_SIZE + CELL_SIZE / 2
+                        );
+                        scene.add(pLight);
+                    }
+                }
+            }
+        }
+
+        function spawnEntities() {
+            // Clear existing sprites
+            activeSprites.forEach(s => scene.remove(s.sprite));
+            keycardObjects.forEach(k => scene.remove(k.mesh));
+            if (elevatorObject) scene.remove(elevatorObject);
+            if (monsterMesh) scene.remove(monsterMesh);
+
+            activeSprites = [];
+            keycardObjects = [];
+
+            // Find all empty walkable positions
+            let emptyTiles = [];
+            for (let r = 2; r < GRID_SIZE - 2; r++) {
+                for (let c = 2; c < GRID_SIZE - 2; c++) {
+                    if (mapGrid[r][c] === 0) emptyTiles.push({ r, c });
+                }
+            }
+
+            // Shuffle tiles
+            emptyTiles.sort(() => Math.random() - 0.5);
+
+            // Player start tile
+            const startTile = emptyTiles.pop();
+            playerPos.set(
+                startTile.c * CELL_SIZE + CELL_SIZE / 2,
+                1.2,
+                startTile.r * CELL_SIZE + CELL_SIZE / 2
+            );
+
+            if (currentGameMode === 'explore') {
+                // Spawn 12 Polandball NPCs around map
+                const numNpcs = Math.min(12, emptyTiles.length);
+                for (let i = 0; i < numNpcs; i++) {
+                    const tile = emptyTiles.pop();
+                    const country = COUNTRIES[i % COUNTRIES.length];
+                    const expression = 'normal';
+
+                    loadCroppedBallTexture(country, expression, (texture) => {
+                        const mat = new THREE.SpriteMaterial({ map: texture });
+                        const sprite = new THREE.Sprite(mat);
+                        sprite.scale.set(1.4, 1.4, 1);
+                        sprite.position.set(
+                            tile.c * CELL_SIZE + CELL_SIZE / 2,
+                            0.7,
+                            tile.r * CELL_SIZE + CELL_SIZE / 2
+                        );
+                        scene.add(sprite);
+
+                        activeSprites.push({
+                            sprite,
+                            country,
+                            expression,
+                            gridPos: tile,
+                            dialogueData: COUNTRY_DIALOGUES[country] || COUNTRY_DIALOGUES.japan
+                        });
+                    });
+                }
+            } else {
+                // ESCAPE MODE Setup
+                // Spawn 3 Keycards
+                for (let i = 0; i < 3; i++) {
+                    const kTile = emptyTiles.pop();
+                    const keyGeo = new THREE.BoxGeometry(0.4, 0.05, 0.6);
+                    const keyMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+                    const keyMesh = new THREE.Mesh(keyGeo, keyMat);
+                    keyMesh.position.set(
+                        kTile.c * CELL_SIZE + CELL_SIZE / 2,
+                        0.4,
+                        kTile.r * CELL_SIZE + CELL_SIZE / 2
+                    );
+                    scene.add(keyMesh);
+                    keycardObjects.push({ mesh: keyMesh, collected: false, tile: kTile });
+                }
+
+                // Elevator Exit spawn far away
+                const exitTile = emptyTiles.pop();
+                const eleGeo = new THREE.BoxGeometry(1.8, WALL_HEIGHT, 0.2);
+                const eleMat = new THREE.MeshLambertMaterial({ color: 0x475569 });
+                elevatorObject = new THREE.Mesh(eleGeo, eleMat);
+                elevatorObject.position.set(
+                    exitTile.c * CELL_SIZE + CELL_SIZE / 2,
+                    WALL_HEIGHT / 2,
+                    exitTile.r * CELL_SIZE + CELL_SIZE / 2
+                );
+                scene.add(elevatorObject);
+
+                // Spawn Hostile Monster Polandball
+                const mTile = emptyTiles.pop();
+                loadCroppedBallTexture('poland', 'anger', (texture) => {
+                    const mat = new THREE.SpriteMaterial({ map: texture, color: 0xff4444 });
+                    monsterMesh = new THREE.Sprite(mat);
+                    monsterMesh.scale.set(1.8, 1.8, 1);
+                    monsterPos.set(
+                        mTile.c * CELL_SIZE + CELL_SIZE / 2,
+                        0.9,
+                        mTile.r * CELL_SIZE + CELL_SIZE / 2
+                    );
+                    monsterMesh.position.copy(monsterPos);
+                    scene.add(monsterMesh);
+                });
+            }
+        }
+
+        function initThreeScene() {
+            const wrapper = document.getElementById('canvas-wrapper');
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xd6cc85);
+            scene.fog = new THREE.FogExp2(0xd6cc85, 0.035);
+
+            camera = new THREE.PerspectiveCamera(70, wrapper.clientWidth / wrapper.clientHeight, 0.1, 50);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(wrapper.clientWidth, wrapper.clientHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            wrapper.appendChild(renderer.domElement);
+
+            // Backrooms Liminal Ambient Light
+            const ambient = new THREE.AmbientLight(0xfff5c0, 0.55);
+            scene.add(ambient);
+
+            createBackroomsTextures();
+            generateBackroomsMap();
+            build3DEnvironment();
+
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        function onWindowResize() {
+            const wrapper = document.getElementById('canvas-wrapper');
+            camera.aspect = wrapper.clientWidth / wrapper.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(wrapper.clientWidth, wrapper.clientHeight);
+        }
+
+        function setupTouchControls() {
+            const zone = document.getElementById('joystick-zone');
+            const knob = document.getElementById('joystick-knob');
+            const lookArea = document.getElementById('touch-look-area');
+
+            let touchId = null;
+            let center = { x: 0, y: 0 };
+
+            zone.addEventListener('touchstart', (e) => {
+                if (touchId !== null) return;
+                const touch = e.changedTouches[0];
+                touchId = touch.identifier;
+                const rect = zone.getBoundingClientRect();
+                center = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+                updateJoystick(touch.clientX, touch.clientY);
+            });
+
+            zone.addEventListener('touchmove', (e) => {
+                for (let touch of e.changedTouches) {
+                    if (touch.identifier === touchId) {
+                        updateJoystick(touch.clientX, touch.clientY);
+                    }
+                }
+            });
+
+            const endJoystick = (e) => {
+                for (let touch of e.changedTouches) {
+                    if (touch.identifier === touchId) {
+                        touchId = null;
+                        moveInput = { x: 0, y: 0 };
+                        knob.style.transform = 'translate(0px, 0px)';
+                    }
+                }
+            };
+            zone.addEventListener('touchend', endJoystick);
+            zone.addEventListener('touchcancel', endJoystick);
+
+            function updateJoystick(clientX, clientY) {
+                const dx = clientX - center.x;
+                const dy = clientY - center.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                const maxDist = 45;
+                const angle = Math.atan2(dy, dx);
+                const clampedDist = Math.min(dist, maxDist);
+
+                const kx = Math.cos(angle) * clampedDist;
+                const ky = Math.sin(angle) * clampedDist;
+                knob.style.transform = `translate(${kx}px, ${ky}px)`;
+
+                moveInput.x = kx / maxDist;
+                moveInput.y = ky / maxDist;
+            }
+
+            // Upper Touch Area Look Controls
+            lookArea.addEventListener('touchstart', (e) => {
+                if (lookTouchId !== null) return;
+                const touch = e.changedTouches[0];
+                lookTouchId = touch.identifier;
+                lastTouchPos = { x: touch.clientX, y: touch.clientY };
+            });
+
+            lookArea.addEventListener('touchmove', (e) => {
+                for (let touch of e.changedTouches) {
+                    if (touch.identifier === lookTouchId) {
+                        const dx = touch.clientX - lastTouchPos.x;
+                        const dy = touch.clientY - lastTouchPos.y;
+                        playerYaw -= dx * 0.005;
+                        playerPitch -= dy * 0.005;
+                        playerPitch = Math.max(-Math.PI / 3, Math.min(Math.PI / 3, playerPitch));
+                        lastTouchPos = { x: touch.clientX, y: touch.clientY };
+                    }
+                }
+            });
+
+            const endLook = (e) => {
+                for (let touch of e.changedTouches) {
+                    if (touch.identifier === lookTouchId) {
+                        lookTouchId = null;
+                    }
+                }
+            };
+            lookArea.addEventListener('touchend', endLook);
+            lookArea.addEventListener('touchcancel', endLook);
+
+            // Sprint & Action Buttons
+            document.getElementById('sprint-btn').addEventListener('touchstart', () => isSprinting = true);
+            document.getElementById('sprint-btn').addEventListener('touchend', () => isSprinting = false);
+
+            document.getElementById('interact-btn').addEventListener('click', handleInteraction);
+        }
+
+        function initAudio() {
+            if (audioCtx) return;
+            try {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                // Fluorescent light hum sound synthesizer
+                humOsc = audioCtx.createOscillator();
+                const humGain = audioCtx.createGain();
+                humOsc.type = 'sawtooth';
+                humOsc.frequency.setValueAtTime(60, audioCtx.currentTime); // 60Hz hum
+                humGain.gain.setValueAtTime(0.012, audioCtx.currentTime);
+                humOsc.connect(humGain);
+                humGain.connect(audioCtx.destination);
+                humOsc.start();
+            } catch (e) {
+                console.log('Audio init skipped');
+            }
+        }
+
+        function playBeepSound() {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.frequency.setValueAtTime(520, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.12);
+        }
+
+        function isWallAt(x, z) {
+            const gridX = Math.floor(x / CELL_SIZE);
+            const gridZ = Math.floor(z / CELL_SIZE);
+            if (gridX < 0 || gridX >= GRID_SIZE || gridZ < 0 || gridZ >= GRID_SIZE) return true;
+            return mapGrid[gridZ][gridX] === 1;
+        }
+
+        function updatePlayerPosition() {
+            if (isGameOver) return;
+
+            const speed = isSprinting ? 0.085 : 0.05;
+            // Calculate movement vectors relative to camera yaw
+            const moveZ = moveInput.y;
+            const moveX = moveInput.x;
+
+            if (moveX !== 0 || moveZ !== 0) {
+                const forwardX = -Math.sin(playerYaw) * moveZ + Math.cos(playerYaw) * moveX;
+                const forwardZ = -Math.cos(playerYaw) * moveZ - Math.sin(playerYaw) * moveX;
+
+                const newX = playerPos.x + forwardX * speed;
+                const newZ = playerPos.z + forwardZ * speed;
+
+                // Simple Circle Collision with Walls
+                const padding = 0.45;
+                if (!isWallAt(newX + Math.sign(forwardX) * padding, playerPos.z)) {
+                    playerPos.x = newX;
+                }
+                if (!isWallAt(playerPos.x, newZ + Math.sign(forwardZ) * padding)) {
+                    playerPos.z = newZ;
+                }
+            }
+
+            // Update camera position and orientation
+            camera.position.copy(playerPos);
+            const dir = new THREE.Vector3(
+                Math.sin(playerYaw) * Math.cos(playerPitch),
+                Math.sin(playerPitch),
+                Math.cos(playerYaw) * Math.cos(playerPitch)
+            );
+            camera.lookAt(playerPos.clone().add(dir));
+        }
+
+        function updateMonsterAI() {
+            if (currentGameMode !== 'escape' || !monsterMesh || isGameOver) return;
+
+            // Direct monster towards player
+            const dir = new THREE.Vector3().subVectors(playerPos, monsterPos);
+            dir.y = 0;
+            const dist = dir.length();
+
+            // Heartbeat proximity warning
+            const dangerInd = document.getElementById('danger-indicator');
+            if (dist < 18) {
+                dangerInd.classList.remove('hidden');
+            } else {
+                dangerInd.classList.add('hidden');
+            }
+
+            if (dist < 1.2) {
+                // Game over caught by monster!
+                triggerGameOver('追跡ボールに捕まってしまった...');
+                return;
+            }
+
+            dir.normalize();
+            monsterPos.x += dir.x * monsterSpeed;
+            monsterPos.z += dir.z * monsterSpeed;
+            monsterMesh.position.copy(monsterPos);
+        }
+
+        function drawMinimap() {
+            const canvas = document.getElementById('minimap-canvas');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, 84, 84);
+
+            const scale = 84 / (GRID_SIZE * CELL_SIZE);
+
+            // Draw Walls
+            ctx.fillStyle = '#52525b';
+            for (let r = 0; r < GRID_SIZE; r++) {
+                for (let c = 0; c < GRID_SIZE; c++) {
+                    if (mapGrid[r][c] === 1) {
+                        ctx.fillRect(c * CELL_SIZE * scale, r * CELL_SIZE * scale, CELL_SIZE * scale, CELL_SIZE * scale);
+                    }
+                }
+            }
+
+            // Draw NPCs / Keycards
+            if (currentGameMode === 'explore') {
+                ctx.fillStyle = '#f59e0b';
+                activeSprites.forEach(npc => {
+                    ctx.beginPath();
+                    ctx.arc(npc.sprite.position.x * scale, npc.sprite.position.z * scale, 2.5, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+            } else {
+                // Keycards
+                ctx.fillStyle = '#38bdf8';
+                keycardObjects.forEach(k => {
+                    if (!k.collected) {
+                        ctx.fillRect(k.mesh.position.x * scale - 2, k.mesh.position.z * scale - 2, 4, 4);
+                    }
+                });
+                // Monster
+                if (monsterMesh) {
+                    ctx.fillStyle = '#ef4444';
+                    ctx.beginPath();
+                    ctx.arc(monsterPos.x * scale, monsterPos.z * scale, 3.5, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            // Draw Player
+            ctx.fillStyle = '#22c55e';
+            ctx.beginPath();
+            ctx.arc(playerPos.x * scale, playerPos.z * scale, 3, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function handleInteraction() {
+            initAudio();
+
+            if (currentGameMode === 'explore') {
+                // Find nearest NPC
+                let nearest = null;
+                let minDist = 3.0; // Interaction radius
+
+                activeSprites.forEach(npc => {
+                    const d = playerPos.distanceTo(npc.sprite.position);
+                    if (d < minDist) {
+                        minDist = d;
+                        nearest = npc;
+                    }
+                });
+
+                if (nearest) {
+                    playBeepSound();
+                    showDialogueModal(nearest);
+                }
+            } else {
+                // Check keycard pickup
+                keycardObjects.forEach(k => {
+                    if (!k.collected && playerPos.distanceTo(k.mesh.position) < 2.0) {
+                        k.collected = true;
+                        scene.remove(k.mesh);
+                        collectedKeycards++;
+                        playBeepSound();
+                        document.getElementById('keycard-count').innerText = collectedKeycards;
+
+                        if (collectedKeycards >= 3) {
+                            document.getElementById('hud-status').innerText = '🔑 エレベーターが起動可能！';
+                        }
+                    }
+                });
+
+                // Check elevator exit
+                if (elevatorObject && playerPos.distanceTo(elevatorObject.position) < 2.5) {
+                    if (collectedKeycards >= 3) {
+                        triggerVictory();
+                    } else {
+                        document.getElementById('hud-status').innerText = 'カードキーが不足しています(3枚必要)';
+                    }
+                }
+            }
+        }
+
+        function showDialogueModal(npc) {
+            const modal = document.getElementById('dialogue-modal');
+            const imgEl = document.getElementById('dialogue-ball-img');
+            const nameEl = document.getElementById('dialogue-country-name');
+            const textEl = document.getElementById('dialogue-text');
+
+            nameEl.innerText = npc.dialogueData.name;
+            imgEl.src = getBallImageUrl(npc.country, npc.expression);
+
+            const dialogues = [
+                npc.dialogueData.normal,
+                npc.dialogueData.happy || npc.dialogueData.normal,
+                npc.dialogueData.surprise || npc.dialogueData.normal
+            ];
+            textEl.innerText = dialogues[Math.floor(Math.random() * dialogues.length)];
+
+            modal.classList.remove('hidden');
+        }
+
+        document.getElementById('dialogue-close-btn').addEventListener('click', () => {
+            document.getElementById('dialogue-modal').classList.add('hidden');
+        });
+
+        function triggerGameOver(reason) {
+            isGameOver = true;
+            document.getElementById('gameover-reason').innerText = reason;
+            document.getElementById('gameover-modal').classList.remove('hidden');
+        }
+
+        function triggerVictory() {
+            isGameOver = true;
+            document.getElementById('victory-modal').classList.remove('hidden');
+        }
+
+        function startGame(mode) {
+            currentGameMode = mode;
+            isGameOver = false;
+            collectedKeycards = 0;
+
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('hud-layer').classList.remove('hidden');
+
+            if (mode === 'explore') {
+                document.getElementById('hud-mode-title').innerText = '散策モード';
+                document.getElementById('hud-status').innerText = '国ボールを探そう';
+                document.getElementById('escape-objective').classList.add('hidden');
+                document.getElementById('sprint-btn').classList.add('hidden');
+            } else {
+                document.getElementById('hud-mode-title').innerText = '逃げるモード';
+                document.getElementById('hud-status').innerText = 'カードキーを探せ！';
+                document.getElementById('escape-objective').classList.remove('hidden');
+                document.getElementById('sprint-btn').classList.remove('hidden');
+                document.getElementById('keycard-count').innerText = '0';
+            }
+
+            spawnEntities();
+            initAudio();
+        }
+
+        document.getElementById('mode-explore-btn').addEventListener('click', () => startGame('explore'));
+        document.getElementById('mode-escape-btn').addEventListener('click', () => startGame('escape'));
+
+        document.getElementById('restart-btn').addEventListener('click', () => {
+            document.getElementById('gameover-modal').classList.add('hidden');
+            startGame(currentGameMode);
+        });
+
+        document.getElementById('victory-restart-btn').addEventListener('click', () => {
+            document.getElementById('victory-modal').classList.add('hidden');
+            document.getElementById('start-screen').classList.remove('hidden');
+            document.getElementById('hud-layer').classList.add('hidden');
+        });
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            updatePlayerPosition();
+            updateMonsterAI();
+            drawMinimap();
+
+            // Dynamic interaction prompt check
+            const prompt = document.getElementById('action-prompt');
+            if (currentGameMode === 'explore' && !isGameOver) {
+                let nearNpc = activeSprites.some(s => playerPos.distanceTo(s.sprite.position) < 3.0);
+                if (nearNpc) prompt.classList.remove('hidden');
+                else prompt.classList.add('hidden');
+            } else {
+                prompt.classList.add('hidden');
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        // Window Onload Entry Point
+        window.onload = function () {
+            initThreeScene();
+            setupTouchControls();
+            animate();
+        };
+    </script>
+</body>
+</html>
