@@ -1,0 +1,1433 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+    <title>ポルスカのバイナリエディタ - ファイルをいじろう</title>
+
+    <!-- Google Fonts & Material Symbols -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+
+    <style>
+        /* デフォルトテーマ（PTZ.json規格連動スタイル） */
+        :root {
+            --accent-primary: #DC2626; /* ポルスカ風の赤アクセント */
+            --accent-active: #991B1B;
+            
+            /* PTZ 規格初期値 */
+            --ptz-theme-name: "Polandball Red PTZ";
+            --ptz-card-radius: 24px;
+            --ptz-slider-height: 16px;
+            --ptz-toggle-width: 54px;
+            --ptz-toggle-height: 30px;
+            --ptz-toggle-knob-radius: 50%;
+            --ptz-toggle-knob-width: 22px;
+            --ptz-blur-intensity: 0px;
+
+            /* Light Mode ベースカラー */
+            --bg-base: #F8FAF2;
+            --glass-bg: #FFFFFF;
+            --text-main: #1F2937;
+            --text-sub: #6B7280;
+            --bg-secondary: #F3F4F6;
+            --nav-bg: #FFFFFF;
+            --nav-icon-active: #1F2937;
+            
+            --m3-easing: cubic-bezier(0.32, 0.72, 0, 1);
+            --transition-smooth: 0.35s var(--m3-easing);
+            --card-padding: 24px;
+        }
+
+        /* ダークモード */
+        .dark-mode {
+            --bg-base: #111827;
+            --glass-bg: #1F2937;
+            --text-main: #F9FAFB;
+            --text-sub: #9CA3AF;
+            --bg-secondary: #374151;
+            --nav-bg: #1F2937;
+            --nav-icon-active: #FFFFFF;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', 'Noto Sans JP', sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            transition: background-color var(--transition-smooth), color var(--transition-smooth);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* アプリ全体のコンテナ */
+        #app-viewport {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        /* ヘッダー */
+        header {
+            height: 64px;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--glass-bg);
+            transition: background-color var(--transition-smooth);
+            position: relative;
+            flex-shrink: 0;
+        }
+        .logo {
+            font-weight: 700;
+            font-size: 18px;
+            letter-spacing: -0.5px;
+            color: var(--text-main);
+            text-align: center;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .theme-toggle {
+            position: absolute;
+            right: 24px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: none;
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background var(--transition-smooth), transform 0.2s;
+        }
+        .theme-toggle:active {
+            transform: scale(0.9);
+        }
+
+        /* メインコンテンツ */
+        main {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 24px 20px 100px;
+            max-width: 820px;
+            width: 100%;
+            margin: 0 auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* フラットソリッドカード */
+        .glass-card {
+            background: var(--glass-bg);
+            border-radius: var(--ptz-card-radius);
+            padding: var(--card-padding);
+            margin-bottom: 20px;
+            box-shadow: none !important;
+            border: none !important;
+            transition: background-color var(--transition-smooth), border-radius var(--transition-smooth);
+        }
+
+        h2 { 
+            font-size: 18px; 
+            margin-top: 0; 
+            margin-bottom: 12px;
+            font-weight: 700; 
+            letter-spacing: -0.3px;
+        }
+        p {
+            font-size: 13.5px;
+            line-height: 1.5;
+            margin-top: 0;
+            margin-bottom: 16px;
+            color: var(--text-sub);
+        }
+
+        /* リストコンポーネント */
+        .custom-list {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            margin-bottom: 16px;
+        }
+        .list-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 4px;
+            border-bottom: 1px solid var(--bg-secondary);
+        }
+        .list-item:last-child {
+            border-bottom: none;
+        }
+        .list-item-title {
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .list-item-desc {
+            font-size: 12px;
+            color: var(--text-sub);
+        }
+
+        /* 太いスライダー */
+        .slider-wrapper {
+            margin: 16px 0;
+        }
+        .slider-label-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        .thick-slider-container {
+            position: relative;
+            width: 100%;
+            height: var(--ptz-slider-height);
+            background: var(--bg-secondary);
+            border-radius: calc(var(--ptz-slider-height) / 2);
+            overflow: hidden;
+            cursor: pointer;
+            transition: height var(--transition-smooth);
+        }
+        .thick-slider-fill {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 0%;
+            background: var(--accent-primary);
+            transition: background-color var(--transition-smooth), width 0.1s ease-out;
+        }
+        .thick-slider-input {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+            margin: 0;
+        }
+
+        /* トグルスイッチ */
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 4px;
+        }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: var(--ptz-toggle-width);
+            height: var(--ptz-toggle-height);
+            transition: width var(--transition-smooth), height var(--transition-smooth);
+        }
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--bg-secondary);
+            transition: var(--transition-smooth);
+            border-radius: calc(var(--ptz-toggle-height) / 2);
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: var(--ptz-toggle-knob-width);
+            width: var(--ptz-toggle-knob-width);
+            left: 4px;
+            bottom: calc((var(--ptz-toggle-height) - var(--ptz-toggle-knob-width)) / 2);
+            background: white;
+            transition: var(--transition-smooth);
+            border-radius: var(--ptz-toggle-knob-radius);
+        }
+        input:checked + .slider {
+            background: var(--accent-primary);
+        }
+        input:checked + .slider:before {
+            transform: translateX(calc(var(--ptz-toggle-width) - var(--ptz-toggle-knob-width) - 8px));
+        }
+
+        /* アクションボタン */
+        .ai-btn {
+            border: none;
+            outline: none;
+            padding: 12px 24px;
+            border-radius: 14px;
+            font-weight: 600;
+            font-size: 14px;
+            color: white;
+            cursor: pointer;
+            background: var(--accent-primary);
+            transition: transform 0.2s, background-color var(--transition-smooth);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            justify-content: center;
+        }
+        .ai-btn:hover {
+            transform: scale(1.02);
+        }
+        .ai-btn:active {
+            background: var(--accent-active);
+            transform: scale(0.96);
+        }
+        .ai-btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-main);
+        }
+        .ai-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* インプットテキスト */
+        .glass-input-wrapper {
+            margin-bottom: 14px;
+        }
+        .glass-input {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: none;
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            font-size: 14px;
+            font-family: inherit;
+            box-sizing: border-box;
+            transition: background var(--transition-smooth);
+        }
+        .glass-input:focus {
+            outline: 2px solid var(--accent-primary);
+        }
+
+        /* 下付き固定ナビゲーションバー */
+        .bottom-nav-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 72px;
+            background: var(--nav-bg);
+            border-top: 1px solid var(--bg-secondary);
+            z-index: 500;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding-bottom: env(safe-area-inset-bottom);
+            transition: background-color var(--transition-smooth), border-color var(--transition-smooth);
+        }
+        .nav-item {
+            flex: 1;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-sub);
+            transition: color 0.25s var(--m3-easing);
+            position: relative;
+            gap: 4px;
+        }
+        .nav-item span.material-symbols-outlined {
+            font-size: 24px;
+            font-variation-settings: 'FILL' 0, 'wght' 400;
+            transition: font-variation-settings 0.2s, color 0.2s;
+        }
+        .nav-label {
+            font-size: 10px;
+            font-weight: 600;
+        }
+        .nav-item.active {
+            color: var(--nav-icon-active);
+        }
+        .nav-item.active span.material-symbols-outlined {
+            font-variation-settings: 'FILL' 1, 'wght' 700;
+        }
+
+        /* ビュー切り替え */
+        .view {
+            display: none;
+        }
+        .view.active {
+            display: block;
+            animation: viewIn 0.3s var(--m3-easing);
+        }
+        @keyframes viewIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* PTZ ファイルドロップゾーン */
+        .ptz-dropzone {
+            border: 2px dashed var(--text-sub);
+            border-radius: var(--ptz-card-radius);
+            padding: 24px;
+            text-align: center;
+            cursor: pointer;
+            background: rgba(0, 0, 0, 0.02);
+            transition: background 0.2s, border-color 0.2s;
+            margin-bottom: 16px;
+        }
+        .dark-mode .ptz-dropzone {
+            background: rgba(255, 255, 255, 0.02);
+        }
+        .ptz-dropzone:hover {
+            background: rgba(220, 38, 38, 0.05);
+            border-color: var(--accent-primary);
+        }
+
+        /* プリセットボタンリスト */
+        .preset-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .preset-btn {
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            border: none;
+            padding: 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            transition: background 0.2s, transform 0.1s;
+        }
+        .preset-btn:active {
+            transform: scale(0.97);
+        }
+
+        /* ポルスカのマスコットとメッセージエリア */
+        .polska-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+        .polska-img {
+            width: 72px;
+            height: 72px;
+            object-fit: contain;
+            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));
+            flex-shrink: 0;
+            animation: floatBall 3s ease-in-out infinite;
+        }
+        @keyframes floatBall {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-6px) rotate(3deg); }
+        }
+        .polska-speech {
+            font-size: 13.5px;
+            font-weight: 600;
+            line-height: 1.4;
+            color: var(--text-main);
+            background: var(--bg-secondary);
+            padding: 12px 16px;
+            border-radius: 16px;
+            position: relative;
+            flex-grow: 1;
+        }
+
+        /* バイナリ・ヘキサエディタのグリッド表示 */
+        .hex-table-container {
+            width: 100%;
+            overflow-x: auto;
+            margin-top: 12px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+        }
+        .hex-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+        .hex-table th {
+            padding: 8px 4px;
+            color: var(--text-sub);
+            border-bottom: 1px solid var(--bg-secondary);
+            font-size: 11px;
+            font-weight: 700;
+        }
+        .hex-table td {
+            padding: 6px 4px;
+            border-bottom: 1px solid var(--bg-secondary);
+        }
+        .hex-offset {
+            color: var(--accent-primary);
+            font-weight: 700;
+            user-select: none;
+            width: 80px;
+        }
+        .hex-bytes {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            line-height: 1.6;
+        }
+        .hex-byte {
+            padding: 2px 4px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.15s;
+            user-select: none;
+        }
+        .hex-byte:hover {
+            background: var(--accent-primary);
+            color: white;
+        }
+        .hex-byte.edited {
+            background: #EF4444;
+            color: white;
+            font-weight: 700;
+        }
+        .hex-byte.selected {
+            background: var(--text-main);
+            color: var(--glass-bg);
+            font-weight: 700;
+        }
+        .hex-ascii {
+            color: var(--text-sub);
+            letter-spacing: 1px;
+            word-break: break-all;
+            width: 150px;
+        }
+
+        /* ジェリー/スキッシュアニメーション */
+        @keyframes squishy {
+            0% { transform: scale(1, 1); }
+            30% { transform: scale(1.06, 0.94); }
+            50% { transform: scale(0.97, 1.03); }
+            70% { transform: scale(1.01, 0.99); }
+            100% { transform: scale(1, 1); }
+        }
+        .squish-active {
+            animation: squishy 0.35s var(--m3-easing);
+        }
+
+        /* トースト通知 */
+        .toast {
+            position: fixed;
+            bottom: 84px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--text-main);
+            color: var(--glass-bg);
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s var(--m3-easing);
+            z-index: 2000;
+        }
+        .toast.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* ダイアログ */
+        .dialog-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000; display: flex; align-items: center; justify-content: center;
+            opacity: 0; visibility: hidden; transition: all 0.3s var(--m3-easing);
+        }
+        .dialog-overlay.active { opacity: 1; visibility: visible; }
+        .glass-dialog {
+            background: var(--glass-bg);
+            border-radius: var(--ptz-card-radius);
+            padding: 24px; max-width: 400px; width: 90%; text-align: center;
+            transform: scale(0.9) translateY(20px); transition: all 0.4s var(--m3-easing);
+        }
+        .dialog-overlay.active .glass-dialog { transform: scale(1) translateY(0); }
+
+        /* バッジ表示 */
+        .badge {
+            background: var(--accent-primary);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 700;
+            display: inline-block;
+        }
+
+        /* カウンターバッジ */
+        .char-counter {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-sub);
+            margin-top: 4px;
+            display: block;
+        }
+        .char-counter.valid {
+            color: #10B981;
+        }
+        .char-counter.invalid {
+            color: #EF4444;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app-viewport">
+        <!-- ヘッダー -->
+        <header>
+            <div class="logo">
+                <span class="material-symbols-outlined" style="color: var(--accent-primary);">data_object</span>
+                ポルスカのバイナリエディタ
+            </div>
+            <button class="theme-toggle" id="theme-btn" title="テーマ切り替え">
+                <span class="material-symbols-outlined">light_mode</span>
+            </button>
+        </header>
+
+        <!-- メインコンテンツ -->
+        <main>
+            <!-- 1. ホームビュー (バイナリ閲覧・編集) -->
+            <section id="view-home" class="view active">
+                <div class="glass-card">
+                    <div class="polska-header">
+                        <img src="https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/poland/lol.png" alt="Polska" class="polska-img" onerror="this.onerror=null; this.src='https://placehold.co/100x100/DC2626/FFFFFF?text=Polska';">
+                        <div class="polska-speech" id="polska-msg">
+                            「ファイルをいじろう！好きなファイルをドロップするか、サンプルを読み込んでバイト単位で変更してみてね！」
+                        </div>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span class="badge" id="file-status-badge">ファイル未選択</span>
+                        <span style="font-size: 11px; color: var(--text-sub);" id="file-size-info">0 バイト</span>
+                    </div>
+
+                    <!-- ファイルドロップゾーン -->
+                    <div class="ptz-dropzone" id="file-drop-zone" onclick="triggerFileInput()">
+                        <span class="material-symbols-outlined" style="font-size: 40px; color: var(--accent-primary); margin-bottom: 8px;">upload_file</span>
+                        <div style="font-weight: 700; font-size: 14px;">ここにファイルをドロップ、またはクリックして参照</div>
+                        <div style="font-size: 12px; color: var(--text-sub); margin-top: 4px;">画像、テキスト、実行ファイル何でもバイナリ分解します</div>
+                        <input type="file" id="binary-file-input" style="display: none;" onchange="handleFileLoad(event)">
+                    </div>
+
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <button class="ai-btn" id="download-btn" onclick="downloadModifiedFile()" disabled>
+                            <span class="material-symbols-outlined">download</span>
+                            セーブ・ダウンロード
+                        </button>
+                        <button class="ai-btn ai-btn-secondary" onclick="loadSampleData()">
+                            <span class="material-symbols-outlined">lab_profile</span>
+                            サンプルファイルを試す
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ヘキサビューア＆編集パネル -->
+                <div class="glass-card">
+                    <h2>バイナリエディタ (Hex Dump)</h2>
+                    <p>セルをクリックして直接バイトを選択・変更できます。変更したバイトは赤色で強調表示されます。</p>
+
+                    <!-- ページナビゲーション & バイト書き換えUI -->
+                    <div class="custom-list">
+                        <div class="list-item">
+                            <div>
+                                <div class="list-item-title">表示オフセット</div>
+                                <div class="list-item-desc" id="page-range-label">0x00000000 - 0x00000000</div>
+                            </div>
+                            <div style="display: flex; gap: 6px;">
+                                <button class="preset-btn" style="padding: 6px 12px; margin: 0;" onclick="changePage(-1)">前へ</button>
+                                <button class="preset-btn" style="padding: 6px 12px; margin: 0;" onclick="changePage(1)">次へ</button>
+                            </div>
+                        </div>
+
+                        <!-- バイト書き換えフォーム (1Hexバイト単位) -->
+                        <div class="list-item" style="flex-wrap: wrap; gap: 10px;">
+                            <div style="flex: 1; min-width: 200px;">
+                                <div class="list-item-title">選択中の1バイト編集</div>
+                                <div class="list-item-desc" id="selected-byte-desc">バイトを選択してください</div>
+                            </div>
+                            <div style="display: flex; gap: 8px; align-items: center; flex: 1; min-width: 220px;">
+                                <div class="glass-input-wrapper" style="margin: 0; flex: 1;">
+                                    <input type="text" class="glass-input" id="byte-input-hex" placeholder="Hex (例: FF)" maxlength="2" style="font-family: monospace;">
+                                </div>
+                                <button class="ai-btn" style="padding: 8px 16px; font-size: 13px;" onclick="applyByteEdit()">Hex書き換え</button>
+                            </div>
+                        </div>
+
+                        <!-- テキスト (ASCII/文字列) 直書き編集フォーム (同バイト数限定) -->
+                        <div class="list-item" style="flex-wrap: wrap; gap: 10px; border-bottom: none;">
+                            <div style="flex: 1; min-width: 200px;">
+                                <div class="list-item-title">ASCII・テキストとして編集 (同バイト数限定)</div>
+                                <div class="list-item-desc" id="text-edit-desc">範囲を選択または選択バイトから開始</div>
+                            </div>
+                            <div style="flex: 1; min-width: 260px;">
+                                <div style="display: flex; gap: 8px; align-items: center;">
+                                    <div class="glass-input-wrapper" style="margin: 0; flex: 1;">
+                                        <input type="text" class="glass-input" id="text-edit-input" placeholder="同じバイト数のテキストを入力" oninput="validateTextLength()">
+                                    </div>
+                                    <button class="ai-btn" id="apply-text-btn" style="padding: 8px 16px; font-size: 13px;" onclick="applyTextEdit()" disabled>テキスト上書き</button>
+                                </div>
+                                <span class="char-counter" id="text-counter-info">1バイト単位または文字列範囲を指定してください</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ヘキサテーブル -->
+                    <div class="hex-table-container">
+                        <table class="hex-table">
+                            <thead>
+                                <tr>
+                                    <th class="hex-offset">Offset</th>
+                                    <th>Hex (00-0F)</th>
+                                    <th class="hex-ascii">ASCII</th>
+                                </tr>
+                            </thead>
+                            <tbody id="hex-table-body">
+                                <tr>
+                                    <td colspan="3" style="text-align: center; color: var(--text-sub); padding: 24px;">
+                                        ファイルを読み込むとここにバイナリが表示されます
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2. バイナリ検索・置換ビュー -->
+            <section id="view-ptz" class="view">
+                <div class="glass-card">
+                    <div class="polska-header">
+                        <img src="https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/poland/lol.png" alt="Polska" class="polska-img" onerror="this.onerror=null; this.src='https://placehold.co/100x100/DC2626/FFFFFF?text=Polska';">
+                        <div class="polska-speech">
+                            「特定列のバイトやテキストを探して一気に置き換えるよ！ファイルの中身を探検しよう！」
+                        </div>
+                    </div>
+
+                    <h2>バイナリ検索 & 一括置換</h2>
+                    <p>16進数(Hex)またはテキスト(ASCII)でバイナリデータ内を検索し、一括変換が可能です。</p>
+
+                    <div class="glass-input-wrapper">
+                        <label style="font-size: 12px; font-weight: 700; display: block; margin-bottom: 4px;">検索パターン (Hex または ASCII)</label>
+                        <input type="text" class="glass-input" id="search-input" placeholder="例: 48 65 6C 6C 6F または Hello">
+                    </div>
+
+                    <div class="glass-input-wrapper">
+                        <label style="font-size: 12px; font-weight: 700; display: block; margin-bottom: 4px;">置換後パターン (Hex または ASCII)</label>
+                        <input type="text" class="glass-input" id="replace-input" placeholder="例: 57 6F 72 6C 64 または World">
+                    </div>
+
+                    <div style="display: flex; gap: 8px; margin-top: 12px;">
+                        <button class="ai-btn" onclick="executeSearch()">
+                            <span class="material-symbols-outlined">search</span>
+                            検索実行
+                        </button>
+                        <button class="ai-btn ai-btn-secondary" onclick="executeReplace()">
+                            <span class="material-symbols-outlined">find_replace</span>
+                            一括置換
+                        </button>
+                    </div>
+
+                    <div id="search-results-info" style="margin-top: 16px; font-size: 13px; font-weight: 600; color: var(--accent-primary);"></div>
+                </div>
+
+                <div class="glass-card">
+                    <h2>クイックプリセット検索</h2>
+                    <p>よく使われるファイルシグネチャ（マジックナンバー）を素早くチェックします。</p>
+                    <div class="preset-grid">
+                        <button class="preset-btn" onclick="setSearchPreset('PNG', '89 50 4E 47')">PNG Header</button>
+                        <button class="preset-btn" onclick="setSearchPreset('JPEG', 'FF D8 FF')">JPEG Header</button>
+                        <button class="preset-btn" onclick="setSearchPreset('GIF', '47 49 46 38')">GIF Header</button>
+                        <button class="preset-btn" onclick="setSearchPreset('PDF', '25 50 44 46')">PDF Header</button>
+                        <button class="preset-btn" onclick="setSearchPreset('ZIP', '50 4B 03 04')">ZIP Header</button>
+                        <button class="preset-btn" onclick="setSearchPreset('ELF/Exe', '7F 45 4C 46')">ELF Executable</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. ツール・統計・環境設定ビュー -->
+            <section id="view-components" class="view">
+                <div class="glass-card">
+                    <h2>ファイル構造解析 & 統計</h2>
+                    <p>読み込んだファイルのバイトエントロピーやチェックサムを確認できます。</p>
+
+                    <div class="custom-list">
+                        <div class="list-item">
+                            <div>
+                                <div class="list-item-title">ファイル名</div>
+                                <div class="list-item-desc" id="stat-filename">-</div>
+                            </div>
+                        </div>
+                        <div class="list-item">
+                            <div>
+                                <div class="list-item-title">総バイト数</div>
+                                <div class="list-item-desc" id="stat-filesize">0 Bytes</div>
+                            </div>
+                        </div>
+                        <div class="list-item">
+                            <div>
+                                <div class="list-item-title">変更されたバイト数</div>
+                                <div class="list-item-desc" id="stat-modified-count">0 Bytes</div>
+                            </div>
+                        </div>
+                        <div class="list-item">
+                            <div>
+                                <div class="list-item-title">チェックサム (Sum8)</div>
+                                <div class="list-item-desc" id="stat-checksum">0x00</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- エントロピー・スライダー（表示専用） -->
+                    <div class="slider-wrapper">
+                        <div class="slider-label-row">
+                            <span>データエントロピー (乱雑さ)</span>
+                            <span id="val-entropy">0.00 / 8.00</span>
+                        </div>
+                        <div class="thick-slider-container">
+                            <div class="thick-slider-fill" id="slider-entropy-fill" style="width: 0%;"></div>
+                            <input type="range" class="thick-slider-input" min="0" max="100" value="0" disabled>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card">
+                    <h2>バイナリ編集ツール</h2>
+                    <p>ポルスカ特製の全バイト一括操作ユーティリティです。</p>
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                        <button class="ai-btn ai-btn-secondary" onclick="invertAllBytes()">
+                            <span class="material-symbols-outlined">invert_colors</span>
+                            全ビット反転 (NOT)
+                        </button>
+                        <button class="ai-btn ai-btn-secondary" onclick="resetAllModifications()">
+                            <span class="material-symbols-outlined">restart_alt</span>
+                            変更をすべてリセット
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- 下付き固定ナビゲーションバー -->
+        <div class="bottom-nav-container">
+            <div class="nav-item active" data-view="view-home" onclick="switchView('view-home')">
+                <span class="material-symbols-outlined">edit_note</span>
+                <span class="nav-label">エディタ</span>
+            </div>
+            <div class="nav-item" data-view="view-ptz" onclick="switchView('view-ptz')">
+                <span class="material-symbols-outlined">search</span>
+                <span class="nav-label">検索・置換</span>
+            </div>
+            <div class="nav-item" data-view="view-components" onclick="switchView('view-components')">
+                <span class="material-symbols-outlined">analytics</span>
+                <span class="nav-label">解析・ツール</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Liquid Dialog (説明・ダイアログ) -->
+    <div class="dialog-overlay" id="main-dialog">
+        <div class="glass-dialog">
+            <span class="material-symbols-outlined" style="font-size: 44px; color: var(--accent-primary);">verified_user</span>
+            <h2 style="margin-top: 12px;">ポルスカのバイナリエディタへようこそ！</h2>
+            <p style="margin-bottom: 20px;">
+                ファイルを直接読み込み、1バイト単位または同一バイト数のテキストとして自由自在に書き換えることができます。書き換えたファイルはいつでもダウンロード可能です！
+            </p>
+            <button class="ai-btn" style="width: 100%; justify-content: center;" onclick="closeDialog()">いじってみる！</button>
+        </div>
+    </div>
+
+    <!-- トースト通知 -->
+    <div class="toast" id="toast-message">メッセージをコピーしました</div>
+
+    <script>
+        /**
+         * Polandball Binary Editor - Core Script
+         */
+
+        const themeBtn = document.getElementById('theme-btn');
+        const themeIcon = themeBtn.querySelector('span');
+        const toast = document.getElementById('toast-message');
+
+        // アプリケーション状態変数
+        let currentFile = null;
+        let fileData = null; // Uint8Array (オリジナルデータ)
+        let modifiedData = null; // Uint8Array (編集後データ)
+        let modifiedIndexes = new Set(); // 変更されたインデックスの記録
+        
+        let currentPage = 0;
+        const bytesPerPage = 256; // 1ページあたり16行×16バイト
+        let selectedIndex = -1;
+        let targetTextByteLen = 0; // テキスト編集で上書き対象のバイト長
+
+        // ポルスカのコメント更新
+        function setPolskaMsg(text) {
+            const el = document.getElementById('polska-msg');
+            if (el) el.textContent = `「${text}」`;
+        }
+
+        // --- STREAMING_CHUNK:ファイルロードおよびサンプルデータ読み込み修正 ---
+        function triggerFileInput() {
+            document.getElementById('binary-file-input').click();
+        }
+
+        function handleFileLoad(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            processFile(file);
+        }
+
+        function processFile(file) {
+            currentFile = file;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const buffer = e.target.result;
+                fileData = new Uint8Array(buffer);
+                // original buffer参照の共通化を避け、独立したコピーを保持
+                modifiedData = new Uint8Array(fileData.slice());
+                modifiedIndexes.clear();
+                currentPage = 0;
+                selectedIndex = -1;
+
+                document.getElementById('file-status-badge').textContent = file.name;
+                document.getElementById('file-size-info').textContent = `${file.size.toLocaleString()} バイト`;
+                document.getElementById('download-btn').disabled = false;
+
+                setPolskaMsg(`${file.name} を読込完了！全部で ${file.size.toLocaleString()} バイトあるよ。いじってみよう！`);
+                showToast(`${file.name} を読み込みました`);
+
+                updateHexView();
+                updateStats();
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // サンプルデータ生成
+        function loadSampleData() {
+            const sampleText = "Hello Polandball! Welcome to Polska Binary Editor. ファイルをいじろう！\x00\x01\x02\xFF\xFE";
+            const encoder = new TextEncoder();
+            const bytes = encoder.encode(sampleText);
+            
+            currentFile = { name: "sample_polska.txt" };
+            fileData = new Uint8Array(bytes);
+            modifiedData = new Uint8Array(fileData.slice());
+            modifiedIndexes.clear();
+            currentPage = 0;
+            selectedIndex = -1;
+
+            document.getElementById('file-status-badge').textContent = currentFile.name;
+            document.getElementById('file-size-info').textContent = `${fileData.length} バイト`;
+            document.getElementById('download-btn').disabled = false;
+
+            setPolskaMsg("サンプルテキストを読み込んだよ！バイナリセルをクリックして書き換えてみて！");
+            showToast("サンプルデータをロードしました");
+
+            updateHexView();
+            updateStats();
+        }
+
+        // --- ヘキサビューア描画 ---
+        function updateHexView() {
+            const tbody = document.getElementById('hex-table-body');
+            tbody.innerHTML = '';
+
+            if (!modifiedData) {
+                tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: var(--text-sub); padding: 24px;">ファイルを読み込むとここにバイナリが表示されます</td></tr>';
+                return;
+            }
+
+            const totalBytes = modifiedData.length;
+            const startByte = currentPage * bytesPerPage;
+            const endByte = Math.min(startByte + bytesPerPage, totalBytes);
+
+            document.getElementById('page-range-label').textContent = 
+                `0x${startByte.toString(16).padStart(8, '0').toUpperCase()} - 0x${Math.max(0, endByte - 1).toString(16).padStart(8, '0').toUpperCase()}`;
+
+            for (let i = startByte; i < endByte; i += 16) {
+                const tr = document.createElement('tr');
+
+                // オフセット表示
+                const tdOffset = document.createElement('td');
+                tdOffset.className = 'hex-offset';
+                tdOffset.textContent = `0x${i.toString(16).padStart(8, '0').toUpperCase()}`;
+                tr.appendChild(tdOffset);
+
+                // Hex表示
+                const tdBytes = document.createElement('td');
+                const bytesContainer = document.createElement('div');
+                bytesContainer.className = 'hex-bytes';
+
+                let asciiStr = '';
+
+                for (let j = 0; j < 16; j++) {
+                    const idx = i + j;
+                    if (idx < endByte) {
+                        const val = modifiedData[idx];
+                        const hexStr = val.toString(16).padStart(2, '0').toUpperCase();
+
+                        const byteSpan = document.createElement('span');
+                        byteSpan.className = 'hex-byte';
+                        if (modifiedIndexes.has(idx)) byteSpan.classList.add('edited');
+                        if (idx === selectedIndex) byteSpan.classList.add('selected');
+
+                        byteSpan.textContent = hexStr;
+                        byteSpan.onclick = () => selectByte(idx);
+                        bytesContainer.appendChild(byteSpan);
+
+                        // ASCII文字列構築 (制御文字はドットに置き換え)
+                        asciiStr += (val >= 32 && val <= 126) ? String.fromCharCode(val) : '.';
+                    }
+                }
+                tdBytes.appendChild(bytesContainer);
+                tr.appendChild(tdBytes);
+
+                // ASCII表示
+                const tdAscii = document.createElement('td');
+                tdAscii.className = 'hex-ascii';
+                tdAscii.textContent = asciiStr;
+                tr.appendChild(tdAscii);
+
+                tbody.appendChild(tr);
+            }
+        }
+
+        // バイト選択
+        function selectByte(idx) {
+            selectedIndex = idx;
+            const val = modifiedData[idx];
+            const hexVal = val.toString(16).padStart(2, '0').toUpperCase();
+            
+            document.getElementById('selected-byte-desc').textContent = 
+                `Offset: 0x${idx.toString(16).toUpperCase()} | Dec: ${val} | ASCII: ${(val >= 32 && val <= 126) ? String.fromCharCode(val) : '.'}`;
+            document.getElementById('byte-input-hex').value = hexVal;
+
+            // テキスト編集用の既存文字列・デフォルト値を取得（選択箇所から最長16バイト程度）
+            const defaultLen = 4; // デフォルトで4バイト分を文字列編集対象にする
+            targetTextByteLen = Math.min(defaultLen, modifiedData.length - idx);
+
+            let initialText = '';
+            for (let k = 0; k < targetTextByteLen; k++) {
+                const b = modifiedData[idx + k];
+                initialText += (b >= 32 && b <= 126) ? String.fromCharCode(b) : '?';
+            }
+
+            const textInput = document.getElementById('text-edit-input');
+            textInput.value = initialText;
+            document.getElementById('text-edit-desc').textContent = `Offset: 0x${idx.toString(16).toUpperCase()} からの ${targetTextByteLen} バイト上書き`;
+
+            validateTextLength();
+
+            setPolskaMsg(`オフセット 0x${idx.toString(16).toUpperCase()} を選んだよ！1バイト書き換えか、文字数が同じテキストで上書きできるよ！`);
+            updateHexView();
+        }
+
+        // バイト編集適用 (Hex 1Byte)
+        function applyByteEdit() {
+            if (selectedIndex < 0 || !modifiedData) {
+                showToast("編集するバイトを選択してください");
+                return;
+            }
+
+            const inputVal = document.getElementById('byte-input-hex').value.trim();
+            const newVal = parseInt(inputVal, 16);
+
+            if (isNaN(newVal) || newVal < 0 || newVal > 255) {
+                showToast("有効なHex値 (00 ~ FF) を入力してください");
+                return;
+            }
+
+            modifiedData[selectedIndex] = newVal;
+            modifiedIndexes.add(selectedIndex);
+
+            setPolskaMsg(`バイトを 0x${newVal.toString(16).padStart(2, '0').toUpperCase()} に書き換えたよ！いい感じ！`);
+            showToast("バイトを更新しました");
+
+            updateHexView();
+            updateStats();
+        }
+
+        function validateTextLength() {
+            if (selectedIndex < 0 || !modifiedData) {
+                document.getElementById('text-counter-info').textContent = "バイトが選択されていません";
+                document.getElementById('text-counter-info').className = "char-counter invalid";
+                document.getElementById('apply-text-btn').disabled = true;
+                return;
+            }
+
+            const inputStr = document.getElementById('text-edit-input').value;
+            const inputBytes = new TextEncoder().encode(inputStr);
+            const currentLen = inputBytes.length;
+            const availableLen = modifiedData.length - selectedIndex;
+
+            const counterEl = document.getElementById('text-counter-info');
+            const btn = document.getElementById('apply-text-btn');
+
+            if (currentLen === 0) {
+                counterEl.textContent = "上書きするテキストを入力してください";
+                counterEl.className = "char-counter invalid";
+                btn.disabled = true;
+            } else if (currentLen > availableLen) {
+                counterEl.textContent = `エラー: テキストのバイト数 (${currentLen}B) がファイル容量残量 (${availableLen}B) を超えています`;
+                counterEl.className = "char-counter invalid";
+                btn.disabled = true;
+            } else {
+                counterEl.textContent = `オフセット 0x${selectedIndex.toString(16).toUpperCase()} から ${currentLen} バイト分を上書きします`;
+                counterEl.className = "char-counter valid";
+                btn.disabled = false;
+            }
+        }
+
+        function applyTextEdit() {
+            if (selectedIndex < 0 || !modifiedData) {
+                showToast("編集を開始するバイト位置を選択してください");
+                return;
+            }
+
+            const inputStr = document.getElementById('text-edit-input').value;
+            const inputBytes = new TextEncoder().encode(inputStr);
+
+            if (inputBytes.length === 0) {
+                showToast("適用するテキストを入力してください");
+                return;
+            }
+
+            if (selectedIndex + inputBytes.length > modifiedData.length) {
+                showToast("エラー: ファイルの容量を超えて上書きできません");
+                return;
+            }
+
+            // modifiedData に直接書き込みと変更インデックスを記録
+            for (let i = 0; i < inputBytes.length; i++) {
+                const targetIndex = selectedIndex + i;
+                modifiedData[targetIndex] = inputBytes[i];
+                modifiedIndexes.add(targetIndex);
+            }
+
+            setPolskaMsg(`テキスト 「${inputStr}」 (${inputBytes.length} バイト) を上書き保存したよ！`);
+            showToast(`テキスト ${inputBytes.length} バイトを上書き適用しました`);
+
+            updateHexView();
+            updateStats();
+        }
+
+        // ページ切り替え
+        function changePage(dir) {
+            if (!modifiedData) return;
+            const maxPage = Math.floor((modifiedData.length - 1) / bytesPerPage);
+            const newPage = currentPage + dir;
+
+            if (newPage >= 0 && newPage <= maxPage) {
+                currentPage = newPage;
+                updateHexView();
+            }
+        }
+
+        function downloadModifiedFile() {
+            if (!modifiedData || modifiedData.length === 0) {
+                showToast("ダウンロードできるデータがありません");
+                return;
+            }
+
+            // TypedArrayの正確な領域からスライスしたArrayBufferでBlobを生成
+            const bufferSlice = modifiedData.buffer.slice(
+                modifiedData.byteOffset,
+                modifiedData.byteOffset + modifiedData.byteLength
+            );
+            const blob = new Blob([bufferSlice], { type: 'application/octet-stream' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = currentFile ? `edited_${currentFile.name}` : 'modified_file.bin';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            setPolskaMsg("編集したファイルを保存・ダウンロードしたよ！ありがとう！");
+            showToast("ファイルをダウンロードしました");
+        }
+
+        // --- 検索 & 置換機能 ---
+        function executeSearch() {
+            if (!modifiedData) {
+                showToast("ファイルが読み込まれていません");
+                return;
+            }
+
+            const query = document.getElementById('search-input').value.trim();
+            if (!query) return;
+
+            let searchBytes = parseSearchQuery(query);
+            if (!searchBytes || searchBytes.length === 0) {
+                showToast("検索パターンが無効です");
+                return;
+            }
+
+            let matches = [];
+            for (let i = 0; i <= modifiedData.length - searchBytes.length; i++) {
+                let match = true;
+                for (let j = 0; j < searchBytes.length; j++) {
+                    if (modifiedData[i + j] !== searchBytes[j]) {
+                        match = false;
+                        break;
+                    }
+                }
+                if (match) matches.push(i);
+            }
+
+            const resEl = document.getElementById('search-results-info');
+            if (matches.length > 0) {
+                resEl.textContent = `一致箇所: ${matches.length} 件見つかりました (最初の位置: 0x${matches[0].toString(16).toUpperCase()})`;
+                setPolskaMsg(`検索パターンが ${matches.length} 件ヒットしたよ！最初の位置は 0x${matches[0].toString(16).toUpperCase()} だよ。`);
+                
+                // ヒットした最初の位置へジャンプ
+                currentPage = Math.floor(matches[0] / bytesPerPage);
+                selectByte(matches[0]);
+                switchView('view-home');
+            } else {
+                resEl.textContent = "一致するパターンが見つかりませんでした";
+                setPolskaMsg("うーん、そのバイト列は見つからなかったよ。");
+            }
+        }
+
+        function executeReplace() {
+            if (!modifiedData) {
+                showToast("ファイルが読み込まれていません");
+                return;
+            }
+
+            const query = document.getElementById('search-input').value.trim();
+            const repQuery = document.getElementById('replace-input').value.trim();
+
+            if (!query || !repQuery) {
+                showToast("検索と置換の両方のパターンを入力してください");
+                return;
+            }
+
+            let searchBytes = parseSearchQuery(query);
+            let replaceBytes = parseSearchQuery(repQuery);
+
+            if (!searchBytes || !replaceBytes || searchBytes.length !== replaceBytes.length) {
+                showToast("置き換えるバイト長は一致させる必要があります");
+                return;
+            }
+
+            let count = 0;
+            for (let i = 0; i <= modifiedData.length - searchBytes.length; i++) {
+                let match = true;
+                for (let j = 0; j < searchBytes.length; j++) {
+                    if (modifiedData[i + j] !== searchBytes[j]) {
+                        match = false;
+                        break;
+                    }
+                }
+                if (match) {
+                    for (let j = 0; j < replaceBytes.length; j++) {
+                        modifiedData[i + j] = replaceBytes[j];
+                        modifiedIndexes.add(i + j);
+                    }
+                    count++;
+                    i += searchBytes.length - 1;
+                }
+            }
+
+            document.getElementById('search-results-info').textContent = `${count} 箇所の置き換えを実行しました`;
+            setPolskaMsg(`一括置換完了！ ${count} 箇所のバイトを入れ替えたよ！`);
+            showToast(`${count} 箇所置換しました`);
+
+            updateHexView();
+            updateStats();
+        }
+
+        function parseSearchQuery(str) {
+            const hexParts = str.split(/\s+/);
+            const isHex = hexParts.every(p => /^[0-9A-Fa-f]{1,2}$/.test(p));
+
+            if (isHex) {
+                return hexParts.map(p => parseInt(p, 16));
+            } else {
+                return new TextEncoder().encode(str);
+            }
+        }
+
+        function setSearchPreset(name, hexPattern) {
+            document.getElementById('search-input').value = hexPattern;
+            showToast(`${name} ヘッダーのパターンをセットしました`);
+        }
+
+        // --- 統計 & 解析機能 ---
+        function updateStats() {
+            if (!modifiedData) return;
+
+            document.getElementById('stat-filename').textContent = currentFile ? currentFile.name : '-';
+            document.getElementById('stat-filesize').textContent = `${modifiedData.length.toLocaleString()} Bytes`;
+            document.getElementById('stat-modified-count').textContent = `${modifiedIndexes.size.toLocaleString()} Bytes`;
+
+            // チェックサム (Sum8)
+            let sum = 0;
+            let byteCounts = new Array(256).fill(0);
+
+            for (let i = 0; i < modifiedData.length; i++) {
+                const b = modifiedData[i];
+                sum = (sum + b) & 0xFF;
+                byteCounts[b]++;
+            }
+            document.getElementById('stat-checksum').textContent = `0x${sum.toString(16).padStart(2, '0').toUpperCase()}`;
+
+            // シャノン・エントロピー計算 (0 ~ 8.0)
+            let entropy = 0;
+            const len = modifiedData.length;
+            if (len > 0) {
+                for (let i = 0; i < 256; i++) {
+                    if (byteCounts[i] > 0) {
+                        const p = byteCounts[i] / len;
+                        entropy -= p * Math.log2(p);
+                    }
+                }
+            }
+            document.getElementById('val-entropy').textContent = `${entropy.toFixed(2)} / 8.00`;
+            document.getElementById('slider-entropy-fill').style.width = `${(entropy / 8.0) * 100}%`;
+        }
+
+        // 全ビット反転
+        function invertAllBytes() {
+            if (!modifiedData) return;
+
+            for (let i = 0; i < modifiedData.length; i++) {
+                modifiedData[i] = (~modifiedData[i]) & 0xFF;
+                modifiedIndexes.add(i);
+            }
+
+            setPolskaMsg("全バイトのビットを反転(NOT)させたよ！");
+            showToast("全バイトを反転しました");
+
+            updateHexView();
+            updateStats();
+        }
+
+        // 変更のリセット
+        function resetAllModifications() {
+            if (!fileData) return;
+
+            modifiedData = new Uint8Array(fileData);
+            modifiedIndexes.clear();
+
+            setPolskaMsg("変更をすべてリセットして元のファイルに戻したよ！");
+            showToast("変更をリセットしました");
+
+            updateHexView();
+            updateStats();
+        }
+
+        // --- ビュー切り替え機構 ---
+        const navItems = document.querySelectorAll('.nav-item');
+        const views = document.querySelectorAll('.view');
+
+        function switchView(viewId) {
+            navItems.forEach(n => {
+                n.classList.remove('active');
+                if (n.getAttribute('data-view') === viewId) {
+                    n.classList.add('active');
+                }
+            });
+
+            views.forEach(v => {
+                v.classList.remove('active');
+                if (v.id === viewId) {
+                    v.classList.add('active');
+                }
+            });
+        }
+
+        // --- ダイアログ & トースト ---
+        function closeDialog() {
+            document.getElementById('main-dialog').classList.remove('active');
+        }
+
+        function showToast(msg) {
+            toast.textContent = msg;
+            toast.classList.add('active');
+            setTimeout(() => {
+                toast.classList.remove('active');
+            }, 2300);
+        }
+
+        // --- テーマ（ライト・ダーク）切替 ---
+        function setTheme(isDark) {
+            document.body.classList.toggle('dark-mode', isDark);
+            themeIcon.textContent = isDark ? 'dark_mode' : 'light_mode';
+        }
+
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+        setTheme(prefersDark.matches);
+
+        themeBtn.addEventListener('click', () => {
+            setTheme(!document.body.classList.contains('dark-mode'));
+        });
+
+        // 触感・ジェリー風バウンド演出
+        document.addEventListener('mousedown', (e) => {
+            const target = e.target.closest('.glass-card, .ai-btn, .nav-item, .preset-btn');
+            if (target) {
+                target.classList.remove('squish-active');
+                void target.offsetWidth;
+                target.classList.add('squish-active');
+                
+                setTimeout(() => {
+                    target.classList.remove('squish-active');
+                }, 350);
+            }
+        });
+
+        // ドラッグ＆ドロップ イベント
+        const dropArea = document.getElementById('file-drop-zone');
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropArea.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                dropArea.style.background = 'rgba(220, 38, 38, 0.08)';
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                dropArea.style.background = 'rgba(0, 0, 0, 0.02)';
+            }, false);
+        });
+
+        dropArea.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            const file = dt.files[0];
+            if (file) {
+                processFile(file);
+            }
+        });
+
+        // 初期実行
+        window.onload = () => {
+            loadSampleData();
+        };
+    </script>
+</body>
+</html>
