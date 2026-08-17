@@ -1,1 +1,1644 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PBpark Weball - P2P URL Web Meeting</title>
+    <link rel="icon" href="https://raw.githubusercontent.com/PolandBallHub-Operator/pbpark/refs/heads/main/tools/pballkaigi/1787005703047.png">
 
+    <!-- Google Fonts & Material Symbols -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+
+    <!-- PeerJS Library for P2P WebRTC -->
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+
+    <!-- Import Map for Material Web Components -->
+    <script type="importmap">
+    {
+        "imports": {
+            "@material/web/": "https://esm.run/@material/web/"
+        }
+    }
+    </script>
+
+    <style>
+        /* ==========================================================================
+           Material 3 Design Tokens - Google Blue Base Theme
+           ========================================================================== */
+        :root {
+            /* Light Mode Tokens */
+            --md-sys-color-primary: #0b57d0;
+            --md-sys-color-on-primary: #ffffff;
+            --md-sys-color-primary-container: #d3e3fd;
+            --md-sys-color-on-primary-container: #041e49;
+            --md-sys-color-secondary: #006391;
+            --md-sys-color-on-secondary: #ffffff;
+            --md-sys-color-secondary-container: #c2e7ff;
+            --md-sys-color-on-secondary-container: #001d35;
+            --md-sys-color-tertiary: #0b57d0;
+            --md-sys-color-on-tertiary: #ffffff;
+            --md-sys-color-background: #f8f9fa;
+            --md-sys-color-on-background: #1f1f1f;
+            --md-sys-color-surface: #f8f9fa;
+            --md-sys-color-on-surface: #1f1f1f;
+            --md-sys-color-surface-container: #f0f4f9;
+            --md-sys-color-surface-container-high: #e9eef6;
+            --md-sys-color-surface-variant: #e1e3e1;
+            --md-sys-color-on-surface-variant: #444746;
+            --md-sys-color-outline: #747775;
+            --md-sys-color-outline-variant: #c4c7c5;
+            --md-sys-color-error: #b3261e;
+            --md-sys-color-on-error: #ffffff;
+            
+            /* Typography */
+            --md-ref-typeface-brand: 'Google Sans', sans-serif;
+            --md-ref-typeface-plain: 'Roboto', sans-serif;
+
+            --transition-duration: 0.3s;
+        }
+
+        /* Dark Mode Override */
+        [data-theme="dark"] {
+            --md-sys-color-primary: #a8c7fa;
+            --md-sys-color-on-primary: #062e6f;
+            --md-sys-color-primary-container: #0842a0;
+            --md-sys-color-on-primary-container: #d3e3fd;
+            --md-sys-color-secondary: #7fcfff;
+            --md-sys-color-on-secondary: #00334d;
+            --md-sys-color-secondary-container: #004a6e;
+            --md-sys-color-on-secondary-container: #c2e7ff;
+            --md-sys-color-background: #111318;
+            --md-sys-color-on-background: #e3e3e3;
+            --md-sys-color-surface: #111318;
+            --md-sys-color-on-surface: #e3e3e3;
+            --md-sys-color-surface-container: #1d2026;
+            --md-sys-color-surface-container-high: #282a30;
+            --md-sys-color-surface-variant: #444746;
+            --md-sys-color-on-surface-variant: #c4c7c5;
+            --md-sys-color-outline: #8e918f;
+            --md-sys-color-outline-variant: #444746;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: var(--md-ref-typeface-plain);
+            background-color: var(--md-sys-color-background);
+            color: var(--md-sys-color-on-background);
+            transition: background-color var(--transition-duration), color var(--transition-duration), margin-left 0.3s;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+        }
+
+        /* Splash Screen Animation */
+        #splash-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: var(--md-sys-color-surface);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            transition: opacity 0.5s ease, visibility 0.5s ease;
+        }
+
+        #splash-screen.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        .splash-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            animation: splashPop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .splash-logo {
+            width: 100px;
+            height: 100px;
+            object-fit: contain;
+            border-radius: 24px;
+            box-shadow: 0 10px 28px rgba(0,0,0,0.18);
+        }
+
+        .splash-title {
+            font-family: var(--md-ref-typeface-brand);
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--md-sys-color-on-surface);
+            letter-spacing: 0.5px;
+        }
+
+        @keyframes splashPop {
+            0% { transform: scale(0.6); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* ==========================================================================
+           M3 Component Theme Overrides
+           ========================================================================== */
+        md-dialog {
+            --md-dialog-container-color: var(--md-sys-color-surface-container-high);
+            --md-dialog-headline-color: var(--md-sys-color-on-surface);
+            --md-dialog-supporting-text-color: var(--md-sys-color-on-surface-variant);
+            color: var(--md-sys-color-on-surface);
+        }
+
+        md-menu {
+            --md-menu-container-color: var(--md-sys-color-surface-container-high);
+            --md-menu-item-label-text-color: var(--md-sys-color-on-surface);
+            border-radius: 12px;
+        }
+
+        md-menu-item {
+            --md-menu-item-label-text-color: var(--md-sys-color-on-surface);
+            --md-menu-item-hover-state-layer-color: var(--md-sys-color-primary);
+        }
+
+        md-filled-text-field, md-outlined-text-field {
+            width: 100%;
+            --md-filled-text-field-container-color: var(--md-sys-color-surface-container);
+            --md-filled-text-field-input-text-color: var(--md-sys-color-on-surface);
+            --md-filled-text-field-label-text-color: var(--md-sys-color-on-surface-variant);
+            --md-outlined-text-field-input-text-color: var(--md-sys-color-on-surface);
+            --md-outlined-text-field-label-text-color: var(--md-sys-color-on-surface-variant);
+            --md-outlined-text-field-outline-color: var(--md-sys-color-outline);
+        }
+
+        /* Layout */
+        header {
+            background-color: var(--md-sys-color-surface);
+            color: var(--md-sys-color-on-surface);
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            border-bottom: 1px solid var(--md-sys-color-outline-variant);
+        }
+
+        .header-logo-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-app-logo {
+            width: 36px;
+            height: 36px;
+            object-fit: contain;
+            border-radius: 8px;
+        }
+
+        header h1 {
+            margin: 0;
+            font-family: var(--md-ref-typeface-brand);
+            font-size: 20px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        main {
+            flex: 1;
+            padding: 16px;
+            max-width: 1000px;
+            margin: 0 auto;
+            width: 100%;
+            box-sizing: border-box;
+            padding-bottom: 120px;
+            transition: padding-bottom 0.3s;
+        }
+
+        /* View Management */
+        .view-section {
+            display: none;
+            animation: fadeScale 0.25s cubic-bezier(0.2, 0, 0, 1) forwards;
+        }
+        .view-section.active {
+            display: block;
+        }
+
+        @keyframes fadeScale {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .section-card {
+            background-color: var(--md-sys-color-surface-container);
+            border-radius: 28px;
+            padding: 24px;
+            margin-bottom: 24px;
+            border: 1px solid var(--md-sys-color-outline-variant);
+        }
+
+        .section-title {
+            font-family: var(--md-ref-typeface-brand);
+            font-size: 1.35rem;
+            font-weight: 500;
+            margin-bottom: 16px;
+            color: var(--md-sys-color-primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .flex-row-wrap {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        /* Hero Banner */
+        .hero-banner {
+            background-color: var(--md-sys-color-primary-container);
+            color: var(--md-sys-color-on-primary-container);
+            border-radius: 28px;
+            padding: 28px;
+            margin-bottom: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .hero-app-logo {
+            width: 60px;
+            height: 60px;
+            object-fit: contain;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .hero-banner h2 {
+            font-family: var(--md-ref-typeface-brand);
+            margin: 0;
+            font-size: 1.8rem;
+            font-weight: 500;
+        }
+
+        .hero-banner p {
+            margin: 0;
+            line-height: 1.5;
+            font-size: 0.95rem;
+        }
+
+        /* Base Navigation Bar (2 Tabs) */
+        .custom-nav {
+            position: fixed;
+            background-color: var(--md-sys-color-surface);
+            display: flex;
+            align-items: center;
+            z-index: 100;
+            transition: all 0.3s ease;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 80px;
+            justify-content: space-evenly;
+            padding-bottom: env(safe-area-inset-bottom);
+            box-shadow: 0 -1px 3px 0 rgba(0,0,0,0.1);
+            border-top: 1px solid var(--md-sys-color-outline-variant);
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+            height: 100%;
+            cursor: pointer;
+            color: var(--md-sys-color-on-surface-variant);
+            user-select: none;
+        }
+
+        .nav-icon-container {
+            width: 64px;
+            height: 32px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 16px;
+            margin-bottom: 4px;
+            transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
+        }
+
+        .nav-item .material-symbols-outlined {
+            font-size: 24px;
+            font-variation-settings: 'FILL' 0;
+        }
+
+        .nav-label {
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .nav-item.active .nav-icon-container {
+            background-color: var(--md-sys-color-secondary-container);
+            color: var(--md-sys-color-on-secondary-container);
+        }
+
+        .nav-item.active .material-symbols-outlined {
+            font-variation-settings: 'FILL' 1;
+        }
+
+        @media (min-width: 600px) {
+            body { margin-left: 80px; }
+            main { padding-bottom: 32px; }
+            .custom-nav {
+                top: 0; bottom: 0; left: 0; right: auto;
+                width: 80px; height: 100%; flex-direction: column;
+                justify-content: flex-start; padding-top: 32px;
+                box-shadow: 1px 0 3px 0 rgba(0,0,0,0.1);
+                border-top: none;
+                border-right: 1px solid var(--md-sys-color-outline-variant);
+            }
+            .nav-item { flex: none; height: 72px; width: 100%; margin-bottom: 12px; }
+        }
+
+        /* WebRTC Video Components */
+        .video-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        .video-card {
+            position: relative;
+            background-color: #000;
+            border-radius: 20px;
+            overflow: hidden;
+            aspect-ratio: 16 / 9;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            border: 2px solid var(--md-sys-color-outline-variant);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .video-card video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .video-card.video-off video {
+            display: none;
+        }
+
+        .avatar-placeholder {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            gap: 8px;
+        }
+
+        .video-card.video-off .avatar-placeholder {
+            display: flex;
+        }
+
+        .avatar-badge {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            background-color: var(--md-sys-color-primary);
+            color: var(--md-sys-color-on-primary);
+            font-size: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .avatar-badge img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .video-overlay-info {
+            position: absolute;
+            bottom: 12px;
+            left: 12px;
+            background: rgba(0, 0, 0, 0.65);
+            backdrop-filter: blur(8px);
+            color: #ffffff;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .video-overlay-info .mic-icon {
+            font-size: 16px;
+        }
+
+        .video-overlay-info .mic-off {
+            color: var(--md-sys-color-error);
+        }
+
+        /* Floating Reaction */
+        .reaction-bubble {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 40px;
+            animation: floatUp 2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+            pointer-events: none;
+            z-index: 20;
+        }
+
+        @keyframes floatUp {
+            0% { opacity: 0; transform: translate(-50%, 20px) scale(0.5); }
+            20% { opacity: 1; transform: translate(-50%, 0) scale(1.2); }
+            80% { opacity: 1; transform: translate(-50%, -60px) scale(1); }
+            100% { opacity: 0; transform: translate(-50%, -100px) scale(0.8); }
+        }
+
+        /* Controls Dock */
+        .meeting-controls-dock {
+            background-color: var(--md-sys-color-surface-container-high);
+            border-radius: 32px;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+            border: 1px solid var(--md-sys-color-outline-variant);
+        }
+
+        .reaction-bar {
+            display: flex;
+            gap: 8px;
+            background-color: var(--md-sys-color-surface-container);
+            padding: 6px 14px;
+            border-radius: 24px;
+            margin-top: 12px;
+            justify-content: center;
+        }
+
+        .reaction-btn {
+            background: none;
+            border: none;
+            font-size: 22px;
+            cursor: pointer;
+            transition: transform 0.15s;
+            padding: 4px;
+            border-radius: 50%;
+        }
+
+        .reaction-btn:hover {
+            transform: scale(1.3);
+            background-color: var(--md-sys-color-surface-variant);
+        }
+
+        /* Chat Panel */
+        .chat-box {
+            display: flex;
+            flex-direction: column;
+            height: 320px;
+            border-radius: 16px;
+            background-color: var(--md-sys-color-surface);
+            border: 1px solid var(--md-sys-color-outline-variant);
+            overflow: hidden;
+            margin-top: 16px;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 12px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .chat-message {
+            max-width: 80%;
+            padding: 8px 14px;
+            border-radius: 16px;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            word-break: break-word;
+        }
+
+        .chat-message.system {
+            align-self: center;
+            background-color: var(--md-sys-color-surface-variant);
+            color: var(--md-sys-color-on-surface-variant);
+            font-size: 0.8rem;
+            border-radius: 12px;
+        }
+
+        .chat-message.self {
+            align-self: flex-end;
+            background-color: var(--md-sys-color-primary);
+            color: var(--md-sys-color-on-primary);
+            border-bottom-right-radius: 4px;
+        }
+
+        .chat-message.remote {
+            align-self: flex-start;
+            background-color: var(--md-sys-color-secondary-container);
+            color: var(--md-sys-color-on-secondary-container);
+            border-bottom-left-radius: 4px;
+        }
+
+        .chat-message .sender-name {
+            font-size: 0.75rem;
+            font-weight: bold;
+            opacity: 0.8;
+            margin-bottom: 2px;
+        }
+
+        .chat-input-area {
+            display: flex;
+            gap: 8px;
+            padding: 8px;
+            background-color: var(--md-sys-color-surface-container);
+            border-top: 1px solid var(--md-sys-color-outline-variant);
+        }
+
+        /* Avatar Setting Preview */
+        .avatar-setting-preview {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background-color: var(--md-sys-color-primary);
+            color: var(--md-sys-color-on-primary);
+            font-size: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border: 2px solid var(--md-sys-color-outline);
+        }
+
+        .avatar-setting-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* Status Toast Alert */
+        .snack-toast {
+            position: fixed;
+            bottom: 96px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: var(--md-sys-color-on-surface);
+            color: var(--md-sys-color-surface);
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+        }
+
+        @media (min-width: 600px) {
+            .snack-toast {
+                bottom: 32px;
+                left: calc(50% + 40px);
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Startup Splash Screen -->
+    <div id="splash-screen">
+        <div class="splash-content">
+            <img src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbpark/refs/heads/main/tools/pballkaigi/1787005703047.png" alt="PBpark Weball App Icon" class="splash-logo">
+            <div class="splash-title">PBpark Weball</div>
+            <md-circular-progress indeterminate style="--md-circular-progress-size: 36px;"></md-circular-progress>
+        </div>
+    </div>
+
+    <header>
+        <div class="header-logo-container">
+            <img src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbpark/refs/heads/main/tools/pballkaigi/1787005703047.png" alt="PBpark Weball Logo" class="header-app-logo">
+            <h1>PBpark Weball</h1>
+        </div>
+        <div style="display:flex; align-items:center; gap:4px;">
+            <md-icon-button onclick="window.toggleDarkMode()">
+                <span class="material-symbols-outlined" id="theme-icon">dark_mode</span>
+            </md-icon-button>
+            <md-icon-button id="usage-anchor">
+                <span class="material-symbols-outlined">more_vert</span>
+            </md-icon-button>
+            <md-menu anchor="usage-anchor" id="usage-menu">
+                <md-menu-item onclick="window.showGoogleInfo()">
+                    <div slot="headline">PBpark Weball について</div>
+                </md-menu-item>
+                <md-menu-item onclick="window.switchTab('settings')">
+                    <div slot="headline">ユーザー設定</div>
+                </md-menu-item>
+            </md-menu>
+        </div>
+    </header>
+
+    <main>
+        <!-- TAB 1: MEETING VIEW -->
+        <section id="view-meeting" class="view-section active">
+            
+            <!-- LOBBY SCREEN (When not in call) -->
+            <div id="lobby-container">
+                <div class="hero-banner">
+                    <div class="hero-header">
+                        <img src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbpark/refs/heads/main/tools/pballkaigi/1787005703047.png" alt="PBpark Weball Logo" class="hero-app-logo">
+                        <div>
+                            <h2>PBpark Weball</h2>
+                            <p style="margin-top: 4px;">ブラウザだけで簡単接続。URLを共有するだけで高音質なリアルタイムWeb会議を開催できます。</p>
+                        </div>
+                    </div>
+                    <div class="flex-row-wrap" style="margin-top: 12px;">
+                        <md-filled-button onclick="window.prepareCreateMeeting()">
+                            <md-icon slot="icon"><span class="material-symbols-outlined">add_call</span></md-icon>
+                            新しい会議を開く
+                        </md-filled-button>
+                    </div>
+                </div>
+
+                <div class="section-card">
+                    <div class="section-title">
+                        <span class="material-symbols-outlined">login</span>
+                        会議に参加する
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:16px;">
+                        <md-outlined-text-field id="join-room-id" label="会議ID または 参加URL" placeholder="例: room-xxxx-xxxx">
+                            <md-icon slot="leading-icon"><span class="material-symbols-outlined">link</span></md-icon>
+                        </md-outlined-text-field>
+
+                        <md-outlined-text-field id="join-room-password" type="password" label="パスワード（必要な場合）" placeholder="設定されている場合のみ入力">
+                            <md-icon slot="leading-icon"><span class="material-symbols-outlined">lock</span></md-icon>
+                        </md-outlined-text-field>
+
+                        <div class="flex-row-wrap" style="justify-content: flex-end; margin-top: 8px;">
+                            <md-filled-button onclick="window.joinMeetingFromInput()">
+                                参加する
+                            </md-filled-button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- IN-CALL SCREEN (Active Meeting) -->
+            <div id="incall-container" style="display: none;">
+                
+                <!-- Meeting Header Status Bar -->
+                <div class="section-card" style="padding: 16px; margin-bottom: 16px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+                        <div>
+                            <div style="font-weight: bold; font-size: 1.1rem; display: flex; align-items: center; gap: 8px;">
+                                <span class="material-symbols-outlined" style="color:var(--md-sys-color-primary)">groups</span>
+                                <span id="display-room-title">会議ルーム</span>
+                            </div>
+                            <div style="font-size: 0.85rem; color: var(--md-sys-color-on-surface-variant);" id="display-room-id">
+                                ID: ----
+                            </div>
+                        </div>
+
+                        <div class="flex-row-wrap">
+                            <md-outlined-button onclick="window.copyMeetingURL()">
+                                <md-icon slot="icon"><span class="material-symbols-outlined">content_copy</span></md-icon>
+                                参加URLをコピー
+                            </md-outlined-button>
+                            <md-filled-tonal-button onclick="window.openParticipantsModal()">
+                                <md-icon slot="icon"><span class="material-symbols-outlined">group</span></md-icon>
+                                <span id="participant-count-badge">1人</span>
+                            </md-filled-tonal-button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Video Display Grid -->
+                <div class="video-grid" id="video-grid">
+                    <!-- Local Video Stream Container -->
+                    <div class="video-card" id="local-video-card">
+                        <video id="local-video" autoplay playsinline muted></video>
+                        <div class="avatar-placeholder">
+                            <div class="avatar-badge" id="local-avatar-badge">U</div>
+                            <span id="local-avatar-name">あなた</span>
+                        </div>
+                        <div class="video-overlay-info">
+                            <span class="material-symbols-outlined mic-icon" id="local-mic-indicator">mic</span>
+                            <span id="local-display-name">あなた (ホスト)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Emoji Reaction Bar -->
+                <div class="reaction-bar">
+                    <button class="reaction-btn" onclick="window.sendEmojiReaction('👍')">👍</button>
+                    <button class="reaction-btn" onclick="window.sendEmojiReaction('❤️')">❤️</button>
+                    <button class="reaction-btn" onclick="window.sendEmojiReaction('👏')">👏</button>
+                    <button class="reaction-btn" onclick="window.sendEmojiReaction('🎉')">🎉</button>
+                    <button class="reaction-btn" onclick="window.sendEmojiReaction('😂')">😂</button>
+                    <button class="reaction-btn" onclick="window.sendEmojiReaction('🔥')">🔥</button>
+                </div>
+
+                <!-- Control Dock -->
+                <div class="meeting-controls-dock">
+                    <md-filled-icon-button id="btn-toggle-mic" onclick="window.toggleMic()">
+                        <span class="material-symbols-outlined">mic</span>
+                    </md-filled-icon-button>
+
+                    <md-filled-icon-button id="btn-toggle-cam" onclick="window.toggleCam()">
+                        <span class="material-symbols-outlined">videocam</span>
+                    </md-filled-icon-button>
+
+                    <md-outlined-icon-button onclick="window.switchCamera()">
+                        <span class="material-symbols-outlined">cameraswitch</span>
+                    </md-outlined-icon-button>
+
+                    <md-filled-tonal-icon-button onclick="window.toggleChatPanel()">
+                        <span class="material-symbols-outlined">chat</span>
+                    </md-filled-tonal-icon-button>
+
+                    <md-filled-icon-button style="--md-filled-icon-button-container-color: var(--md-sys-color-error);" onclick="window.leaveCall()">
+                        <span class="material-symbols-outlined" style="color: var(--md-sys-color-on-error);">call_end</span>
+                    </md-filled-icon-button>
+                </div>
+
+                <!-- Integrated Chat Panel -->
+                <div class="chat-box" id="chat-panel" style="display: none;">
+                    <div style="padding: 10px 16px; background-color: var(--md-sys-color-surface-container-high); font-weight: bold; border-bottom: 1px solid var(--md-sys-color-outline-variant); display: flex; justify-content: space-between; align-items: center;">
+                        <span style="display:flex; align-items:center; gap:6px;">
+                            <span class="material-symbols-outlined">chat</span> メッセージ
+                        </span>
+                        <md-icon-button onclick="window.toggleChatPanel()"><span class="material-symbols-outlined">close</span></md-icon-button>
+                    </div>
+                    <div class="chat-messages" id="chat-messages-list">
+                        <div class="chat-message system">PBpark Weball チャットルームへようこそ！</div>
+                    </div>
+                    <div class="chat-input-area">
+                        <md-outlined-text-field id="chat-input-text" placeholder="メッセージを入力..." onkeypress="if(event.key==='Enter') window.sendChatMessage()"></md-outlined-text-field>
+                        <md-filled-icon-button onclick="window.sendChatMessage()">
+                            <span class="material-symbols-outlined">send</span>
+                        </md-filled-icon-button>
+                    </div>
+                </div>
+
+            </div>
+
+        </section>
+
+        <!-- TAB 2: SETTINGS VIEW -->
+        <section id="view-settings" class="view-section">
+            <div class="section-card">
+                <div class="section-title">
+                    <span class="material-symbols-outlined">account_circle</span>
+                    プロフィール設定
+                </div>
+                <div style="display:flex; flex-direction:column; gap:20px;">
+                    
+                    <!-- File Picker Custom User Icon Avatar Support -->
+                    <div style="display:flex; align-items:center; gap:20px; flex-wrap:wrap;">
+                        <div class="avatar-setting-preview" id="setting-avatar-preview">
+                            U
+                        </div>
+                        <div style="display:flex; flex-direction:column; gap:8px;">
+                            <div style="font-weight: 500; font-size: 0.95rem;">ユーザーアイコン画像</div>
+                            <div class="flex-row-wrap">
+                                <input type="file" id="setting-avatar-file" accept="image/*" style="display: none;" onchange="window.handleFileSelect(event)">
+                                <md-outlined-button onclick="document.getElementById('setting-avatar-file').click()">
+                                    <md-icon slot="icon"><span class="material-symbols-outlined">upload</span></md-icon>
+                                    画像を選択
+                                </md-outlined-button>
+                                <md-text-button id="btn-clear-avatar" style="display:none;" onclick="window.clearUserAvatar()">
+                                    画像を削除
+                                </md-text-button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <md-outlined-text-field id="setting-username" label="表示名（ユーザーネーム）" value="ゲストユーザー">
+                        <md-icon slot="leading-icon"><span class="material-symbols-outlined">person</span></md-icon>
+                    </md-outlined-text-field>
+
+                    <div>
+                        <div style="font-size: 0.9rem; font-weight: 500; margin-bottom: 8px; color: var(--md-sys-color-on-surface-variant);">
+                            アバターデフォルトカラー（画像未設定時）
+                        </div>
+                        <div class="flex-row-wrap" id="avatar-color-picker">
+                            <!-- Color Swatches loaded by JS -->
+                        </div>
+                    </div>
+
+                    <div style="display:flex; justify-content:flex-end;">
+                        <md-filled-button onclick="window.saveProfileSettings()">
+                            保存する
+                        </md-filled-button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-card">
+                <div class="section-title">
+                    <span class="material-symbols-outlined">tune</span>
+                    デバイス & アプリ設定
+                </div>
+                <div style="display:flex; flex-direction:column; gap:16px;">
+                    <div style="display:flex; align-items:center; justify-content:space-between;">
+                        <div>
+                            <div style="font-weight: 500;">ダークテーマ</div>
+                            <div style="font-size: 0.85rem; color: var(--md-sys-color-on-surface-variant);">画面の色合いを変更します</div>
+                        </div>
+                        <md-switch id="setting-darkmode-switch" onchange="window.toggleDarkMode()"></md-switch>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Navigation Bar (Fixed Base Code) -->
+    <nav class="custom-nav">
+        <div class="nav-item active" id="nav-meeting" onclick="window.switchTab('meeting')">
+            <div class="nav-icon-container"><span class="material-symbols-outlined">groups</span></div>
+            <span class="nav-label">会議</span>
+        </div>
+        <div class="nav-item" id="nav-settings" onclick="window.switchTab('settings')">
+            <div class="nav-icon-container"><span class="material-symbols-outlined">settings</span></div>
+            <span class="nav-label">設定</span>
+        </div>
+    </nav>
+
+    <!-- Modal: Create New Meeting -->
+    <md-dialog id="create-room-dialog">
+        <div slot="headline">新しい会議を作成</div>
+        <div slot="content" style="display:flex; flex-direction:column; gap:16px; padding-top:8px;">
+            <md-outlined-text-field id="create-room-title" label="会議のタイトル" value="PBpark Weball ミーティング">
+                <md-icon slot="leading-icon"><span class="material-symbols-outlined">badge</span></md-icon>
+            </md-outlined-text-field>
+
+            <md-outlined-text-field id="create-room-pass" type="password" label="参加パスワード（任意）" placeholder="空欄でパスワードなし">
+                <md-icon slot="leading-icon"><span class="material-symbols-outlined">key</span></md-icon>
+            </md-outlined-text-field>
+        </div>
+        <div slot="actions">
+            <md-text-button onclick="document.getElementById('create-room-dialog').close()">キャンセル</md-text-button>
+            <md-filled-button onclick="window.confirmCreateMeeting()">作成して開始</md-filled-button>
+        </div>
+    </md-dialog>
+
+    <!-- Modal: Participants List -->
+    <md-dialog id="participants-dialog">
+        <div slot="headline">参加者一覧</div>
+        <div slot="content">
+            <md-list id="participants-list-view">
+                <!-- Participants loaded dynamically -->
+            </md-list>
+        </div>
+        <div slot="actions">
+            <md-text-button onclick="document.getElementById('participants-dialog').close()">閉じる</md-text-button>
+        </div>
+    </md-dialog>
+
+    <!-- Info Dialog -->
+    <md-dialog id="info-dialog">
+        <div slot="headline">PBpark Weball について</div>
+        <div slot="content" style="display:flex; flex-direction:column; gap:12px;">
+            <div style="display:flex; align-items:center; gap:12px;">
+                <img src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbpark/refs/heads/main/tools/pballkaigi/1787005703047.png" style="width:48px; height:48px; border-radius:12px;" alt="Logo">
+                <div>
+                    <div style="font-weight:bold; font-size:1.1rem;">PBpark Weball</div>
+                    <div style="font-size:0.85rem; color:var(--md-sys-color-on-surface-variant)">P2P Web Meeting Tool</div>
+                </div>
+            </div>
+            <p style="margin:0;">PeerJS（WebRTC）を使用した暗号化Web会議アプリケーションです。</p>
+            <ul style="margin:0; padding-left:20px; font-size:0.9rem;">
+                <li>サーバーを通過しない安全なP2P映像通信。</li>
+                <li>ワンクリックURL共有によるかんたん参加。</li>
+                <li>プロフィールのファイルピッカーアバター対応。</li>
+            </ul>
+        </div>
+        <div slot="actions">
+            <md-text-button onclick="document.getElementById('info-dialog').close()">閉じる</md-text-button>
+        </div>
+    </md-dialog>
+
+    <!-- Toast / Snackbar Element -->
+    <div id="toast-message" class="snack-toast"></div>
+
+    <script type="module">
+        import '@material/web/all.js';
+
+        // --- Global Application State ---
+        const APP_PREFIX = 'pbpark-weball-room-v1-';
+        
+        let state = {
+            username: localStorage.getItem('weball_username') || 'ゲスト_' + Math.floor(1000 + Math.random() * 9000),
+            avatarColor: localStorage.getItem('weball_avatar_color') || '#0b57d0',
+            avatarImg: localStorage.getItem('weball_avatar_img') || null,
+            isDarkMode: window.matchMedia('(prefers-color-scheme: dark)').matches,
+            
+            // WebRTC Call State
+            peer: null,
+            peerId: null,
+            isHost: false,
+            roomId: null,
+            roomTitle: '',
+            roomPassword: '',
+            localStream: null,
+            
+            // Media Controls
+            isMicOn: true,
+            isCamOn: true,
+            facingMode: 'user',
+            
+            connections: new Map()
+        };
+
+        // --- Splash Screen Controller ---
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                const splash = document.getElementById('splash-screen');
+                if (splash) splash.classList.add('hidden');
+            }, 800);
+        });
+
+        // --- Theme Management ---
+        window.toggleDarkMode = function() {
+            state.isDarkMode = !state.isDarkMode;
+            document.body.setAttribute('data-theme', state.isDarkMode ? 'dark' : 'light');
+            
+            const icon = document.getElementById('theme-icon');
+            if (icon) icon.textContent = state.isDarkMode ? 'light_mode' : 'dark_mode';
+            
+            const sw = document.getElementById('setting-darkmode-switch');
+            if (sw) sw.selected = state.isDarkMode;
+        };
+
+        if (state.isDarkMode) {
+            document.body.setAttribute('data-theme', 'dark');
+            const sw = document.getElementById('setting-darkmode-switch');
+            if (sw) sw.selected = true;
+        }
+
+        // --- Navigation Logic ---
+        window.switchTab = function(tabId) {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+
+            const targetView = document.getElementById('view-' + tabId);
+            if (targetView) targetView.classList.add('active');
+
+            const targetNav = document.getElementById('nav-' + tabId);
+            if (targetNav) targetNav.classList.add('active');
+            
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+
+        // --- Menu & Toast Setup ---
+        const menu = document.getElementById('usage-menu');
+        const anchor = document.getElementById('usage-anchor');
+        if (anchor && menu) {
+            anchor.addEventListener('click', () => {
+                menu.open = !menu.open;
+            });
+        }
+
+        window.showGoogleInfo = function() {
+            document.getElementById('info-dialog').show();
+        };
+
+        window.showToast = function(msg) {
+            const toast = document.getElementById('toast-message');
+            toast.textContent = msg;
+            toast.style.display = 'block';
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 3000);
+        };
+
+        const colors = ['#0b57d0', '#006391', '#b3261e', '#146c2e', '#6750a4', '#d97706'];
+        
+        function initProfileUI() {
+            document.getElementById('setting-username').value = state.username;
+            
+            // Render Color Swatches
+            const container = document.getElementById('avatar-color-picker');
+            container.innerHTML = '';
+            colors.forEach(c => {
+                const circle = document.createElement('div');
+                circle.style.width = '36px';
+                circle.style.height = '36px';
+                circle.style.borderRadius = '50%';
+                circle.style.backgroundColor = c;
+                circle.style.cursor = 'pointer';
+                circle.style.border = state.avatarColor === c ? '3px solid var(--md-sys-color-on-surface)' : '2px solid transparent';
+                circle.onclick = () => {
+                    state.avatarColor = c;
+                    initProfileUI();
+                };
+                container.appendChild(circle);
+            });
+
+            // Render Settings Preview Avatar
+            const previewEl = document.getElementById('setting-avatar-preview');
+            const btnClear = document.getElementById('btn-clear-avatar');
+            if (state.avatarImg) {
+                previewEl.innerHTML = `<img src="${state.avatarImg}" alt="Avatar">`;
+                previewEl.style.backgroundColor = 'transparent';
+                if (btnClear) btnClear.style.display = 'inline-flex';
+            } else {
+                previewEl.textContent = state.username ? state.username.charAt(0).toUpperCase() : 'U';
+                previewEl.style.backgroundColor = state.avatarColor;
+                if (btnClear) btnClear.style.display = 'none';
+            }
+
+            updateLocalAvatarDisplay();
+        }
+
+        // File Selection Helper & Image Compression
+        window.handleFileSelect = function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (!file.type.startsWith('image/')) {
+                window.showToast('画像ファイルを選択してください');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    const maxSize = 128;
+                    
+                    let width = img.width;
+                    let height = img.height;
+                    
+                    if (width > height) {
+                        if (width > maxSize) {
+                            height = Math.round((height * maxSize) / width);
+                            width = maxSize;
+                        }
+                    } else {
+                        if (height > maxSize) {
+                            width = Math.round((width * maxSize) / height);
+                            height = maxSize;
+                        }
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    state.avatarImg = canvas.toDataURL('image/jpeg', 0.85);
+                    initProfileUI();
+                    window.showToast('アバター画像がロードされました');
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        };
+
+        window.clearUserAvatar = function() {
+            state.avatarImg = null;
+            document.getElementById('setting-avatar-file').value = '';
+            initProfileUI();
+            window.showToast('アバター画像を削除しました');
+        };
+
+        window.saveProfileSettings = function() {
+            const val = document.getElementById('setting-username').value.trim();
+            if (val) {
+                state.username = val;
+                localStorage.setItem('weball_username', state.username);
+                localStorage.setItem('weball_avatar_color', state.avatarColor);
+                if (state.avatarImg) {
+                    localStorage.setItem('weball_avatar_img', state.avatarImg);
+                } else {
+                    localStorage.removeItem('weball_avatar_img');
+                }
+                updateLocalAvatarDisplay();
+                window.showToast('プロフィール設定を保存しました');
+            }
+        };
+
+        function updateLocalAvatarDisplay() {
+            const badge = document.getElementById('local-avatar-badge');
+            const nameSpan = document.getElementById('local-avatar-name');
+            const overlayName = document.getElementById('local-display-name');
+            
+            if (badge) {
+                if (state.avatarImg) {
+                    badge.innerHTML = `<img src="${state.avatarImg}" alt="Avatar">`;
+                    badge.style.backgroundColor = 'transparent';
+                } else {
+                    badge.textContent = state.username.charAt(0).toUpperCase();
+                    badge.style.backgroundColor = state.avatarColor;
+                }
+            }
+            if (nameSpan) nameSpan.textContent = state.username;
+            if (overlayName) overlayName.textContent = state.username + (state.isHost ? ' (ホスト)' : '');
+        }
+
+        async function initLocalStream() {
+            try {
+                if (state.localStream) {
+                    state.localStream.getTracks().forEach(t => t.stop());
+                }
+                state.localStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: state.facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
+                    audio: true
+                });
+            } catch (e) {
+                console.warn("Camera/Mic access failed or restricted, creating fallback stream", e);
+                const canvas = document.createElement('canvas');
+                canvas.width = 640; canvas.height = 360;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = '#111'; ctx.fillRect(0,0,640,360);
+                const stream = canvas.captureStream(10);
+                state.localStream = stream;
+                state.isCamOn = false;
+            }
+            
+            const localVideo = document.getElementById('local-video');
+            if (localVideo) {
+                localVideo.srcObject = state.localStream;
+            }
+        }
+
+        // Meeting Creation / Joining Logic
+        window.prepareCreateMeeting = function() {
+            document.getElementById('create-room-dialog').show();
+        };
+
+        window.confirmCreateMeeting = async function() {
+            const titleInput = document.getElementById('create-room-title').value.trim();
+            const passInput = document.getElementById('create-room-pass').value.trim();
+            
+            document.getElementById('create-room-dialog').close();
+            
+            const uniqueRoomId = 'room-' + Date.now().toString(36) + '-' + Math.random().toString(36).substring(2, 8);
+            
+            state.isHost = true;
+            state.roomId = uniqueRoomId;
+            state.roomTitle = titleInput || 'PBpark Weball ミーティング';
+            state.roomPassword = passInput;
+
+            await startMeetingSession();
+        };
+
+        window.joinMeetingFromInput = function() {
+            let input = document.getElementById('join-room-id').value.trim();
+            const pass = document.getElementById('join-room-password').value.trim();
+            
+            if (!input) {
+                window.showToast('会議IDまたはURLを入力してください');
+                return;
+            }
+
+            if (input.includes('?room=')) {
+                const url = new URL(input);
+                input = url.searchParams.get('room');
+            }
+
+            state.isHost = false;
+            state.roomId = input;
+            state.roomPassword = pass;
+
+            startMeetingSession();
+        };
+
+        async function startMeetingSession() {
+            window.showToast('会議セッションを準備中...');
+            await initLocalStream();
+
+            document.getElementById('lobby-container').style.display = 'none';
+            document.getElementById('incall-container').style.display = 'block';
+
+            document.getElementById('display-room-title').textContent = state.roomTitle || 'PBpark Weball 会議';
+            document.getElementById('display-room-id').textContent = 'ID: ' + state.roomId;
+            updateLocalAvatarDisplay();
+
+            const currentUrl = new URL(window.location.href);
+            currentUrl.searchParams.set('room', state.roomId);
+            window.history.pushState({}, '', currentUrl);
+
+            initPeerJS();
+        }
+
+        function initPeerJS() {
+            const hostPeerId = APP_PREFIX + state.roomId;
+            const myPeerId = state.isHost ? hostPeerId : APP_PREFIX + state.roomId + '-user-' + Math.random().toString(36).substring(2, 6);
+            
+            state.peerId = myPeerId;
+            state.peer = new Peer(myPeerId);
+
+            state.peer.on('open', (id) => {
+                console.log('PeerJS connected with ID:', id);
+                if (!state.isHost) {
+                    connectToHost(hostPeerId);
+                } else {
+                    window.showToast('ホストとして待機中...');
+                }
+            });
+
+            state.peer.on('connection', (conn) => {
+                handleIncomingDataConnection(conn);
+            });
+
+            state.peer.on('call', (call) => {
+                call.answer(state.localStream);
+                handleIncomingMediaCall(call);
+            });
+
+            state.peer.on('error', (err) => {
+                console.error('PeerJS Error:', err);
+                if (err.type === 'peer-unavailable') {
+                    window.showToast('指定された会議ルームが見つかりません');
+                } else {
+                    window.showToast('通信エラー: ' + err.type);
+                }
+            });
+        }
+
+        function connectToHost(hostPeerId) {
+            const conn = state.peer.connect(hostPeerId);
+            
+            conn.on('open', () => {
+                conn.send({
+                    type: 'JOIN_REQUEST',
+                    password: state.roomPassword,
+                    user: {
+                        peerId: state.peerId,
+                        username: state.username,
+                        avatarColor: state.avatarColor,
+                        avatarImg: state.avatarImg
+                    }
+                });
+            });
+
+            conn.on('data', (data) => {
+                handleDataMessage(conn, data);
+            });
+
+            conn.on('close', () => {
+                window.showToast('ホストから切断されました');
+            });
+        }
+
+        function handleIncomingDataConnection(conn) {
+            conn.on('data', (data) => {
+                if (data.type === 'JOIN_REQUEST') {
+                    if (state.isHost) {
+                        if (state.roomPassword && data.password !== state.roomPassword) {
+                            conn.send({ type: 'JOIN_REJECT', message: 'パスワードが正しくありません' });
+                            setTimeout(() => conn.close(), 500);
+                            return;
+                        }
+
+                        conn.send({
+                            type: 'JOIN_ACCEPT',
+                            roomTitle: state.roomTitle,
+                            hostUser: { username: state.username, avatarColor: state.avatarColor, avatarImg: state.avatarImg }
+                        });
+
+                        state.connections.set(conn.peer, { conn, user: data.user });
+                        
+                        const call = state.peer.call(conn.peer, state.localStream);
+                        handleIncomingMediaCall(call);
+
+                        broadcastData({
+                            type: 'USER_JOINED',
+                            user: data.user
+                        });
+
+                        window.showToast(`${data.user.username} が参加しました`);
+                        updateParticipantsList();
+                    }
+                } else {
+                    handleDataMessage(conn, data);
+                }
+            });
+
+            conn.on('close', () => {
+                const peerInfo = state.connections.get(conn.peer);
+                if (peerInfo) {
+                    window.showToast(`${peerInfo.user.username} が退室しました`);
+                    removeRemoteVideo(conn.peer);
+                    state.connections.delete(conn.peer);
+                    updateParticipantsList();
+                }
+            });
+        }
+
+        function handleDataMessage(conn, data) {
+            switch (data.type) {
+                case 'JOIN_ACCEPT':
+                    state.roomTitle = data.roomTitle;
+                    document.getElementById('display-room-title').textContent = data.roomTitle;
+                    window.showToast('会議に参加しました');
+                    break;
+                case 'JOIN_REJECT':
+                    window.showToast('エラー: ' + data.message);
+                    window.leaveCall();
+                    break;
+                case 'CHAT':
+                    appendChatMessage(data.sender, data.text, false);
+                    break;
+                case 'EMOJI':
+                    triggerFloatingEmoji(data.peerId, data.emoji);
+                    break;
+                case 'USER_JOINED':
+                    window.showToast(`${data.user.username} が参加しました`);
+                    updateParticipantsList();
+                    break;
+            }
+        }
+
+        function broadcastData(data) {
+            state.connections.forEach(item => {
+                if (item.conn && item.conn.open) {
+                    item.conn.send(data);
+                }
+            });
+        }
+
+        function handleIncomingMediaCall(call) {
+            call.on('stream', (remoteStream) => {
+                addRemoteVideo(call.peer, remoteStream);
+            });
+            call.on('close', () => {
+                removeRemoteVideo(call.peer);
+            });
+        }
+
+        function addRemoteVideo(peerId, stream) {
+            let container = document.getElementById(`video-card-${peerId}`);
+            if (!container) {
+                const grid = document.getElementById('video-grid');
+                container = document.createElement('div');
+                container.className = 'video-card';
+                container.id = `video-card-${peerId}`;
+
+                const peerData = state.connections.get(peerId);
+                const uname = peerData ? peerData.user.username : '参加者';
+                const ucolor = peerData ? peerData.user.avatarColor : '#006391';
+                const uimg = peerData ? peerData.user.avatarImg : null;
+
+                const avatarHtml = uimg 
+                    ? `<img src="${uimg}" alt="Avatar">` 
+                    : `${uname.charAt(0).toUpperCase()}`;
+
+                const avatarStyle = uimg 
+                    ? 'background-color: transparent;' 
+                    : `background-color: ${ucolor};`;
+
+                container.innerHTML = `
+                    <video id="video-${peerId}" autoplay playsinline></video>
+                    <div class="avatar-placeholder">
+                        <div class="avatar-badge" style="${avatarStyle}">${avatarHtml}</div>
+                        <span>${uname}</span>
+                    </div>
+                    <div class="video-overlay-info">
+                        <span class="material-symbols-outlined mic-icon">mic</span>
+                        <span>${uname}</span>
+                    </div>
+                `;
+                grid.appendChild(container);
+            }
+            const videoEl = document.getElementById(`video-${peerId}`);
+            if (videoEl) videoEl.srcObject = stream;
+        }
+
+        function removeRemoteVideo(peerId) {
+            const card = document.getElementById(`video-card-${peerId}`);
+            if (card) card.remove();
+        }
+
+        // Media Controls
+        window.toggleMic = function() {
+            state.isMicOn = !state.isMicOn;
+            if (state.localStream && state.localStream.getAudioTracks().length > 0) {
+                state.localStream.getAudioTracks()[0].enabled = state.isMicOn;
+            }
+            
+            const btn = document.getElementById('btn-toggle-mic');
+            const icon = document.getElementById('local-mic-indicator');
+            if (state.isMicOn) {
+                btn.removeAttribute('style');
+                icon.textContent = 'mic';
+                icon.classList.remove('mic-off');
+            } else {
+                btn.style.setProperty('--md-filled-icon-button-container-color', 'var(--md-sys-color-error)');
+                icon.textContent = 'mic_off';
+                icon.classList.add('mic-off');
+            }
+        };
+
+        window.toggleCam = function() {
+            state.isCamOn = !state.isCamOn;
+            if (state.localStream && state.localStream.getVideoTracks().length > 0) {
+                state.localStream.getVideoTracks()[0].enabled = state.isCamOn;
+            }
+            
+            const btn = document.getElementById('btn-toggle-cam');
+            const card = document.getElementById('local-video-card');
+            if (state.isCamOn) {
+                btn.removeAttribute('style');
+                card.classList.remove('video-off');
+            } else {
+                btn.style.setProperty('--md-filled-icon-button-container-color', 'var(--md-sys-color-error)');
+                card.classList.add('video-off');
+            }
+        };
+
+        window.switchCamera = async function() {
+            state.facingMode = state.facingMode === 'user' ? 'environment' : 'user';
+            await initLocalStream();
+            
+            state.connections.forEach(item => {
+                if (item.call && item.call.peerConnection) {
+                    const senders = item.call.peerConnection.getSenders();
+                    const videoSender = senders.find(s => s.track && s.track.kind === 'video');
+                    if (videoSender && state.localStream.getVideoTracks()[0]) {
+                        videoSender.replaceTrack(state.localStream.getVideoTracks()[0]);
+                    }
+                }
+            });
+            window.showToast('カメラを切り替えました');
+        };
+
+        // Emoji Reactions
+        window.sendEmojiReaction = function(emoji) {
+            triggerFloatingEmoji(state.peerId, emoji);
+            broadcastData({
+                type: 'EMOJI',
+                peerId: state.peerId,
+                emoji: emoji
+            });
+        };
+
+        function triggerFloatingEmoji(peerId, emoji) {
+            let parent = document.getElementById(`video-card-${peerId}`);
+            if (!parent) parent = document.getElementById('local-video-card');
+            
+            const bubble = document.createElement('div');
+            bubble.className = 'reaction-bubble';
+            bubble.textContent = emoji;
+            parent.appendChild(bubble);
+            setTimeout(() => bubble.remove(), 2000);
+        }
+
+        // Integrated Chat
+        window.toggleChatPanel = function() {
+            const panel = document.getElementById('chat-panel');
+            panel.style.display = panel.style.display === 'none' ? 'flex' : 'none';
+        };
+
+        window.sendChatMessage = function() {
+            const input = document.getElementById('chat-input-text');
+            const text = input.value.trim();
+            if (!text) return;
+
+            appendChatMessage(state.username, text, true);
+            broadcastData({
+                type: 'CHAT',
+                sender: state.username,
+                text: text
+            });
+
+            input.value = '';
+        };
+
+        function appendChatMessage(sender, text, isSelf) {
+            const list = document.getElementById('chat-messages-list');
+            const msg = document.createElement('div');
+            msg.className = `chat-message ${isSelf ? 'self' : 'remote'}`;
+            msg.innerHTML = `
+                <div class="sender-name">${sender}</div>
+                <div>${text}</div>
+            `;
+            list.appendChild(msg);
+            list.scrollTop = list.scrollHeight;
+        }
+
+        // Utility Controls
+        window.copyMeetingURL = function() {
+            const url = window.location.href;
+            const textarea = document.createElement('textarea');
+            textarea.value = url;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            window.showToast('参加URLをコピーしました！');
+        };
+
+        window.openParticipantsModal = function() {
+            updateParticipantsList();
+            document.getElementById('participants-dialog').show();
+        };
+
+        function updateParticipantsList() {
+            const list = document.getElementById('participants-list-view');
+            list.innerHTML = '';
+
+            // Add Local User with Avatar
+            const selfItem = document.createElement('md-list-item');
+            const selfIconSlot = state.avatarImg 
+                ? `<div slot="start" style="width:32px; height:32px; border-radius:50%; overflow:hidden;"><img src="${state.avatarImg}" style="width:100%; height:100%; object-fit:cover;"></div>`
+                : `<span class="material-symbols-outlined" slot="start">account_circle</span>`;
+
+            selfItem.innerHTML = `
+                <div slot="headline">${state.username} (あなた)</div>
+                <div slot="supporting-text">${state.isHost ? 'ホスト' : '参加者'}</div>
+                ${selfIconSlot}
+            `;
+            list.appendChild(selfItem);
+
+            let count = 1;
+            state.connections.forEach(item => {
+                count++;
+                const itemEl = document.createElement('md-list-item');
+                const remoteIconSlot = item.user.avatarImg 
+                    ? `<div slot="start" style="width:32px; height:32px; border-radius:50%; overflow:hidden;"><img src="${item.user.avatarImg}" style="width:100%; height:100%; object-fit:cover;"></div>`
+                    : `<span class="material-symbols-outlined" slot="start">person</span>`;
+
+                itemEl.innerHTML = `
+                    <div slot="headline">${item.user.username}</div>
+                    <div slot="supporting-text">参加者</div>
+                    ${remoteIconSlot}
+                `;
+                list.appendChild(itemEl);
+            });
+
+            document.getElementById('participant-count-badge').textContent = `${count}人`;
+        }
+
+        window.leaveCall = function() {
+            if (state.localStream) {
+                state.localStream.getTracks().forEach(t => t.stop());
+            }
+            if (state.peer) {
+                state.peer.destroy();
+            }
+            
+            const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+            window.history.pushState({path: cleanUrl}, '', cleanUrl);
+
+            document.getElementById('incall-container').style.display = 'none';
+            document.getElementById('lobby-container').style.display = 'block';
+            
+            state.connections.clear();
+            window.showToast('会議から退室しました');
+        };
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initProfileUI();
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlRoomId = urlParams.get('room');
+            if (urlRoomId) {
+                document.getElementById('join-room-id').value = urlRoomId;
+                window.showToast('共有リンクが検出されました。「参加する」を押してください');
+            }
+        });
+    </script>
+</body>
+</html>
