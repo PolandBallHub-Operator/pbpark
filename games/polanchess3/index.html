@@ -1,0 +1,1401 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+    <title>PBChess♞ - Polandball Chess</title>
+
+    <!-- Google Fonts & Material Symbols -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+
+    <!-- Chess.js Library for chess rules validation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+
+    <style>
+        /* デフォルトテーマ（PTZ.jsonのデフォルト値と連動） */
+        :root {
+            --accent-primary: #3381FF;
+            --accent-active: #1A5FCC;
+            
+            /* PTZ 規格初期値 */
+            --ptz-theme-name: "Default Blue PTZ";
+            --ptz-card-radius: 24px;
+            --ptz-slider-height: 16px;
+            --ptz-toggle-width: 54px;
+            --ptz-toggle-height: 30px;
+            --ptz-toggle-knob-radius: 50%;
+            --ptz-toggle-knob-width: 22px;
+            --ptz-blur-intensity: 0px;
+
+            /* Light Mode ベースカラー */
+            --bg-base: #F7F7F7;
+            --glass-bg: #FFFFFF;
+            --text-main: #000000;
+            --text-sub: #666666;
+            --bg-secondary: #EEEEEE;
+            --nav-bg: #FFFFFF;
+            --nav-icon-active: #000000;
+            
+            --m3-easing: cubic-bezier(0.32, 0.72, 0, 1);
+            --transition-smooth: 0.35s var(--m3-easing);
+            --card-padding: 24px;
+
+            /* Chessboard board colors */
+            --square-light: #F0D9B5;
+            --square-dark: #B58863;
+            --square-highlight: rgba(51, 129, 255, 0.5);
+            --square-selected: rgba(255, 204, 0, 0.6);
+        }
+
+        /* ダークモード */
+        .dark-mode {
+            --bg-base: #121212;
+            --glass-bg: #1E1E1E;
+            --text-main: #FFFFFF;
+            --text-sub: #A1A1A6;
+            --bg-secondary: #2C2C2E;
+            --nav-bg: #1E1E1E;
+            --nav-icon-active: #FFFFFF;
+
+            --square-light: #CDD2D6;
+            --square-dark: #6E8A9F;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', 'Noto Sans JP', sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            transition: background-color var(--transition-smooth), color var(--transition-smooth);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* アプリ全体のコンテナ */
+        #app-viewport {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        /* ヘッダー */
+        header {
+            height: 64px;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--glass-bg);
+            transition: background-color var(--transition-smooth);
+            position: relative;
+            flex-shrink: 0;
+        }
+        .logo {
+            font-weight: 700;
+            font-size: 20px;
+            letter-spacing: -0.5px;
+            color: var(--text-main);
+            text-align: center;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .theme-toggle {
+            position: absolute;
+            right: 24px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: none;
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background var(--transition-smooth), transform 0.2s;
+        }
+        .theme-toggle:active {
+            transform: scale(0.9);
+        }
+
+        /* メインコンテンツ */
+        main {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 24px 20px 100px;
+            max-width: 720px;
+            width: 100%;
+            margin: 0 auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* フラットソリッドカード */
+        .glass-card {
+            background: var(--glass-bg);
+            border-radius: var(--ptz-card-radius);
+            padding: var(--card-padding);
+            margin-bottom: 20px;
+            box-shadow: none !important;
+            border: none !important;
+            transition: background-color var(--transition-smooth), border-radius var(--transition-smooth);
+        }
+
+        h2 { 
+            font-size: 18px; 
+            margin-top: 0; 
+            margin-bottom: 12px;
+            font-weight: 700; 
+            letter-spacing: -0.3px;
+        }
+        p {
+            font-size: 13.5px;
+            line-height: 1.5;
+            margin-top: 0;
+            margin-bottom: 16px;
+            color: var(--text-sub);
+        }
+
+        /* リストコンポーネント */
+        .custom-list {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            margin-bottom: 16px;
+        }
+        .list-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 4px;
+            border-bottom: 1px solid var(--bg-secondary);
+            cursor: pointer;
+        }
+        .list-item:last-child {
+            border-bottom: none;
+        }
+        .list-item-title {
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .list-item-desc {
+            font-size: 12px;
+            color: var(--text-sub);
+        }
+
+        /* アクションボタン */
+        .ai-btn {
+            border: none;
+            outline: none;
+            padding: 12px 24px;
+            border-radius: 14px;
+            font-weight: 600;
+            font-size: 14px;
+            color: white;
+            cursor: pointer;
+            background: var(--accent-primary);
+            transition: transform 0.2s, background-color var(--transition-smooth);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            justify-content: center;
+        }
+        .ai-btn:hover {
+            transform: scale(1.02);
+        }
+        .ai-btn:active {
+            background: var(--accent-active);
+            transform: scale(0.96);
+        }
+        .ai-btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-main);
+        }
+
+        /* 下付き固定ナビゲーションバー */
+        .bottom-nav-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 72px;
+            background: var(--nav-bg);
+            border-top: 1px solid var(--bg-secondary);
+            z-index: 500;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding-bottom: env(safe-area-inset-bottom);
+            transition: background-color var(--transition-smooth), border-color var(--transition-smooth);
+        }
+        .nav-item {
+            flex: 1;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-sub);
+            transition: color 0.25s var(--m3-easing);
+            position: relative;
+            gap: 4px;
+        }
+        .nav-item span.material-symbols-outlined {
+            font-size: 24px;
+            font-variation-settings: 'FILL' 0, 'wght' 400;
+            transition: font-variation-settings 0.2s, color 0.2s;
+        }
+        .nav-label {
+            font-size: 10px;
+            font-weight: 600;
+        }
+        .nav-item.active {
+            color: var(--nav-icon-active);
+        }
+        .nav-item.active span.material-symbols-outlined {
+            font-variation-settings: 'FILL' 1, 'wght' 700;
+        }
+
+        /* ビュー切り替え */
+        .view {
+            display: none;
+        }
+        .view.active {
+            display: block;
+            animation: viewIn 0.3s var(--m3-easing);
+        }
+        @keyframes viewIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ポーランドボール画像表示用スタイル */
+        .pb-avatar {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            background-color: var(--bg-secondary);
+            position: relative;
+        }
+        .pb-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center;
+            transition: transform 0.2s ease;
+        }
+        /* UK (england472x600) 用クロップ処理 */
+        .pb-avatar img.uk-crop {
+            object-fit: cover;
+            object-position: top;
+            height: 127%;
+            width: 100%;
+        }
+
+        /* 対戦相手カードレイアウト（内部にカードを作らない直下配置） */
+        .opponent-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 16px;
+            position: relative;
+        }
+        .opponent-info {
+            flex-grow: 1;
+        }
+        .opponent-name {
+            font-size: 18px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .opponent-title {
+            font-size: 12px;
+            color: var(--text-sub);
+            margin-top: 2px;
+        }
+        .speech-bubble {
+            font-size: 13px;
+            color: var(--text-main);
+            margin-top: 6px;
+            font-style: italic;
+        }
+
+        /* チェス盤スタイル */
+        .chessboard-wrapper {
+            width: 100%;
+            max-width: 480px;
+            margin: 0 auto 16px;
+            aspect-ratio: 1 / 1;
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            grid-template-rows: repeat(8, 1fr);
+            border-radius: 12px;
+            overflow: hidden;
+            user-select: none;
+            touch-action: manipulation;
+        }
+        .chess-square {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: calc(min(80vw, 480px) / 10);
+            cursor: pointer;
+            position: relative;
+            transition: background-color 0.15s ease;
+        }
+        .chess-square.light {
+            background-color: var(--square-light);
+        }
+        .chess-square.dark {
+            background-color: var(--square-dark);
+        }
+        .chess-square.selected {
+            background-color: var(--square-selected) !important;
+        }
+        .chess-square.highlight::after {
+            content: "";
+            width: 30%;
+            height: 30%;
+            background-color: var(--square-highlight);
+            border-radius: 50%;
+            position: absolute;
+        }
+        .chess-square.capture-highlight::after {
+            content: "";
+            width: 85%;
+            height: 85%;
+            border: 4px solid var(--square-highlight);
+            border-radius: 50%;
+            position: absolute;
+        }
+        .piece-symbol {
+            z-index: 2;
+            line-height: 1;
+            filter: drop-shadow(0 2px 3px rgba(0,0,0,0.2));
+        }
+
+        /* DeepTeanking ローディングオーバーレイ */
+        .deepthinking-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.65);
+            backdrop-filter: blur(4px);
+            border-radius: var(--ptz-card-radius);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        .deepthinking-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .spinner {
+            width: 44px;
+            height: 44px;
+            border: 4px solid rgba(255,255,255,0.2);
+            border-top: 4px solid var(--accent-primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 12px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* バッジ */
+        .badge {
+            background: var(--accent-primary);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 700;
+            display: inline-block;
+        }
+
+        /* トースト通知 */
+        .toast {
+            position: fixed;
+            bottom: 84px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--text-main);
+            color: var(--glass-bg);
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s var(--m3-easing);
+            z-index: 2000;
+        }
+        .toast.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .preset-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .preset-btn {
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            border: none;
+            padding: 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            transition: background 0.2s, transform 0.1s;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app-viewport">
+        <!-- ヘッダー -->
+        <header>
+            <div class="logo">
+                <span>PBChess</span>
+                <span style="color: var(--accent-primary);">♞</span>
+            </div>
+            <button class="theme-toggle" id="theme-btn" title="テーマ切り替え">
+                <span class="material-symbols-outlined">light_mode</span>
+            </button>
+        </header>
+
+        <!-- メインコンテンツ -->
+        <main>
+            <!-- 1. タイトル画面ビュー (初期画面) -->
+            <section id="view-title" class="view active">
+                <div class="glass-card" style="text-align: center; padding: 36px 24px;">
+                    <div style="font-size: 56px; margin-bottom: 8px;">♞</div>
+                    <h1 style="font-size: 28px; margin: 0 0 8px; font-weight: 700;">PBChess♞</h1>
+                    <p style="max-width: 440px; margin: 0 auto 24px; color: var(--text-sub);">
+                        世界各国のポーランドボールたちと本格チェスバトル！<br>
+                        最強の英国(UK)は超超分析機能「DeepTeanking」であなたとチェス対戦。
+                    </p>
+                    <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+                        <button class="ai-btn" onclick="startQuickGame('england472x600')">
+                            <span class="material-symbols-outlined">sports_esports</span>
+                            最強のイギリスと対戦
+                        </button>
+                        <button class="ai-btn ai-btn-secondary" onclick="switchView('view-lessons')">
+                            <span class="material-symbols-outlined">school</span>
+                            イギリスのチェス講座
+                        </button>
+                    </div>
+                </div>
+
+                <div class="glass-card">
+                    <h2>対戦相手を選択 (全10キャラ)</h2>
+                    <p>ボールごとに思考アルゴリズムと難易度が変化します。</p>
+                    <div class="custom-list" id="opponent-select-list">
+                        <!-- JSで動的生成 -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2. チェス対戦ビュー -->
+            <section id="view-game" class="view">
+                <div class="glass-card" style="position: relative;">
+                    <!-- Opponent Header (ポーランドボール表示) -->
+                    <div class="opponent-header">
+                        <div class="pb-avatar" id="game-pb-avatar">
+                            <img id="game-pb-img" src="" alt="Polandball">
+                        </div>
+                        <div class="opponent-info">
+                            <div class="opponent-name">
+                                <span id="game-pb-name">イギリス</span>
+                                <span class="badge" id="game-pb-diff">最強</span>
+                            </div>
+                            <div class="opponent-title" id="game-pb-title">大英帝国のチェス大マスター</div>
+                            <div class="speech-bubble" id="game-pb-speech">「チェックメイトまでの手順を計算中だ...」</div>
+                        </div>
+                    </div>
+
+                    <!-- チェス盤 -->
+                    <div class="chessboard-wrapper" id="chessboard">
+                        <!-- 8x8 マス目をJSで生成 -->
+                    </div>
+
+                    <!-- ゲーム操作ボタン -->
+                    <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 12px;">
+                        <button class="ai-btn ai-btn-secondary" onclick="undoMove()">
+                            <span class="material-symbols-outlined">undo</span>
+                            待った
+                        </button>
+                        <button class="ai-btn ai-btn-secondary" onclick="resignGame()">
+                            <span class="material-symbols-outlined">flag</span>
+                            投了
+                        </button>
+                        <button class="ai-btn" onclick="restartGame()">
+                            <span class="material-symbols-outlined">restart_alt</span>
+                            最初から
+                        </button>
+                    </div>
+
+                    <!-- DeepTeanking 分析中オーバーレイ -->
+                    <div class="deepthinking-overlay" id="deepthinking-modal">
+                        <div class="spinner"></div>
+                        <div style="font-weight: 700; font-size: 16px; margin-bottom: 4px;">DeepTeanking 分析中...</div>
+                        <div style="font-size: 12px; opacity: 0.8;" id="deepthinking-subtext">幾千の未来局面を思考中</div>
+                    </div>
+                </div>
+
+                <!-- 局面ログ -->
+                <div class="glass-card">
+                    <h2>対局情報</h2>
+                    <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 8px;">
+                        <span style="color: var(--text-sub);">手番: <b id="turn-indicator" style="color: var(--text-main);">あなた (白)</b></span>
+                        <span style="color: var(--text-sub);">状態: <b id="status-indicator" style="color: var(--text-main);">対局中</b></span>
+                    </div>
+                    <div style="max-height: 80px; overflow-y: auto; font-family: monospace; font-size: 12px; color: var(--text-sub); border-top: 1px solid var(--bg-secondary); padding-top: 8px;" id="move-history">
+                        対局が開始されました。
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. チェス講座ビュー -->
+            <section id="view-lessons" class="view">
+                <div class="glass-card">
+                    <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
+                        <div class="pb-avatar">
+                            <img class="uk-crop" src="https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/england472x600/normal.png" alt="UK">
+                        </div>
+                        <div>
+                            <h2 style="margin: 0;">イギリス紳士のチェス講座</h2>
+                            <p style="margin: 4px 0 0; font-size: 12px;">「盤上の戦術を基礎から奥義まで伝授しましょう。」</p>
+                        </div>
+                    </div>
+
+                    <!-- 講座選択アコーディオン／リスト -->
+                    <div class="custom-list" id="lesson-list">
+                        <!-- JSで生成 -->
+                    </div>
+                </div>
+
+                <!-- 講座実践インタラクティブ盤 -->
+                <div class="glass-card" id="lesson-interactive-card" style="display: none;">
+                    <h2 id="lesson-title">講座インタラクティブ盤</h2>
+                    <p id="lesson-desc">指示に従って駒を動かしてみましょう。</p>
+                    
+                    <div class="chessboard-wrapper" id="lesson-chessboard">
+                        <!-- 講座用盤面 -->
+                    </div>
+
+                    <div style="margin-top: 12px; display: flex; justify-content: space-between; align-items: center;">
+                        <button class="ai-btn ai-btn-secondary" onclick="resetLessonBoard()">
+                            <span class="material-symbols-outlined">refresh</span> リセット
+                        </button>
+                        <button class="ai-btn" onclick="nextLessonStep()" id="lesson-next-btn">
+                            次のステップ <span class="material-symbols-outlined">arrow_forward</span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 4. PTZ設定ビュー -->
+            <section id="view-ptz" class="view">
+                <div class="glass-card">
+                    <h2>PTZ Dynamic Customizer</h2>
+                    <p>アプリの角丸やアクセントカラーを動的に変更できます。</p>
+                    <div class="preset-grid">
+                        <button class="preset-btn" onclick="loadPreset('default')">Default Blue</button>
+                        <button class="preset-btn" onclick="loadPreset('sharpPurple')">Sharp Purple</button>
+                        <button class="preset-btn" onclick="loadPreset('chunkyRose')">Chunky Rose</button>
+                        <button class="preset-btn" onclick="loadPreset('minimalGray')">Monochrome</button>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- 下付き固定ナビゲーションバー -->
+        <div class="bottom-nav-container">
+            <div class="nav-item active" data-view="view-title" onclick="switchView('view-title')">
+                <span class="material-symbols-outlined">home</span>
+                <span class="nav-label">タイトル</span>
+            </div>
+            <div class="nav-item" data-view="view-game" onclick="switchView('view-game')">
+                <span class="material-symbols-outlined">sports_esports</span>
+                <span class="nav-label">対戦</span>
+            </div>
+            <div class="nav-item" data-view="view-lessons" onclick="switchView('view-lessons')">
+                <span class="material-symbols-outlined">school</span>
+                <span class="nav-label">講座</span>
+            </div>
+            <div class="nav-item" data-view="view-ptz" onclick="switchView('view-ptz')">
+                <span class="material-symbols-outlined">settings</span>
+                <span class="nav-label">PTZ設定</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- トースト通知 -->
+    <div class="toast" id="toast-message">トーストメッセージ</div>
+
+    <script>
+        /**
+         * PBChess♞ - Application Logic
+         */
+
+        const BASE_IMG_URL = "https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/";
+
+        // 10か国の定義
+        const OPPONENTS = {
+            poland: {
+                id: "poland",
+                name: "ポーランド",
+                title: "チェス初心者",
+                diffText: "難易度 1",
+                level: 1,
+                dirName: "poland",
+                speeches: {
+                    normal: "チェスのルールはおぼえたよ！",
+                    win: "Yay! ポーランドはチェス勝てる！",
+                    lose: "Nooo! また負けた...",
+                    thinking: "どこに動かすんだっけ...",
+                    check: "チェック！やったんよ!"
+                }
+            },
+            sierraleone: {
+                id: "sierraleone",
+                name: "シエラレオネ",
+                title: "のんびりプレイヤー",
+                diffText: "難易度 2",
+                level: 2,
+                dirName: "sierraleone",
+                speeches: {
+                    normal: "楽しくチェスを打とうね！",
+                    win: "やった〜！勝ったよ！",
+                    lose: "良い勝負だったね！",
+                    thinking: "うーんと、次は...",
+                    check: "気をつけて！チェックだよ！"
+                }
+            },
+            italy: {
+                id: "italy",
+                name: "イタリア",
+                title: "気まぐれタクティシャン",
+                diffText: "難易度 3",
+                level: 3,
+                dirName: "italy",
+                speeches: {
+                    normal: "パスタを食べながらチェスさ！",
+                    win: "Mamma Mia! 完璧な勝利！",
+                    lose: "ピッツァの焼き時間を間違えた...",
+                    thinking: "直感で指すスタイルさ！",
+                    check: "チェック！アモーレ！"
+                }
+            },
+            france: {
+                id: "france",
+                name: "フランス",
+                title: "優雅なる攻防手",
+                diffText: "難易度 4",
+                level: 4,
+                dirName: "france",
+                speeches: {
+                    normal: "エレガントな手をお見せしよう。",
+                    win: "美しいチェックメイトだ。",
+                    lose: "失礼、集中を切らしてしまった。",
+                    thinking: "最善の美学を探索中...",
+                    check: "チェック。お逃げなさい。"
+                }
+            },
+            china: {
+                id: "china",
+                name: "中国",
+                title: "定石重視の堅実派",
+                diffText: "難易度 5",
+                level: 5,
+                dirName: "china",
+                speeches: {
+                    normal: "将棋の経験をチェスに応用するんよ。",
+                    win: "計画通りなんよ！再見！",
+                    lose: "お見事なんね...参りました。",
+                    thinking: "盤面全体を計算中なんよ...",
+                    check: "チェックだよ！逃げ道はないんよ！"
+                }
+            },
+            japan: {
+                id: "japan",
+                name: "日本",
+                title: "詰み重視の詰チェス師範",
+                diffText: "難易度 6",
+                level: 6,
+                dirName: "japan",
+                speeches: {
+                    normal: "将棋で鍛えた読みに抜かりはありません。",
+                    win: "詰みました。対局ありがとうございました。",
+                    lose: "参りました...素晴らしい構想でした。",
+                    thinking: "相手の狙いを深読中...",
+                    check: "王手(チェック)でございます。"
+                }
+            },
+            germany: {
+                id: "germany",
+                name: "ドイツ",
+                title: "精密な戦術機械",
+                diffText: "難易度 7",
+                level: 7,
+                dirName: "germany",
+                speeches: {
+                    normal: "計算にミスは存在しない。準備はいいか？",
+                    win: "計画通りの必然的勝利だ。",
+                    lose: "エラー発生...計算不可能な手を指された。",
+                    thinking: "アルゴリズムを実行中...",
+                    check: "チェック。脱出確率は0.02%だ。"
+                }
+            },
+            usa: {
+                id: "usa",
+                name: "アメリカ",
+                title: "アグレッシブ・アタッカー",
+                diffText: "難易度 8",
+                level: 8,
+                dirName: "usa",
+                speeches: {
+                    normal: "ガンガン攻撃していくぜ！ついてこれるか？",
+                    win: "USA! USA! 完璧なノックアウトだ！",
+                    lose: "Hey! 今のはウォーミングアップだ！",
+                    thinking: "最短の攻撃ルートをアタック！",
+                    check: "Check! 逃げ場はないぜ！"
+                }
+            },
+            russia: {
+                id: "russia",
+                name: "ロシア",
+                title: "グランドマスター級の絶対王者",
+                diffText: "難易度 9",
+                level: 9,
+                dirName: "russia",
+                speeches: {
+                    normal: "極寒の盤面へようこそ。甘さは捨てろ。",
+                    win: "これがロシアチェスの伝統だ。",
+                    lose: "見事だ...君のチェスを認めよう。",
+                    thinking: "数万の分岐を読んでいる...",
+                    check: "チェック。逃げ道はすでに塞いだ。"
+                }
+            },
+            england472x600: {
+                id: "england472x600",
+                name: "イギリス (UK)",
+                title: "DeepTeanking搭載・チェス最強",
+                diffText: "最強",
+                level: 10,
+                dirName: "england472x600",
+                speeches: {
+                    normal: "紅茶でも飲みながらやりましょう。負けは確定していますがね。",
+                    win: "Checkmate, my friend. 全ての未来は見えていました。",
+                    lose: "まさか...DeepTeankingの計算を超えるとは！",
+                    thinking: "DeepTeanking分析中... 勝利の方程式を導出しています...",
+                    check: "王手ですな。エレガントに対処なさってください。"
+                }
+            }
+        };
+
+        // Unicode 駒シンボル
+        const PIECE_SYMBOLS = {
+            'p': '♟', 'r': '♜', 'n': '♞', 'b': '♝', 'q': '♛', 'k': '♚',
+            'P': '♙', 'R': '♖', 'N': '♘', 'B': '♗', 'Q': '♕', 'K': '♔'
+        };
+
+        // アプリ状態
+        let currentOpponent = OPPONENTS.england472x600;
+        let game = null;
+        let selectedSquare = null;
+        let validMovesForSquare = [];
+
+        function getBallImgUrl(countryDir, face = 'normal') {
+            return `${BASE_IMG_URL}${countryDir}/${face}.png`;
+        }
+
+        function setBallFace(imgElem, countryDir, face) {
+            imgElem.src = getBallImgUrl(countryDir, face);
+            if (countryDir === 'england472x600') {
+                imgElem.classList.add('uk-crop');
+            } else {
+                imgElem.classList.remove('uk-crop');
+            }
+        }
+
+        function renderOpponentSelectList() {
+            const listContainer = document.getElementById('opponent-select-list');
+            listContainer.innerHTML = '';
+
+            Object.values(OPPONENTS).forEach(opp => {
+                const item = document.createElement('div');
+                item.className = 'list-item';
+                item.onclick = () => startQuickGame(opp.id);
+
+                const isUK = opp.id === 'england472x600';
+                
+                item.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div class="pb-avatar" style="width: 48px; height: 48px;">
+                            <img class="${isUK ? 'uk-crop' : ''}" src="${getBallImgUrl(opp.dirName, 'normal')}" alt="${opp.name}">
+                        </div>
+                        <div>
+                            <div class="list-item-title">${opp.name} <span class="badge" style="margin-left: 4px; font-size: 10px;">${opp.diffText}</span></div>
+                            <div class="list-item-desc">${opp.title}</div>
+                        </div>
+                    </div>
+                    <button class="ai-btn ai-btn-secondary" style="padding: 6px 12px; font-size: 12px;">対戦</button>
+                `;
+                listContainer.appendChild(item);
+            });
+        }
+
+        function initGame(opponentId) {
+            currentOpponent = OPPONENTS[opponentId] || OPPONENTS.england472x600;
+            game = new Chess();
+            selectedSquare = null;
+            validMovesForSquare = [];
+
+            // UI要素の更新
+            const imgElem = document.getElementById('game-pb-img');
+            setBallFace(imgElem, currentOpponent.dirName, 'normal');
+            
+            document.getElementById('game-pb-name').textContent = currentOpponent.name;
+            document.getElementById('game-pb-title').textContent = currentOpponent.title;
+            document.getElementById('game-pb-diff').textContent = currentOpponent.diffText;
+            document.getElementById('game-pb-speech').textContent = `「${currentOpponent.speeches.normal}」`;
+            document.getElementById('move-history').textContent = `${currentOpponent.name} との対局が始まりました。`;
+
+            renderBoard();
+            updateGameStatus();
+        }
+
+        function renderBoard() {
+            const boardElem = document.getElementById('chessboard');
+            boardElem.innerHTML = '';
+
+            const boardState = game.board();
+
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    const squareSquare = String.fromCharCode(97 + c) + (8 - r);
+                    const squareElem = document.createElement('div');
+                    const isDark = (r + c) % 2 === 1;
+
+                    squareElem.className = `chess-square ${isDark ? 'dark' : 'light'}`;
+                    squareElem.dataset.square = squareSquare;
+
+                    if (selectedSquare === squareSquare) {
+                        squareElem.classList.add('selected');
+                    }
+
+                    // ハイライト表示
+                    const moveObj = validMovesForSquare.find(m => m.to === squareSquare);
+                    if (moveObj) {
+                        if (moveObj.captured) {
+                            squareElem.classList.add('capture-highlight');
+                        } else {
+                            squareElem.classList.add('highlight');
+                        }
+                    }
+
+                    const piece = boardState[r][c];
+                    if (piece) {
+                        const pieceCode = piece.color === 'w' ? piece.type.toUpperCase() : piece.type;
+                        const span = document.createElement('span');
+                        span.className = 'piece-symbol';
+                        span.textContent = PIECE_SYMBOLS[pieceCode] || '';
+                        span.style.color = piece.color === 'w' ? '#FFFFFF' : '#000000';
+                        if (piece.color === 'w') {
+                            span.style.textShadow = '0 0 3px #000, 0 0 1px #000';
+                        }
+                        squareElem.appendChild(span);
+                    }
+
+                    squareElem.onclick = () => handleSquareClick(squareSquare);
+                    boardElem.appendChild(squareElem);
+                }
+            }
+        }
+
+        function handleSquareClick(square) {
+            if (game.game_over() || game.turn() !== 'w') return;
+
+            // 選択中の場合、移動を試みる
+            if (selectedSquare) {
+                const move = game.move({
+                    from: selectedSquare,
+                    to: square,
+                    promotion: 'q' // 簡単のため常にクイーン昇格
+                });
+
+                if (move) {
+                    // プレイヤーの手が成功
+                    selectedSquare = null;
+                    validMovesForSquare = [];
+                    renderBoard();
+                    updateGameStatus();
+
+                    // リアクション更新
+                    const imgElem = document.getElementById('game-pb-img');
+                    if (move.captured) {
+                        setBallFace(imgElem, currentOpponent.dirName, 'surprise');
+                    }
+
+                    // AIの手番へ
+                    if (!game.game_over()) {
+                        setTimeout(makeAIMove, 400);
+                    }
+                    return;
+                }
+            }
+
+            // 新たな駒を選択
+            const piece = game.get(square);
+            if (piece && piece.color === 'w') {
+                selectedSquare = square;
+                validMovesForSquare = game.moves({ square: square, verbose: true });
+            } else {
+                selectedSquare = null;
+                validMovesForSquare = [];
+            }
+            renderBoard();
+        }
+
+        function makeAIMove() {
+            if (game.game_over()) return;
+
+            const isUK = currentOpponent.id === 'england472x600';
+            const modal = document.getElementById('deepthinking-modal');
+            const imgElem = document.getElementById('game-pb-img');
+
+            if (isUK) {
+                modal.classList.add('active');
+                setBallFace(imgElem, currentOpponent.dirName, 'plot');
+                document.getElementById('game-pb-speech').textContent = `「${currentOpponent.speeches.thinking}」`;
+            }
+
+            const thinkTime = isUK ? 1200 : 300;
+
+            setTimeout(() => {
+                let bestMove = null;
+
+                if (currentOpponent.level === 1) {
+                    // ポーランド: 完全ランダム手
+                    const moves = game.moves({ verbose: true });
+                    bestMove = moves[Math.floor(Math.random() * moves.length)];
+                } else if (currentOpponent.level <= 4) {
+                    // 低〜中級: 1手読み (駒得優先)
+                    bestMove = getBestMoveDepth1();
+                } else {
+                    // イギリス最強 & 上級: Minimax 探索
+                    const depth = isUK ? 3 : 2;
+                    bestMove = minimaxRoot(depth, game, true);
+                }
+
+                if (bestMove) {
+                    game.move(bestMove);
+                }
+
+                if (isUK) {
+                    modal.classList.remove('active');
+                }
+
+                renderBoard();
+                updateGameStatus();
+            }, thinkTime);
+        }
+
+        // 1手読み (簡単な評価)
+        function getBestMoveDepth1() {
+            const moves = game.moves({ verbose: true });
+            let bestMove = null;
+            let bestValue = -9999;
+
+            moves.forEach(m => {
+                game.move(m);
+                let boardValue = evaluateBoard(game.board());
+                game.undo();
+
+                if (boardValue > bestValue) {
+                    bestValue = boardValue;
+                    bestMove = m;
+                }
+            });
+            return bestMove || moves[Math.floor(Math.random() * moves.length)];
+        }
+
+        // Minimax Root
+        function minimaxRoot(depth, game, isMaximizing) {
+            const moves = game.moves({ verbose: true });
+            let bestMove = null;
+            let bestValue = -99999;
+
+            for (let i = 0; i < moves.length; i++) {
+                const move = moves[i];
+                game.move(move);
+                let value = minimax(depth - 1, game, -100000, 100000, !isMaximizing);
+                game.undo();
+
+                if (value >= bestValue) {
+                    bestValue = value;
+                    bestMove = move;
+                }
+            }
+            return bestMove || moves[Math.floor(Math.random() * moves.length)];
+        }
+
+        function minimax(depth, game, alpha, beta, isMaximizing) {
+            if (depth === 0) return evaluateBoard(game.board());
+
+            const moves = game.moves({ verbose: true });
+
+            if (isMaximizing) {
+                let bestValue = -99999;
+                for (let i = 0; i < moves.length; i++) {
+                    game.move(moves[i]);
+                    bestValue = Math.max(bestValue, minimax(depth - 1, game, alpha, beta, !isMaximizing));
+                    game.undo();
+                    alpha = Math.max(alpha, bestValue);
+                    if (beta <= alpha) break;
+                }
+                return bestValue;
+            } else {
+                let bestValue = 99999;
+                for (let i = 0; i < moves.length; i++) {
+                    game.move(moves[i]);
+                    bestValue = Math.min(bestValue, minimax(depth - 1, game, alpha, beta, !isMaximizing));
+                    game.undo();
+                    beta = Math.min(beta, bestValue);
+                    if (beta <= alpha) break;
+                }
+                return bestValue;
+            }
+        }
+
+        // 駒の価値評価関数 (黒視点)
+        function evaluateBoard(board) {
+            let totalEvaluation = 0;
+            const pieceValues = { p: 10, r: 50, n: 30, b: 35, q: 90, k: 900 };
+
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    const piece = board[r][c];
+                    if (piece) {
+                        const val = pieceValues[piece.type] || 0;
+                        if (piece.color === 'b') {
+                            totalEvaluation += val;
+                        } else {
+                            totalEvaluation -= val;
+                        }
+                    }
+                }
+            }
+            return totalEvaluation;
+        }
+
+        function updateGameStatus() {
+            const turnInd = document.getElementById('turn-indicator');
+            const statusInd = document.getElementById('status-indicator');
+            const speech = document.getElementById('game-pb-speech');
+            const imgElem = document.getElementById('game-pb-img');
+
+            if (game.in_checkmate()) {
+                const winner = game.turn() === 'w' ? currentOpponent.name : 'あなた';
+                statusInd.textContent = `チェックメイト！ (${winner}の勝利)`;
+                if (game.turn() === 'w') {
+                    setBallFace(imgElem, currentOpponent.dirName, 'happy');
+                    speech.textContent = `「${currentOpponent.speeches.win}」`;
+                } else {
+                    setBallFace(imgElem, currentOpponent.dirName, 'anger');
+                    speech.textContent = `「${currentOpponent.speeches.lose}」`;
+                }
+            } else if (game.in_draw()) {
+                statusInd.textContent = '引き分け (Draw)';
+                setBallFace(imgElem, currentOpponent.dirName, 'normal');
+            } else if (game.in_check()) {
+                statusInd.textContent = 'チェック！';
+                if (game.turn() === 'w') {
+                    setBallFace(imgElem, currentOpponent.dirName, 'lol');
+                    speech.textContent = `「${currentOpponent.speeches.check}」`;
+                } else {
+                    setBallFace(imgElem, currentOpponent.dirName, 'surprise');
+                }
+            } else {
+                statusInd.textContent = '対局中';
+                turnInd.textContent = game.turn() === 'w' ? 'あなた (白)' : `${currentOpponent.name} (黒)`;
+            }
+
+            // 履歴の更新
+            const history = game.history();
+            if (history.length > 0) {
+                document.getElementById('move-history').textContent = `手数: ${history.length} | 直前の手: ${history[history.length - 1]}`;
+            }
+        }
+
+        function undoMove() {
+            if (game) {
+                game.undo(); // AIの手
+                game.undo(); // プレイヤーの手
+                selectedSquare = null;
+                validMovesForSquare = [];
+                renderBoard();
+                updateGameStatus();
+                showToast('1手戻しました');
+            }
+        }
+
+        function resignGame() {
+            if (confirm('本当に投了しますか？')) {
+                const imgElem = document.getElementById('game-pb-img');
+                setBallFace(imgElem, currentOpponent.dirName, 'happy');
+                document.getElementById('status-indicator').textContent = '投了 (あなたの負け)';
+                document.getElementById('game-pb-speech').textContent = `「${currentOpponent.speeches.win}」`;
+                showToast('投了しました');
+            }
+        }
+
+        function restartGame() {
+            initGame(currentOpponent.id);
+            showToast('ゲームを初期化しました');
+        }
+
+        function startQuickGame(oppId) {
+            initGame(oppId);
+            switchView('view-game');
+        }
+
+        const LESSONS = [
+            {
+                id: 1,
+                title: "1. チェス基本の「センター支配」",
+                desc: "イギリス紳士の心得。中央4マス(e4, e5, d4, d5)を早期に確保することが勝利への第一歩です。",
+                fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+                instruction: "まずは白のポーンを e4 に進めて中央を支配しましょう！",
+                targetFrom: "e2",
+                targetTo: "e4"
+            },
+            {
+                id: 2,
+                title: "2. ナイトとビショップの展開",
+                desc: "重い駒を動かす前に、軽い駒（ナイト・ビショップ）を素早く展開するのがエレガントです。",
+                fen: "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2",
+                instruction: "ナイトを f3 に展開して、敵のe5ポーンを攻撃しましょう！",
+                targetFrom: "g1",
+                targetTo: "f3"
+            },
+            {
+                id: 3,
+                title: "3. 「フォーク (二重攻撃)」の必殺技",
+                desc: "ナイトの独特な動きを利用して、相手のキングとクイーンを同時に狙う悪魔的タクティクスです。",
+                fen: "r1bqk2r/pppp1ppp/2n5/4p3/2B1n3/5N2/PPPP1PPP/R1BQK2R w KQkq - 0 6",
+                instruction: "ナイトを c3 または d4 に進めて優位を確立しましょう。",
+                targetFrom: "f3",
+                targetTo: "e5"
+            },
+            {
+                id: 4,
+                title: "4. 安全第一「キャスリング」",
+                desc: "キングの安全を確保しつつ、ルークを戦線に参加させる一石二鳥の大技です。",
+                fen: "rnbqk2r/pppp1ppp/5n2/2b1p3/4P3/5N2/PPPPBPPP/RNBQK2R w KQkq - 4 4",
+                instruction: "キングサイド・キャスリング(e1からg1)を行ってください。",
+                targetFrom: "e1",
+                targetTo: "g1"
+            }
+        ];
+
+        let currentLessonIndex = 0;
+        let lessonGame = null;
+
+        function renderLessonList() {
+            const listContainer = document.getElementById('lesson-list');
+            listContainer.innerHTML = '';
+
+            LESSONS.forEach((les, idx) => {
+                const item = document.createElement('div');
+                item.className = 'list-item';
+                item.onclick = () => loadLesson(idx);
+
+                item.innerHTML = `
+                    <div>
+                        <div class="list-item-title">${les.title}</div>
+                        <div class="list-item-desc">${les.desc}</div>
+                    </div>
+                    <span class="material-symbols-outlined" style="color: var(--accent-primary);">play_circle</span>
+                `;
+                listContainer.appendChild(item);
+            });
+        }
+
+        function loadLesson(index) {
+            currentLessonIndex = index;
+            const les = LESSONS[index];
+
+            document.getElementById('lesson-interactive-card').style.display = 'block';
+            document.getElementById('lesson-title').textContent = les.title;
+            document.getElementById('lesson-desc').textContent = les.instruction;
+
+            lessonGame = new Chess(les.fen);
+            renderLessonBoard();
+            
+            // スクロール
+            document.getElementById('lesson-interactive-card').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function renderLessonBoard() {
+            const boardElem = document.getElementById('lesson-chessboard');
+            boardElem.innerHTML = '';
+            const boardState = lessonGame.board();
+
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    const squareSquare = String.fromCharCode(97 + c) + (8 - r);
+                    const squareElem = document.createElement('div');
+                    const isDark = (r + c) % 2 === 1;
+
+                    squareElem.className = `chess-square ${isDark ? 'dark' : 'light'}`;
+                    const piece = boardState[r][c];
+
+                    if (piece) {
+                        const pieceCode = piece.color === 'w' ? piece.type.toUpperCase() : piece.type;
+                        const span = document.createElement('span');
+                        span.className = 'piece-symbol';
+                        span.textContent = PIECE_SYMBOLS[pieceCode] || '';
+                        span.style.color = piece.color === 'w' ? '#FFFFFF' : '#000000';
+                        if (piece.color === 'w') {
+                            span.style.textShadow = '0 0 3px #000';
+                        }
+                        squareElem.appendChild(span);
+                    }
+
+                    squareElem.onclick = () => handleLessonSquareClick(squareSquare);
+                    boardElem.appendChild(squareElem);
+                }
+            }
+        }
+
+        let lessonSelectedSquare = null;
+
+        function handleLessonSquareClick(square) {
+            const les = LESSONS[currentLessonIndex];
+
+            if (!lessonSelectedSquare) {
+                const piece = lessonGame.get(square);
+                if (piece && piece.color === 'w') {
+                    lessonSelectedSquare = square;
+                }
+            } else {
+                if (lessonSelectedSquare === les.targetFrom && square === les.targetTo) {
+                    lessonGame.move({ from: les.targetFrom, to: les.targetTo });
+                    renderLessonBoard();
+                    showToast('素晴らしい！大正解です！');
+                    document.getElementById('lesson-desc').textContent = '「エレガントな手です！次のレッスンに進みましょう。」';
+                } else {
+                    showToast('惜しい！指示通りの場所に動かしてみましょう。');
+                }
+                lessonSelectedSquare = null;
+            }
+        }
+
+        function resetLessonBoard() {
+            loadLesson(currentLessonIndex);
+        }
+
+        function nextLessonStep() {
+            if (currentLessonIndex < LESSONS.length - 1) {
+                loadLesson(currentLessonIndex + 1);
+            } else {
+                showToast('全ての基本講座を修了しました！対戦へ挑みましょう！');
+                switchView('view-game');
+            }
+        }
+
+        function switchView(viewId) {
+            const navItems = document.querySelectorAll('.nav-item');
+            const views = document.querySelectorAll('.view');
+
+            navItems.forEach(n => {
+                n.classList.remove('active');
+                if (n.getAttribute('data-view') === viewId) {
+                    n.classList.add('active');
+                }
+            });
+
+            views.forEach(v => {
+                v.classList.remove('active');
+                if (v.id === viewId) {
+                    v.classList.add('active');
+                }
+            });
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast-message');
+            toast.textContent = msg;
+            toast.classList.add('active');
+            setTimeout(() => {
+                toast.classList.remove('active');
+            }, 2300);
+        }
+
+        // --- PTZ プリセット切り替え ---
+        function loadPreset(key) {
+            const root = document.documentElement;
+            if (key === 'sharpPurple') {
+                root.style.setProperty('--accent-primary', '#8B5CF6');
+                root.style.setProperty('--ptz-card-radius', '0px');
+            } else if (key === 'chunkyRose') {
+                root.style.setProperty('--accent-primary', '#E11D48');
+                root.style.setProperty('--ptz-card-radius', '32px');
+            } else if (key === 'minimalGray') {
+                root.style.setProperty('--accent-primary', '#555555');
+                root.style.setProperty('--ptz-card-radius', '12px');
+            } else {
+                root.style.setProperty('--accent-primary', '#3381FF');
+                root.style.setProperty('--ptz-card-radius', '24px');
+            }
+            showToast('PTZテーマを適用しました');
+        }
+
+        // テーマ切替
+        const themeBtn = document.getElementById('theme-btn');
+        themeBtn.addEventListener('click', () => {
+            document.body.classList.toggle('dark-mode');
+            themeBtn.querySelector('span').textContent = document.body.classList.contains('dark-mode') ? 'dark_mode' : 'light_mode';
+        });
+
+        window.onload = () => {
+            renderOpponentSelectList();
+            renderLessonList();
+            initGame('england472x600');
+        };
+    </script>
+</body>
+</html>
