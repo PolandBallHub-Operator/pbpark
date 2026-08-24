@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+    <title>404 - このページはないダス</title>
+
+    <!-- Google Fonts & Material Symbols -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+
+    <style>
+        /* デフォルトテーマ（提供されたUIシステムベース） */
+        :root {
+            --accent-primary: #3381FF;
+            --accent-active: #1A5FCC;
+            
+            /* PTZ 規格初期値 */
+            --ptz-card-radius: 24px;
+            --ptz-slider-height: 16px;
+            --ptz-toggle-width: 54px;
+            --ptz-toggle-height: 30px;
+
+            /* Light Mode ベースカラー */
+            --bg-base: #F7F7F7;
+            --glass-bg: #FFFFFF;
+            --text-main: #000000;
+            --text-sub: #666666;
+            --bg-secondary: #EEEEEE;
+            
+            --m3-easing: cubic-bezier(0.32, 0.72, 0, 1);
+            --transition-smooth: 0.35s var(--m3-easing);
+            --card-padding: 28px;
+        }
+
+        /* ダークモード */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-base: #121212;
+                --glass-bg: #1E1E1E;
+                --text-main: #FFFFFF;
+                --text-sub: #A1A1A6;
+                --bg-secondary: #2C2C2E;
+            }
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', 'Noto Sans JP', sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            transition: background-color var(--transition-smooth), color var(--transition-smooth);
+            min-height: 100vh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow-x: hidden;
+            overflow-y: auto;
+        }
+
+        /* アプリ全体のコンテナ（トップバー・ナビバーなし） */
+        #app-viewport {
+            width: 100%;
+            max-width: 680px;
+            padding: 24px 20px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* フラットソリッドカード（枠線なし、影なし。PTZ角丸対応） */
+        .glass-card {
+            background: var(--glass-bg);
+            border-radius: var(--ptz-card-radius);
+            padding: var(--card-padding);
+            box-shadow: none !important;
+            border: none !important;
+            transition: background-color var(--transition-smooth), border-radius var(--transition-smooth);
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 32px;
+            font-weight: 700;
+            margin: 0 0 8px 0;
+            letter-spacing: -0.8px;
+            color: var(--accent-primary);
+        }
+
+        h2 { 
+            font-size: 20px; 
+            margin-top: 0; 
+            margin-bottom: 12px;
+            font-weight: 700; 
+            letter-spacing: -0.3px;
+        }
+
+        p {
+            font-size: 14px;
+            line-height: 1.6;
+            margin-top: 0;
+            margin-bottom: 20px;
+            color: var(--text-sub);
+        }
+
+        /* ドイツボール画像インタラクション */
+        .germanyball-wrapper {
+            position: relative;
+            display: inline-block;
+            margin: 16px 0;
+            cursor: pointer;
+        }
+
+        .germanyball-img {
+            width: 140px;
+            height: 140px;
+            object-fit: contain;
+            transition: transform 0.2s ease, filter 0.2s ease;
+            filter: drop-shadow(0 8px 16px rgba(0,0,0,0.1));
+        }
+
+        .germanyball-wrapper:hover .germanyball-img {
+            transform: scale(1.08) rotate(-3deg);
+        }
+
+        .germanyball-wrapper:active .germanyball-img {
+            transform: scale(0.95);
+        }
+
+        .tap-hint {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--accent-primary);
+            margin-top: 6px;
+            animation: bounce 1.5s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-4px); }
+        }
+
+        /* 404吹き出しメッセージ */
+        .speech-bubble {
+            background: var(--bg-base);
+            color: var(--text-main);
+            padding: 12px 20px;
+            border-radius: 16px;
+            font-weight: 600;
+            font-size: 15px;
+            display: inline-block;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .speech-bubble::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 8px 8px 0;
+            border-style: solid;
+            border-color: var(--bg-base) transparent;
+            display: block;
+            width: 0;
+        }
+
+        /* 4. アクションボタン */
+        .ai-btn {
+            border: none;
+            outline: none;
+            padding: 14px 28px;
+            border-radius: 16px;
+            font-weight: 700;
+            font-size: 15px;
+            color: white;
+            cursor: pointer;
+            background: var(--accent-primary);
+            transition: transform 0.2s, background-color var(--transition-smooth);
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            justify-content: center;
+            text-decoration: none;
+            width: 100%;
+            max-width: 320px;
+            margin: 0 auto;
+        }
+
+        .ai-btn:hover {
+            transform: scale(1.02);
+        }
+
+        .ai-btn:active {
+            background: var(--accent-active);
+            transform: scale(0.96);
+        }
+
+        /* インタラクション: Jelly/Squishy */
+        @keyframes squishy {
+            0% { transform: scale(1, 1); }
+            30% { transform: scale(1.06, 0.94); }
+            50% { transform: scale(0.97, 1.03); }
+            70% { transform: scale(1.01, 0.99); }
+            100% { transform: scale(1, 1); }
+        }
+        .squish-active {
+            animation: squishy 0.35s var(--m3-easing);
+        }
+
+        /* ------------------ Dino Game 領域 ------------------ */
+        .game-card {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .game-card.active {
+            display: flex;
+            animation: fadeIn 0.4s var(--m3-easing);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .game-header-row {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .score-board {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-main);
+            display: flex;
+            gap: 16px;
+        }
+
+        .score-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* ゲームキャンバス（背景は透明で白カードになじませる） */
+        #gameCanvas {
+            width: 100%;
+            height: 180px;
+            background-color: var(--bg-base);
+            border-radius: 16px;
+            touch-action: manipulation;
+            cursor: pointer;
+        }
+
+        .game-instructions {
+            font-size: 12px;
+            color: var(--text-sub);
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* トースト通知 */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--text-main);
+            color: var(--glass-bg);
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s var(--m3-easing);
+            z-index: 2000;
+        }
+        .toast.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app-viewport">
+        
+        <!-- メイン 404 表示カード -->
+        <div class="glass-card">
+            <h1>404</h1>
+            <h2>このページはないダス</h2>
+
+            <div class="speech-bubble">
+                germanyball「このURLは確認できないんよ」
+            </div>
+
+            <!-- ドイツボール画像（タッチするとDinoゲームが起動） -->
+            <div>
+                <div class="germanyball-wrapper" id="germanyball-btn" onclick="startDinoGame()">
+                    <img 
+                        src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/newballs/germany/haha.png" 
+                        alt="Germanyball" 
+                        class="germanyball-img"
+                        id="gb-img-source"
+                    >
+                </div>
+            </div>
+
+            <p style="margin-top: 12px;">
+                お探しのページは削除されたか、URLが変更された可能性があります。<br>
+                下のボタンから Polandball Park へ戻ることができます。
+            </p>
+
+            <!-- ページ移動ボタン -->
+            <a href="https://polandballhub-operator.github.io/pbpark/" class="ai-btn">
+                <span class="material-symbols-outlined">home</span>
+                Polandball Park へ移動
+            </a>
+        </div>
+
+        <!-- 横スクロールジャンプゲーム（Dino Game）カード -->
+        <div class="glass-card game-card" id="game-section">
+            <div class="game-header-row">
+                <div style="font-weight: 700; font-size: 16px; display: flex; align-items: center; gap: 6px;">
+                    <span class="material-symbols-outlined" style="color: var(--accent-primary);">directions_run</span>
+                    Germanyball Run!
+                </div>
+                <div class="score-board">
+                    <div class="score-item">
+                        <span style="color: var(--text-sub);">SCORE:</span>
+                        <span id="current-score">0</span>
+                    </div>
+                    <div class="score-item">
+                        <span style="color: var(--accent-primary);">HI:</span>
+                        <span id="high-score">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ゲームキャンバス -->
+            <canvas id="gameCanvas"></canvas>
+
+            <div class="game-instructions">
+                <span class="material-symbols-outlined" style="font-size: 16px;">touch_app</span>
+                画面タップ / クリック / Spaceキーでジャンプ！
+            </div>
+        </div>
+
+    </div>
+
+    <!-- トースト通知 -->
+    <div class="toast" id="toast-message">ゲームスタート！</div>
+
+    <script>
+        /**
+         * Germanyball Dino Jump Game & Interactive UI Logic
+         */
+
+        const toast = document.getElementById('toast-message');
+        const gameSection = document.getElementById('game-section');
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const gbImage = document.getElementById('gb-img-source');
+
+        const scoreEl = document.getElementById('current-score');
+        const highScoreEl = document.getElementById('high-score');
+
+        // ゲーム状態変数
+        let isGameRunning = false;
+        let animationFrameId = null;
+        let score = 0;
+        let highScore = 0;
+        let gameSpeed = 5;
+        let frameCount = 0;
+
+        // プレイヤー (Germanyball)
+        const player = {
+            x: 40,
+            y: 0,
+            width: 44,
+            height: 44,
+            velocityY: 0,
+            gravity: 0.65,
+            jumpStrength: -11.5,
+            isGrounded: false
+        };
+
+        // 障害物配列
+        let obstacles = [];
+
+        // キャンバスリサイズ対応
+        function resizeCanvas() {
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+            player.y = canvas.height - player.height - 20; // 地面位置の設定
+        }
+
+        window.addEventListener('resize', () => {
+            if (gameSection.classList.contains('active')) {
+                resizeCanvas();
+            }
+        });
+
+        // ゲーム初期化 & 起動
+        function startDinoGame() {
+            if (!gameSection.classList.contains('active')) {
+                gameSection.classList.add('active');
+                showToast('🎮 Germanyball Jump! ゲームスタート');
+                
+                // ゲームカードへスムーズにスクロール
+                setTimeout(() => {
+                    gameSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }, 100);
+            }
+
+            resizeCanvas();
+            resetGame();
+
+            if (!isGameRunning) {
+                isGameRunning = true;
+                gameLoop();
+            }
+        }
+
+        function resetGame() {
+            score = 0;
+            gameSpeed = 5;
+            frameCount = 0;
+            obstacles = [];
+            player.velocityY = 0;
+            player.y = canvas.height - player.height - 20;
+            player.isGrounded = true;
+            scoreEl.textContent = '0';
+        }
+
+        // ジャンプ処理
+        function jump() {
+            if (!isGameRunning) {
+                startDinoGame();
+                return;
+            }
+
+            if (player.isGrounded) {
+                player.velocityY = player.jumpStrength;
+                player.isGrounded = false;
+            }
+        }
+
+        // イベントリスナー（タップ・クリック・キー操作）
+        canvas.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            jump();
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' || e.code === 'ArrowUp') {
+                if (gameSection.classList.contains('active')) {
+                    e.preventDefault();
+                    jump();
+                }
+            }
+        });
+
+        // 障害物クラス/生成
+        function createObstacle() {
+            const minHeight = 24;
+            const maxHeight = 48;
+            const height = Math.floor(Math.random() * (maxHeight - minHeight + 1)) + minHeight;
+            const width = Math.floor(Math.random() * 15) + 20;
+
+            obstacles.push({
+                x: canvas.width,
+                y: canvas.height - height - 20,
+                width: width,
+                height: height,
+                color: getComputedStyle(document.documentElement).getPropertyValue('--accent-primary').trim() || '#3381FF'
+            });
+        }
+
+        // メインゲームループ
+        function gameLoop() {
+            if (!isGameRunning) return;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 地面の描画
+            const groundY = canvas.height - 20;
+            ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--text-sub').trim() || '#666';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(0, groundY);
+            ctx.lineTo(canvas.width, groundY);
+            ctx.stroke();
+
+            // 地面の装飾線 (流れる地面の効果)
+            ctx.fillStyle = ctx.strokeStyle;
+            for (let i = 0; i < canvas.width; i += 40) {
+                const offsetX = (i - (frameCount * gameSpeed) % 40);
+                ctx.fillRect(offsetX, groundY + 6, 16, 2);
+            }
+
+            // プレイヤー物理演算
+            player.velocityY += player.gravity;
+            player.y += player.velocityY;
+
+            // 着地判定
+            if (player.y >= groundY - player.height) {
+                player.y = groundY - player.height;
+                player.velocityY = 0;
+                player.isGrounded = true;
+            }
+
+            // ドイツボール画像または円の描画
+            if (gbImage.complete && gbImage.naturalWidth !== 0) {
+                ctx.drawImage(gbImage, player.x, player.y, player.width, player.height);
+            } else {
+                ctx.fillStyle = '#DD3333';
+                ctx.beginPath();
+                ctx.arc(player.x + player.width/2, player.y + player.height/2, player.width/2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // 障害物生成タイマー
+            frameCount++;
+            if (frameCount % Math.max(45, Math.floor(120 - gameSpeed * 5)) === 0) {
+                createObstacle();
+            }
+
+            // 速度向上（徐々に難易度UP）
+            if (frameCount % 300 === 0) {
+                gameSpeed += 0.4;
+            }
+
+            // 障害物の更新＆描画＆当たり判定
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                let obs = obstacles[i];
+                obs.x -= gameSpeed;
+
+                // 障害物の描画（角丸長方形）
+                ctx.fillStyle = obs.color;
+                ctx.beginPath();
+                if (ctx.roundRect) {
+                    ctx.roundRect(obs.x, obs.y, obs.width, obs.height, 6);
+                } else {
+                    ctx.rect(obs.x, obs.y, obs.width, obs.height);
+                }
+                ctx.fill();
+
+                // 衝突判定（AABB判定 + 判定の余裕）
+                const padding = 4;
+                if (
+                    player.x + padding < obs.x + obs.width &&
+                    player.x + player.width - padding > obs.x &&
+                    player.y + padding < obs.y + obs.height &&
+                    player.y + player.height - padding > obs.y
+                ) {
+                    // ゲームオーバー
+                    handleGameOver();
+                    return;
+                }
+
+                // 画面外に出た障害物を削除
+                if (obs.x + obs.width < 0) {
+                    obstacles.splice(i, 1);
+                    score += 10;
+                    scoreEl.textContent = score;
+                    if (score > highScore) {
+                        highScore = score;
+                        highScoreEl.textContent = highScore;
+                    }
+                }
+            }
+
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+
+        // ゲームオーバー処理
+        function handleGameOver() {
+            isGameRunning = false;
+            cancelAnimationFrame(animationFrameId);
+
+            // ゲームオーバー表示
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = 'bold 20px "Plus Jakarta Sans", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2 - 10);
+
+            ctx.font = '13px "Plus Jakarta Sans", sans-serif';
+            ctx.fillText('タップして再チャレンジ', canvas.width / 2, canvas.height / 2 + 18);
+
+            showToast(`ゲーム終了！ スコア: ${score}`);
+        }
+
+        // トースト通知を表示
+        function showToast(msg) {
+            toast.textContent = msg;
+            toast.classList.add('active');
+            setTimeout(() => {
+                toast.classList.remove('active');
+            }, 2500);
+        }
+
+        // 触感・ジェリー風バウンド演出
+        document.addEventListener('mousedown', (e) => {
+            const target = e.target.closest('.glass-card, .ai-btn, .germanyball-wrapper');
+            if (target) {
+                target.classList.remove('squish-active');
+                void target.offsetWidth; // リフロートリガー
+                target.classList.add('squish-active');
+                
+                setTimeout(() => {
+                    target.classList.remove('squish-active');
+                }, 350);
+            }
+        });
+    </script>
+</body>
+</html>
