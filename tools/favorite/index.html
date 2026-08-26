@@ -1,0 +1,1682 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <!-- Browser Theme Bar Token -->
+    <meta name="theme-color" id="theme-color-meta" content="#6750a4">
+    <title>PBcollection - Material 3 Expressive Media Manager</title>
+
+    <!-- Google Sans Flex & Material Symbols Outlined -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wdth,wght,GRAD,ROND@6..144,87.5,1..1000,100,100&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+
+    <!-- JSZip for ZIP Archive Extraction -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <!-- PDF.js for PDF Processing & High-Res Rendering -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+    <!-- Import Map for Material Web Components & Material Color Utilities -->
+    <script type="importmap">
+    {
+        "imports": {
+            "@material/web/": "https://esm.run/@material/web/",
+            "@material/material-color-utilities": "https://esm.run/@material/material-color-utilities"
+        }
+    }
+    </script>
+
+    <style>
+        :root {
+            /* M3 Dynamic Tokens */
+            --md-sys-color-primary: #6750a4;
+            --md-sys-color-on-primary: #ffffff;
+            --md-sys-color-primary-container: #eaddff;
+            --md-sys-color-on-primary-container: #21005d;
+            --md-sys-color-secondary: #625b71;
+            --md-sys-color-on-secondary: #ffffff;
+            --md-sys-color-secondary-container: #e8def8;
+            --md-sys-color-on-secondary-container: #1d192b;
+            --md-sys-color-tertiary: #7d5260;
+            --md-sys-color-on-tertiary: #ffffff;
+            --md-sys-color-tertiary-container: #ffd8e4;
+            --md-sys-color-on-tertiary-container: #31111d;
+            --md-sys-color-error: #b3261e;
+            --md-sys-color-on-error: #ffffff;
+            --md-sys-color-error-container: #f9dedc;
+            --md-sys-color-on-error-container: #410e0b;
+            --md-sys-color-background: #f6f2f7;
+            --md-sys-color-on-background: #1c1b1f;
+            --md-sys-color-surface: #fffbfe;
+            --md-sys-color-on-surface: #1c1b1f;
+            --md-sys-color-surface-variant: #e7e0ec;
+            --md-sys-color-on-surface-variant: #49454f;
+            --md-sys-color-surface-container-lowest: #ffffff;
+            --md-sys-color-surface-container-low: #f7f2fa;
+            --md-sys-color-surface-container: #f3edf7;
+            --md-sys-color-surface-container-high: #ece6f0;
+            --md-sys-color-surface-container-highest: #e6e0e9;
+            --md-sys-color-outline: #79747e;
+            --md-sys-color-outline-variant: #c4c7c5;
+
+            --md-ref-typeface-brand: 'Google Sans Flex', sans-serif;
+            --md-ref-typeface-plain: 'Google Sans Flex', sans-serif;
+
+            --transition-duration: 0.35s;
+            --m3-easing-standard: cubic-bezier(0.2, 0, 0, 1);
+            --m3-easing-emphasized: cubic-bezier(0.3, 0, 0, 1);
+
+            --md-elevated-button-container-color: var(--md-sys-color-surface-container-low);
+            --md-elevated-button-label-text-color: var(--md-sys-color-primary);
+            --md-filled-text-field-container-color: var(--md-sys-color-surface-container-highest);
+            --md-filled-text-field-input-text-color: var(--md-sys-color-on-surface);
+            --md-filled-text-field-label-text-color: var(--md-sys-color-on-surface-variant);
+
+            --md-menu-container-color: var(--md-sys-color-surface-container-high);
+            --md-dialog-container-color: var(--md-sys-color-surface-container-high);
+        }
+
+        *, *::before, *::after {
+            font-family: "Google Sans Flex", sans-serif;
+            font-optical-sizing: auto;
+            font-style: normal;
+            font-variation-settings: "slnt" 0, "wdth" 87.5, "GRAD" 100, "ROND" 100;
+            user-select: none;
+            -webkit-user-select: none;
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--md-sys-color-surface-container-low);
+            color: var(--md-sys-color-on-background);
+            transition: background-color var(--transition-duration), color var(--transition-duration);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body.dark-mode {
+            background-color: var(--md-sys-color-background);
+        }
+
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            height: 64px;
+            padding: 0 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background-color: var(--md-sys-color-surface-container-low);
+            transition: background-color var(--transition-duration);
+        }
+
+        body.dark-mode header {
+            background-color: var(--md-sys-color-background);
+        }
+
+        .top-bar-title-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 800;
+            letter-spacing: -0.3px;
+            color: var(--md-sys-color-on-background);
+        }
+
+        .m3-circle-back-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: var(--md-sys-color-secondary-container);
+            color: var(--md-sys-color-on-secondary-container);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border: none;
+            outline: none;
+            transition: background-color 0.2s var(--m3-easing-standard), transform 0.2s;
+        }
+
+        .m3-circle-back-btn:active { transform: scale(0.92); }
+        .m3-circle-back-btn.hidden { display: none !important; }
+
+        /* Expressive Hero Section */
+        .featured-hero-container {
+            position: relative;
+            width: 100%;
+            border-radius: 32px;
+            overflow: hidden;
+            margin-bottom: 24px;
+            background-color: var(--md-sys-color-surface-container-highest);
+            transition: all var(--transition-duration) var(--m3-easing-emphasized);
+            min-height: 380px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+        }
+
+        .featured-bg-media {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 1;
+            filter: brightness(0.82) contrast(1.05);
+            transition: opacity 0.5s ease-in-out;
+        }
+
+        .featured-overlay-content {
+            position: relative;
+            z-index: 2;
+            padding: 28px 24px;
+            background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.5) 40%, rgba(0, 0, 0, 0.88) 100%);
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .featured-tag {
+            align-self: flex-start;
+            padding: 6px 14px;
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 100px;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .featured-title {
+            font-size: 32px;
+            font-weight: 900;
+            line-height: 1.15;
+            letter-spacing: -0.8px;
+            margin: 0;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.4);
+        }
+
+        .featured-subtitle {
+            font-size: 14px;
+            font-weight: 500;
+            opacity: 0.9;
+            line-height: 1.4;
+            margin: 0;
+            max-width: 90%;
+        }
+
+        .featured-controls {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 8px;
+        }
+
+        .pb-mascot-pill {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.18);
+            backdrop-filter: blur(16px);
+            padding: 6px 14px 6px 6px;
+            border-radius: 40px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        /* Floating Nav Bar */
+        .floating-nav-container {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            width: auto;
+            max-width: 95vw;
+        }
+
+        .custom-nav {
+            display: flex;
+            align-items: center;
+            background-color: var(--md-sys-color-surface);
+            padding: 8px;
+            border-radius: 36px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+            transition: all 0.4s var(--m3-easing-emphasized);
+        }
+
+        body.dark-mode .custom-nav { background-color: var(--md-sys-color-surface-container-high); }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-width: 68px;
+            height: 48px;
+            cursor: pointer;
+            border-radius: 24px;
+            transition: all 0.2s var(--m3-easing-standard);
+        }
+
+        .nav-icon-container {
+            width: 52px;
+            height: 32px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 20px;
+            transition: background-color 0.3s;
+        }
+
+        .nav-item .material-symbols-outlined {
+            font-size: 24px;
+            color: var(--md-sys-color-on-surface-variant);
+        }
+
+        .nav-item.active .nav-icon-container { background-color: var(--md-sys-color-secondary-container); }
+        .nav-item.active .material-symbols-outlined {
+            font-variation-settings: 'FILL' 1;
+            color: var(--md-sys-color-on-secondary-container);
+        }
+
+        @media (min-width: 900px) {
+            .floating-nav-container {
+                left: 24px;
+                bottom: auto;
+                top: 50%;
+                transform: translateY(-50%);
+            }
+            .custom-nav {
+                flex-direction: column;
+                border-radius: 32px;
+                padding: 12px 8px;
+            }
+            .nav-item { margin: 4px 0; }
+            body { margin-left: 100px; }
+        }
+
+        main {
+            flex: 1;
+            padding: 16px 16px 120px 16px;
+            max-width: 960px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .view-section {
+            display: none;
+            animation: m3-expressive-in 0.35s var(--m3-easing-emphasized) forwards;
+        }
+        .view-section.active { display: block; }
+
+        @keyframes m3-expressive-in {
+            from { opacity: 0; transform: scale(0.97) translateY(8px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .solid-card {
+            background-color: var(--md-sys-color-surface);
+            border-radius: 28px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: none !important;
+            transition: background-color 0.3s;
+        }
+
+        body.dark-mode .solid-card { background-color: var(--md-sys-color-surface-container); }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 800;
+            margin-bottom: 16px;
+            color: var(--md-sys-color-primary);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        /* Photo Grid & Card Styling */
+        .photo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(135px, 1fr));
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .pdf-card {
+            position: relative;
+            aspect-ratio: 1 / 1;
+            border-radius: 20px;
+            overflow: hidden;
+            background-color: var(--md-sys-color-surface-container-highest);
+            cursor: pointer;
+            transition: transform 0.25s var(--m3-easing-standard);
+            border: 2px solid var(--md-sys-color-outline-variant);
+        }
+
+        .pdf-card:hover {
+            transform: scale(1.03);
+            border-color: var(--md-sys-color-primary);
+        }
+
+        .pdf-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .pdf-page-count-badge {
+            position: absolute;
+            bottom: 32px;
+            right: 8px;
+            background: var(--md-sys-color-primary-container);
+            color: var(--md-sys-color-on-primary-container);
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 800;
+        }
+
+        /* Dedicated HQ PDF Viewer Toolbar */
+        .pdf-hq-viewer-container {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            height: 100%;
+            align-items: center;
+        }
+
+        .pdf-toolbar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background-color: var(--md-sys-color-surface-container-high);
+            border-radius: 32px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        .pdf-canvas-wrapper {
+            flex: 1;
+            width: 100%;
+            overflow: auto;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 12px;
+            background-color: rgba(0, 0, 0, 0.4);
+            border-radius: 16px;
+        }
+
+        .pdf-canvas-wrapper canvas {
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            border-radius: 4px;
+            max-width: 100%;
+            height: auto;
+        }
+
+        .photo-card {
+            position: relative;
+            aspect-ratio: 1 / 1;
+            border-radius: 20px;
+            overflow: hidden;
+            background-color: var(--md-sys-color-surface-container-highest);
+            cursor: pointer;
+            transition: transform 0.25s var(--m3-easing-standard);
+        }
+
+        .photo-card:hover { transform: scale(1.03); }
+
+        .photo-card img, .photo-card video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .photo-badge {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background-color: rgba(0, 0, 0, 0.65);
+            color: #ffffff;
+            border-radius: 12px;
+            padding: 2px 6px;
+            font-size: 11px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            backdrop-filter: blur(4px);
+        }
+
+        .photo-delete-btn {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            background-color: rgba(179, 38, 30, 0.9);
+            color: #ffffff;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0.9;
+            transition: opacity 0.2s, transform 0.2s;
+            border: none;
+            cursor: pointer;
+            z-index: 5;
+        }
+
+        .photo-card:hover .photo-delete-btn, .pdf-card:hover .photo-delete-btn {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+
+        .photo-title-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 8px;
+            background: linear-gradient(transparent, rgba(0,0,0,0.85));
+            color: #ffffff;
+            font-size: 11px;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .pb-avatar {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            object-fit: cover;
+            background-color: var(--md-sys-color-surface-container-highest);
+            flex-shrink: 0;
+        }
+
+        .dropzone {
+            border: 2px dashed var(--md-sys-color-outline);
+            border-radius: 28px;
+            padding: 32px 16px;
+            text-align: center;
+            background-color: var(--md-sys-color-surface-container-low);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .dropzone.dragover {
+            border-color: var(--md-sys-color-primary);
+            background-color: var(--md-sys-color-primary-container);
+        }
+
+        /* Lightbox Viewer Modal */
+        .viewer-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(0,0,0,0.94);
+            z-index: 200;
+            display: none;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            padding: 24px 16px;
+        }
+
+        .viewer-modal.active { display: flex; }
+
+        .viewer-header {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: #ffffff;
+        }
+
+        .viewer-content {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            max-height: 78vh;
+        }
+
+        .viewer-content img, .viewer-content video {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            border-radius: 12px;
+        }
+
+        md-filled-button, md-elevated-button, md-outlined-button, md-filled-tonal-button {
+            --md-filled-button-container-shape: 20px;
+            margin: 4px;
+            font-weight: 600;
+        }
+
+        md-outlined-text-field {
+            width: 100%;
+            margin-bottom: 16px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="top-bar-title-container">
+            <button id="top-bar-back-btn" class="m3-circle-back-btn hidden" onclick="window.goBack()" aria-label="Go Back">
+                <span class="material-symbols-outlined">chevron_left</span>
+            </button>
+            <md-icon-button id="top-bar-icon-main">
+                <span class="material-symbols-outlined">photo_library</span>
+            </md-icon-button>
+            <h1 id="top-bar-title">PBcollection</h1>
+        </div>
+        <div style="display:flex; align-items:center; position:relative;">
+            <input type="color" id="source-color-picker" value="#6750a4" style="width:0; height:0; visibility:hidden; position:absolute;">
+            <md-icon-button onclick="document.getElementById('source-color-picker').click()">
+                <span class="material-symbols-outlined">palette</span>
+            </md-icon-button>
+            <md-icon-button onclick="window.toggleDarkMode()">
+                <span class="material-symbols-outlined" id="theme-icon">dark_mode</span>
+            </md-icon-button>
+            
+            <md-icon-button id="overflow-menu-anchor" onclick="document.getElementById('overflow-menu').open = !document.getElementById('overflow-menu').open">
+                <span class="material-symbols-outlined">more_vert</span>
+            </md-icon-button>
+
+            <md-menu id="overflow-menu" anchor="overflow-menu-anchor">
+                <md-menu-item onclick="window.exportBackupJSON()">
+                    <div slot="headline">データ・設定のエクスポート (JSON)</div>
+                </md-menu-item>
+                <md-menu-item onclick="document.getElementById('restore-input-element').click()">
+                    <div slot="headline">データ・設定のリストア (JSON)</div>
+                </md-menu-item>
+                <md-menu-item onclick="window.resetPBCollectionDemo()">
+                    <div slot="headline">サンプルデータを再読み込み</div>
+                </md-menu-item>
+            </md-menu>
+            <input type="file" id="restore-input-element" accept=".json" style="display:none;" onchange="window.importBackupJSON(event)">
+        </div>
+    </header>
+
+    <main>
+        <!-- HOME VIEW -->
+        <section id="view-home" class="view-section active">
+            <!-- Google / Apple Photos Style Hero -->
+            <div class="featured-hero-container" id="featured-hero-box">
+                <img id="featured-bg-img" class="featured-bg-media" src="" alt="Featured Highlight">
+                <div class="featured-overlay-content">
+                    <div class="featured-tag">
+                        <span class="material-symbols-outlined" style="font-size:14px;">auto_awesome</span>
+                        おすすめの思い出 • M3 Dynamic
+                    </div>
+                    <h2 class="featured-title" id="featured-title-text">Today's Highlight</h2>
+                    <p class="featured-subtitle" id="featured-subtitle-text">おすすめ画像に合わせて M3 Dynamic Theme が自動変化します。</p>
+                    
+                    <div class="featured-controls">
+                        <div class="pb-mascot-pill">
+                            <img id="pb-hero-avatar" class="pb-avatar" style="width:32px; height:32px;" src="" alt="PB Mascot">
+                            <span id="pb-hero-speech">PB「このカラー最高！」</span>
+                        </div>
+                        <md-filled-tonal-button id="hero-action-btn" onclick="window.openFeaturedInViewer()">
+                            <md-icon slot="icon"><span class="material-symbols-outlined">open_in_full</span></md-icon>
+                            拡大表示
+                        </md-filled-tonal-button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Monthly Summary Card -->
+            <div class="solid-card" style="padding: 18px; display: flex; align-items: center; gap: 16px; background-color: var(--md-sys-color-tertiary-container); color: var(--md-sys-color-on-tertiary-container);">
+                <img id="pb-monthly-avatar" class="pb-avatar" src="" alt="Polandball Mascot">
+                <div>
+                    <div style="font-size: 12px; font-weight: 800; text-transform: uppercase; opacity: 0.85;">今月のまとめ</div>
+                    <div id="pb-monthly-text" style="font-size: 14px; font-weight: 600; margin-top: 2px;">
+                        合計 <span id="pb-total-media-count">0</span> 件のメディアを保管中（IndexedDB同期完了）
+                    </div>
+                </div>
+            </div>
+
+            <!-- Photos Feed Grid -->
+            <div class="solid-card">
+                <div class="section-title">
+                    <span class="material-symbols-outlined">collections</span>
+                    フォトギャラリー
+                </div>
+                <div id="home-photo-grid" class="photo-grid"></div>
+            </div>
+        </section>
+
+        <!-- SEARCH VIEW -->
+        <section id="view-search" class="view-section">
+            <div class="solid-card">
+                <div class="section-title">
+                    <span class="material-symbols-outlined">search</span>
+                    スマートメディア検索
+                </div>
+                <md-outlined-text-field id="search-input" label="キーワード・形式・日付で検索..." oninput="window.handleSearch()">
+                    <md-icon slot="leading-icon"><span class="material-symbols-outlined">search</span></md-icon>
+                </md-outlined-text-field>
+
+                <div style="display:flex; gap:8px; flex-wrap:wrap; margin: 12px 0;">
+                    <md-filter-chip label="すべて" id="search-chip-all" selected onclick="window.setSearchFilter('all')"></md-filter-chip>
+                    <md-filter-chip label="画像" id="search-chip-image" onclick="window.setSearchFilter('image')"></md-filter-chip>
+                    <md-filter-chip label="動画" id="search-chip-video" onclick="window.setSearchFilter('video')"></md-filter-chip>
+                    <md-filter-chip label="PDF文書" id="search-chip-pdf" onclick="window.setSearchFilter('pdf')"></md-filter-chip>
+                    <md-filter-chip label="お気に入り" id="search-chip-fav" onclick="window.setSearchFilter('fav')"></md-filter-chip>
+                </div>
+
+                <div id="search-results-grid" class="photo-grid" style="margin-top: 16px;"></div>
+            </div>
+        </section>
+
+        <!-- COLLECTION VIEW -->
+        <section id="view-collection" class="view-section">
+            <div class="solid-card">
+                <div class="section-title">
+                    <span class="material-symbols-outlined">folder_special</span>
+                    カテゴリ別コレクション
+                </div>
+
+                <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom: 16px;">
+                    <md-filter-chip label="ギャラリー画像" id="col-chip-image" selected onclick="window.setCollectionFilter('image')"></md-filter-chip>
+                    <md-filter-chip label="PDFドキュメント (オリジナル)" id="col-chip-pdf" onclick="window.setCollectionFilter('pdf')"></md-filter-chip>
+                    <md-filter-chip label="動画" id="col-chip-video" onclick="window.setCollectionFilter('video')"></md-filter-chip>
+                </div>
+
+                <div id="collection-photo-grid" class="photo-grid"></div>
+            </div>
+        </section>
+
+        <!-- UPLOAD & IMPORT VIEW -->
+        <section id="view-upload" class="view-section">
+            <div class="solid-card">
+                <div class="section-title">
+                    <span class="material-symbols-outlined">file_upload</span>
+                    メディア・ZIP・PDFインポート
+                </div>
+                
+                <div class="dropzone" id="file-dropzone" onclick="document.getElementById('file-input-element').click()">
+                    <span class="material-symbols-outlined" style="font-size: 48px; color: var(--md-sys-color-primary);">cloud_upload</span>
+                    <h3 style="margin: 8px 0 4px 0; color: var(--md-sys-color-on-surface);">ファイル・ZIP・PDFをドラッグ＆ドロップ</h3>
+                    <p style="margin: 0; font-size: 13px; opacity: 0.75;">
+                        ※ PDFファイルは全ページ自動展開されてフォトギャラリーに追加され、元ファイルはコレクション→PDFで閲覧可能です。ZIPファイルは自動解凍処理されます。
+                    </p>
+                    <input type="file" id="file-input-element" multiple accept="image/*,video/*,application/pdf,.zip" style="display:none;" onchange="window.handleFileImport(this.files)">
+                </div>
+            </div>
+        </section>
+
+        <!-- SUB ACTIVITY VIEW -->
+        <section id="view-sub-activity" class="view-section">
+            <div class="solid-card">
+                <div class="section-title" id="sub-activity-title-text">詳細アクティビティ</div>
+                <p style="line-height: 1.6; opacity: 0.9;">
+                    トップバータイトルの左側に円形のM3「<」戻るボタンが表示されています。
+                    タップして元の画面にスムーズに戻ることができます。
+                </p>
+
+                <div style="background-color: var(--md-sys-color-surface-container-high); border-radius: 24px; padding: 20px; margin-top: 16px;">
+                    <h3 style="margin-top:0; color: var(--md-sys-color-primary);">詳細情報</h3>
+                    <p style="margin-bottom:0; line-height: 1.6;">
+                        ・影に依存しないソリッド面レイヤード構成。<br>
+                        ・Google Sans Flex による可変タイポグラフィ。<br>
+                        ・全コンポーネントに自動適用されるMaterial 3 Dynamic Theme。
+                    </p>
+                </div>
+
+                <div style="margin-top:20px; display:flex; justify-content: flex-end;">
+                    <md-filled-button onclick="window.goBack()">
+                        <md-icon slot="icon"><span class="material-symbols-outlined">arrow_back</span></md-icon>
+                        元に戻る
+                    </md-filled-button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Lightbox High-Res Viewer Modal -->
+    <div class="viewer-modal" id="highres-viewer-modal">
+        <div class="viewer-header">
+            <span id="viewer-title" style="font-weight: 700; font-size: 16px;">高画質ビューア</span>
+            <md-icon-button onclick="window.closeHighResViewer()" style="--md-icon-button-icon-color: #ffffff;">
+                <span class="material-symbols-outlined">close</span>
+            </md-icon-button>
+        </div>
+        <div class="viewer-content" id="viewer-content-body"></div>
+        <div style="display:flex; gap: 12px; margin-top: 12px; flex-wrap:wrap; justify-content:center;">
+            <md-filled-tonal-button id="viewer-favorite-btn" onclick="window.toggleViewerFavorite()">
+                <md-icon slot="icon"><span class="material-symbols-outlined">favorite</span></md-icon>
+                <span id="viewer-fav-label">お気に入りに追加</span>
+            </md-filled-tonal-button>
+            <md-filled-button style="--md-filled-button-container-color: var(--md-sys-color-error);" onclick="window.deleteCurrentViewerMedia()">
+                <md-icon slot="icon"><span class="material-symbols-outlined">delete</span></md-icon>
+                消去する
+            </md-filled-button>
+        </div>
+    </div>
+
+    <!-- M3 Deletion Confirmation Dialog -->
+    <md-dialog id="delete-dialog">
+        <div slot="headline">メディアの消去</div>
+        <div slot="content">
+            このメディアを消去してもよろしいですか？（PDFの場合は展開された全ページ画像も一緒に消去されます）この操作は取り消せません。
+        </div>
+        <div slot="actions">
+            <md-text-button onclick="window.closeDeleteDialog()">キャンセル</md-text-button>
+            <md-filled-button style="--md-filled-button-container-color: var(--md-sys-color-error);" onclick="window.confirmDeleteMedia()">消去</md-filled-button>
+        </div>
+    </md-dialog>
+
+    <!-- Floating Navigation Bar -->
+    <div class="floating-nav-container">
+        <nav class="custom-nav">
+            <div class="nav-item active" id="nav-home" onclick="window.switchTab('home')">
+                <div class="nav-icon-container">
+                    <span class="material-symbols-outlined">home</span>
+                </div>
+            </div>
+            <div class="nav-item" id="nav-search" onclick="window.switchTab('search')">
+                <div class="nav-icon-container">
+                    <span class="material-symbols-outlined">search</span>
+                </div>
+            </div>
+            <div class="nav-item" id="nav-collection" onclick="window.switchTab('collection')">
+                <div class="nav-icon-container">
+                    <span class="material-symbols-outlined">grid_view</span>
+                </div>
+            </div>
+            <div class="nav-item" id="nav-upload" onclick="window.switchTab('upload')">
+                <div class="nav-icon-container">
+                    <span class="material-symbols-outlined">add_circle</span>
+                </div>
+            </div>
+        </nav>
+    </div>
+
+    <script type="module">
+        import '@material/web/all.js';
+        import { 
+            argbFromHex, 
+            themeFromSourceColor, 
+            hexFromArgb
+        } from "@material/material-color-utilities";
+
+        // Setup PDF.js Worker
+        if (typeof pdfjsLib !== 'undefined') {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
+
+        /* --------------------------------------------------
+           IndexedDB Persistence Controller
+        -------------------------------------------------- */
+        const DB_NAME = 'PBCollectionDB';
+        const DB_VERSION = 1;
+        let db = null;
+
+        function openIndexedDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+                request.onupgradeneeded = (e) => {
+                    const dbInstance = e.target.result;
+                    if (!dbInstance.objectStoreNames.contains('media')) {
+                        dbInstance.createObjectStore('media', { keyPath: 'id' });
+                    }
+                    if (!dbInstance.objectStoreNames.contains('settings')) {
+                        dbInstance.createObjectStore('settings', { keyPath: 'key' });
+                    }
+                };
+                request.onsuccess = (e) => {
+                    db = e.target.result;
+                    resolve(db);
+                };
+                request.onerror = (e) => reject(e);
+            });
+        }
+
+        async function saveMediaToIDB(item) {
+            if (!db) return;
+            const tx = db.transaction('media', 'readwrite');
+            const store = tx.objectStore('media');
+            return new Promise((res, rej) => {
+                const req = store.put(item);
+                req.onsuccess = () => res();
+                req.onerror = (err) => rej(err);
+            });
+        }
+
+        async function deleteMediaFromIDB(id) {
+            if (!db) return;
+            const tx = db.transaction('media', 'readwrite');
+            const store = tx.objectStore('media');
+            return new Promise((res, rej) => {
+                const req = store.delete(id);
+                req.onsuccess = () => res();
+                req.onerror = (err) => rej(err);
+            });
+        }
+
+        async function loadAllMediaFromIDB() {
+            if (!db) return [];
+            return new Promise((resolve) => {
+                const tx = db.transaction('media', 'readonly');
+                const store = tx.objectStore('media');
+                const req = store.getAll();
+                req.onsuccess = () => resolve(req.result || []);
+                req.onerror = () => resolve([]);
+            });
+        }
+
+        async function saveSetting(key, val) {
+            if (!db) return;
+            const tx = db.transaction('settings', 'readwrite');
+            tx.objectStore('settings').put({ key, value: val });
+        }
+
+        async function getSetting(key) {
+            if (!db) return null;
+            return new Promise((resolve) => {
+                const tx = db.transaction('settings', 'readonly');
+                const req = tx.objectStore('settings').get(key);
+                req.onsuccess = () => resolve(req.result ? req.result.value : null);
+                req.onerror = () => resolve(null);
+            });
+        }
+
+        /* --------------------------------------------------
+           Polandball Asset Generators
+        -------------------------------------------------- */
+        const PB_COUNTRIES = ['germany', 'japan', 'china', 'italy', 'poland', 'usa'];
+        const PB_EXPRESSIONS = ['happy.png', 'normal.png', 'smile.png', 'surprise.png', 'lol.png'];
+
+        function getRandomPBAsset() {
+            const country = PB_COUNTRIES[Math.floor(Math.random() * PB_COUNTRIES.length)];
+            const expression = PB_EXPRESSIONS[Math.floor(Math.random() * PB_EXPRESSIONS.length)];
+            return `https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/${country}/${expression}`;
+        }
+
+        /* --------------------------------------------------
+           State Management & App Core
+        -------------------------------------------------- */
+        let mediaLibrary = [];
+        let activeViewerMedia = null;
+        let pendingDeleteId = null;
+        let currentSearchTypeFilter = 'all';
+        let currentCollectionFilter = 'image';
+        let isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        let currentSourceColor = '#6750a4';
+        let featuredMedia = null;
+
+        /* Navigation Stack for Sub-Activities */
+        let navigationStack = ['home'];
+
+        /* PDF Viewer State */
+        let pdfViewerDoc = null;
+        let pdfViewerPage = 1;
+        let pdfViewerScale = 1.5;
+        let pdfRenderTask = null;
+
+        function updateTopBarState() {
+            const backBtn = document.getElementById('top-bar-back-btn');
+            const mainIcon = document.getElementById('top-bar-icon-main');
+            const titleEl = document.getElementById('top-bar-title');
+
+            if (navigationStack.length > 1) {
+                if (backBtn) backBtn.classList.remove('hidden');
+                if (mainIcon) mainIcon.style.display = 'none';
+            } else {
+                if (backBtn) backBtn.classList.add('hidden');
+                if (mainIcon) mainIcon.style.display = 'inline-flex';
+                if (titleEl) titleEl.textContent = "PBcollection";
+            }
+        }
+
+        window.switchTab = function(tabId, pushStack = true) {
+            if (pushStack) {
+                if (navigationStack[navigationStack.length - 1] !== tabId) {
+                    navigationStack.push(tabId);
+                }
+            }
+
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            document.getElementById('view-' + tabId)?.classList.add('active');
+
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            document.getElementById('nav-' + tabId)?.classList.add('active');
+
+            updateTopBarState();
+        };
+
+        window.goBack = function() {
+            if (navigationStack.length > 1) {
+                navigationStack.pop();
+                const prevTab = navigationStack[navigationStack.length - 1];
+                window.switchTab(prevTab, false);
+            }
+        };
+
+        window.openSubActivity = function(title) {
+            const subTitleEl = document.getElementById('sub-activity-title-text');
+            if (subTitleEl) subTitleEl.textContent = title;
+            window.switchTab('sub-activity', true);
+        };
+
+        window.updateTheme = function(hexColor) {
+            currentSourceColor = hexColor;
+            saveSetting('themeColor', hexColor);
+
+            const argb = argbFromHex(hexColor);
+            const theme = themeFromSourceColor(argb);
+            const scheme = isDarkMode ? theme.schemes.dark : theme.schemes.light;
+            const palettes = theme.palettes;
+            const root = document.documentElement;
+
+            const tokens = {
+                'primary': scheme.primary,
+                'on-primary': scheme.onPrimary,
+                'primary-container': scheme.primaryContainer,
+                'on-primary-container': scheme.onPrimaryContainer,
+                'secondary': scheme.secondary,
+                'on-secondary': scheme.onSecondary,
+                'secondary-container': scheme.secondaryContainer,
+                'on-secondary-container': scheme.onSecondaryContainer,
+                'tertiary': scheme.tertiary,
+                'on-tertiary': scheme.onTertiary,
+                'tertiary-container': scheme.tertiaryContainer,
+                'on-tertiary-container': scheme.onTertiaryContainer,
+                'background': scheme.background,
+                'on-background': scheme.onBackground,
+                'surface': scheme.surface,
+                'on-surface': scheme.onSurface,
+                'surface-variant': scheme.surfaceVariant,
+                'on-surface-variant': scheme.onSurfaceVariant,
+                'outline': scheme.outline
+            };
+
+            for (const [key, value] of Object.entries(tokens)) {
+                root.style.setProperty(`--md-sys-color-${key}`, hexFromArgb(value));
+            }
+
+            const n = palettes.neutral;
+            root.style.setProperty('--md-sys-color-surface-container-low', hexFromArgb(n.tone(isDarkMode ? 10 : 96)));
+            root.style.setProperty('--md-sys-color-surface-container', hexFromArgb(n.tone(isDarkMode ? 12 : 94)));
+            root.style.setProperty('--md-sys-color-surface-container-high', hexFromArgb(n.tone(isDarkMode ? 17 : 92)));
+            root.style.setProperty('--md-sys-color-surface-container-highest', hexFromArgb(n.tone(isDarkMode ? 22 : 90)));
+
+            const themeMeta = document.getElementById('theme-color-meta');
+            if (themeMeta) themeMeta.setAttribute('content', hexFromArgb(scheme.background));
+
+            const colorPicker = document.getElementById('source-color-picker');
+            if (colorPicker) colorPicker.value = hexColor;
+        };
+
+        window.toggleDarkMode = function() {
+            isDarkMode = !isDarkMode;
+            document.body.classList.toggle('dark-mode', isDarkMode);
+            document.getElementById('theme-icon').textContent = isDarkMode ? 'light_mode' : 'dark_mode';
+            saveSetting('darkMode', isDarkMode);
+            window.updateTheme(currentSourceColor);
+        };
+
+        function extractDominantColorAndUpdateM3(imgUrl) {
+            const img = new Image();
+            img.crossOrigin = 'Anonymous';
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = 40;
+                canvas.height = 40;
+                ctx.drawImage(img, 0, 0, 40, 40);
+                const data = ctx.getImageData(0, 0, 40, 40).data;
+                
+                let r = 0, g = 0, b = 0, count = 0;
+                for (let i = 0; i < data.length; i += 16) {
+                    r += data[i];
+                    g += data[i+1];
+                    b += data[i+2];
+                    count++;
+                }
+                r = Math.floor(r / count);
+                g = Math.floor(g / count);
+                b = Math.floor(b / count);
+                
+                const hex = "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+                window.updateTheme(hex);
+            };
+            img.src = imgUrl;
+        }
+
+        /* --------------------------------------------------
+           Media Management & Render Engine
+        -------------------------------------------------- */
+        function renderAllViews() {
+            updateFeaturedHero();
+            
+            const homeGrid = document.getElementById('home-photo-grid');
+            const totalCount = document.getElementById('pb-total-media-count');
+
+            if (totalCount) totalCount.textContent = mediaLibrary.length;
+
+            const homeItems = mediaLibrary.filter(item => item.type === 'image' || item.type === 'video');
+
+            const gridHtml = homeItems.map(item => `
+                <div class="photo-card" onclick="window.openHighResViewer('${item.id}')">
+                    ${item.type === 'video' ? `<video src="${item.src}" muted></video>` : `<img src="${item.src}" alt="${item.title}">`}
+                    <div class="photo-badge">
+                        <span class="material-symbols-outlined">${item.type === 'video' ? 'movie' : (item.isPdfPage ? 'picture_as_pdf' : 'image')}</span>
+                    </div>
+                    <button class="photo-delete-btn" title="削除" onclick="event.stopPropagation(); window.promptDeleteMedia('${item.id}')">
+                        <span class="material-symbols-outlined" style="font-size:18px;">delete</span>
+                    </button>
+                    <div class="photo-title-overlay">${item.title}</div>
+                </div>
+            `).join('');
+
+            if (homeGrid) homeGrid.innerHTML = gridHtml || '<div style="grid-column:1/-1; text-align:center; padding:32px; opacity:0.6;">メディアがありません。追加してください。</div>';
+
+            renderCollectionView();
+            window.handleSearch();
+        }
+
+        window.setCollectionFilter = function(filter) {
+            currentCollectionFilter = filter;
+            ['image', 'pdf', 'video'].forEach(f => {
+                const chip = document.getElementById('col-chip-' + f);
+                if (chip) chip.selected = (f === filter);
+            });
+            renderCollectionView();
+        };
+
+        function renderCollectionView() {
+            const colGrid = document.getElementById('collection-photo-grid');
+            if (!colGrid) return;
+
+            let filtered = mediaLibrary.filter(item => item.type === currentCollectionFilter);
+
+            if (currentCollectionFilter === 'pdf') {
+                colGrid.innerHTML = filtered.length ? filtered.map(item => `
+                    <div class="pdf-card" onclick="window.openHighResViewer('${item.id}')">
+                        <img src="${item.cover || item.src}" alt="${item.title}">
+                        <div class="photo-badge"><span class="material-symbols-outlined">picture_as_pdf</span></div>
+                        <div class="pdf-page-count-badge">${item.pageCount || 1} ページ</div>
+                        <button class="photo-delete-btn" title="削除" onclick="event.stopPropagation(); window.promptDeleteMedia('${item.id}')">
+                            <span class="material-symbols-outlined" style="font-size:18px;">delete</span>
+                        </button>
+                        <div class="photo-title-overlay">${item.title}</div>
+                    </div>
+                `).join('') : '<div style="grid-column:1/-1; text-align:center; padding:32px; opacity:0.6;">PDFドキュメントはありません</div>';
+            } else {
+                colGrid.innerHTML = filtered.length ? filtered.map(item => `
+                    <div class="photo-card" onclick="window.openHighResViewer('${item.id}')">
+                        ${item.type === 'video' ? `<video src="${item.src}" muted></video>` : `<img src="${item.src}" alt="${item.title}">`}
+                        <div class="photo-badge">
+                            <span class="material-symbols-outlined">${item.type === 'video' ? 'movie' : (item.isPdfPage ? 'picture_as_pdf' : 'image')}</span>
+                        </div>
+                        <button class="photo-delete-btn" title="削除" onclick="event.stopPropagation(); window.promptDeleteMedia('${item.id}')">
+                            <span class="material-symbols-outlined" style="font-size:18px;">delete</span>
+                        </button>
+                        <div class="photo-title-overlay">${item.title}</div>
+                    </div>
+                `).join('') : '<div style="grid-column:1/-1; text-align:center; padding:32px; opacity:0.6;">該当するメディアはありません</div>';
+            }
+        }
+
+        function updateFeaturedHero() {
+            if (mediaLibrary.length === 0) return;
+            featuredMedia = mediaLibrary.find(m => m.type === 'image') || mediaLibrary[0];
+
+            const bgImg = document.getElementById('featured-bg-img');
+            const title = document.getElementById('featured-title-text');
+            const subtitle = document.getElementById('featured-subtitle-text');
+            const avatar = document.getElementById('pb-hero-avatar');
+            const monthlyAvatar = document.getElementById('pb-monthly-avatar');
+
+            if (bgImg) bgImg.src = featuredMedia.cover || featuredMedia.src;
+            if (title) title.textContent = featuredMedia.title;
+            if (subtitle) subtitle.textContent = `フォーマット: ${featuredMedia.type.toUpperCase()} • ローカル保管中`;
+            
+            const mascotSrc = getRandomPBAsset();
+            if (avatar) avatar.src = mascotSrc;
+            if (monthlyAvatar) monthlyAvatar.src = mascotSrc;
+
+            if (featuredMedia.type === 'image') {
+                extractDominantColorAndUpdateM3(featuredMedia.src);
+            }
+        }
+
+        window.openFeaturedInViewer = function() {
+            if (featuredMedia) window.openHighResViewer(featuredMedia.id);
+        };
+
+        window.openHighResViewer = async function(id) {
+            const item = mediaLibrary.find(m => m.id === id);
+            if (!item) return;
+            activeViewerMedia = item;
+
+            const modal = document.getElementById('highres-viewer-modal');
+            const title = document.getElementById('viewer-title');
+            const body = document.getElementById('viewer-content-body');
+            const favLabel = document.getElementById('viewer-fav-label');
+
+            if (title) title.textContent = item.title;
+            if (favLabel) favLabel.textContent = item.favorite ? 'お気に入り解除' : 'お気に入りに追加';
+
+            if (body) {
+                if (item.type === 'image') {
+                    body.innerHTML = `<img src="${item.src}">`;
+                } else if (item.type === 'video') {
+                    body.innerHTML = `<video src="${item.src}" controls autoplay loop></video>`;
+                } else if (item.type === 'pdf') {
+                    body.innerHTML = `
+                        <div class="pdf-hq-viewer-container">
+                            <div class="pdf-toolbar">
+                                <md-icon-button onclick="window.changePdfPage(-1)"><span class="material-symbols-outlined">chevron_left</span></md-icon-button>
+                                <span style="font-weight:700; font-size:14px; color:#fff;" id="pdf-page-num-display">1 / 1</span>
+                                <md-icon-button onclick="window.changePdfPage(1)"><span class="material-symbols-outlined">chevron_right</span></md-icon-button>
+                                <div style="width:1px; height:24px; background:rgba(255,255,255,0.3); margin:0 4px;"></div>
+                                <md-icon-button onclick="window.zoomPdf(-0.25)"><span class="material-symbols-outlined">zoom_out</span></md-icon-button>
+                                <span style="font-weight:700; font-size:13px; color:#fff;" id="pdf-zoom-display">150%</span>
+                                <md-icon-button onclick="window.zoomPdf(0.25)"><span class="material-symbols-outlined">zoom_in</span></md-icon-button>
+                                <md-icon-button onclick="window.resetPdfZoom()"><span class="material-symbols-outlined">aspect_ratio</span></md-icon-button>
+                            </div>
+                            <div class="pdf-canvas-wrapper" id="pdf-canvas-container">
+                                <canvas id="pdf-hq-canvas"></canvas>
+                            </div>
+                        </div>
+                    `;
+                    modal.classList.add('active');
+                    await initHqPdfViewer(item.src);
+                    return;
+                }
+            }
+
+            modal.classList.add('active');
+        };
+
+        async function initHqPdfViewer(pdfSource) {
+            try {
+                pdfViewerPage = 1;
+                pdfViewerScale = 1.5;
+                
+                let loadingTask;
+                if (typeof pdfSource === 'string' && pdfSource.startsWith('data:application/pdf;base64,')) {
+                    const base64Data = pdfSource.split(',')[1];
+                    const raw = atob(base64Data);
+                    const uint8Array = new Uint8Array(raw.length);
+                    for (let i = 0; i < raw.length; i++) {
+                        uint8Array[i] = raw.charCodeAt(i);
+                    }
+                    loadingTask = pdfjsLib.getDocument({ data: uint8Array });
+                } else {
+                    loadingTask = pdfjsLib.getDocument(pdfSource);
+                }
+
+                pdfViewerDoc = await loadingTask.promise;
+                renderHqPdfPage();
+            } catch (err) {
+                console.error("PDF load error:", err);
+                const container = document.getElementById('pdf-canvas-container');
+                if (container) {
+                    container.innerHTML = `<div style="color:#ff8a80; padding:20px; text-align:center;">PDFの読み込みに失敗しました。データが破損している可能性があります。</div>`;
+                }
+            }
+        }
+
+        async function renderHqPdfPage() {
+            if (!pdfViewerDoc) return;
+            try {
+                if (pdfRenderTask) {
+                    pdfRenderTask.cancel();
+                }
+
+                const page = await pdfViewerDoc.getPage(pdfViewerPage);
+                const canvas = document.getElementById('pdf-hq-canvas');
+                if (!canvas) return;
+                const ctx = canvas.getContext('2d');
+
+                const viewport = page.getViewport({ scale: pdfViewerScale });
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+
+                const renderContext = {
+                    canvasContext: ctx,
+                    viewport: viewport
+                };
+                pdfRenderTask = page.render(renderContext);
+                await pdfRenderTask.promise;
+                pdfRenderTask = null;
+
+                const pageDisp = document.getElementById('pdf-page-num-display');
+                const zoomDisp = document.getElementById('pdf-zoom-display');
+                if (pageDisp) pageDisp.textContent = `${pdfViewerPage} / ${pdfViewerDoc.numPages}`;
+                if (zoomDisp) zoomDisp.textContent = `${Math.round(pdfViewerScale * 100)}%`;
+            } catch (err) {
+                if (err && err.name !== 'RenderingCancelledException') {
+                    console.error("PDF render page error:", err);
+                }
+            }
+        }
+
+        window.changePdfPage = function(delta) {
+            if (!pdfViewerDoc) return;
+            const newPage = pdfViewerPage + delta;
+            if (newPage >= 1 && newPage <= pdfViewerDoc.numPages) {
+                pdfViewerPage = newPage;
+                renderHqPdfPage();
+            }
+        };
+
+        window.zoomPdf = function(delta) {
+            pdfViewerScale = Math.max(0.5, Math.min(3.5, pdfViewerScale + delta));
+            renderHqPdfPage();
+        };
+
+        window.resetPdfZoom = function() {
+            pdfViewerScale = 1.5;
+            renderHqPdfPage();
+        };
+
+        window.closeHighResViewer = function() {
+            document.getElementById('highres-viewer-modal').classList.remove('active');
+            document.getElementById('viewer-content-body').innerHTML = '';
+            activeViewerMedia = null;
+            pdfViewerDoc = null;
+            if (pdfRenderTask) {
+                pdfRenderTask.cancel();
+                pdfRenderTask = null;
+            }
+        };
+
+        window.toggleViewerFavorite = function() {
+            if (!activeViewerMedia) return;
+            activeViewerMedia.favorite = !activeViewerMedia.favorite;
+            saveMediaToIDB(activeViewerMedia);
+            renderAllViews();
+            document.getElementById('viewer-fav-label').textContent = activeViewerMedia.favorite ? 'お気に入り解除' : 'お気に入りに追加';
+        };
+
+        /* --------------------------------------------------
+           Deletion, Search & Backup Engine (FIXED DELETION)
+        -------------------------------------------------- */
+        window.promptDeleteMedia = function(id) {
+            pendingDeleteId = id;
+            const dialog = document.getElementById('delete-dialog');
+            if (dialog) {
+                dialog.open = true;
+            }
+        };
+
+        window.closeDeleteDialog = function() {
+            pendingDeleteId = null;
+            const dialog = document.getElementById('delete-dialog');
+            if (dialog) {
+                dialog.open = false;
+            }
+        };
+
+        window.deleteCurrentViewerMedia = function() {
+            if (activeViewerMedia) {
+                const idToDelete = activeViewerMedia.id;
+                window.closeHighResViewer();
+                window.promptDeleteMedia(idToDelete);
+            }
+        };
+
+        window.confirmDeleteMedia = async function() {
+            if (!pendingDeleteId) return;
+            const targetId = pendingDeleteId;
+            const targetMedia = mediaLibrary.find(m => m.id === targetId);
+
+            // Delete from IndexedDB
+            await deleteMediaFromIDB(targetId);
+
+            // Cascade delete generated pages if deleting a primary PDF
+            let idsToRemove = [targetId];
+            if (targetMedia && targetMedia.type === 'pdf') {
+                const childPages = mediaLibrary.filter(m => m.parentPdfId === targetId);
+                for (const child of childPages) {
+                    await deleteMediaFromIDB(child.id);
+                    idsToRemove.push(child.id);
+                }
+            }
+
+            mediaLibrary = mediaLibrary.filter(m => !idsToRemove.includes(m.id));
+            window.closeDeleteDialog();
+            renderAllViews();
+        };
+
+        window.setSearchFilter = function(filter) {
+            currentSearchTypeFilter = filter;
+            ['all', 'image', 'video', 'pdf', 'fav'].forEach(f => {
+                const chip = document.getElementById('search-chip-' + f);
+                if (chip) chip.selected = (f === filter);
+            });
+            window.handleSearch();
+        };
+
+        window.handleSearch = function() {
+            const query = document.getElementById('search-input')?.value.toLowerCase().trim() || '';
+            const resultsGrid = document.getElementById('search-results-grid');
+            if (!resultsGrid) return;
+
+            let filtered = mediaLibrary;
+
+            if (currentSearchTypeFilter === 'image') filtered = filtered.filter(m => m.type === 'image');
+            if (currentSearchTypeFilter === 'video') filtered = filtered.filter(m => m.type === 'video');
+            if (currentSearchTypeFilter === 'pdf') filtered = filtered.filter(m => m.type === 'pdf');
+            if (currentSearchTypeFilter === 'fav') filtered = filtered.filter(m => m.favorite);
+
+            if (query) {
+                filtered = filtered.filter(m => m.title.toLowerCase().includes(query));
+            }
+
+            resultsGrid.innerHTML = filtered.map(item => `
+                <div class="photo-card" onclick="window.openHighResViewer('${item.id}')">
+                    <img src="${item.cover || item.src}">
+                    <div class="photo-badge">
+                        <span class="material-symbols-outlined">${item.type === 'pdf' ? 'picture_as_pdf' : (item.type === 'video' ? 'movie' : 'image')}</span>
+                    </div>
+                    <button class="photo-delete-btn" title="削除" onclick="event.stopPropagation(); window.promptDeleteMedia('${item.id}')">
+                        <span class="material-symbols-outlined" style="font-size:18px;">delete</span>
+                    </button>
+                    <div class="photo-title-overlay">${item.title}</div>
+                </div>
+            `).join('');
+        };
+
+        window.exportBackupJSON = function() {
+            const exportData = {
+                version: 1,
+                date: new Date().toISOString(),
+                themeColor: currentSourceColor,
+                media: mediaLibrary
+            };
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `PBcollection_Backup_${Date.now()}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        };
+
+        window.importBackupJSON = function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (data.media && Array.isArray(data.media)) {
+                        for (const item of data.media) {
+                            await saveMediaToIDB(item);
+                        }
+                        mediaLibrary = await loadAllMediaFromIDB();
+                        if (data.themeColor) window.updateTheme(data.themeColor);
+                        renderAllViews();
+                    }
+                } catch (err) {
+                    console.error("Backup restore failed:", err);
+                }
+            };
+            reader.readAsText(file);
+        };
+
+        /* --------------------------------------------------
+           File / ZIP & PDF Import Processor (Base64 Persistence)
+        -------------------------------------------------- */
+        function readFileAsDataURL(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = (err) => reject(err);
+                reader.readAsDataURL(file);
+            });
+        }
+
+        window.handleFileImport = async function(files) {
+            for (let file of files) {
+                if (file.name.endsWith('.zip') || file.type === 'application/zip') {
+                    await processZipFile(file);
+                } else if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
+                    await processPdfFile(file);
+                } else {
+                    const dataUrl = await readFileAsDataURL(file);
+                    const newItem = {
+                        id: 'm_' + Date.now() + '_' + Math.random().toString(36).substring(2, 5),
+                        title: file.name,
+                        type: file.type.includes('video') ? 'video' : 'image',
+                        src: dataUrl,
+                        favorite: false,
+                        dateAdded: new Date().toISOString()
+                    };
+                    await saveMediaToIDB(newItem);
+                    mediaLibrary.unshift(newItem);
+                }
+            }
+            renderAllViews();
+            window.switchTab('home');
+        };
+
+        async function processZipFile(file) {
+            try {
+                const zip = await JSZip.loadAsync(file);
+                for (const [relativePath, zipEntry] of Object.entries(zip.files)) {
+                    if (zipEntry.dir) continue;
+                    const filename = zipEntry.name.split('/').pop();
+                    if (!filename || filename.startsWith('.')) continue;
+
+                    const lowerName = filename.toLowerCase();
+                    if (lowerName.endsWith('.pdf')) {
+                        const blob = await zipEntry.async('blob');
+                        const zipPdfFile = new File([blob], filename, { type: 'application/pdf' });
+                        await processPdfFile(zipPdfFile);
+                    } else if (/\.(jpg|jpeg|png|gif|webp|svg)$/i.test(filename)) {
+                        const base64 = await zipEntry.async('base64');
+                        const mime = lowerName.endsWith('.svg') ? 'image/svg+xml' : (lowerName.endsWith('.png') ? 'image/png' : 'image/jpeg');
+                        const dataUrl = `data:${mime};base64,${base64}`;
+                        const newItem = {
+                            id: 'm_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+                            title: filename,
+                            type: 'image',
+                            src: dataUrl,
+                            favorite: false,
+                            dateAdded: new Date().toISOString()
+                        };
+                        await saveMediaToIDB(newItem);
+                        mediaLibrary.unshift(newItem);
+                    } else if (/\.(mp4|webm|ogg|mov)$/i.test(filename)) {
+                        const base64 = await zipEntry.async('base64');
+                        const dataUrl = `data:video/mp4;base64,${base64}`;
+                        const newItem = {
+                            id: 'm_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+                            title: filename,
+                            type: 'video',
+                            src: dataUrl,
+                            favorite: false,
+                            dateAdded: new Date().toISOString()
+                        };
+                        await saveMediaToIDB(newItem);
+                        mediaLibrary.unshift(newItem);
+                    }
+                }
+            } catch (err) {
+                console.error("ZIP processing error:", err);
+            }
+        }
+
+        async function processPdfFile(file) {
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                const numPages = pdfDoc.numPages;
+                const pdfId = 'pdf_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6);
+
+                // Render page 1 cover
+                const page1 = await pdfDoc.getPage(1);
+                const viewport1 = page1.getViewport({ scale: 1.0 });
+                const canvas1 = document.createElement('canvas');
+                const ctx1 = canvas1.getContext('2d');
+                canvas1.width = viewport1.width;
+                canvas1.height = viewport1.height;
+                await page1.render({ canvasContext: ctx1, viewport: viewport1 }).promise;
+                const coverDataUrl = canvas1.toDataURL('image/jpeg', 0.85);
+
+                // Base64 encode full PDF
+                const base64Pdf = await readFileAsDataURL(file);
+
+                const mainPdfItem = {
+                    id: pdfId,
+                    title: file.name,
+                    type: 'pdf',
+                    src: base64Pdf,
+                    cover: coverDataUrl,
+                    pageCount: numPages,
+                    favorite: false,
+                    dateAdded: new Date().toISOString()
+                };
+                await saveMediaToIDB(mainPdfItem);
+                mediaLibrary.unshift(mainPdfItem);
+
+                // Render each page as image into gallery
+                for (let pageNum = 1; pageNum <= numPages; pageNum++) {
+                    const page = await pdfDoc.getPage(pageNum);
+                    const viewport = page.getViewport({ scale: 1.8 });
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = viewport.width;
+                    canvas.height = viewport.height;
+                    await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+                    const pageImgDataUrl = canvas.toDataURL('image/jpeg', 0.88);
+
+                    const pageItem = {
+                        id: 'pdf_page_' + pdfId + '_' + pageNum,
+                        parentPdfId: pdfId,
+                        title: `${file.name} (P.${pageNum}/${numPages})`,
+                        type: 'image',
+                        src: pageImgDataUrl,
+                        pageNum: pageNum,
+                        isPdfPage: true,
+                        favorite: false,
+                        dateAdded: new Date().toISOString()
+                    };
+                    await saveMediaToIDB(pageItem);
+                    mediaLibrary.unshift(pageItem);
+                }
+            } catch (err) {
+                console.error("PDF processing error:", err);
+            }
+        }
+
+        window.resetPBCollectionDemo = async function() {
+            if (db) {
+                const tx = db.transaction('media', 'readwrite');
+                tx.objectStore('media').clear();
+            }
+            mediaLibrary = [
+                {
+                    id: 'm1',
+                    title: 'Polandball Dynamic Memories',
+                    type: 'image',
+                    src: 'https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?auto=format&fit=crop&w=1000&q=80',
+                    favorite: true,
+                    dateAdded: new Date().toISOString()
+                },
+                {
+                    id: 'm2',
+                    title: 'Mountain Sunset High-Res',
+                    type: 'image',
+                    src: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1000&q=80',
+                    favorite: false,
+                    dateAdded: new Date().toISOString()
+                },
+                {
+                    id: 'm3',
+                    title: 'Ocean Horizon Panorama',
+                    type: 'image',
+                    src: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=1000&q=80',
+                    favorite: true,
+                    dateAdded: new Date().toISOString()
+                }
+            ];
+            for (const m of mediaLibrary) await saveMediaToIDB(m);
+            renderAllViews();
+        };
+
+        /* --------------------------------------------------
+           Initialization
+        -------------------------------------------------- */
+        window.addEventListener('DOMContentLoaded', async () => {
+            await openIndexedDB();
+            
+            const savedColor = await getSetting('themeColor');
+            if (savedColor) currentSourceColor = savedColor;
+            
+            const savedDark = await getSetting('darkMode');
+            if (savedDark !== null) {
+                isDarkMode = savedDark;
+                document.body.classList.toggle('dark-mode', isDarkMode);
+            }
+
+            window.updateTheme(currentSourceColor);
+            
+            mediaLibrary = await loadAllMediaFromIDB();
+            if (mediaLibrary.length === 0) {
+                await window.resetPBCollectionDemo();
+            } else {
+                renderAllViews();
+            }
+
+            // Drag and Drop listeners
+            const dropzone = document.getElementById('file-dropzone');
+            if (dropzone) {
+                dropzone.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    dropzone.classList.add('dragover');
+                });
+                dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+                dropzone.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    dropzone.classList.remove('dragover');
+                    if (e.dataTransfer.files) window.handleFileImport(e.dataTransfer.files);
+                });
+            }
+        });
+    </script>
+</body>
+</html>
