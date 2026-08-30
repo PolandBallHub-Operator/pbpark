@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Country Reversibly</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800;900&family=Zen+Maru+Gothic:wght@700;900&display=swap');
+        
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+
+        body {
+            font-family: 'Zen Maru Gothic', 'Plus Jakarta Sans', sans-serif;
+            background-color: #0b0f19;
+            color: #fff;
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* UK Image handling: 472x600 -> top 472x472 crop */
+        .ball-img-uk {
+            object-fit: cover;
+            object-position: top;
+            aspect-ratio: 1 / 1;
+        }
+
+        /* Glassmorphism styling */
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Title Glow animations */
+        @keyframes title-glow {
+            0%, 100% { filter: drop-shadow(0 0 15px rgba(245, 158, 11, 0.6)); }
+            50% { filter: drop-shadow(0 0 30px rgba(239, 68, 68, 0.8)); }
+        }
+
+        .animate-title-glow {
+            animation: title-glow 3s infinite ease-in-out;
+        }
+
+        /* Floating balls animation */
+        @keyframes float-ball {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-10px) rotate(5deg); }
+        }
+
+        .animate-float-1 { animation: float-ball 3.5s infinite ease-in-out; }
+        .animate-float-2 { animation: float-ball 4.2s infinite ease-in-out 0.5s; }
+        .animate-float-3 { animation: float-ball 3.8s infinite ease-in-out 1s; }
+
+        /* Board grid styling */
+        .board-container {
+            max-width: 100%;
+            max-height: 60vh;
+            overflow: auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .reversi-board {
+            display: grid;
+            gap: 3px;
+            background-color: #064e3b;
+            padding: 8px;
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6), inset 0 0 15px rgba(0,0,0,0.5);
+            border: 2px solid rgba(52, 211, 153, 0.3);
+        }
+
+        .cell {
+            background-color: #059669;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+            box-shadow: inset 0 2px 4px rgba(255,255,255,0.2), inset 0 -2px 4px rgba(0,0,0,0.3);
+            transition: background-color 0.15s;
+        }
+
+        .cell:hover {
+            background-color: #10b981;
+        }
+
+        .disc {
+            width: 82%;
+            height: 82%;
+            border-radius: 50%;
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.3s;
+            box-shadow: inset -3px -3px 6px rgba(0,0,0,0.6), inset 2px 2px 5px rgba(255,255,255,0.5), 0 4px 8px rgba(0,0,0,0.4);
+        }
+
+        .disc.dark {
+            background: radial-gradient(circle at 35% 35%, #4b5563, #0f172a);
+        }
+
+        .disc.light {
+            background: radial-gradient(circle at 35% 35%, #ffffff, #cbd5e1);
+        }
+
+        .valid-move::after {
+            content: '';
+            width: 28%;
+            height: 28%;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.6);
+            box-shadow: 0 0 8px rgba(255,255,255,0.8);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.2);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.2);
+            border-radius: 4px;
+        }
+
+        /* --- Console Soft Horizontal Landscape Fullscreen Mode --- */
+        .console-mode {
+            max-width: 100vw !important;
+            height: 100vh !important;
+            max-height: 100vh !important;
+            border-radius: 0 !important;
+        }
+
+        .console-mode #screen-game {
+            display: grid;
+            grid-template-columns: 280px 1fr 180px;
+            grid-template-rows: auto 1fr auto;
+            gap: 12px;
+            align-items: center;
+            padding: 12px 20px;
+            height: calc(100vh - 60px);
+        }
+
+        .console-mode #screen-game > .glass-panel {
+            grid-column: 1 / -1;
+        }
+
+        .console-mode .board-container {
+            grid-column: 2;
+            max-height: 75vh;
+        }
+
+        .console-mode #dialogue-box {
+            grid-column: 1;
+            flex-direction: column;
+            text-align: center;
+            align-items: center;
+            height: 100%;
+            justify-content: center;
+        }
+
+        .console-mode .game-bottom-actions {
+            grid-column: 3;
+            flex-direction: column;
+            gap: 10px;
+            justify-content: center;
+            height: 100%;
+        }
+
+        .active-level-glow {
+            box-shadow: 0 0 20px #6366f1, 0 0 40px #6366f1;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen">
+
+    <!-- Toast Notification Overlay -->
+    <div id="toast-container" class="fixed top-5 left-1/2 transform -translate-x-1/2 z-50 pointer-events-none flex flex-col space-y-2"></div>
+
+    <!-- Main Application Shell -->
+    <div id="app-container" class="relative w-full h-full max-w-md mx-auto bg-slate-950 overflow-hidden flex flex-col shadow-2xl transition-all duration-300">
+
+        <!-- Header / Status Bar -->
+        <header id="game-header" class="hidden justify-between items-center px-4 py-3 glass-panel z-30 border-b border-slate-800">
+            <div class="flex items-center space-x-3">
+                <button id="btn-back-home" class="bg-slate-800/80 hover:bg-slate-700 active:scale-95 text-white p-2.5 rounded-xl w-10 h-10 flex items-center justify-center border border-slate-700 transition">
+                    <i class="fa-solid fa-house text-sm text-indigo-400"></i>
+                </button>
+                <div class="flex flex-col">
+                    <span id="player-display-name" class="font-black text-amber-400 text-sm leading-none">ゲスト</span>
+                    <span class="text-[10px] text-slate-400 mt-0.5">PLAYER</span>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2">
+                <span id="r-king-badge" class="hidden bg-gradient-to-r from-amber-400 to-amber-600 text-slate-950 font-black text-xs px-2.5 py-1 rounded-full shadow-lg animate-bounce border border-amber-300">
+                    👑 R-King
+                </span>
+                <button id="btn-fullscreen" class="bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white p-2.5 rounded-xl w-10 h-10 flex items-center justify-center border border-indigo-400 shadow-lg transition">
+                    <i id="fullscreen-icon" class="fa-solid fa-expand text-sm"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- SCREEN 0: SPLASH SCREEN -->
+        <div id="screen-splash" class="absolute inset-0 bg-slate-950 z-50 flex flex-col items-center justify-center p-6 text-center">
+            <div class="animate-pulse flex flex-col items-center">
+                <div class="relative mb-6">
+                    <div class="absolute -inset-4 rounded-full bg-indigo-500/20 blur-xl"></div>
+                    <img id="splash-ball" src="" class="relative w-36 h-36 rounded-full shadow-2xl border-2 border-indigo-500/40" alt="Poland Ball">
+                </div>
+                <h2 class="text-3xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-white to-pink-300 mb-1">
+                    PBPark Team
+                </h2>
+                <div class="h-0.5 w-16 bg-indigo-500/50 rounded-full my-2"></div>
+                <p class="text-[11px] text-indigo-300 uppercase tracking-widest font-bold">Presents</p>
+            </div>
+        </div>
+
+        <!-- SCREEN 1: TITLE SCREEN -->
+        <div id="screen-title" class="hidden absolute inset-0 bg-gradient-to-b from-indigo-950 via-slate-950 to-black z-40 flex flex-col items-center justify-between p-6 text-center overflow-hidden">
+            <div class="absolute top-10 -left-20 w-64 h-64 bg-indigo-600/20 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="absolute bottom-10 -right-20 w-64 h-64 bg-rose-600/20 rounded-full blur-3xl pointer-events-none"></div>
+
+            <div class="mt-8 flex flex-col items-center relative z-10">
+                <div class="inline-block px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 text-[11px] font-extrabold tracking-widest uppercase mb-3 shadow-inner">
+                    Strategic Country Battle
+                </div>
+                <div class="relative mb-2">
+                    <h1 class="text-4xl sm:text-5xl font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-br from-amber-200 via-orange-400 to-rose-500 animate-title-glow leading-tight">
+                        Country<br>Reversibly
+                    </h1>
+                    <span id="title-rking-tag" class="hidden absolute -top-4 -right-4 bg-gradient-to-r from-amber-300 to-amber-500 text-slate-950 font-black text-xs px-2.5 py-1 rounded-full rotate-12 shadow-lg border border-white">
+                        👑 R-King Mode
+                    </span>
+                </div>
+                <p class="text-slate-400 text-xs font-bold tracking-wide">世界のボールたちとリバーシ対戦！</p>
+            </div>
+
+            <div id="title-balls-container" class="flex justify-center items-center space-x-3 my-auto py-4 relative z-10">
+                <!-- JS Inject Floating Balls -->
+            </div>
+
+            <div class="w-full space-y-3 mb-6 relative z-10">
+                <button id="btn-start-game" class="w-full py-4 bg-gradient-to-r from-emerald-400 via-teal-500 to-emerald-600 hover:from-emerald-300 hover:to-teal-500 text-slate-950 font-black text-xl rounded-2xl shadow-xl shadow-emerald-950/50 transform active:scale-95 transition border border-emerald-300/40 flex items-center justify-center space-x-3">
+                    <span>START GAME</span>
+                    <i class="fa-solid fa-circle-play text-slate-950 text-xl"></i>
+                </button>
+                <p class="text-[10px] text-slate-500 font-bold">Touch screen to proceed</p>
+            </div>
+        </div>
+
+        <!-- NAME INPUT MODAL -->
+        <div id="modal-name-input" class="hidden absolute inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-6">
+            <div class="glass-panel border border-slate-700 rounded-3xl p-6 w-full max-w-sm text-center shadow-2xl relative overflow-hidden">
+                <div class="w-12 h-12 bg-indigo-600/20 text-indigo-400 rounded-2xl flex items-center justify-center mx-auto mb-3 border border-indigo-500/30">
+                    <i class="fa-solid fa-user-gear text-xl"></i>
+                </div>
+                <h3 class="text-xl font-black mb-1 text-white">プレイヤー登録</h3>
+                <p class="text-xs text-slate-400 mb-5">ボールたちがあなたを呼ぶ名前を入力してください</p>
+                
+                <input type="text" id="input-player-name" maxlength="10" placeholder="名前を入力..." class="w-full px-4 py-3.5 bg-slate-900/90 border border-slate-700 rounded-2xl text-center text-white font-black text-lg mb-4 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 transition shadow-inner">
+                
+                <button id="btn-save-name" class="w-full py-3.5 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white font-black text-base rounded-2xl shadow-lg shadow-indigo-950/50 active:scale-95 transition border border-indigo-400/30">
+                    ゲームを始める
+                </button>
+            </div>
+        </div>
+
+        <!-- SCREEN 2: MAIN HOME (Level Select Scroller) -->
+        <div id="screen-home" class="hidden flex-1 flex flex-col relative overflow-hidden bg-slate-950">
+            <div class="p-3 bg-slate-900/80 border-b border-slate-800 backdrop-blur z-10">
+                <div class="grid grid-cols-4 gap-1.5 p-1 bg-slate-950/80 rounded-2xl border border-slate-800 text-xs font-black">
+                    <button id="tab-story" class="py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md transition">マップ</button>
+                    <button id="tab-daily" class="py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/50 transition">デイリー</button>
+                    <button id="tab-timeattack" class="py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/50 transition">Otegaru</button>
+                    <button id="tab-local" class="py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/50 transition">2P対戦</button>
+                </div>
+            </div>
+
+            <div id="level-map-container" class="flex-1 overflow-y-auto p-6 flex flex-col-reverse items-center space-y-reverse space-y-10 bg-gradient-to-b from-slate-950 via-indigo-950/30 to-slate-950 relative">
+                <!-- Levels 1 to 120 populated dynamically -->
+            </div>
+
+            <div class="p-3 glass-panel border-t border-slate-800 flex justify-between items-center text-xs z-10">
+                <span class="text-slate-400 font-bold flex items-center space-x-1.5">
+                    <i class="fa-solid fa-palette text-indigo-400"></i>
+                    <span>テーマ:</span>
+                </span>
+                <select id="select-bg-theme" class="bg-slate-800 text-white font-bold rounded-xl px-3 py-1.5 border border-slate-700 focus:outline-none">
+                    <option value="slate">ダークネイビー</option>
+                    <option value="emerald">エメラルドパーク</option>
+                    <option value="sunset">サンセットオレンジ</option>
+                    <option value="cyber">サイバーパープル</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- SCREEN 3: GAME PLAY SCREEN -->
+        <div id="screen-game" class="hidden flex-1 flex flex-col justify-between p-4 relative bg-slate-950 overflow-hidden">
+            <!-- Top Match Header Card -->
+            <div class="glass-panel rounded-2xl p-3 flex justify-between items-center shadow-2xl border border-slate-800 relative z-10">
+                <div class="flex items-center space-x-2.5">
+                    <div id="p1-color-icon" class="w-5 h-5 rounded-full bg-slate-900 border-2 border-white shadow-md"></div>
+                    <div>
+                        <div id="p1-name" class="text-xs font-black text-slate-200">あなた</div>
+                        <div id="p1-score" class="text-2xl font-black text-amber-400 leading-none">0</div>
+                    </div>
+                </div>
+
+                <div class="text-center px-2">
+                    <div id="game-mode-label" class="text-[10px] font-black uppercase tracking-widest text-indigo-400 mb-0.5">STORY</div>
+                    <div id="timer-label" class="text-base font-black text-rose-500 hidden animate-pulse">60s</div>
+                    <div id="turn-indicator" class="text-xs font-black px-2.5 py-1 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 shadow-inner">
+                        あなたのターン
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-2.5 text-right">
+                    <div>
+                        <div id="p2-name" class="text-xs font-black text-slate-200">相手</div>
+                        <div id="p2-score" class="text-2xl font-black text-amber-400 leading-none">0</div>
+                    </div>
+                    <div class="relative">
+                        <img id="p2-avatar" src="" class="w-10 h-10 rounded-full bg-slate-800 border-2 border-indigo-500/40 shadow-md object-cover" alt="Opponent">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dialogue Banner -->
+            <div id="dialogue-box" class="my-2 glass-panel border border-indigo-500/30 rounded-2xl p-3 flex items-center space-x-3 shadow-xl relative z-10">
+                <img id="dialogue-avatar" src="" class="w-12 h-12 rounded-full border-2 border-indigo-400 flex-shrink-0 object-cover shadow" alt="Character">
+                <p id="dialogue-text" class="text-xs font-bold text-slate-200 leading-relaxed italic">「準備はいい？」</p>
+            </div>
+
+            <!-- Game Board Container -->
+            <div class="board-container my-auto relative z-10">
+                <div id="reversi-board" class="reversi-board"></div>
+            </div>
+
+            <!-- Bottom Actions Bar -->
+            <div class="game-bottom-actions flex justify-between items-center mt-2 relative z-10">
+                <button id="btn-giveup" class="px-4 py-2.5 bg-slate-800/80 hover:bg-slate-700 active:scale-95 text-xs font-black rounded-xl text-slate-400 border border-slate-700 transition">
+                    <i class="fa-solid fa-flag mr-1"></i>降参
+                </button>
+                <div id="board-size-badge" class="text-xs font-black text-slate-400 bg-slate-900/80 px-3 py-1.5 rounded-full border border-slate-800 text-center">
+                    盤面: 8x8
+                </div>
+                <button id="btn-restart" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-xs font-black rounded-xl text-white shadow-lg shadow-indigo-950/50 border border-indigo-400/30 transition">
+                    <i class="fa-solid fa-rotate-right mr-1"></i>やり直し
+                </button>
+            </div>
+        </div>
+
+        <!-- GAME RESULT MODAL -->
+        <div id="modal-result" class="hidden absolute inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-6">
+            <div class="glass-panel border border-slate-700 rounded-3xl p-6 w-full max-w-sm text-center shadow-2xl relative overflow-hidden">
+                <div id="result-icon" class="text-6xl mb-2 animate-bounce">🏆</div>
+                <h3 id="result-title" class="text-3xl font-black mb-1">VICTORY!</h3>
+                <p id="result-subtitle" class="text-xs font-bold text-slate-400 mb-5">お見事な勝利です！</p>
+                
+                <div class="bg-slate-900/90 rounded-2xl p-4 mb-6 flex justify-around items-center border border-slate-800 shadow-inner">
+                    <div>
+                        <div class="text-[10px] font-black text-slate-400 uppercase">あなた</div>
+                        <div id="final-p1-score" class="text-3xl font-black text-emerald-400">0</div>
+                    </div>
+                    <div class="text-slate-600 font-black text-sm">VS</div>
+                    <div>
+                        <div class="text-[10px] font-black text-slate-400 uppercase">相手</div>
+                        <div id="final-p2-score" class="text-3xl font-black text-rose-500">0</div>
+                    </div>
+                </div>
+
+                <div class="space-y-2.5">
+                    <button id="btn-result-next" class="w-full py-3.5 bg-gradient-to-r from-emerald-400 to-teal-500 hover:from-emerald-300 hover:to-teal-400 text-slate-950 font-black text-base rounded-2xl shadow-lg transition">
+                        <i class="fa-solid fa-map-location-dot mr-2"></i>マップへ戻る
+                    </button>
+                    <button id="btn-result-retry" class="w-full py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm rounded-2xl border border-indigo-400/30">
+                        もう一度挑戦
+                    </button>
+                    <button id="btn-result-home" class="w-full py-3.5 bg-slate-800 hover:bg-slate-700 text-white font-bold text-sm rounded-2xl border border-slate-700">
+                        ホームに戻る
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- CONSTANTS & CONFIGURATION ---
+        const BASE_IMAGE_URL = 'https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/';
+
+        const COUNTRIES = [
+            { id: 'germany', name: 'ドイツ', diff: 3 },
+            { id: 'japan', name: '日本', diff: 4 },
+            { id: 'china', name: '中国', diff: 5 },
+            { id: 'italy', name: 'イタリア', diff: 2 },
+            { id: 'sierraleone', name: 'シエラレオネ', diff: 1 },
+            { id: 'russia', name: 'ロシア', diff: 6 },
+            { id: 'france', name: 'フランス', diff: 4 },
+            { id: 'poland', name: 'ポーランド', diff: 2 },
+            { id: 'england472x600', name: 'イギリス', diff: 10 }, // UK - strongest
+            { id: 'usa', name: 'アメリカ', diff: 7 },
+            { id: 'korea', name: '韓国', diff: 5 },
+            { id: 'austria', name: 'オーストリア', diff: 3 }
+        ];
+
+        // --- GAME STATE ---
+        let state = {
+            playerName: '',
+            clearedLevels: [],
+            isRKing: false,
+            currentMode: 'story',
+            currentLevelIndex: 1,
+            boardSize: 8,
+            board: [], // 0=Empty, 1=P1, 2=P2
+            turn: 1,
+            p1Score: 0,
+            p2Score: 0,
+            isAiGame: true,
+            aiCountry: null,
+            aiDifficulty: 1,
+            timer: null,
+            timeLeft: 60,
+            isGameActive: false,
+            bgTheme: 'slate',
+            isConsoleUI: false
+        };
+
+        // --- HELPER FUNCTIONS ---
+        function getBallImgUrl(countryId, expression = 'normal.png') {
+            return `${BASE_IMAGE_URL}${countryId}/${expression}`;
+        }
+
+        function createBallImgElem(countryId, expression = 'normal.png', extraClass = '') {
+            const img = document.createElement('img');
+            img.src = getBallImgUrl(countryId, expression);
+            img.className = `rounded-full object-cover ${countryId === 'england472x600' ? 'ball-img-uk' : ''} ${extraClass}`;
+            img.alt = countryId;
+            img.onerror = () => { img.src = getBallImgUrl('poland', 'normal.png'); };
+            return img;
+        }
+
+        function showToast(message) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'glass-panel text-amber-300 font-black text-xs px-4 py-2.5 rounded-full shadow-2xl border border-amber-500/40 animate-bounce text-center';
+            toast.textContent = message;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 2500);
+        }
+
+        // --- INITIALIZATION ---
+        window.addEventListener('DOMContentLoaded', () => {
+            initSplash();
+            loadLocalStorage();
+            setupEventListeners();
+        });
+
+        function initSplash() {
+            const splashBall = document.getElementById('splash-ball');
+            splashBall.src = getBallImgUrl('poland', 'normal.png');
+
+            setTimeout(() => {
+                document.getElementById('screen-splash').classList.add('hidden');
+                document.getElementById('screen-title').classList.remove('hidden');
+                document.getElementById('game-header').classList.remove('hidden');
+                setupTitleScreen();
+            }, 1800);
+        }
+
+        function loadLocalStorage() {
+            const savedName = localStorage.getItem('cr_player_name');
+            if (savedName) state.playerName = savedName;
+
+            const savedCleared = localStorage.getItem('cr_cleared_levels');
+            if (savedCleared) state.clearedLevels = JSON.parse(savedCleared);
+
+            checkRKingStatus();
+            updateHeaderUI();
+        }
+
+        function saveProgress() {
+            localStorage.setItem('cr_player_name', state.playerName);
+            localStorage.setItem('cr_cleared_levels', JSON.stringify(state.clearedLevels));
+            checkRKingStatus();
+            updateHeaderUI();
+        }
+
+        function checkRKingStatus() {
+            if (state.clearedLevels.length >= 120) {
+                state.isRKing = true;
+                document.getElementById('r-king-badge').classList.remove('hidden');
+                document.getElementById('title-rking-tag').classList.remove('hidden');
+            }
+        }
+
+        function updateHeaderUI() {
+            document.getElementById('player-display-name').textContent = state.playerName || 'ゲスト';
+        }
+
+        // --- TITLE SCREEN ---
+        function setupTitleScreen() {
+            const container = document.getElementById('title-balls-container');
+            container.innerHTML = '';
+            const sampleCountries = ['poland', 'japan', 'usa', 'england472x600', 'germany'];
+            const floatClasses = ['animate-float-1', 'animate-float-2', 'animate-float-3', 'animate-float-1', 'animate-float-2'];
+
+            sampleCountries.forEach((c, idx) => {
+                const img = createBallImgElem(c, 'smile.png', `w-14 h-14 border-2 border-indigo-400/40 shadow-xl ${floatClasses[idx]}`);
+                container.appendChild(img);
+            });
+        }
+
+        // --- EVENT LISTENERS ---
+        function setupEventListeners() {
+            document.getElementById('btn-start-game').addEventListener('click', () => {
+                if (!state.playerName) {
+                    document.getElementById('modal-name-input').classList.remove('hidden');
+                } else {
+                    switchScreen('screen-home');
+                    renderLevelMap();
+                }
+            });
+
+            document.getElementById('btn-save-name').addEventListener('click', () => {
+                const input = document.getElementById('input-player-name').value.trim();
+                if (input) {
+                    state.playerName = input;
+                    saveProgress();
+                    document.getElementById('modal-name-input').classList.add('hidden');
+                    switchScreen('screen-home');
+                    renderLevelMap();
+                }
+            });
+
+            document.getElementById('btn-back-home').addEventListener('click', () => {
+                if (state.isGameActive) {
+                    if (!confirm('試合を中断してホームに戻りますか？')) return;
+                }
+                clearInterval(state.timer);
+                state.isGameActive = false;
+                switchScreen('screen-home');
+            });
+
+            // Toggle CS Fullscreen UI Mode
+            document.getElementById('btn-fullscreen').addEventListener('click', toggleConsoleUI);
+
+            // Mode Tabs
+            document.getElementById('tab-story').addEventListener('click', (e) => setMode('story', e.target));
+            document.getElementById('tab-daily').addEventListener('click', (e) => setMode('daily', e.target));
+            document.getElementById('tab-timeattack').addEventListener('click', (e) => setMode('timeattack', e.target));
+            document.getElementById('tab-local').addEventListener('click', (e) => setMode('local', e.target));
+
+            document.getElementById('select-bg-theme').addEventListener('change', (e) => {
+                state.bgTheme = e.target.value;
+                applyBgTheme();
+            });
+
+            document.getElementById('btn-restart').addEventListener('click', () => {
+                if (state.isGameActive) startMatch();
+            });
+            document.getElementById('btn-giveup').addEventListener('click', () => {
+                if (state.isGameActive) endGame(false);
+            });
+
+            document.getElementById('btn-result-home').addEventListener('click', () => {
+                document.getElementById('modal-result').classList.add('hidden');
+                switchScreen('screen-home');
+            });
+
+            document.getElementById('btn-result-retry').addEventListener('click', () => {
+                document.getElementById('modal-result').classList.add('hidden');
+                startMatch();
+            });
+
+            // 勝利時にホーム（マップ画面）に戻り、解放されたレベルを表示
+            document.getElementById('btn-result-next').addEventListener('click', () => {
+                document.getElementById('modal-result').classList.add('hidden');
+                switchScreen('screen-home');
+                renderLevelMap();
+            });
+        }
+
+        function switchScreen(screenId) {
+            ['screen-title', 'screen-home', 'screen-game'].forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
+            document.getElementById(screenId).classList.remove('hidden');
+        }
+
+        function toggleConsoleUI() {
+            state.isConsoleUI = !state.isConsoleUI;
+            const container = document.getElementById('app-container');
+            const icon = document.getElementById('fullscreen-icon');
+
+            if (state.isConsoleUI) {
+                if (document.documentElement.requestFullscreen) {
+                    document.documentElement.requestFullscreen().catch(() => {});
+                }
+                container.classList.add('console-mode');
+                icon.className = 'fa-solid fa-compress text-sm';
+                showToast("ゲームソフト風フルスクリーンUIに切替");
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen().catch(() => {});
+                }
+                container.classList.remove('console-mode');
+                icon.className = 'fa-solid fa-expand text-sm';
+            }
+        }
+
+        function setMode(mode, targetBtn) {
+            state.currentMode = mode;
+            const tabs = ['tab-story', 'tab-daily', 'tab-timeattack', 'tab-local'];
+            tabs.forEach(id => {
+                document.getElementById(id).className = 'py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/50 transition';
+            });
+            targetBtn.className = 'py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md transition';
+
+            if (mode === 'story') renderLevelMap();
+            else if (mode === 'daily') setupDailyMatch();
+            else if (mode === 'timeattack') setupTimeAttackMatch();
+            else if (mode === 'local') setupLocalMatch();
+        }
+
+        function applyBgTheme() {
+            const homeElem = document.getElementById('screen-home');
+            homeElem.className = 'flex-1 flex flex-col relative overflow-hidden ';
+            if (state.bgTheme === 'emerald') homeElem.classList.add('bg-emerald-950');
+            else if (state.bgTheme === 'sunset') homeElem.classList.add('bg-amber-950');
+            else if (state.bgTheme === 'cyber') homeElem.classList.add('bg-purple-950');
+            else homeElem.classList.add('bg-slate-950');
+        }
+
+        // --- LEVEL SELECT MAP ---
+        function renderLevelMap() {
+            const container = document.getElementById('level-map-container');
+            container.innerHTML = '';
+
+            for (let i = 1; i <= 120; i++) {
+                const countryIndex = Math.floor((i - 1) / 10);
+                const country = COUNTRIES[countryIndex];
+                const isCleared = state.clearedLevels.includes(i);
+                const isUnlocked = i === 1 || state.clearedLevels.includes(i - 1);
+
+                const xOffset = Math.sin(i * 0.85) * 65;
+
+                const node = document.createElement('div');
+                node.className = `level-path-node flex flex-col items-center cursor-pointer relative ${!isUnlocked ? 'opacity-40 pointer-events-none' : ''}`;
+                node.style.transform = `translateX(${xOffset}px)`;
+
+                const button = document.createElement('div');
+                button.className = `w-16 h-16 rounded-3xl flex items-center justify-center font-black text-xl border-2 shadow-2xl transition transform active:scale-90 ${
+                    isCleared 
+                        ? 'bg-gradient-to-br from-amber-300 to-amber-500 border-amber-200 text-slate-950 shadow-amber-500/20' 
+                        : isUnlocked 
+                        ? 'bg-gradient-to-br from-indigo-500 to-purple-600 border-indigo-300 text-white shadow-indigo-500/30 active-level-glow' 
+                        : 'bg-slate-800 border-slate-700 text-slate-500'
+                }`;
+                button.innerHTML = isCleared ? '✓' : i;
+
+                const avatar = createBallImgElem(country.id, isCleared ? 'happy.png' : 'normal.png', 'w-9 h-9 absolute -top-3 -right-3 border-2 border-slate-950 shadow-lg');
+
+                node.appendChild(button);
+                node.appendChild(avatar);
+
+                node.addEventListener('click', () => {
+                    state.currentLevelIndex = i;
+                    setupStoryMatch(i);
+                });
+
+                container.appendChild(node);
+            }
+
+            // 新しく解放された最新レベルへスムーズスクロール
+            setTimeout(() => {
+                const activeNode = container.querySelector('.active-level-glow');
+                if (activeNode) {
+                    activeNode.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }, 150);
+        }
+
+        // --- MATCH SETUP ---
+        function setupStoryMatch(levelIdx) {
+            const countryIdx = Math.floor((levelIdx - 1) / 10);
+            const country = COUNTRIES[countryIdx];
+            const subLevel = ((levelIdx - 1) % 10) + 1;
+
+            state.isAiGame = true;
+            state.aiCountry = country;
+            state.aiDifficulty = country.diff + Math.floor(subLevel / 3);
+            if (country.id === 'england472x600') state.aiDifficulty = 10;
+
+            if (levelIdx <= 30) state.boardSize = 6;
+            else if (levelIdx <= 80) state.boardSize = 8;
+            else if (levelIdx <= 110) state.boardSize = 10;
+            else state.boardSize = 12;
+
+            const expression = subLevel > 7 ? 'plot.png' : subLevel > 4 ? 'dissatisfaction.png' : 'smile.png';
+            const isHelpMode = subLevel % 3 === 0;
+
+            let msg = isHelpMode
+                ? `「${state.playerName}！途中まで進んだこの試合、ボクのお手伝いをして勝利に導いてよ！」`
+                : `「やあ${state.playerName}！レベル${levelIdx}の勝負だ。負けないよ！」`;
+
+            setupGameUI({
+                modeLabel: `STORY LV.${levelIdx}`,
+                p1Name: state.playerName || 'あなた',
+                p2Name: country.name,
+                p2Avatar: getBallImgUrl(country.id, expression),
+                dialogueText: msg,
+                isHelpMode: isHelpMode
+            });
+
+            startMatch(isHelpMode);
+        }
+
+        function setupDailyMatch() {
+            state.currentMode = 'daily';
+            state.isAiGame = true;
+            const randomCountry = COUNTRIES[Math.floor(Math.random() * COUNTRIES.length)];
+            state.aiCountry = randomCountry;
+            state.aiDifficulty = 5;
+            state.boardSize = 8;
+
+            setupGameUI({
+                modeLabel: 'DAILY MATCH',
+                p1Name: state.playerName || 'あなた',
+                p2Name: randomCountry.name,
+                p2Avatar: getBallImgUrl(randomCountry.id, 'happy.png'),
+                dialogueText: `「${state.playerName}、今日のデイリー挑戦状だ！受けて立つかい？」`
+            });
+
+            startMatch();
+        }
+
+        function setupTimeAttackMatch() {
+            state.currentMode = 'timeattack';
+            state.isAiGame = true;
+            const country = COUNTRIES[0];
+            state.aiCountry = country;
+            state.aiDifficulty = 3;
+            state.boardSize = 6;
+            state.timeLeft = 60;
+
+            setupGameUI({
+                modeLabel: 'OTEGARU (1MIN)',
+                p1Name: state.playerName || 'あなた',
+                p2Name: 'AI (スピード)',
+                p2Avatar: getBallImgUrl(country.id, 'surprise.png'),
+                dialogueText: `「1分間のタイムアタック！全力を尽くして、${state.playerName}！」`,
+                showTimer: true
+            });
+
+            startMatch();
+        }
+
+        function setupLocalMatch() {
+            state.currentMode = 'local';
+            state.isAiGame = false;
+            state.boardSize = 8;
+
+            setupGameUI({
+                modeLabel: 'LOCAL 2P',
+                p1Name: 'P1 (黒)',
+                p2Name: 'P2 (白)',
+                p2Avatar: getBallImgUrl('poland', 'smile.png'),
+                dialogueText: '「ローカル2人対戦モードです。交互に盤面をタップしてください。」'
+            });
+
+            startMatch();
+        }
+
+        function setupGameUI({ modeLabel, p1Name, p2Name, p2Avatar, dialogueText, showTimer = false }) {
+            document.getElementById('game-mode-label').textContent = modeLabel;
+            document.getElementById('p1-name').textContent = p1Name;
+            document.getElementById('p2-name').textContent = p2Name;
+            document.getElementById('p2-avatar').src = p2Avatar;
+            document.getElementById('dialogue-avatar').src = p2Avatar;
+            document.getElementById('dialogue-text').textContent = dialogueText;
+            document.getElementById('board-size-badge').textContent = `盤面: ${state.boardSize}x${state.boardSize}`;
+
+            const timerLabel = document.getElementById('timer-label');
+            if (showTimer) {
+                timerLabel.classList.remove('hidden');
+                timerLabel.textContent = `${state.timeLeft}s`;
+            } else {
+                timerLabel.classList.add('hidden');
+            }
+
+            switchScreen('screen-game');
+        }
+
+        // --- REVERSI ENGINE & GAME END LOGIC ---
+        function startMatch(isHelpMode = false) {
+            state.isGameActive = true;
+            state.turn = 1;
+            initBoard(state.boardSize, isHelpMode);
+            renderBoard();
+            updateScores();
+
+            if (state.currentMode === 'timeattack') {
+                clearInterval(state.timer);
+                state.timer = setInterval(() => {
+                    state.timeLeft--;
+                    document.getElementById('timer-label').textContent = `${state.timeLeft}s`;
+                    if (state.timeLeft <= 0) {
+                        clearInterval(state.timer);
+                        endGame();
+                    }
+                }, 1000);
+            }
+        }
+
+        function initBoard(size, isHelpMode = false) {
+            state.board = Array(size).fill(null).map(() => Array(size).fill(0));
+            const mid = size / 2;
+
+            state.board[mid - 1][mid - 1] = 2;
+            state.board[mid - 1][mid] = 1;
+            state.board[mid][mid - 1] = 1;
+            state.board[mid][mid] = 2;
+
+            if (isHelpMode) {
+                const numExtra = Math.floor(size * 1.5);
+                for (let i = 0; i < numExtra; i++) {
+                    const r = Math.floor(Math.random() * size);
+                    const c = Math.floor(Math.random() * size);
+                    if (state.board[r][c] === 0) {
+                        state.board[r][c] = Math.random() > 0.5 ? 1 : 2;
+                    }
+                }
+            }
+        }
+
+        function renderBoard() {
+            const boardElem = document.getElementById('reversi-board');
+            boardElem.innerHTML = '';
+            boardElem.style.gridTemplateColumns = `repeat(${state.boardSize}, minmax(0, 1fr))`;
+
+            const cellSizeClass = state.boardSize > 10 ? 'w-6 h-6' : state.boardSize > 8 ? 'w-8 h-8' : 'w-10 h-10';
+            const validMoves = getValidMoves(state.turn);
+
+            for (let r = 0; r < state.boardSize; r++) {
+                for (let c = 0; c < state.boardSize; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = `cell ${cellSizeClass}`;
+
+                    const isValid = validMoves.some(m => m.r === r && m.c === c);
+                    if (isValid && (state.turn === 1 || !state.isAiGame)) {
+                        cell.classList.add('valid-move');
+                        cell.addEventListener('click', () => handleCellClick(r, c));
+                    }
+
+                    const val = state.board[r][c];
+                    if (val !== 0) {
+                        const disc = document.createElement('div');
+                        disc.className = `disc ${val === 1 ? 'dark' : 'light'}`;
+                        cell.appendChild(disc);
+                    }
+
+                    boardElem.appendChild(cell);
+                }
+            }
+
+            const turnText = state.turn === 1 ? 'あなたのターン' : '相手のターン';
+            document.getElementById('turn-indicator').textContent = turnText;
+        }
+
+        function handleCellClick(r, c) {
+            if (!state.isGameActive) return;
+            makeMove(r, c, state.turn);
+            switchTurn();
+        }
+
+        function switchTurn() {
+            if (!state.isGameActive) return;
+
+            updateScores();
+
+            // 盤面全埋まり、あるいはどちらかの石が全滅した場合
+            const isBoardFull = state.board.every(row => row.every(val => val !== 0));
+            if (isBoardFull || state.p1Score === 0 || state.p2Score === 0) {
+                renderBoard();
+                endGame();
+                return;
+            }
+
+            const currentMoves = getValidMoves(state.turn);
+            const nextTurn = state.turn === 1 ? 2 : 1;
+            const nextMoves = getValidMoves(nextTurn);
+
+            // 両者とも置ける場所がない場合（互いに詰んだ状態） -> その地点で終了
+            if (currentMoves.length === 0 && nextMoves.length === 0) {
+                renderBoard();
+                showToast("互いに置ける場所がないため対局終了！");
+                document.getElementById('dialogue-text').textContent = "「お互い置ける場所がなくなったね！勝敗判定に入ります！」";
+                setTimeout(() => endGame(), 1000);
+                return;
+            }
+
+            if (nextMoves.length > 0) {
+                // 相手に打てる手がある場合は手番交代
+                state.turn = nextTurn;
+                renderBoard();
+
+                if (state.isAiGame && state.turn === 2) {
+                    setTimeout(triggerAiMove, 600);
+                }
+            } else {
+                // 相手に打てる手がない（相手がパス）
+                const passedPlayerName = nextTurn === 1 ? (state.playerName || 'あなた') : (state.aiCountry?.name || '相手');
+                showToast(`${passedPlayerName} は置ける場所がないためパス！`);
+                document.getElementById('dialogue-text').textContent = `「${passedPlayerName}は置ける場所がないからパスだよ！」`;
+
+                renderBoard();
+                if (state.isAiGame && state.turn === 2) {
+                    setTimeout(triggerAiMove, 800);
+                }
+            }
+        }
+
+        function makeMove(r, c, player) {
+            const flips = getFlips(r, c, player);
+            state.board[r][c] = player;
+            flips.forEach(p => {
+                state.board[p.r][p.c] = player;
+            });
+        }
+
+        function getValidMoves(player) {
+            const moves = [];
+            for (let r = 0; r < state.boardSize; r++) {
+                for (let c = 0; c < state.boardSize; c++) {
+                    if (state.board[r][c] === 0) {
+                        const flips = getFlips(r, c, player);
+                        if (flips.length > 0) moves.push({ r, c, flipsCount: flips.length });
+                    }
+                }
+            }
+            return moves;
+        }
+
+        function getFlips(r, c, player) {
+            if (state.board[r][c] !== 0) return [];
+            const opponent = player === 1 ? 2 : 1;
+            const directions = [
+                [-1,-1], [-1,0], [-1,1],
+                [0,-1],          [0,1],
+                [1,-1],  [1,0],  [1,1]
+            ];
+            let totalFlips = [];
+
+            for (let [dr, dc] of directions) {
+                let nr = r + dr;
+                let nc = c + dc;
+                let candidateFlips = [];
+
+                while (nr >= 0 && nr < state.boardSize && nc >= 0 && nc < state.boardSize && state.board[nr][nc] === opponent) {
+                    candidateFlips.push({ r: nr, c: nc });
+                    nr += dr;
+                    nc += dc;
+                }
+
+                if (nr >= 0 && nr < state.boardSize && nc >= 0 && nc < state.boardSize && state.board[nr][nc] === player) {
+                    totalFlips = totalFlips.concat(candidateFlips);
+                }
+            }
+            return totalFlips;
+        }
+
+        function updateScores() {
+            let p1 = 0, p2 = 0;
+            for (let r = 0; r < state.boardSize; r++) {
+                for (let c = 0; c < state.boardSize; c++) {
+                    if (state.board[r][c] === 1) p1++;
+                    if (state.board[r][c] === 2) p2++;
+                }
+            }
+            state.p1Score = p1;
+            state.p2Score = p2;
+            document.getElementById('p1-score').textContent = p1;
+            document.getElementById('p2-score').textContent = p2;
+        }
+
+        // --- AI ENGINE ---
+        function triggerAiMove() {
+            if (!state.isGameActive || state.turn !== 2) return;
+
+            const moves = getValidMoves(2);
+            if (moves.length === 0) {
+                switchTurn();
+                return;
+            }
+
+            let chosenMove = null;
+
+            if (state.aiDifficulty >= 8 || state.aiCountry?.id === 'england472x600') {
+                chosenMove = getBestMoveHeuristic(moves);
+            } else if (state.aiDifficulty >= 4) {
+                moves.sort((a, b) => b.flipsCount - a.flipsCount);
+                chosenMove = Math.random() > 0.2 ? moves[0] : moves[Math.floor(Math.random() * moves.length)];
+            } else {
+                chosenMove = moves[Math.floor(Math.random() * moves.length)];
+            }
+
+            if (chosenMove) {
+                makeMove(chosenMove.r, chosenMove.c, 2);
+                switchTurn();
+            }
+        }
+
+        function getBestMoveHeuristic(moves) {
+            let bestScore = -9999;
+            let bestMove = moves[0];
+
+            for (let move of moves) {
+                let score = move.flipsCount;
+                const isCorner = (move.r === 0 || move.r === state.boardSize - 1) && (move.c === 0 || move.c === state.boardSize - 1);
+                const isEdge = (move.r === 0 || move.r === state.boardSize - 1 || move.c === 0 || move.c === state.boardSize - 1);
+
+                if (isCorner) score += 50;
+                else if (isEdge) score += 10;
+
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestMove = move;
+                }
+            }
+            return bestMove;
+        }
+
+        // --- END GAME & WINNER DETERMINATION ---
+        function endGame(forcedResult = null) {
+            state.isGameActive = false;
+            clearInterval(state.timer);
+
+            updateScores();
+
+            const modal = document.getElementById('modal-result');
+            const title = document.getElementById('result-title');
+            const subtitle = document.getElementById('result-subtitle');
+            const icon = document.getElementById('result-icon');
+            const btnNext = document.getElementById('btn-result-next');
+
+            document.getElementById('final-p1-score').textContent = state.p1Score;
+            document.getElementById('final-p2-score').textContent = state.p2Score;
+
+            const isWin = forcedResult !== null ? forcedResult : state.p1Score > state.p2Score;
+            const isTie = state.p1Score === state.p2Score;
+
+            if (isWin) {
+                icon.textContent = '🏆';
+                title.textContent = 'VICTORY!';
+                title.className = 'text-3xl font-black mb-1 text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-amber-500';
+                subtitle.textContent = `${state.playerName}の勝利です！見事な盤面さばき！`;
+
+                if (state.currentMode === 'story') {
+                    if (!state.clearedLevels.includes(state.currentLevelIndex)) {
+                        state.clearedLevels.push(state.currentLevelIndex);
+                        saveProgress();
+                    }
+                    btnNext.classList.remove('hidden');
+                } else {
+                    btnNext.classList.add('hidden');
+                }
+            } else if (isTie) {
+                icon.textContent = '🤝';
+                title.textContent = 'DRAW!';
+                title.className = 'text-3xl font-black mb-1 text-slate-300';
+                subtitle.textContent = '引き分けです！同点でした！';
+                btnNext.classList.add('hidden');
+            } else {
+                icon.textContent = '💀';
+                title.textContent = 'DEFEAT...';
+                title.className = 'text-3xl font-black mb-1 text-rose-500';
+                subtitle.textContent = '残念！相手の勝利です。もう一度挑戦しよう！';
+                btnNext.classList.add('hidden');
+            }
+
+            modal.classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
