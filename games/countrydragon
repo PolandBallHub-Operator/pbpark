@@ -1,0 +1,1863 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+    <title>Country & Balls - Polandball Puzzle RPG</title>
+
+    <!-- Google Fonts & Material Symbols -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+
+    <style>
+        :root {
+            --accent-primary: #3381FF;
+            --accent-active: #1A5FCC;
+            
+            /* PTZ 規格初期値 */
+            --ptz-theme-name: "Country & Balls Default";
+            --ptz-card-radius: 24px;
+            --ptz-slider-height: 16px;
+            --ptz-toggle-width: 54px;
+            --ptz-toggle-height: 30px;
+            --ptz-toggle-knob-radius: 50%;
+            --ptz-toggle-knob-width: 22px;
+
+            /* Light Mode ベースカラー */
+            --bg-base: #F7F7F7;
+            --glass-bg: #FFFFFF;
+            --text-main: #000000;
+            --text-sub: #666666;
+            --bg-secondary: #EEEEEE;
+            --nav-bg: #FFFFFF;
+            --nav-icon-active: #000000;
+            
+            --m3-easing: cubic-bezier(0.32, 0.72, 0, 1);
+            --transition-smooth: 0.35s var(--m3-easing);
+            --card-padding: 20px;
+        }
+
+        .dark-mode {
+            --bg-base: #121212;
+            --glass-bg: #1E1E1E;
+            --text-main: #FFFFFF;
+            --text-sub: #A1A1A6;
+            --bg-secondary: #2C2C2E;
+            --nav-bg: #1E1E1E;
+            --nav-icon-active: #FFFFFF;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', 'Noto Sans JP', sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            transition: background-color var(--transition-smooth), color var(--transition-smooth);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        #app-viewport {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        header {
+            height: 60px;
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--glass-bg);
+            transition: background-color var(--transition-smooth);
+            position: relative;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+
+        .logo {
+            font-weight: 800;
+            font-size: 18px;
+            letter-spacing: -0.5px;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .user-resources {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+        .resource-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            background: var(--bg-secondary);
+            padding: 4px 10px;
+            border-radius: 20px;
+        }
+
+        .theme-toggle {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: none;
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background var(--transition-smooth), transform 0.2s;
+        }
+        .theme-toggle:active {
+            transform: scale(0.9);
+        }
+
+        main {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 16px 16px 90px;
+            max-width: 720px;
+            width: 100%;
+            margin: 0 auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .glass-card {
+            background: var(--glass-bg);
+            border-radius: var(--ptz-card-radius);
+            padding: var(--card-padding);
+            margin-bottom: 16px;
+            box-shadow: none !important;
+            border: none !important;
+            transition: background-color var(--transition-smooth), border-radius var(--transition-smooth);
+        }
+
+        h2 { 
+            font-size: 17px; 
+            margin-top: 0; 
+            margin-bottom: 12px;
+            font-weight: 700; 
+            letter-spacing: -0.3px;
+        }
+        p {
+            font-size: 13.5px;
+            line-height: 1.5;
+            margin-top: 0;
+            margin-bottom: 14px;
+            color: var(--text-sub);
+        }
+
+        /* スタート画面 */
+        .title-screen {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, #1E1E2E 0%, #0F0F1A 100%);
+            color: #FFF;
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            text-align: center;
+            transition: opacity 0.4s var(--m3-easing), visibility 0.4s;
+        }
+        .title-screen.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+        .title-logo-balls {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .title-ball {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            overflow: hidden;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.4);
+            animation: bounce 2s infinite ease-in-out alternate;
+        }
+        .title-ball img {
+            width: 100%; height: 100%; object-fit: cover;
+        }
+        .title-ball.uk img { object-position: top; }
+        .title-ball:nth-child(2) { animation-delay: 0.3s; }
+        .title-ball:nth-child(3) { animation-delay: 0.6s; }
+        @keyframes bounce {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-12px); }
+        }
+
+        /* ゲーム専用スタイル（ボス・ステータスバー） */
+        .boss-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            padding: 8px 0;
+        }
+        .boss-img-container {
+            width: 140px;
+            height: 150px;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: transform 0.15s ease-in-out;
+        }
+        .boss-img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            filter: drop-shadow(0 8px 12px rgba(0,0,0,0.3));
+        }
+        .boss-img.uk-boss {
+            object-position: top;
+        }
+        .boss-img.hit-shake {
+            animation: bossShake 0.4s ease;
+        }
+        @keyframes bossShake {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-12px) rotate(-4deg); }
+            40% { transform: translateX(12px) rotate(4deg); }
+            60% { transform: translateX(-8px) rotate(-2deg); }
+            80% { transform: translateX(8px) rotate(2deg); }
+        }
+
+        .boss-speech {
+            position: absolute;
+            top: -10px;
+            right: 0px;
+            background: var(--bg-secondary);
+            padding: 6px 14px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-main);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            pointer-events: none;
+            opacity: 0;
+            transform: translateY(5px);
+            transition: all 0.3s ease;
+            z-index: 5;
+            max-width: 180px;
+        }
+        .boss-speech.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .hp-bar-outer {
+            width: 100%;
+            height: 16px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+            margin: 6px 0;
+        }
+        .hp-bar-inner {
+            height: 100%;
+            width: 100%;
+            background: linear-gradient(90deg, #FF3B30, #FF9500);
+            transition: width 0.3s ease-out;
+        }
+        .hp-text {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 10px; font-weight: 700; color: #FFF;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+        }
+
+        /* 会話対話イベントウィンドウ */
+        .story-dialog-box {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 12px 16px;
+            margin-bottom: 12px;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        .story-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            overflow: hidden;
+            flex-shrink: 0;
+            background: #FFF;
+        }
+        .story-avatar img {
+            width: 100%; height: 100%; object-fit: cover;
+        }
+        .story-avatar img.uk-ball { object-position: top; }
+        .story-text {
+            font-size: 13px;
+            line-height: 1.4;
+            font-weight: 600;
+        }
+
+        /* チームボール表示 */
+        .team-balls-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            margin: 12px 0 6px;
+        }
+        .team-ball-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+        .ball-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            overflow: hidden;
+            background: var(--bg-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: inset 0 -3px 6px rgba(0,0,0,0.15);
+            position: relative;
+            transition: transform 0.2s;
+        }
+        .ball-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center;
+        }
+        .ball-avatar img.uk-ball {
+            object-position: top;
+        }
+        .ball-lvl-tag {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            background: rgba(0,0,0,0.7);
+            color: #FFF;
+            font-size: 8px;
+            padding: 1px 4px;
+            border-radius: 6px;
+            font-weight: 700;
+        }
+        .ball-name {
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--text-sub);
+            text-align: center;
+        }
+
+        /* パズルグリッド (6x5) */
+        .puzzle-board-container {
+            margin-top: 12px;
+            touch-action: none;
+        }
+        .puzzle-timer-bar {
+            width: 100%;
+            height: 6px;
+            background: var(--bg-secondary);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+        .puzzle-timer-fill {
+            height: 100%;
+            width: 100%;
+            background: var(--accent-primary);
+            transition: width 0.05s linear;
+        }
+
+        .puzzle-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            grid-template-rows: repeat(5, 1fr);
+            gap: 6px;
+            aspect-ratio: 6 / 5;
+            background: var(--bg-secondary);
+            padding: 8px;
+            border-radius: 16px;
+            position: relative;
+        }
+
+        .orb {
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: inset -3px -4px 8px rgba(0,0,0,0.3), 0 3px 6px rgba(0,0,0,0.15);
+            transition: transform 0.1s ease, opacity 0.2s ease;
+            position: relative;
+        }
+        .orb span {
+            font-size: 22px;
+            color: #FFF;
+            filter: drop-shadow(0 2px 3px rgba(0,0,0,0.4));
+        }
+        .orb.dragging {
+            transform: scale(1.2);
+            z-index: 100;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+            opacity: 0.9;
+        }
+        .orb.matched {
+            animation: orbPop 0.25s forwards ease-in;
+        }
+        @keyframes orbPop {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.3); opacity: 0.8; }
+            100% { transform: scale(0); opacity: 0; }
+        }
+
+        /* オーブ属性カラー */
+        .orb-fire { background: radial-gradient(circle at 35% 35%, #FF5252, #B71C1C); } /* 火 */
+        .orb-water { background: radial-gradient(circle at 35% 35%, #448AFF, #0D47A1); } /* 水 */
+        .orb-wood { background: radial-gradient(circle at 35% 35%, #66BB6A, #1B5E20); } /* 木 */
+        .orb-light { background: radial-gradient(circle at 35% 35%, #FFEE58, #F57F17); } /* 光 */
+        .orb-dark { background: radial-gradient(circle at 35% 35%, #AB47BC, #4A148C); } /* 闇 */
+        .orb-heart { background: radial-gradient(circle at 35% 35%, #EC407A, #880E4F); } /* 回復 */
+
+        /* コンボ表示 */
+        .combo-floating {
+            position: absolute;
+            top: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 32px;
+            font-weight: 800;
+            color: #FFD700;
+            text-shadow: 0 3px 10px rgba(0,0,0,0.8), 0 0 15px rgba(255,215,0,0.8);
+            pointer-events: none;
+            opacity: 0;
+            z-index: 200;
+        }
+        .combo-floating.active {
+            animation: comboPopup 0.6s ease-out forwards;
+        }
+        @keyframes comboPopup {
+            0% { opacity: 0; transform: translate(-50%, -20%) scale(0.5); }
+            40% { opacity: 1; transform: translate(-50%, -60%) scale(1.3); }
+            100% { opacity: 0; transform: translate(-50%, -100%) scale(1); }
+        }
+
+        /* キャラ強化UI */
+        .upgrade-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .upgrade-card {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px;
+            background: var(--bg-secondary);
+            border-radius: 16px;
+        }
+        .upgrade-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .upgrade-avatar {
+            width: 44px; height: 44px; border-radius: 50%; overflow: hidden; background: #FFF;
+        }
+        .upgrade-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .upgrade-avatar img.uk-ball { object-position: top; }
+
+        /* UIコンポーネント */
+        .custom-list {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            margin-bottom: 16px;
+        }
+        .list-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 4px;
+            border-bottom: 1px solid var(--bg-secondary);
+        }
+        .list-item:last-child {
+            border-bottom: none;
+        }
+        .list-item-title {
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .list-item-desc {
+            font-size: 12px;
+            color: var(--text-sub);
+        }
+
+        .slider-wrapper {
+            margin: 16px 0;
+        }
+        .slider-label-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        .thick-slider-container {
+            position: relative;
+            width: 100%;
+            height: var(--ptz-slider-height);
+            background: var(--bg-secondary);
+            border-radius: calc(var(--ptz-slider-height) / 2);
+            overflow: hidden;
+            cursor: pointer;
+            transition: height var(--transition-smooth);
+        }
+        .thick-slider-fill {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 50%;
+            background: var(--accent-primary);
+            transition: background-color var(--transition-smooth), width 0.1s ease-out;
+        }
+        .thick-slider-input {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+            margin: 0;
+        }
+
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 4px;
+        }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: var(--ptz-toggle-width);
+            height: var(--ptz-toggle-height);
+            transition: width var(--transition-smooth), height var(--transition-smooth);
+        }
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--bg-secondary);
+            transition: var(--transition-smooth);
+            border-radius: calc(var(--ptz-toggle-height) / 2);
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: var(--ptz-toggle-knob-width);
+            width: var(--ptz-toggle-knob-width);
+            left: 4px;
+            bottom: calc((var(--ptz-toggle-height) - var(--ptz-toggle-knob-width)) / 2);
+            background: white;
+            transition: var(--transition-smooth);
+            border-radius: var(--ptz-toggle-knob-radius);
+        }
+        input:checked + .slider {
+            background: var(--accent-primary);
+        }
+        input:checked + .slider:before {
+            transform: translateX(calc(var(--ptz-toggle-width) - var(--ptz-toggle-knob-width) - 8px));
+        }
+
+        .ai-btn {
+            border: none;
+            outline: none;
+            padding: 12px 20px;
+            border-radius: 14px;
+            font-weight: 700;
+            font-size: 14px;
+            color: white;
+            cursor: pointer;
+            background: var(--accent-primary);
+            transition: transform 0.2s, background-color var(--transition-smooth);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            justify-content: center;
+        }
+        .ai-btn:hover {
+            transform: scale(1.02);
+        }
+        .ai-btn:active {
+            background: var(--accent-active);
+            transform: scale(0.96);
+        }
+        .ai-btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-main);
+        }
+        .ai-btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+            border-radius: 10px;
+        }
+
+        .glass-input-wrapper {
+            margin-bottom: 14px;
+        }
+        .glass-input {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: none;
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            font-size: 14px;
+            font-family: inherit;
+            box-sizing: border-box;
+            transition: background var(--transition-smooth);
+        }
+        .glass-input:focus {
+            outline: 2px solid var(--accent-primary);
+        }
+
+        /* 下付きナビゲーションバー */
+        .bottom-nav-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 72px;
+            background: var(--nav-bg);
+            border-top: 1px solid var(--bg-secondary);
+            z-index: 500;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding-bottom: env(safe-area-inset-bottom);
+            transition: background-color var(--transition-smooth), border-color var(--transition-smooth);
+        }
+        .nav-item {
+            flex: 1;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-sub);
+            transition: color 0.25s var(--m3-easing);
+            position: relative;
+            gap: 4px;
+        }
+        .nav-item span.material-symbols-outlined {
+            font-size: 24px;
+            font-variation-settings: 'FILL' 0, 'wght' 400;
+            transition: font-variation-settings 0.2s, color 0.2s;
+        }
+        .nav-label {
+            font-size: 10px;
+            font-weight: 600;
+        }
+        .nav-item.active {
+            color: var(--nav-icon-active);
+        }
+        .nav-item.active span.material-symbols-outlined {
+            font-variation-settings: 'FILL' 1, 'wght' 700;
+        }
+
+        /* ビュー切り替え */
+        .view {
+            display: none;
+        }
+        .view.active {
+            display: block;
+            animation: viewIn 0.3s var(--m3-easing);
+        }
+        @keyframes viewIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ステージ選択カード */
+        .stage-selector {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 8px;
+            margin-bottom: 12px;
+        }
+        .stage-chip {
+            padding: 8px 16px;
+            border-radius: 12px;
+            background: var(--bg-secondary);
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .stage-chip.active {
+            background: var(--accent-primary);
+            color: #FFF;
+        }
+
+        /* 国ボールギャラリーグリッド */
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(85px, 1fr));
+            gap: 12px;
+            margin-top: 10px;
+        }
+        .gallery-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 8px 4px;
+            cursor: pointer;
+        }
+        .gallery-ball-img {
+            width: 54px;
+            height: 54px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: var(--bg-secondary);
+        }
+        .gallery-ball-img.uk-ball {
+            object-position: top;
+        }
+
+        /* トースト通知 */
+        .toast {
+            position: fixed;
+            bottom: 84px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--text-main);
+            color: var(--glass-bg);
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s var(--m3-easing);
+            z-index: 2000;
+        }
+        .toast.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* ダイアログ */
+        .dialog-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000; display: flex; align-items: center; justify-content: center;
+            opacity: 0; visibility: hidden; transition: all 0.3s var(--m3-easing);
+        }
+        .dialog-overlay.active { opacity: 1; visibility: visible; }
+        .glass-dialog {
+            background: var(--glass-bg);
+            border-radius: var(--ptz-card-radius);
+            padding: 24px; max-width: 380px; width: 90%; text-align: center;
+            transform: scale(0.9) translateY(20px); transition: all 0.4s var(--m3-easing);
+        }
+        .dialog-overlay.active .glass-dialog { transform: scale(1) translateY(0); }
+
+        .badge {
+            background: var(--accent-primary);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 700;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- スタート画面 (Title Screen) -->
+    <div class="title-screen" id="title-screen">
+        <div class="title-logo-balls">
+            <div class="title-ball"><img src="https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/poland/happy.png" alt="Poland"></div>
+            <div class="title-ball uk"><img src="https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/england472x600/lol.png" alt="UK"></div>
+            <div class="title-ball"><img src="https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/japan/smile.png" alt="Japan"></div>
+        </div>
+        <h1 style="font-size: 28px; font-weight: 900; margin: 0 0 8px; letter-spacing: -1px;">Country & Balls</h1>
+        <p style="color: #A1A1A6; font-size: 14px; margin-bottom: 32px;">Polandball Puzzle RPG</p>
+
+        <button class="ai-btn" style="padding: 16px 36px; font-size: 16px; border-radius: 30px;" onclick="startGame()">
+            <span class="material-symbols-outlined">play_arrow</span>
+            TAP TO START
+        </button>
+    </div>
+
+    <div id="app-viewport">
+        <!-- ヘッダー -->
+        <header>
+            <div class="logo" onclick="openTitleScreen()">
+                <span class="material-symbols-outlined" style="color: var(--accent-primary);">sports_baseball</span>
+                Country & Balls
+            </div>
+            
+            <div class="user-resources">
+                <div class="resource-item" title="粘土 (Clay)">
+                    <span class="material-symbols-outlined" style="font-size: 16px; color: #8D6E63;">extension</span>
+                    <span id="res-clay">150</span>
+                </div>
+                <div class="resource-item" title="コイン">
+                    <span class="material-symbols-outlined" style="font-size: 16px; color: #FFD700;">monetization_on</span>
+                    <span id="res-coin">500</span>
+                </div>
+                <button class="theme-toggle" id="theme-btn" title="テーマ切り替え">
+                    <span class="material-symbols-outlined">light_mode</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- メインコンテンツ -->
+        <main>
+            <!-- 1. パズル＆バトルビュー -->
+            <section id="view-home" class="view active">
+                
+                <!-- ステージ選択スライダー -->
+                <div class="stage-selector" id="stage-chip-container">
+                    <!-- JSでステージ挿入 -->
+                </div>
+
+                <!-- ボス＆バトルカード -->
+                <div class="glass-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                        <span class="badge" id="boss-stage-badge">STAGE 1</span>
+                        <span style="font-size: 12px; font-weight: 700; color: #FF3B30;" id="turn-counter">NEXT ATTACK: 3</span>
+                    </div>
+
+                    <!-- ストーリーダイアログ -->
+                    <div class="story-dialog-box" id="story-box">
+                        <div class="story-avatar">
+                            <img src="" id="story-avatar-img" alt="boss">
+                        </div>
+                        <div class="story-text" id="story-text-content">
+                            会話イベント...
+                        </div>
+                    </div>
+
+                    <!-- ボス表示領域 -->
+                    <div class="boss-area">
+                        <div class="boss-speech" id="boss-speech-bubble">HALLO!</div>
+                        <div class="boss-img-container" id="boss-container">
+                            <img src="" alt="Boss" class="boss-img" id="boss-img">
+                        </div>
+                        <div style="font-weight: 800; font-size: 16px; margin-top: 4px;" id="boss-name-label">Boss Name</div>
+                        
+                        <!-- ボスHP -->
+                        <div class="hp-bar-outer">
+                            <div class="hp-bar-inner" id="boss-hp-fill" style="width: 100%;"></div>
+                            <div class="hp-text" id="boss-hp-text">HP: 1000 / 1000</div>
+                        </div>
+                    </div>
+
+                    <!-- プレイヤーチーム表示 -->
+                    <div style="margin-top: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 12px; font-weight: 700;">YOUR TEAM</span>
+                            <span style="font-size: 11px; font-weight: 600; color: var(--text-sub);" id="player-hp-num">HP: 3500 / 3500</span>
+                        </div>
+                        
+                        <div class="hp-bar-outer" style="height: 10px;">
+                            <div class="hp-bar-inner" id="player-hp-fill" style="width: 100%; background: linear-gradient(90deg, #34C759, #30B0C7);"></div>
+                        </div>
+
+                        <!-- チーム国ボール5体 -->
+                        <div class="team-balls-grid" id="team-balls-container">
+                            <!-- JSで挿入 -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- パズルボードカード -->
+                <div class="glass-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <h2>6x5 ドロップパズル</h2>
+                        <span style="font-size: 12px; font-weight: 700; color: var(--accent-primary);" id="game-status-text">ドロップを動かそう！</span>
+                    </div>
+
+                    <div class="puzzle-board-container">
+                        <div class="puzzle-timer-bar">
+                            <div class="puzzle-timer-fill" id="timer-fill" style="width: 100%;"></div>
+                        </div>
+
+                        <!-- パズルグリッド -->
+                        <div class="puzzle-grid" id="puzzle-board">
+                            <!-- 30個のオーブが生成されます -->
+                        </div>
+                        <div class="combo-floating" id="combo-display">1 COMBO!</div>
+                    </div>
+
+                    <div style="margin-top: 14px; display: flex; gap: 8px; justify-content: center;">
+                        <button class="ai-btn ai-btn-secondary" onclick="resetBattle()">
+                            <span class="material-symbols-outlined">refresh</span>
+                            リスタート
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2. キャラ強化・チーム編成ビュー -->
+            <section id="view-upgrade" class="view">
+                <div class="glass-card">
+                    <h2>国ボールレベル強化</h2>
+                    <p>粘土とコインを使ってボール達をレベルアップ！攻撃力と最大HPが上昇します。</p>
+
+                    <div class="upgrade-grid" id="upgrade-list-container">
+                        <!-- JSで挿入 -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. ボスラッシュ＆実績（やり込み）ビュー -->
+            <section id="view-extra" class="view">
+                <div class="glass-card">
+                    <h2>ボスラッシュモード</h2>
+                    <p>次々に襲い掛かる強豪ボール達をどこまで連続撃破できるか挑むハイスコアモード！</p>
+                    <div style="background: var(--bg-secondary); padding: 12px; border-radius: 14px; text-align: center; margin-bottom: 12px;">
+                        <div style="font-size: 12px; font-weight: 600; color: var(--text-sub);">最高連続撃破記録</div>
+                        <div style="font-size: 24px; font-weight: 900; color: var(--accent-primary);" id="best-rush-score">0 撃破</div>
+                    </div>
+                    <button class="ai-btn" style="width: 100%; justify-content: center;" onclick="startBossRush()">
+                        <span class="material-symbols-outlined">swords</span>
+                        ボスラッシュに挑戦！
+                    </button>
+                </div>
+
+                <div class="glass-card">
+                    <h2>実績＆アチーブメント</h2>
+                    <div class="custom-list" id="achievements-container">
+                        <!-- JSで挿入 -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- 4. 図鑑ビュー -->
+            <section id="view-ptz" class="view">
+                <div class="glass-card">
+                    <h2>Country Balls 図鑑</h2>
+                    <p>タップすると表情が変化します。(UKは上部472pxトリミング表示)</p>
+                    <div class="gallery-grid" id="gallery-container">
+                        <!-- JSで国ボール一覧を読み込み -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- 5. 設定ビュー -->
+            <section id="view-components" class="view">
+                <div class="glass-card">
+                    <h2>ゲーム設定</h2>
+                    
+                    <!-- 太いスライダー：操作時間設定 -->
+                    <div class="slider-wrapper">
+                        <div class="slider-label-row">
+                            <span>パズル移動制限時間 (秒)</span>
+                            <span id="val-time">4.0秒</span>
+                        </div>
+                        <div class="thick-slider-container">
+                            <div class="thick-slider-fill" id="slider-time-fill" style="width: 50%;"></div>
+                            <input type="range" class="thick-slider-input" min="2" max="8" step="0.5" value="4" oninput="updateThickSlider('slider-time-fill', 'val-time', this.value, '秒'); setMoveTimeLimit(this.value)">
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 16px;">
+                        <button class="ai-btn" style="width: 100%; justify-content: center;" onclick="showToast('設定を保存しました！')">
+                            <span class="material-symbols-outlined">save</span>
+                            設定を保存
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- 下付き固定ナビゲーションバー -->
+        <div class="bottom-nav-container">
+            <div class="nav-item active" data-view="view-home" onclick="switchView('view-home')">
+                <span class="material-symbols-outlined">sports_esports</span>
+                <span class="nav-label">バトル</span>
+            </div>
+            <div class="nav-item" data-view="view-upgrade" onclick="switchView('view-upgrade')">
+                <span class="material-symbols-outlined">upgrade</span>
+                <span class="nav-label">強化</span>
+            </div>
+            <div class="nav-item" data-view="view-extra" onclick="switchView('view-extra')">
+                <span class="material-symbols-outlined">emoji_events</span>
+                <span class="nav-label">やり込み</span>
+            </div>
+            <div class="nav-item" data-view="view-ptz" onclick="switchView('view-ptz')">
+                <span class="material-symbols-outlined">public</span>
+                <span class="nav-label">図鑑</span>
+            </div>
+            <div class="nav-item" data-view="view-components" onclick="switchView('view-components')">
+                <span class="material-symbols-outlined">settings</span>
+                <span class="nav-label">設定</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ダイアログ -->
+    <div class="dialog-overlay" id="main-dialog">
+        <div class="glass-dialog">
+            <span class="material-symbols-outlined" style="font-size: 44px; color: var(--accent-primary);" id="dialog-icon">emoji_events</span>
+            <h2 style="margin-top: 12px;" id="dialog-title">VICTORY!</h2>
+            <p style="margin-bottom: 20px;" id="dialog-desc">ステージクリア！</p>
+            <button class="ai-btn" style="width: 100%; justify-content: center;" onclick="closeDialog();">確定</button>
+        </div>
+    </div>
+
+    <!-- トースト -->
+    <div class="toast" id="toast-message">メッセージ</div>
+
+    <script>
+        /**
+         * Country & Balls - Complete Game System
+         */
+
+        const BASE_BALL_URL = "https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/";
+        
+        const COUNTRIES = [
+            "germany", "japan", "china", "italy", "sierraleone", "russia", 
+            "france", "poland", "england472x600", "usa", "korea", "austria"
+        ];
+
+        const EXPRESSIONS = [
+            "anger.png", "dissatisfaction.png", "happy.png", "itome.png", 
+            "lol.png", "normal.png", "plot.png", "smile.png", "surprise.png"
+        ];
+
+        function getBallImageUrl(country, expression = "normal.png") {
+            if (country === "developer_tangle") {
+                return "https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/ltangle/Pickel.png";
+            }
+            return `${BASE_BALL_URL}${country}/${expression}`;
+        }
+
+        // リソース
+        let userResources = {
+            clay: 150,
+            coin: 500
+        };
+
+        // プレイヤーチームデータ (強化可能)
+        let playerTeam = [
+            { id: "japan", country: "japan", type: "fire", name: "Japan", level: 1, baseAtk: 220, hpBonus: 300 },
+            { id: "france", country: "france", type: "water", name: "France", level: 1, baseAtk: 190, hpBonus: 280 },
+            { id: "sierraleone", country: "sierraleone", type: "wood", name: "Sierra Leone", level: 1, baseAtk: 180, hpBonus: 250 },
+            { id: "usa", country: "usa", type: "light", name: "USA", level: 1, baseAtk: 250, hpBonus: 350 },
+            { id: "germany", country: "germany", type: "dark", name: "Germany", level: 1, baseAtk: 230, hpBonus: 320 }
+        ];
+
+        // ストーリー＆ボス定義
+        const STAGES = [
+            {
+                id: 1,
+                name: "第1章: ドイツの秩序",
+                bossCountry: "germany",
+                bossName: "Germany Ball",
+                hp: 1500,
+                atk: 250,
+                dialog: "Guten Tag! 粘土とパズルのルールを厳格に適用する！",
+                speech: "ORDNUNG!!",
+                rewardClay: 50,
+                rewardCoin: 100
+            },
+            {
+                id: 2,
+                name: "第2章: 極寒のロシア",
+                bossCountry: "russia",
+                bossName: "Russia Ball",
+                hp: 3000,
+                atk: 450,
+                dialog: "Xaxaxa! 寒さと強力なコンボに耐えられるかな？",
+                speech: "VODKA POWER!",
+                rewardClay: 100,
+                rewardCoin: 200
+            },
+            {
+                id: 3,
+                name: "第3章: 自由の重圧",
+                bossCountry: "usa",
+                bossName: "USA Ball",
+                hp: 5500,
+                atk: 700,
+                dialog: "Hey guys! 俺のビッグなバーガーパワーを見せてやる！",
+                speech: "FREEDOM!!",
+                rewardClay: 150,
+                rewardCoin: 350
+            },
+            {
+                id: 4,
+                name: "第4章: 紳士のティータイム",
+                bossCountry: "england472x600",
+                bossName: "UK Ball",
+                hp: 8500,
+                atk: 950,
+                dialog: "Bloody hell! 縦長だからってバカにするんじゃないよ！",
+                speech: "TEA TIME CHAPS!",
+                rewardClay: 250,
+                rewardCoin: 500
+            },
+            {
+                id: 5,
+                name: "最終章: 開発者の刺客",
+                bossCountry: "developer_tangle",
+                bossName: "DeveloperTangle",
+                hp: 15000,
+                atk: 1400,
+                dialog: "I am DeveloperTangle... ピッケルの前にひれ伏すのだ！",
+                speech: "PICKEL SMASH!!",
+                rewardClay: 500,
+                rewardCoin: 1000
+            }
+        ];
+
+        let currentStageIdx = 0;
+        let isBossRush = false;
+        let rushScore = 0;
+        let bestRushScore = 0;
+
+        // ゲーム状態
+        let bossMaxHp = 1000;
+        let bossCurrentHp = 1000;
+        let playerMaxHp = 3500;
+        let playerCurrentHp = 3500;
+        let bossTurnCounter = 3;
+        let moveTimeLimit = 4.0;
+        let isDragging = false;
+        let isProcessingMatches = false;
+        let activeOrb = null;
+        let dragTimer = null;
+        let remainingTime = 0;
+        let maxComboRecord = 0;
+
+        const ORB_TYPES = [
+            { type: "fire", icon: "local_fire_department", class: "orb-fire" },
+            { type: "water", icon: "water_drop", class: "orb-water" },
+            { type: "wood", icon: "forest", class: "orb-wood" },
+            { type: "light", icon: "light_mode", class: "orb-light" },
+            { type: "dark", icon: "dark_mode", class: "orb-dark" },
+            { type: "heart", icon: "favorite", class: "orb-heart" }
+        ];
+
+        const BOARD_ROWS = 5;
+        const BOARD_COLS = 6;
+        let boardState = [];
+
+        // リソース表示更新
+        function updateResourceUI() {
+            document.getElementById('res-clay').textContent = userResources.clay;
+            document.getElementById('res-coin').textContent = userResources.coin;
+        }
+
+        // ステージ選択UIの作成
+        function renderStageChips() {
+            const container = document.getElementById('stage-chip-container');
+            container.innerHTML = '';
+
+            STAGES.forEach((stg, idx) => {
+                const chip = document.createElement('div');
+                chip.className = `stage-chip ${idx === currentStageIdx ? 'active' : ''}`;
+                chip.innerHTML = `<span class="material-symbols-outlined" style="font-size:16px;">flag</span> STAGE ${stg.id}`;
+                chip.onclick = () => selectStage(idx);
+                container.appendChild(chip);
+            });
+        }
+
+        function selectStage(idx) {
+            isBossRush = false;
+            currentStageIdx = idx;
+            renderStageChips();
+            loadStageData();
+        }
+
+        function loadStageData() {
+            const stg = STAGES[currentStageIdx];
+            document.getElementById('boss-stage-badge').textContent = `STAGE ${stg.id}`;
+            document.getElementById('boss-name-label').textContent = stg.bossName;
+            
+            bossMaxHp = stg.hp;
+            bossCurrentHp = stg.hp;
+            bossTurnCounter = 3;
+
+            // ボス画像
+            const bossImg = document.getElementById('boss-img');
+            const isUk = stg.bossCountry === "england472x600";
+            bossImg.src = getBallImageUrl(stg.bossCountry, "anger.png");
+            bossImg.className = `boss-img ${isUk ? 'uk-boss' : ''}`;
+
+            // 会話テキスト
+            const storyImg = document.getElementById('story-avatar-img');
+            storyImg.src = getBallImageUrl(stg.bossCountry, "normal.png");
+            storyImg.className = isUk ? 'uk-ball' : '';
+            document.getElementById('story-text-content').textContent = stg.dialog;
+
+            // プレイヤー最大HPの計算 (各ボールのレベルとボーナス)
+            playerMaxHp = playerTeam.reduce((acc, member) => acc + (member.hpBonus + member.level * 80), 1000);
+            playerCurrentHp = playerMaxHp;
+
+            updateHpBars();
+            document.getElementById('turn-counter').textContent = `NEXT ATTACK: ${bossTurnCounter}`;
+            renderTeamBalls();
+            initPuzzleBoard();
+        }
+
+        function renderTeamBalls(expressionMap = {}) {
+            const container = document.getElementById('team-balls-container');
+            container.innerHTML = '';
+
+            playerTeam.forEach(member => {
+                const expr = expressionMap[member.country] || (playerCurrentHp < playerMaxHp * 0.3 ? "itome.png" : "normal.png");
+                const imgUrl = getBallImageUrl(member.country, expr);
+                const isUk = member.country === "england472x600";
+
+                const ballDiv = document.createElement('div');
+                ballDiv.className = 'team-ball-item';
+                ballDiv.innerHTML = `
+                    <div class="ball-avatar">
+                        <img src="${imgUrl}" alt="${member.name}" class="${isUk ? 'uk-ball' : ''}">
+                        <div class="ball-lvl-tag">Lv.${member.level}</div>
+                    </div>
+                    <div class="ball-name">${member.name}</div>
+                `;
+                container.appendChild(ballDiv);
+            });
+        }
+
+        function updateTeamExpressions(expressionName) {
+            const map = {};
+            playerTeam.forEach(m => map[m.country] = expressionName);
+            renderTeamBalls(map);
+        }
+
+        // パズルボード初期化
+        function initPuzzleBoard() {
+            const boardEl = document.getElementById('puzzle-board');
+            boardEl.innerHTML = '';
+            boardState = [];
+
+            for (let i = 0; i < BOARD_ROWS * BOARD_COLS; i++) {
+                const randomOrb = getRandomOrbType();
+                boardState.push(randomOrb);
+
+                const orbEl = createOrbElement(randomOrb, i);
+                boardEl.appendChild(orbEl);
+            }
+
+            checkAndResolveInitialMatches();
+        }
+
+        function getRandomOrbType() {
+            return ORB_TYPES[Math.floor(Math.random() * ORB_TYPES.length)];
+        }
+
+        function createOrbElement(orbData, index) {
+            const div = document.createElement('div');
+            div.className = `orb ${orbData.class}`;
+            div.dataset.index = index;
+            div.innerHTML = `<span class="material-symbols-outlined">${orbData.icon}</span>`;
+            div.addEventListener('pointerdown', (e) => onOrbPointerDown(e, index));
+            return div;
+        }
+
+        function onOrbPointerDown(e, index) {
+            if (isProcessingMatches) return;
+
+            isDragging = true;
+            activeOrb = index;
+            updateTeamExpressions("plot.png");
+
+            const boardEl = document.getElementById('puzzle-board');
+            boardEl.children[index].classList.add('dragging');
+
+            startMoveTimer();
+
+            window.addEventListener('pointermove', onOrbPointerMove);
+            window.addEventListener('pointerup', onOrbPointerUp);
+        }
+
+        function onOrbPointerMove(e) {
+            if (!isDragging) return;
+
+            const boardEl = document.getElementById('puzzle-board');
+            const rect = boardEl.getBoundingClientRect();
+
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            if (x < 0 || x >= rect.width || y < 0 || y >= rect.height) return;
+
+            const col = Math.floor((x / rect.width) * BOARD_COLS);
+            const row = Math.floor((y / rect.height) * BOARD_ROWS);
+            const targetIndex = row * BOARD_COLS + col;
+
+            if (targetIndex >= 0 && targetIndex < BOARD_ROWS * BOARD_COLS && targetIndex !== activeOrb) {
+                swapOrbs(activeOrb, targetIndex);
+                activeOrb = targetIndex;
+            }
+        }
+
+        function swapOrbs(idx1, idx2) {
+            const temp = boardState[idx1];
+            boardState[idx1] = boardState[idx2];
+            boardState[idx2] = temp;
+
+            const boardEl = document.getElementById('puzzle-board');
+            const orbEls = boardEl.children;
+
+            updateOrbElement(orbEls[idx1], boardState[idx1]);
+            updateOrbElement(orbEls[idx2], boardState[idx2]);
+
+            orbEls[idx1].classList.remove('dragging');
+            orbEls[idx2].classList.add('dragging');
+        }
+
+        function updateOrbElement(el, orbData) {
+            el.className = `orb ${orbData.class}`;
+            el.innerHTML = `<span class="material-symbols-outlined">${orbData.icon}</span>`;
+        }
+
+        function startMoveTimer() {
+            remainingTime = moveTimeLimit;
+            const fill = document.getElementById('timer-fill');
+            fill.style.width = '100%';
+
+            const startTime = Date.now();
+            clearInterval(dragTimer);
+
+            dragTimer = setInterval(() => {
+                const elapsed = (Date.now() - startTime) / 1000;
+                remainingTime = Math.max(0, moveTimeLimit - elapsed);
+                fill.style.width = `${(remainingTime / moveTimeLimit) * 100}%`;
+
+                if (remainingTime <= 0) {
+                    onOrbPointerUp();
+                }
+            }, 50);
+        }
+
+        function onOrbPointerUp() {
+            if (!isDragging) return;
+            isDragging = false;
+            clearInterval(dragTimer);
+
+            window.removeEventListener('pointermove', onOrbPointerMove);
+            window.removeEventListener('pointerup', onOrbPointerUp);
+
+            const boardEl = document.getElementById('puzzle-board');
+            if (activeOrb !== null && boardEl.children[activeOrb]) {
+                boardEl.children[activeOrb].classList.remove('dragging');
+            }
+            activeOrb = null;
+
+            processPuzzleMatches();
+        }
+
+        async function processPuzzleMatches() {
+            isProcessingMatches = true;
+            document.getElementById('game-status-text').textContent = 'コンボ判定中...';
+
+            let comboCount = 0;
+            let totalDamage = 0;
+            let totalHeal = 0;
+
+            while (true) {
+                const matches = findMatches();
+                if (matches.length === 0) break;
+
+                comboCount++;
+                showComboEffect(comboCount);
+
+                const boardEl = document.getElementById('puzzle-board');
+                matches.forEach(idx => {
+                    if (boardEl.children[idx]) {
+                        boardEl.children[idx].classList.add('matched');
+                    }
+                    
+                    const type = boardState[idx].type;
+                    if (type === 'heart') {
+                        totalHeal += 180;
+                    } else {
+                        // プレイヤーの強化後ステータスを攻撃力に適用
+                        const matchingMember = playerTeam.find(m => m.type === type);
+                        const baseAtk = matchingMember ? (matchingMember.baseAtk + matchingMember.level * 40) : 200;
+                        totalDamage += baseAtk;
+                    }
+                });
+
+                await sleep(300);
+
+                matches.forEach(idx => boardState[idx] = null);
+                applyGravity();
+
+                await sleep(250);
+            }
+
+            if (comboCount > maxComboRecord) {
+                maxComboRecord = comboCount;
+                renderAchievements();
+            }
+
+            if (comboCount > 0) {
+                const multiplier = 1 + (comboCount - 1) * 0.3;
+                totalDamage = Math.round(totalDamage * multiplier);
+                totalHeal = Math.round(totalHeal * multiplier);
+
+                updateTeamExpressions(comboCount >= 3 ? "lol.png" : "happy.png");
+                await executePlayerTurn(totalDamage, totalHeal, comboCount);
+            } else {
+                updateTeamExpressions("normal.png");
+            }
+
+            document.getElementById('game-status-text').textContent = 'ドロップを動かそう！';
+            document.getElementById('timer-fill').style.width = '100%';
+            isProcessingMatches = false;
+        }
+
+        function findMatches() {
+            const matchedIndices = new Set();
+
+            for (let r = 0; r < BOARD_ROWS; r++) {
+                for (let c = 0; c < BOARD_COLS - 2; c++) {
+                    const idx = r * BOARD_COLS + c;
+                    const orb1 = boardState[idx];
+                    const orb2 = boardState[idx + 1];
+                    const orb3 = boardState[idx + 2];
+
+                    if (orb1 && orb2 && orb3 && orb1.type === orb2.type && orb2.type === orb3.type) {
+                        matchedIndices.add(idx);
+                        matchedIndices.add(idx + 1);
+                        matchedIndices.add(idx + 2);
+                    }
+                }
+            }
+
+            for (let c = 0; c < BOARD_COLS; c++) {
+                for (let r = 0; r < BOARD_ROWS - 2; r++) {
+                    const idx = r * BOARD_COLS + c;
+                    const orb1 = boardState[idx];
+                    const orb2 = boardState[idx + BOARD_COLS];
+                    const orb3 = boardState[idx + BOARD_COLS * 2];
+
+                    if (orb1 && orb2 && orb3 && orb1.type === orb2.type && orb2.type === orb3.type) {
+                        matchedIndices.add(idx);
+                        matchedIndices.add(idx + BOARD_COLS);
+                        matchedIndices.add(idx + BOARD_COLS * 2);
+                    }
+                }
+            }
+
+            return Array.from(matchedIndices);
+        }
+
+        function applyGravity() {
+            for (let c = 0; c < BOARD_COLS; c++) {
+                let emptySpots = 0;
+                for (let r = BOARD_ROWS - 1; r >= 0; r--) {
+                    const idx = r * BOARD_COLS + c;
+                    if (boardState[idx] === null) {
+                        emptySpots++;
+                    } else if (emptySpots > 0) {
+                        const newIdx = (r + emptySpots) * BOARD_COLS + c;
+                        boardState[newIdx] = boardState[idx];
+                        boardState[idx] = null;
+                    }
+                }
+                for (let r = 0; r < emptySpots; r++) {
+                    const idx = r * BOARD_COLS + c;
+                    boardState[idx] = getRandomOrbType();
+                }
+            }
+
+            const boardEl = document.getElementById('puzzle-board');
+            for (let i = 0; i < BOARD_ROWS * BOARD_COLS; i++) {
+                updateOrbElement(boardEl.children[i], boardState[i]);
+                boardEl.children[i].classList.remove('matched');
+            }
+        }
+
+        function checkAndResolveInitialMatches() {
+            let matches = findMatches();
+            while (matches.length > 0) {
+                matches.forEach(idx => boardState[idx] = getRandomOrbType());
+                matches = findMatches();
+            }
+            const boardEl = document.getElementById('puzzle-board');
+            for (let i = 0; i < BOARD_ROWS * BOARD_COLS; i++) {
+                updateOrbElement(boardEl.children[i], boardState[i]);
+            }
+        }
+
+        function showComboEffect(combo) {
+            const display = document.getElementById('combo-display');
+            display.textContent = `${combo} COMBO!`;
+            display.classList.remove('active');
+            void display.offsetWidth;
+            display.classList.add('active');
+        }
+
+        async function executePlayerTurn(damage, heal, combo) {
+            if (heal > 0) {
+                playerCurrentHp = Math.min(playerMaxHp, playerCurrentHp + heal);
+                updateHpBars();
+                showToast(`💖 ${heal} HP 回復！`);
+            }
+
+            if (damage > 0) {
+                bossCurrentHp = Math.max(0, bossCurrentHp - damage);
+                updateHpBars();
+
+                const bossImg = document.getElementById('boss-img');
+                bossImg.classList.add('hit-shake');
+                setTimeout(() => bossImg.classList.remove('hit-shake'), 400);
+
+                showToast(`⚔️ ${damage} ダメージ！ (${combo} Combo)`);
+            }
+
+            // 勝利判定
+            if (bossCurrentHp <= 0) {
+                await sleep(500);
+
+                if (isBossRush) {
+                    rushScore++;
+                    if (rushScore > bestRushScore) {
+                        bestRushScore = rushScore;
+                        document.getElementById('best-rush-score').textContent = `${bestRushScore} 撃破`;
+                    }
+                    showToast(`ボスラッシュ撃破！ (${rushScore}体目)`);
+                    loadBossRushNext();
+                } else {
+                    const stg = STAGES[currentStageIdx];
+                    userResources.clay += stg.rewardClay;
+                    userResources.coin += stg.rewardCoin;
+                    updateResourceUI();
+
+                    showGameDialog(true, "VICTORY!", `${stg.bossName} を倒した！ 報酬: 粘土+${stg.rewardClay}, コイン+${stg.rewardCoin}`);
+                    updateTeamExpressions("smile.png");
+                }
+                return;
+            }
+
+            bossTurnCounter--;
+            if (bossTurnCounter <= 0) {
+                await sleep(600);
+                await executeBossAttack();
+                bossTurnCounter = 3;
+            }
+
+            document.getElementById('turn-counter').textContent = `NEXT ATTACK: ${bossTurnCounter}`;
+        }
+
+        async function executeBossAttack() {
+            const stg = isBossRush ? { speech: "RUSH ATTACK!", atk: 600 + rushScore * 200 } : STAGES[currentStageIdx];
+            showBossSpeech(stg.speech);
+            updateTeamExpressions("anger.png");
+
+            const bossDamage = Math.floor(stg.atk * (0.8 + Math.random() * 0.4));
+            playerCurrentHp = Math.max(0, playerCurrentHp - bossDamage);
+            updateHpBars();
+
+            showToast(`💥 ボスの攻撃！ ${bossDamage} ダメージ！`);
+
+            if (playerCurrentHp <= 0) {
+                await sleep(500);
+                updateTeamExpressions("surprise.png");
+                showGameDialog(false, "GAME OVER", isBossRush ? `ボスラッシュ終了！ 記録: ${rushScore}体撃破` : "ボスの攻撃に倒れてしまった...");
+            }
+        }
+
+        function showBossSpeech(text) {
+            const bubble = document.getElementById('boss-speech-bubble');
+            bubble.textContent = text;
+            bubble.classList.add('active');
+            setTimeout(() => bubble.classList.remove('active'), 1800);
+        }
+
+        function updateHpBars() {
+            const bossPct = (bossCurrentHp / bossMaxHp) * 100;
+            document.getElementById('boss-hp-fill').style.width = `${bossPct}%`;
+            document.getElementById('boss-hp-text').textContent = `HP: ${bossCurrentHp} / ${bossMaxHp}`;
+
+            const playerPct = (playerCurrentHp / playerMaxHp) * 100;
+            document.getElementById('player-hp-fill').style.width = `${playerPct}%`;
+            document.getElementById('player-hp-num').textContent = `HP: ${playerCurrentHp} / ${playerMaxHp}`;
+        }
+
+        function resetBattle() {
+            if (isBossRush) {
+                startBossRush();
+            } else {
+                loadStageData();
+            }
+            showToast("バトルをリセットしました！");
+        }
+
+        // ボスラッシュ進行
+        function startBossRush() {
+            switchView('view-home');
+            isBossRush = true;
+            rushScore = 0;
+            loadBossRushNext();
+        }
+
+        function loadBossRushNext() {
+            document.getElementById('boss-stage-badge').textContent = `RUSH #${rushScore + 1}`;
+            
+            // ランダムにボスを選択
+            const randomBossCountry = COUNTRIES[Math.floor(Math.random() * COUNTRIES.length)];
+            const bossName = randomBossCountry.toUpperCase() + " BALL";
+            
+            bossMaxHp = 2000 + rushScore * 1500;
+            bossCurrentHp = bossMaxHp;
+            bossTurnCounter = 3;
+
+            document.getElementById('boss-name-label').textContent = bossName;
+            const bossImg = document.getElementById('boss-img');
+            const isUk = randomBossCountry === "england472x600";
+            bossImg.src = getBallImageUrl(randomBossCountry, "anger.png");
+            bossImg.className = `boss-img ${isUk ? 'uk-boss' : ''}`;
+
+            document.getElementById('story-text-content').textContent = `ボスラッシュ第 ${rushScore + 1} 刺客！ 倒せるかな？`;
+
+            playerMaxHp = playerTeam.reduce((acc, member) => acc + (member.hpBonus + member.level * 80), 1000);
+            playerCurrentHp = playerMaxHp;
+
+            updateHpBars();
+            document.getElementById('turn-counter').textContent = `NEXT ATTACK: ${bossTurnCounter}`;
+            renderTeamBalls();
+            initPuzzleBoard();
+        }
+
+        // キャラ強化画面描画
+        function renderUpgradeList() {
+            const container = document.getElementById('upgrade-list-container');
+            container.innerHTML = '';
+
+            playerTeam.forEach((member, idx) => {
+                const isUk = member.country === "england472x600";
+                const costClay = member.level * 30;
+                const costCoin = member.level * 50;
+
+                const card = document.createElement('div');
+                card.className = 'upgrade-card';
+                card.innerHTML = `
+                    <div class="upgrade-info">
+                        <div class="upgrade-avatar">
+                            <img src="${getBallImageUrl(member.country, 'happy.png')}" class="${isUk ? 'uk-ball' : ''}" alt="${member.name}">
+                        </div>
+                        <div>
+                            <div style="font-weight:700; font-size:14px;">${member.name} <span class="badge">Lv.${member.level}</span></div>
+                            <div style="font-size:11px; color:var(--text-sub);">ATK: ${member.baseAtk + member.level * 40} | HP: +${member.hpBonus + member.level * 80}</div>
+                        </div>
+                    </div>
+                    <button class="ai-btn ai-btn-sm" onclick="upgradeMember(${idx})">
+                        強化 (${costClay}粘土)
+                    </button>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function upgradeMember(idx) {
+            const member = playerTeam[idx];
+            const costClay = member.level * 30;
+            const costCoin = member.level * 50;
+
+            if (userResources.clay >= costClay && userResources.coin >= costCoin) {
+                userResources.clay -= costClay;
+                userResources.coin -= costCoin;
+                member.level++;
+                
+                updateResourceUI();
+                renderUpgradeList();
+                showToast(`${member.name} が Lv.${member.level} にレベルアップ！`);
+            } else {
+                showToast("強化素材 (粘土/コイン) が足りません！");
+            }
+        }
+
+        // 実績一覧の描画
+        function renderAchievements() {
+            const container = document.getElementById('achievements-container');
+            if (!container) return;
+            container.innerHTML = `
+                <div class="list-item">
+                    <div>
+                        <div class="list-item-title">最高コンボ達成</div>
+                        <div class="list-item-desc">記録: ${maxComboRecord} コンボ</div>
+                    </div>
+                    <span class="badge">${maxComboRecord >= 5 ? '達成！' : '挑戦中'}</span>
+                </div>
+                <div class="list-item">
+                    <div>
+                        <div class="list-item-title">ボスラッシュ最高記録</div>
+                        <div class="list-item-desc">記録: ${bestRushScore} 体撃破</div>
+                    </div>
+                    <span class="badge">${bestRushScore >= 3 ? '達成！' : '挑戦中'}</span>
+                </div>
+            `;
+        }
+
+        // 図鑑ギャラリー
+        function renderGallery() {
+            const container = document.getElementById('gallery-container');
+            container.innerHTML = '';
+
+            COUNTRIES.forEach(country => {
+                const isUk = country === "england472x600";
+                const displayName = isUk ? "UK" : country.charAt(0).toUpperCase() + country.slice(1);
+                let currentExprIdx = 5;
+
+                const card = document.createElement('div');
+                card.className = 'gallery-card glass-card';
+                card.style.margin = '0';
+                card.style.padding = '8px';
+
+                card.innerHTML = `
+                    <img src="${getBallImageUrl(country, EXPRESSIONS[currentExprIdx])}" class="gallery-ball-img ${isUk ? 'uk-ball' : ''}" id="gal-img-${country}" alt="${displayName}">
+                    <div style="font-size: 11px; font-weight: 700; margin-top: 6px; text-align: center;">${displayName}</div>
+                    <div style="font-size: 9px; color: var(--text-sub);" id="gal-expr-${country}">normal</div>
+                `;
+
+                card.addEventListener('click', () => {
+                    currentExprIdx = (currentExprIdx + 1) % EXPRESSIONS.length;
+                    const exprFile = EXPRESSIONS[currentExprIdx];
+                    const imgEl = document.getElementById(`gal-img-${country}`);
+                    const labelEl = document.getElementById(`gal-expr-${country}`);
+
+                    imgEl.src = getBallImageUrl(country, exprFile);
+                    labelEl.textContent = exprFile.replace('.png', '');
+                });
+
+                container.appendChild(card);
+            });
+        }
+
+        function setMoveTimeLimit(val) {
+            moveTimeLimit = parseFloat(val);
+        }
+
+        function startGame() {
+            document.getElementById('title-screen').classList.add('hidden');
+            showToast("Country & Balls へようこそ！");
+        }
+
+        function openTitleScreen() {
+            document.getElementById('title-screen').classList.remove('hidden');
+        }
+
+        function showGameDialog(isWin, title, desc) {
+            document.getElementById('dialog-icon').textContent = isWin ? 'emoji_events' : 'sentiment_very_dissatisfied';
+            document.getElementById('dialog-title').textContent = title;
+            document.getElementById('dialog-desc').textContent = desc;
+            document.getElementById('main-dialog').classList.add('active');
+        }
+
+        function closeDialog() {
+            document.getElementById('main-dialog').classList.remove('active');
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast-message');
+            toast.textContent = msg;
+            toast.classList.add('active');
+            setTimeout(() => toast.classList.remove('active'), 2200);
+        }
+
+        function switchView(viewId) {
+            document.querySelectorAll('.nav-item').forEach(n => {
+                n.classList.remove('active');
+                if (n.getAttribute('data-view') === viewId) n.classList.add('active');
+            });
+
+            document.querySelectorAll('.view').forEach(v => {
+                v.classList.remove('active');
+                if (v.id === viewId) v.classList.add('active');
+            });
+
+            if (viewId === 'view-upgrade') renderUpgradeList();
+            if (viewId === 'view-extra') renderAchievements();
+        }
+
+        function updateThickSlider(fillId, labelId, val, unit) {
+            const label = document.getElementById(labelId);
+            const fill = document.getElementById(fillId);
+            if (label) label.textContent = `${val}${unit}`;
+            if (fill) {
+                const input = fill.nextElementSibling;
+                if (input) {
+                    const min = parseFloat(input.min) || 0;
+                    const max = parseFloat(input.max) || 100;
+                    const percent = ((val - min) / (max - min)) * 100;
+                    fill.style.width = `${percent}%`;
+                }
+            }
+        }
+
+        const themeBtn = document.getElementById('theme-btn');
+        function setTheme(isDark) {
+            document.body.classList.toggle('dark-mode', isDark);
+            themeBtn.querySelector('span').textContent = isDark ? 'dark_mode' : 'light_mode';
+        }
+
+        themeBtn.addEventListener('click', () => {
+            setTheme(!document.body.classList.contains('dark-mode'));
+        });
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        window.onload = () => {
+            updateResourceUI();
+            renderStageChips();
+            loadStageData();
+            renderGallery();
+            renderUpgradeList();
+            renderAchievements();
+            updateThickSlider('slider-time-fill', 'val-time', 4.0, '秒');
+        };
+    </script>
+</body>
+</html>
