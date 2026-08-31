@@ -1,0 +1,1659 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Backrooms Maker and Play</title>
+    <!-- Tailwind CSS for UI -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js for 3D Graphics -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #050505;
+            font-family: 'Inter', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        /* Virtual Controls Styling */
+        .touch-btn {
+            background: rgba(20, 20, 20, 0.65);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(8px);
+            border-radius: 9999px;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5), inset 0 1px 1px rgba(255,255,255,0.2);
+            transition: transform 0.05s, background 0.1s;
+        }
+
+        .touch-btn:active {
+            transform: scale(0.92);
+            background: rgba(234, 179, 8, 0.6);
+            border-color: #eab308;
+        }
+
+        .joystick-base {
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            background: rgba(250, 250, 250, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.25);
+            position: absolute;
+            bottom: 25px;
+            left: 25px;
+            z-index: 20;
+            backdrop-filter: blur(4px);
+            touch-action: none;
+        }
+
+        .joystick-stick {
+            width: 55px;
+            height: 55px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #fde047 0%, #ca8a04 100%);
+            position: absolute;
+            top: 52.5px;
+            left: 52.5px;
+            box-shadow: 0 0 15px rgba(234, 179, 8, 0.6);
+            pointer-events: none;
+        }
+
+        /* Scanline Filter Effect for Backrooms Vibe */
+        .scanlines {
+            background: linear-gradient(
+                rgba(18, 16, 16, 0) 50%, 
+                rgba(0, 0, 0, 0.25) 50%
+            ), linear-gradient(
+                90deg,
+                rgba(255, 0, 0, 0.03),
+                rgba(0, 255, 0, 0.01),
+                rgba(0, 0, 255, 0.03)
+            );
+            background-size: 100% 3px, 6px 100%;
+            pointer-events: none;
+        }
+
+        /* Custom Scrollbar for Editor UI */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #111;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #444;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body class="text-white overflow-hidden select-none">
+
+    <!-- 3D Canvas -->
+    <div id="canvas-container"></div>
+    <div class="scanlines absolute inset-0 z-10 pointer-events-none"></div>
+
+    <!-- MAIN MENU OVERLAY -->
+    <div id="main-menu" class="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/85 backdrop-blur-md p-4 transition-opacity duration-300">
+        <div class="max-w-4xl w-full bg-neutral-900/90 border border-neutral-700 rounded-2xl p-6 shadow-2xl overflow-y-auto max-h-[90vh]">
+            <div class="text-center mb-5">
+                <h1 class="text-4xl md:text-5xl font-black tracking-widest text-yellow-400 drop-shadow-[0_2px_10px_rgba(234,179,8,0.5)]">
+                    BACKROOMS MAKER & PLAY
+                </h1>
+                <p class="text-xs md:text-sm text-neutral-400 mt-2">Create your nightmare, escape the entities, or explore infinite liminal spaces.</p>
+            </div>
+
+            <!-- TIME OF DAY SELECTOR -->
+            <div class="mb-5 p-3 bg-neutral-950/80 border border-neutral-800 rounded-xl">
+                <label class="block text-xs font-bold text-yellow-400 uppercase tracking-wider mb-2 flex items-center gap-2">
+                    <i class="fa-solid fa-sun-plant-wilt"></i> ワールド時間帯 (Time of Day):
+                </label>
+                <div class="grid grid-cols-4 gap-2">
+                    <button onclick="setTimeOfDay('morning')" id="tod-btn-morning" class="py-2 px-3 rounded-lg border border-neutral-700 bg-neutral-800 hover:bg-amber-900/40 text-xs font-bold flex items-center justify-center gap-1.5 transition">
+                        <i class="fa-solid fa-sun text-amber-400"></i> 朝 (Morning)
+                    </button>
+                    <button onclick="setTimeOfDay('day')" id="tod-btn-day" class="py-2 px-3 rounded-lg border border-neutral-700 bg-neutral-800 hover:bg-sky-900/40 text-xs font-bold flex items-center justify-center gap-1.5 transition">
+                        <i class="fa-solid fa-sun text-sky-300"></i> 昼 (Day)
+                    </button>
+                    <button onclick="setTimeOfDay('night')" id="tod-btn-night" class="py-2 px-3 rounded-lg border border-neutral-700 bg-neutral-800 hover:bg-indigo-900/40 text-xs font-bold flex items-center justify-center gap-1.5 transition">
+                        <i class="fa-solid fa-moon text-indigo-300"></i> 夜 (Night)
+                    </button>
+                    <button onclick="setTimeOfDay('dark')" id="tod-btn-dark" class="py-2 px-3 rounded-lg border border-yellow-500 bg-yellow-950/60 text-yellow-300 text-xs font-bold flex items-center justify-center gap-1.5 transition">
+                        <i class="fa-solid fa-eye-slash text-neutral-400"></i> 暗黒 (Dark)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Mode Selection Cards Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                <!-- Default Backrooms -->
+                <button onclick="startGame('default')" class="flex flex-col text-left p-4 bg-neutral-800 hover:bg-yellow-900/40 border border-neutral-700 hover:border-yellow-500 rounded-xl transition-all group">
+                    <div class="flex items-center space-x-3 mb-2">
+                        <i class="fa-solid font-bold fa-dungeon text-yellow-500 text-xl group-hover:scale-110 transition-transform"></i>
+                        <span class="font-bold text-lg text-yellow-200">Default Backrooms</span>
+                    </div>
+                    <span class="text-xs text-neutral-400">Classic Level 0 yellow wallpaper maze with flickering lights.</span>
+                </button>
+
+                <!-- Infinite Backrooms -->
+                <button onclick="startGame('infinite')" class="flex flex-col text-left p-4 bg-neutral-800 hover:bg-yellow-900/40 border border-neutral-700 hover:border-yellow-500 rounded-xl transition-all group">
+                    <div class="flex items-center space-x-3 mb-2">
+                        <i class="fa-solid fa-infinity text-yellow-500 text-xl group-hover:scale-110 transition-transform"></i>
+                        <span class="font-bold text-lg text-yellow-200">Infinite Backrooms</span>
+                    </div>
+                    <span class="text-xs text-neutral-400">Procedurally generated infinite liminal layout. Non-customizable.</span>
+                </button>
+
+                <!-- City: Tokyo -->
+                <button onclick="startGame('tokyo')" class="flex flex-col text-left p-4 bg-neutral-800 hover:bg-cyan-900/40 border border-neutral-700 hover:border-cyan-400 rounded-xl transition-all group">
+                    <div class="flex items-center space-x-3 mb-2">
+                        <i class="fa-solid fa-city text-cyan-400 text-xl group-hover:scale-110 transition-transform"></i>
+                        <span class="font-bold text-lg text-cyan-200">Tokyo City</span>
+                    </div>
+                    <span class="text-xs text-neutral-400">Neon-lit metropolis layout with skyscrapers and alleyways.</span>
+                </button>
+
+                <!-- City: Germany -->
+                <button onclick="startGame('germany')" class="flex flex-col text-left p-4 bg-neutral-800 hover:bg-amber-900/40 border border-neutral-700 hover:border-amber-500 rounded-xl transition-all group">
+                    <div class="flex items-center space-x-3 mb-2">
+                        <i class="fa-solid fa-building-columns text-amber-500 text-xl group-hover:scale-110 transition-transform"></i>
+                        <span class="font-bold text-lg text-amber-200">Germany Town</span>
+                    </div>
+                    <span class="text-xs text-neutral-400">Classic European architecture style town with brick avenues.</span>
+                </button>
+
+                <!-- Custom Maker -->
+                <button onclick="openMakerMode()" class="flex flex-col text-left p-4 bg-neutral-800 hover:bg-emerald-900/40 border border-neutral-700 hover:border-emerald-400 rounded-xl transition-all group">
+                    <div class="flex items-center space-x-3 mb-2">
+                        <i class="fa-solid fa-pen-ruler text-emerald-400 text-xl group-hover:scale-110 transition-transform"></i>
+                        <span class="font-bold text-lg text-emerald-200">Custom Maker</span>
+                    </div>
+                    <span class="text-xs text-neutral-400">Draw custom room shapes, walls, adjust lighting & entity spawns.</span>
+                </button>
+
+                <!-- Survival Mode -->
+                <button onclick="startSurvivalMode()" class="flex flex-col text-left p-4 bg-neutral-800 hover:bg-red-900/40 border border-neutral-700 hover:border-red-500 rounded-xl transition-all group">
+                    <div class="flex items-center space-x-3 mb-2">
+                        <i class="fa-solid fa-skull text-red-500 text-xl group-hover:scale-110 transition-transform"></i>
+                        <span class="font-bold text-lg text-red-300">Survival Chase</span>
+                    </div>
+                    <span class="text-xs text-neutral-400">Survive against high-speed Nextbots as long as possible!</span>
+                </button>
+            </div>
+
+            <!-- Bottom Menu Controls -->
+            <div class="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-neutral-800">
+                <button onclick="openEntityCreator()" class="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 border border-neutral-600 rounded-lg text-sm font-semibold flex items-center gap-2">
+                    <i class="fa-solid fa-ghost text-purple-400"></i> Nextbot / Entity Creator
+                </button>
+                <div class="flex items-center gap-3">
+                    <button onclick="toggleFullscreen()" class="p-2 bg-neutral-800 hover:bg-neutral-700 border border-neutral-600 rounded-lg text-xs" title="Fullscreen">
+                        <i class="fa-solid fa-expand"></i>
+                    </button>
+                    <span class="text-xs text-neutral-500">Controls: Stick/WASD + Jump/Dash buttons</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2D MAP MAKER OVERLAY -->
+    <div id="maker-modal" class="absolute inset-0 z-40 bg-neutral-950 flex flex-col hidden">
+        <!-- Top Toolbar -->
+        <div class="flex items-center justify-between p-3 bg-neutral-900 border-b border-neutral-800">
+            <div class="flex items-center space-x-3">
+                <button onclick="closeMakerMode()" class="px-3 py-1.5 bg-neutral-800 hover:bg-neutral-700 rounded-lg text-xs font-bold">
+                    <i class="fa-solid fa-arrow-left"></i> Menu
+                </button>
+                <h2 class="font-bold text-yellow-400 text-sm md:text-base">Custom Map Editor</h2>
+            </div>
+            
+            <!-- Tools Switcher -->
+            <div class="flex items-center space-x-2 bg-neutral-950 p-1 rounded-lg border border-neutral-800">
+                <button id="tool-wall" onclick="setMakerTool('wall')" class="px-3 py-1 bg-yellow-500 text-black font-bold rounded text-xs">
+                    <i class="fa-solid fa-square"></i> Wall
+                </button>
+                <button id="tool-erase" onclick="setMakerTool('erase')" class="px-3 py-1 bg-neutral-800 text-neutral-300 font-bold rounded text-xs">
+                    <i class="fa-solid fa-eraser"></i> Erase
+                </button>
+                <button id="tool-light" onclick="setMakerTool('light')" class="px-3 py-1 bg-neutral-800 text-neutral-300 font-bold rounded text-xs">
+                    <i class="fa-solid fa-lightbulb"></i> Light
+                </button>
+                <button id="tool-player" onclick="setMakerTool('player')" class="px-3 py-1 bg-neutral-800 text-neutral-300 font-bold rounded text-xs">
+                    <i class="fa-solid fa-user"></i> Spawn
+                </button>
+                <button id="tool-entity" onclick="setMakerTool('entity')" class="px-3 py-1 bg-neutral-800 text-neutral-300 font-bold rounded text-xs">
+                    <i class="fa-solid fa-ghost"></i> Entity
+                </button>
+            </div>
+
+            <button onclick="playCustomMap()" class="px-5 py-1.5 bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg text-xs shadow-lg flex items-center gap-2">
+                <i class="fa-solid fa-play"></i> PLAY 3D
+            </button>
+        </div>
+
+        <!-- Editor Center Layout -->
+        <div class="flex-1 flex flex-col md:flex-row overflow-hidden relative">
+            <!-- Canvas Drawing Area -->
+            <div class="flex-1 flex items-center justify-center p-4 bg-neutral-900/50 overflow-auto">
+                <canvas id="grid-canvas" class="border border-neutral-700 bg-neutral-950 rounded-lg cursor-crosshair shadow-2xl"></canvas>
+            </div>
+
+            <!-- Customization Settings Drawer -->
+            <div class="w-full md:w-64 bg-neutral-900 p-4 border-t md:border-t-0 md:border-l border-neutral-800 flex flex-col gap-4 text-xs">
+                <h3 class="font-bold text-yellow-400 uppercase tracking-wider text-[11px] border-b border-neutral-800 pb-2">Custom Lighting</h3>
+                <div>
+                    <label class="block text-neutral-400 mb-1">Light Color</label>
+                    <input type="color" id="custom-light-color" value="#ffffaa" class="w-full h-8 bg-neutral-800 border border-neutral-700 rounded cursor-pointer">
+                </div>
+                <div>
+                    <label class="block text-neutral-400 mb-1">Light Intensity (<span id="intensity-val">1.2</span>)</label>
+                    <input type="range" id="custom-light-intensity" min="0.2" max="3.0" step="0.1" value="1.2" oninput="document.getElementById('intensity-val').innerText=this.value" class="w-full accent-yellow-400">
+                </div>
+                <div class="flex items-center gap-2">
+                    <input type="checkbox" id="custom-flicker" class="rounded accent-yellow-400" checked>
+                    <label for="custom-flicker" class="text-neutral-300">Flickering Lights Effect</label>
+                </div>
+
+                <h3 class="font-bold text-yellow-400 uppercase tracking-wider text-[11px] border-b border-neutral-800 pb-2 mt-2">Wall Style</h3>
+                <select id="custom-wall-style" class="w-full p-2 bg-neutral-800 border border-neutral-700 rounded text-white">
+                    <option value="yellow">Yellow Mono Wallpaper</option>
+                    <option value="concrete">Dark Concrete</option>
+                    <option value="brick">Germany Brick Style</option>
+                    <option value="neon">Tokyo Neon Pattern</option>
+                </select>
+
+                <div class="mt-auto pt-2 border-t border-neutral-800 text-[10px] text-neutral-500">
+                    * Draw walls to design rooms. Place lights and Nextbot spawns anywhere!
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ENTITY / NEXTBOT CREATOR MODAL -->
+    <div id="entity-modal" class="absolute inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 hidden">
+        <div class="max-w-lg w-full bg-neutral-900 border border-neutral-700 rounded-2xl p-5 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between border-b border-neutral-800 pb-3">
+                <h2 class="text-lg font-bold text-purple-400 flex items-center gap-2">
+                    <i class="fa-solid fa-ghost"></i> Countryball / Nextbot Selector
+                </h2>
+                <button onclick="closeEntityCreator()" class="text-neutral-400 hover:text-white">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Countryball Picker -->
+            <div class="space-y-3">
+                <label class="block text-xs font-semibold text-neutral-300">Select Countryball Asset</label>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <span class="text-[10px] text-neutral-400 block mb-1">Country Name</span>
+                        <select id="country-select" onchange="updateCountryballPreview()" class="w-full p-2 bg-neutral-800 border border-neutral-700 rounded text-xs">
+                            <option value="japan">japan</option>
+                            <option value="germany">germany</option>
+                            <option value="china">china</option>
+                            <option value="italy">italy</option>
+                            <option value="sierraleone">sierraleone</option>
+                            <option value="russia">russia</option>
+                            <option value="france">france</option>
+                            <option value="poland">poland</option>
+                            <option value="england472x600">england (UK)</option>
+                            <option value="usa">usa</option>
+                            <option value="korea">korea</option>
+                            <option value="austria">austria</option>
+                        </select>
+                    </div>
+                    <div>
+                        <span class="text-[10px] text-neutral-400 block mb-1">Expression (File)</span>
+                        <select id="expression-select" onchange="updateCountryballPreview()" class="w-full p-2 bg-neutral-800 border border-neutral-700 rounded text-xs">
+                            <option value="normal.png">normal.png</option>
+                            <option value="anger.png">anger.png</option>
+                            <option value="dissatisfaction.png">dissatisfaction.png</option>
+                            <option value="happy.png">happy.png</option>
+                            <option value="itome.png">itome.png</option>
+                            <option value="lol.png">lol.png</option>
+                            <option value="plot.png">plot.png</option>
+                            <option value="smile.png">smile.png</option>
+                            <option value="surprise.png">surprise.png</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Preview Box -->
+                <div class="flex items-center justify-center p-3 bg-neutral-950 border border-neutral-800 rounded-xl h-36 relative">
+                    <canvas id="countryball-preview-canvas" class="max-h-28 max-w-full object-contain"></canvas>
+                    <span id="preview-loading" class="text-xs text-neutral-500 absolute">Loading Preview...</span>
+                </div>
+
+                <!-- Custom Upload Alternative -->
+                <div class="pt-2 border-t border-neutral-800">
+                    <label class="block text-xs font-semibold text-neutral-300 mb-1">Or Upload Custom Nextbot Image</label>
+                    <input type="file" id="custom-nextbot-file" accept="image/*" onchange="handleCustomImageUpload(event)" class="w-full text-xs text-neutral-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-neutral-800 file:text-neutral-200 hover:file:bg-neutral-700">
+                </div>
+            </div>
+
+            <div class="flex justify-end pt-2">
+                <button onclick="applyActiveNextbot()" class="px-5 py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg text-xs shadow-lg">
+                    Set Active Nextbot Entity
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- IN-GAME HUD & CONTROLS -->
+    <div id="game-hud" class="absolute inset-0 z-30 pointer-events-none hidden">
+        <!-- Top Left Info Bar -->
+        <div class="absolute top-4 left-4 flex items-center space-x-3 pointer-events-auto">
+            <button onclick="returnToMenu()" class="p-2.5 bg-neutral-900/80 border border-neutral-700 rounded-xl text-xs hover:bg-neutral-800 font-bold backdrop-blur shadow">
+                <i class="fa-solid fa-house text-yellow-400"></i> Menu
+            </button>
+            <div class="px-3 py-1.5 bg-neutral-900/80 border border-neutral-700 rounded-xl text-xs font-mono backdrop-blur flex items-center space-x-2">
+                <span class="text-neutral-400">MODE:</span>
+                <span id="hud-mode-name" class="text-yellow-400 font-bold uppercase">DEFAULT</span>
+            </div>
+            
+            <!-- Quick Time-of-Day Switcher in HUD -->
+            <button onclick="cycleTimeOfDay()" class="px-3 py-1.5 bg-neutral-900/80 border border-neutral-700 rounded-xl text-xs font-bold backdrop-blur flex items-center gap-1.5 text-yellow-300">
+                <i class="fa-solid fa-clock" id="hud-tod-icon"></i> <span id="hud-tod-label">暗黒</span>
+            </button>
+
+            <!-- Survival Timer (If Survival Mode) -->
+            <div id="survival-timer-container" class="hidden px-3 py-1.5 bg-red-950/80 border border-red-700 rounded-xl text-xs font-mono text-red-300 backdrop-blur">
+                SURVIVED: <span id="survival-timer" class="font-bold text-white">00:00</span>
+            </div>
+        </div>
+
+        <!-- Top Right Tool / Item Quick Switch Toolbar -->
+        <div class="absolute top-4 right-4 flex items-center space-x-2 pointer-events-auto">
+            <button id="btn-item-lexip" onclick="equipItem('lexip')" class="px-3 py-2 bg-yellow-500/80 border-2 border-yellow-300 text-black font-bold rounded-xl text-xs backdrop-blur shadow flex items-center gap-1.5 transition">
+                <i class="fa-solid fa-mobile-screen"></i> a01 lexip
+            </button>
+            <button id="btn-item-isword" onclick="equipItem('isword')" class="px-3 py-2 bg-neutral-900/80 border border-neutral-700 text-neutral-300 font-bold rounded-xl text-xs backdrop-blur shadow flex items-center gap-1.5 transition">
+                <i class="fa-solid fa-apple-whole text-red-400"></i> iSword
+            </button>
+            <button id="btn-item-axe" onclick="equipItem('axe')" class="px-3 py-2 bg-neutral-900/80 border border-neutral-700 text-neutral-300 font-bold rounded-xl text-xs backdrop-blur shadow flex items-center gap-1.5 transition">
+                <i class="fa-solid fa-crow text-blue-400"></i> linuAxe
+            </button>
+            <button onclick="toggleFullscreen()" class="p-2 bg-neutral-900/80 border border-neutral-700 rounded-xl text-xs backdrop-blur text-neutral-300">
+                <i class="fa-solid fa-expand"></i>
+            </button>
+        </div>
+
+        <!-- LEFT JOYSTICK AREA -->
+        <div id="joystick-base" class="joystick-base pointer-events-auto">
+            <div id="joystick-stick" class="joystick-stick"></div>
+        </div>
+
+        <!-- RIGHT ACTION BUTTONS AREA -->
+        <div class="absolute bottom-6 right-6 flex flex-col items-end space-y-3 pointer-events-auto">
+            <div class="flex items-center space-x-3">
+                <!-- Camera View Switch Button -->
+                <button onclick="toggleCameraView()" class="touch-btn w-14 h-14 text-sm" title="FPS/TPS Switch">
+                    <i class="fa-solid fa-eye"></i>
+                </button>
+                <!-- Dash Button -->
+                <button id="btn-dash" class="touch-btn w-14 h-14 text-xs font-bold" title="Dash">
+                    DASH
+                </button>
+            </div>
+            <div class="flex items-center space-x-3">
+                <!-- High Jump Button -->
+                <button id="btn-highjump" class="touch-btn w-14 h-14 text-xs font-bold text-amber-300" title="High Jump">
+                    HIGH<br>JUMP
+                </button>
+                <!-- Normal Jump Button -->
+                <button id="btn-jump" class="touch-btn w-16 h-16 text-sm font-black text-yellow-400" title="Jump">
+                    JUMP
+                </button>
+            </div>
+        </div>
+
+        <!-- Notification Toast -->
+        <div id="game-toast" class="absolute bottom-24 left-1/2 -translate-x-1/2 px-4 py-2 bg-neutral-900/90 border border-yellow-500/50 rounded-full text-xs font-semibold text-yellow-300 pointer-events-none opacity-0 transition-opacity duration-300 shadow-xl">
+            Message
+        </div>
+    </div>
+
+    <!-- JUMPSCARE / GAME OVER OVERLAY -->
+    <div id="jumpscare-overlay" class="absolute inset-0 z-50 bg-red-950/90 flex flex-col items-center justify-center p-4 hidden">
+        <h1 class="text-5xl md:text-7xl font-black text-red-500 tracking-widest animate-pulse mb-2">CAUGHT!</h1>
+        <p class="text-neutral-300 text-sm mb-6">The Entity got you in the Backrooms.</p>
+        <button onclick="returnToMenu()" class="px-6 py-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl text-sm shadow-xl">
+            Return to Menu
+        </button>
+    </div>
+
+    <!-- JAVASCRIPT GAME LOGIC -->
+    <script>
+        const COUNTRYBALL_BASE_URL = "https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/";
+
+        let scene, camera, renderer;
+        let activeMode = 'default'; // 'default', 'infinite', 'tokyo', 'germany', 'custom'
+        let cameraMode = 'FPS'; // 'FPS' or 'TPS'
+        let currentEquippedItem = 'lexip'; // 'lexip', 'isword', 'axe'
+        let timeOfDay = 'dark'; // 'morning', 'day', 'night', 'dark'
+
+        // Collision Management
+        let colliders = []; // Stores Box3 bounding boxes for walls
+
+        // World Lighting Controls
+        let environmentLight = null;
+        let dirSunLight = null;
+
+        // Movement & Physics
+        let playerPos = new THREE.Vector3(0, 1.6, 0);
+        let playerVelocity = new THREE.Vector3();
+        let playerYaw = 0;
+        let playerPitch = 0;
+        let isGrounded = true;
+        let isDashing = false;
+        const PLAYER_RADIUS = 0.35; // Optimized realistic player collision radius
+        let playerBodyMesh = null; // TPS Player avatar model
+
+        // Custom Map Data Grid (24x24 default)
+        const GRID_SIZE = 24;
+        let customGrid = Array(GRID_SIZE).fill(0).map(() => Array(GRID_SIZE).fill(0));
+        let customLights = [];
+        let customPlayerSpawn = { x: 12, z: 12 };
+        let customEntitySpawns = [];
+        let activeMakerTool = 'wall'; // 'wall', 'erase', 'light', 'player', 'entity'
+
+        // Nextbot Entity State
+        let activeNextbotTexture = null;
+        let entities = []; // Array of Nextbot Mesh objects
+        let survivalTimerSeconds = 0;
+        let survivalInterval = null;
+
+        // 3D Item Meshes
+        let itemGroup;
+        let phoneScreenTexture, phoneCanvas, phoneCtx;
+        let swordMesh, axeMesh, lexipPhoneMesh;
+
+        // Controls input state
+        let joystickVector = { x: 0, y: 0 };
+        let keysPressed = {};
+        let touchLookLast = null;
+
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        let audioCtx = null;
+        let humOscillator = null;
+
+        function initAudio() {
+            if (audioCtx) return;
+            audioCtx = new AudioContext();
+            
+            // Backrooms Ambient Fluorescent Hum Sound
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(60, audioCtx.currentTime); // 60Hz hum
+            gain.gain.setValueAtTime(0.02, audioCtx.currentTime);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            humOscillator = osc;
+        }
+
+        function playSound(type) {
+            if (!audioCtx) initAudio();
+            if (!audioCtx) return;
+
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            if (type === 'jump') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(150, now);
+                osc.frequency.exponentialRampToValueAtTime(400, now + 0.15);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.linearRampToValueAtTime(0, now + 0.15);
+                osc.start(now);
+                osc.stop(now + 0.15);
+            } else if (type === 'highjump') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(200, now);
+                osc.frequency.exponentialRampToValueAtTime(700, now + 0.3);
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.linearRampToValueAtTime(0, now + 0.3);
+                osc.start(now);
+                osc.stop(now + 0.3);
+            } else if (type === 'jumpscare') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(100, now);
+                osc.frequency.linearRampToValueAtTime(800, now + 0.5);
+                gain.gain.setValueAtTime(0.8, now);
+                gain.gain.linearRampToValueAtTime(0, now + 0.8);
+                osc.start(now);
+                osc.stop(now + 0.8);
+            } else if (type === 'swing') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(300, now);
+                osc.frequency.exponentialRampToValueAtTime(80, now + 0.1);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.linearRampToValueAtTime(0, now + 0.1);
+                osc.start(now);
+                osc.stop(now + 0.1);
+            }
+        }
+
+        function initThree() {
+            const container = document.getElementById('canvas-container');
+            
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0a0a0a);
+            scene.fog = new THREE.FogExp2(0x0a0a0a, 0.035);
+
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 120);
+            camera.rotation.order = 'YXZ';
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+
+            // Ambient & Sun Lighting Setup
+            environmentLight = new THREE.AmbientLight(0xffffff, 0.1);
+            scene.add(environmentLight);
+
+            dirSunLight = new THREE.DirectionalLight(0xffffff, 0.2);
+            dirSunLight.position.set(20, 40, 20);
+            scene.add(dirSunLight);
+
+            window.addEventListener('resize', onWindowResize);
+
+            // Create Item Group attached to camera
+            itemGroup = new THREE.Group();
+            scene.add(itemGroup);
+
+            // Build Handheld Items & Player Body Avatar
+            createHandheldItems();
+            createPlayerAvatar();
+            applyTimeOfDay();
+        }
+
+        function setTimeOfDay(tod) {
+            timeOfDay = tod;
+            applyTimeOfDay();
+
+            // Update UI Button Styles
+            ['morning', 'day', 'night', 'dark'].forEach(t => {
+                const btn = document.getElementById(`tod-btn-${t}`);
+                if (!btn) return;
+                if (t === tod) {
+                    btn.className = "py-2 px-3 rounded-lg border border-yellow-500 bg-yellow-950/60 text-yellow-300 text-xs font-bold flex items-center justify-center gap-1.5 transition";
+                } else {
+                    btn.className = "py-2 px-3 rounded-lg border border-neutral-700 bg-neutral-800 text-neutral-300 text-xs font-bold flex items-center justify-center gap-1.5 transition";
+                }
+            });
+
+            // Update HUD quick label
+            const labelEl = document.getElementById('hud-tod-label');
+            const iconEl = document.getElementById('hud-tod-icon');
+            if (labelEl && iconEl) {
+                if (tod === 'morning') { labelEl.innerText = '朝'; iconEl.className = 'fa-solid fa-sun text-amber-400'; }
+                else if (tod === 'day') { labelEl.innerText = '昼'; iconEl.className = 'fa-solid fa-sun text-sky-300'; }
+                else if (tod === 'night') { labelEl.innerText = '夜'; iconEl.className = 'fa-solid fa-moon text-indigo-300'; }
+                else { labelEl.innerText = '暗黒'; iconEl.className = 'fa-solid fa-eye-slash text-neutral-400'; }
+            }
+        }
+
+        function cycleTimeOfDay() {
+            const modes = ['morning', 'day', 'night', 'dark'];
+            const idx = modes.indexOf(timeOfDay);
+            const nextMode = modes[(idx + 1) % modes.length];
+            setTimeOfDay(nextMode);
+            showToast(`ワールド時間: ${nextMode.toUpperCase()}`);
+        }
+
+        function applyTimeOfDay() {
+            if (!scene) return;
+
+            let bgHex = 0x050505;
+            let fogHex = 0x050505;
+            let fogDensity = 0.035;
+            let ambColor = 0xffffff;
+            let ambIntensity = 0.1;
+            let sunColor = 0xffffff;
+            let sunIntensity = 0.1;
+
+            if (timeOfDay === 'morning') {
+                bgHex = 0xfde68a;
+                fogHex = 0xfef3c7;
+                fogDensity = 0.015;
+                ambColor = 0xfed7aa;
+                ambIntensity = 0.75;
+                sunColor = 0xfb923c;
+                sunIntensity = 0.8;
+            } else if (timeOfDay === 'day') {
+                bgHex = 0x93c5fd;
+                fogHex = 0xdbeafe;
+                fogDensity = 0.01;
+                ambColor = 0xffffff;
+                ambIntensity = 0.95;
+                sunColor = 0xfff0c2;
+                sunIntensity = 1.1;
+            } else if (timeOfDay === 'night') {
+                bgHex = 0x0f172a;
+                fogHex = 0x0f172a;
+                fogDensity = 0.025;
+                ambColor = 0x38bdf8;
+                ambIntensity = 0.3;
+                sunColor = 0x818cf8;
+                sunIntensity = 0.25;
+            } else { // Dark / 暗黒
+                bgHex = 0x020202;
+                fogHex = 0x020202;
+                fogDensity = 0.045;
+                ambColor = 0x222222;
+                ambIntensity = 0.05;
+                sunColor = 0x000000;
+                sunIntensity = 0.0;
+            }
+
+            scene.background = new THREE.Color(bgHex);
+            scene.fog = new THREE.FogExp2(fogHex, fogDensity);
+
+            if (environmentLight) {
+                environmentLight.color.setHex(ambColor);
+                environmentLight.intensity = ambIntensity;
+            }
+            if (dirSunLight) {
+                dirSunLight.color.setHex(sunColor);
+                dirSunLight.intensity = sunIntensity;
+            }
+        }
+
+        function createPlayerAvatar() {
+            const group = new THREE.Group();
+            
+            // Torso (Non-metallic Blue Explorer Jacket)
+            const torsoGeo = new THREE.CylinderGeometry(0.28, 0.22, 0.85, 12);
+            const torsoMat = new THREE.MeshStandardMaterial({ color: 0x1d4ed8, roughness: 0.9, metalness: 0.0 });
+            const torso = new THREE.Mesh(torsoGeo, torsoMat);
+            torso.position.y = -0.75;
+            group.add(torso);
+
+            // Head (Yellow Liminal Explorer Head)
+            const headGeo = new THREE.SphereGeometry(0.22, 16, 16);
+            const headMat = new THREE.MeshStandardMaterial({ color: 0xfacc15, roughness: 0.8, metalness: 0.0 });
+            const head = new THREE.Mesh(headGeo, headMat);
+            head.position.y = -0.15;
+            group.add(head);
+
+            playerBodyMesh = group;
+            playerBodyMesh.visible = false;
+            scene.add(playerBodyMesh);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function createBackroomsWallpaperTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+
+            // Yellowish base
+            ctx.fillStyle = '#c8b467';
+            ctx.fillRect(0, 0, 512, 512);
+
+            // Monotony grid texture lines
+            ctx.strokeStyle = '#a89448';
+            ctx.lineWidth = 4;
+            for (let i = 0; i < 512; i += 32) {
+                ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 512); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(512, i); ctx.stroke();
+            }
+
+            // Arrow/diamond subtle motif pattern
+            ctx.fillStyle = '#9e8a3f';
+            for (let x = 16; x < 512; x += 32) {
+                for (let y = 16; y < 512; y += 32) {
+                    ctx.beginPath();
+                    ctx.arc(x, y, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            return texture;
+        }
+
+        // Special Crop Function for UK (england472x600 -> top 472x472)
+        function loadCountryballImage(country, filename, callback) {
+            const fullUrl = `${COUNTRYBALL_BASE_URL}${country}/${filename}`;
+            const img = new Image();
+            img.crossOrigin = 'Anonymous';
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+
+                if (country === 'england472x600') {
+                    // UK Special Handling: Crop top 472px from 600px height
+                    canvas.width = 472;
+                    canvas.height = 472;
+                    ctx.drawImage(img, 0, 0, 472, 472, 0, 0, 472, 472);
+                } else {
+                    canvas.width = img.width || 400;
+                    canvas.height = img.height || 400;
+                    ctx.drawImage(img, 0, 0);
+                }
+
+                const texture = new THREE.CanvasTexture(canvas);
+                callback(texture, canvas);
+            };
+            img.onerror = () => {
+                console.warn("Failed to load countryball image, using fallback sprite.");
+                const canvas = document.createElement('canvas');
+                canvas.width = 256; canvas.height = 256;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = '#a855f7'; ctx.beginPath(); ctx.arc(128, 128, 100, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#ffffff'; ctx.fillText(country, 80, 130);
+                const texture = new THREE.CanvasTexture(canvas);
+                callback(texture, canvas);
+            };
+            img.src = fullUrl;
+        }
+
+        function createHandheldItems() {
+            // 1. a01 lexip Smartphone Item with Dynamic Screen Canvas
+            phoneCanvas = document.createElement('canvas');
+            phoneCanvas.width = 256;
+            phoneCanvas.height = 512;
+            phoneCtx = phoneCanvas.getContext('2d');
+            phoneScreenTexture = new THREE.CanvasTexture(phoneCanvas);
+
+            const phoneGeo = new THREE.BoxGeometry(0.2, 0.42, 0.02);
+            const phoneMat = [
+                new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.8, metalness: 0.0 }), // right
+                new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.8, metalness: 0.0 }), // left
+                new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.8, metalness: 0.0 }), // top
+                new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.8, metalness: 0.0 }), // bottom
+                new THREE.MeshStandardMaterial({ map: phoneScreenTexture, roughness: 0.2, metalness: 0.0 }), // front screen
+                new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.8, metalness: 0.1 }), // back
+            ];
+            lexipPhoneMesh = new THREE.Mesh(phoneGeo, phoneMat);
+
+            // 2. iSword (Apple Sword Item)
+            const swordGroup = new THREE.Group();
+            const bladeGeo = new THREE.BoxGeometry(0.04, 0.6, 0.01);
+            const bladeMat = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.3, metalness: 0.1 });
+            const blade = new THREE.Mesh(bladeGeo, bladeMat);
+            blade.position.y = 0.3;
+            swordGroup.add(blade);
+
+            const appleGeo = new THREE.SphereGeometry(0.08, 16, 16);
+            const appleMat = new THREE.MeshStandardMaterial({ color: 0xdc2626, roughness: 0.5, metalness: 0.0 });
+            const appleGuard = new THREE.Mesh(appleGeo, appleMat);
+            appleGuard.scale.set(1, 0.8, 1);
+            swordGroup.add(appleGuard);
+
+            const hiltGeo = new THREE.CylinderGeometry(0.02, 0.02, 0.2);
+            const hiltMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.9, metalness: 0.0 });
+            const hilt = new THREE.Mesh(hiltGeo, hiltMat);
+            hilt.position.y = -0.12;
+            swordGroup.add(hilt);
+            swordMesh = swordGroup;
+
+            // 3. linuAxe (Penguin Pickaxe Item)
+            const axeGroup = new THREE.Group();
+            const axeHandleGeo = new THREE.CylinderGeometry(0.02, 0.025, 0.7);
+            const axeHandleMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.9, metalness: 0.0 });
+            const axeHandle = new THREE.Mesh(axeHandleGeo, axeHandleMat);
+            axeGroup.add(axeHandle);
+
+            const headGeo = new THREE.BoxGeometry(0.3, 0.12, 0.08);
+            const headMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.8, metalness: 0.0 });
+            const head = new THREE.Mesh(headGeo, headMat);
+            head.position.y = 0.28;
+            axeGroup.add(head);
+
+            const beakGeo = new THREE.ConeGeometry(0.05, 0.2, 8);
+            const beakMat = new THREE.MeshStandardMaterial({ color: 0xeab308, roughness: 0.5, metalness: 0.0 });
+            const beak = new THREE.Mesh(beakGeo, beakMat);
+            beak.rotation.z = -Math.PI / 2;
+            beak.position.set(0.2, 0.28, 0);
+            axeGroup.add(beak);
+            axeMesh = axeGroup;
+
+            // Position & Scale in Item Group
+            lexipPhoneMesh.position.set(0.25, -0.22, -0.4);
+            lexipPhoneMesh.rotation.set(-0.2, -0.3, 0.1);
+
+            swordMesh.position.set(0.3, -0.25, -0.45);
+            swordMesh.rotation.set(0.3, -0.4, 0.2);
+
+            axeMesh.position.set(0.3, -0.25, -0.45);
+            axeMesh.rotation.set(0.2, -0.5, 0.1);
+
+            itemGroup.add(lexipPhoneMesh);
+            itemGroup.add(swordMesh);
+            itemGroup.add(axeMesh);
+
+            equipItem('lexip');
+        }
+
+        function updatePhoneDisplay() {
+            if (!phoneCtx) return;
+            phoneCtx.fillStyle = '#050510';
+            phoneCtx.fillRect(0, 0, 256, 512);
+
+            phoneCtx.fillStyle = '#eab308';
+            phoneCtx.font = 'bold 18px monospace';
+            phoneCtx.fillText("a01 lexip OS", 20, 35);
+
+            phoneCtx.fillStyle = '#888888';
+            phoneCtx.font = '12px monospace';
+            phoneCtx.fillText(`POS: ${playerPos.x.toFixed(1)}, ${playerPos.z.toFixed(1)}`, 20, 60);
+
+            phoneCtx.strokeStyle = '#eab308';
+            phoneCtx.strokeRect(20, 80, 216, 216);
+            phoneCtx.fillStyle = '#111827';
+            phoneCtx.fillRect(21, 81, 214, 214);
+
+            phoneCtx.fillStyle = '#3b82f6';
+            phoneCtx.beginPath();
+            phoneCtx.arc(128, 188, 6, 0, Math.PI * 2);
+            phoneCtx.fill();
+
+            phoneCtx.fillStyle = '#ef4444';
+            entities.forEach(ent => {
+                const dx = (ent.position.x - playerPos.x) * 4;
+                const dz = (ent.position.z - playerPos.z) * 4;
+                if (Math.abs(dx) < 100 && Math.abs(dz) < 100) {
+                    phoneCtx.beginPath();
+                    phoneCtx.arc(128 + dx, 188 + dz, 5, 0, Math.PI * 2);
+                    phoneCtx.fill();
+                }
+            });
+
+            phoneCtx.fillStyle = '#22c55e';
+            phoneCtx.font = 'bold 14px monospace';
+            phoneCtx.fillText("SIGNAL: SECURE", 20, 330);
+            phoneCtx.fillText(`ENTITIES: ${entities.length}`, 20, 360);
+
+            phoneScreenTexture.needsUpdate = true;
+        }
+
+        function equipItem(itemName) {
+            currentEquippedItem = itemName;
+            lexipPhoneMesh.visible = (itemName === 'lexip');
+            swordMesh.visible = (itemName === 'isword');
+            axeMesh.visible = (itemName === 'axe');
+
+            ['lexip', 'isword', 'axe'].forEach(id => {
+                const btn = document.getElementById(`btn-item-${id}`);
+                if (id === itemName) {
+                    btn.className = "px-3 py-2 bg-yellow-500/80 border-2 border-yellow-300 text-black font-bold rounded-xl text-xs backdrop-blur shadow flex items-center gap-1.5 transition scale-105";
+                } else {
+                    btn.className = "px-3 py-2 bg-neutral-900/80 border border-neutral-700 text-neutral-300 font-bold rounded-xl text-xs backdrop-blur shadow flex items-center gap-1.5 transition opacity-70";
+                }
+            });
+
+            playSound('swing');
+        }
+
+        function clearCurrentWorld() {
+            const toRemove = [];
+            scene.children.forEach(child => {
+                if (child !== itemGroup && child !== camera && child !== environmentLight && child !== dirSunLight) {
+                    toRemove.push(child);
+                }
+            });
+            toRemove.forEach(c => scene.remove(c));
+            entities = [];
+            colliders = [];
+        }
+
+        function addWallCollider(mesh) {
+            mesh.updateMatrixWorld(true);
+            const box = new THREE.Box3().setFromObject(mesh);
+            colliders.push(box);
+        }
+
+        function resolveWallCollisions(pos, radius = PLAYER_RADIUS) {
+            const playerBottom = pos.y - 1.5;
+            const playerTop = pos.y + 0.2;
+
+            for (let iter = 0; iter < 3; iter++) {
+                for (let i = 0; i < colliders.length; i++) {
+                    const box = colliders[i];
+                    
+                    if (playerTop <= box.min.y || playerBottom >= box.max.y) continue;
+
+                    const closestX = Math.max(box.min.x, Math.min(pos.x, box.max.x));
+                    const closestZ = Math.max(box.min.z, Math.min(pos.z, box.max.z));
+
+                    const distX = pos.x - closestX;
+                    const distZ = pos.z - closestZ;
+                    const distSq = distX * distX + distZ * distZ;
+
+                    if (distSq < radius * radius) {
+                        const dist = Math.sqrt(distSq);
+                        if (dist > 0.0001) {
+                            const overlap = radius - dist;
+                            pos.x += (distX / dist) * overlap;
+                            pos.z += (distZ / dist) * overlap;
+                        } else {
+                            const dxMin = Math.abs(pos.x - box.min.x);
+                            const dxMax = Math.abs(pos.x - box.max.x);
+                            const dzMin = Math.abs(pos.z - box.min.z);
+                            const dzMax = Math.abs(pos.z - box.max.z);
+                            const minVal = Math.min(dxMin, dxMax, dzMin, dzMax);
+
+                            if (minVal === dxMin) pos.x = box.min.x - radius;
+                            else if (minVal === dxMax) pos.x = box.max.x + radius;
+                            else if (minVal === dzMin) pos.z = box.min.z - radius;
+                            else pos.z = box.max.z + radius;
+                        }
+                    }
+                }
+            }
+        }
+
+        function buildDefaultBackrooms() {
+            clearCurrentWorld();
+            applyTimeOfDay();
+
+            const wallTex = createBackroomsWallpaperTexture();
+            wallTex.repeat.set(1, 1);
+
+            // Matte wallpaper material (zero metallic reflection)
+            const wallMat = new THREE.MeshStandardMaterial({ map: wallTex, roughness: 0.95, metalness: 0.0 });
+            const floorMat = new THREE.MeshStandardMaterial({ color: 0x736343, roughness: 0.95, metalness: 0.0 });
+            
+            // Ceiling Material with DoubleSide rendering
+            const ceilingMat = new THREE.MeshStandardMaterial({ 
+                color: 0xded8c5, 
+                roughness: 0.9, 
+                metalness: 0.0,
+                side: THREE.DoubleSide 
+            });
+
+            // Large Floor & Ceiling
+            const floorGeo = new THREE.PlaneGeometry(120, 120);
+            const floor = new THREE.Mesh(floorGeo, floorMat);
+            floor.rotation.x = -Math.PI / 2;
+            scene.add(floor);
+
+            const ceiling = new THREE.Mesh(floorGeo, ceilingMat);
+            ceiling.rotation.x = Math.PI / 2;
+            ceiling.position.y = 3.5;
+            scene.add(ceiling);
+
+            // Backrooms Preset Maze Layout (1 = Wall)
+            const map = [
+                [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+                [1,0,0,0,1,0,0,0,0,0,0,1,0,0,0,1],
+                [1,0,1,0,1,0,1,1,1,1,0,1,0,1,0,1],
+                [1,0,1,0,0,0,0,0,0,1,0,0,0,1,0,1],
+                [1,0,1,1,1,1,0,1,0,1,1,1,0,1,0,1],
+                [1,0,0,0,0,1,0,1,0,0,0,1,0,0,0,1],
+                [1,1,1,1,0,1,0,1,1,1,0,1,1,1,0,1],
+                [1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1],
+                [1,0,1,1,1,1,1,1,0,1,1,1,1,1,0,1],
+                [1,0,0,0,0,0,0,1,0,0,0,0,0,1,0,1],
+                [1,1,1,0,1,1,0,1,1,1,1,1,0,1,0,1],
+                [1,0,0,0,1,0,0,0,0,0,0,1,0,0,0,1],
+                [1,0,1,1,1,0,1,1,1,1,0,1,1,1,0,1],
+                [1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1],
+                [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+            ];
+
+            const wallGeo = new THREE.BoxGeometry(4, 3.5, 4);
+            for (let r = 0; r < map.length; r++) {
+                for (let c = 0; c < map[r].length; c++) {
+                    if (map[r][c] === 1) {
+                        const wall = new THREE.Mesh(wallGeo, wallMat);
+                        wall.position.set((c - 8) * 4, 1.75, (r - 8) * 4);
+                        scene.add(wall);
+                        addWallCollider(wall);
+                    } else if (Math.random() < 0.25) {
+                        // Fluorescent Ceiling Lights
+                        const light = new THREE.PointLight(0xffffaa, 1.2, 12);
+                        light.position.set((c - 8) * 4, 3.2, (r - 8) * 4);
+                        scene.add(light);
+
+                        // Light Panel Visual
+                        const pGeo = new THREE.PlaneGeometry(1.5, 1.5);
+                        const pMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
+                        const panel = new THREE.Mesh(pGeo, pMat);
+                        panel.rotation.x = Math.PI / 2;
+                        panel.position.set((c - 8) * 4, 3.48, (r - 8) * 4);
+                        scene.add(panel);
+                    }
+                }
+            }
+
+            // Spawn Nextbot Entity
+            spawnNextbotEntity(8, -8);
+        }
+
+        function buildTokyoCity() {
+            clearCurrentWorld();
+            applyTimeOfDay();
+
+            const floorGeo = new THREE.PlaneGeometry(140, 140);
+            const floorMat = new THREE.MeshStandardMaterial({ color: 0x111116, roughness: 0.9, metalness: 0.0 });
+            const floor = new THREE.Mesh(floorGeo, floorMat);
+            floor.rotation.x = -Math.PI / 2;
+            scene.add(floor);
+
+            // Ceiling / Sky Cover
+            const skyCoverGeo = new THREE.PlaneGeometry(140, 140);
+            const skyCoverMat = new THREE.MeshStandardMaterial({ color: 0x050510, roughness: 1.0, metalness: 0.0, side: THREE.DoubleSide });
+            const skyCover = new THREE.Mesh(skyCoverGeo, skyCoverMat);
+            skyCover.rotation.x = Math.PI / 2;
+            skyCover.position.y = 20;
+            scene.add(skyCover);
+
+            // Tokyo Skyscrapers (Matte finishes)
+            for (let i = 0; i < 40; i++) {
+                const h = 15 + Math.random() * 25;
+                const w = 6 + Math.random() * 6;
+                const bGeo = new THREE.BoxGeometry(w, h, w);
+                const bMat = new THREE.MeshStandardMaterial({
+                    color: Math.random() > 0.5 ? 0x0a0a20 : 0x151525,
+                    roughness: 0.85,
+                    metalness: 0.0
+                });
+                const b = new THREE.Mesh(bGeo, bMat);
+                const x = (Math.random() - 0.5) * 100;
+                const z = (Math.random() - 0.5) * 100;
+                if (Math.abs(x) < 8 && Math.abs(z) < 8) continue;
+                b.position.set(x, h / 2, z);
+                scene.add(b);
+                addWallCollider(b);
+
+                const nLight = new THREE.PointLight(Math.random() > 0.5 ? 0xff00ff : 0x00ffff, 2, 20);
+                nLight.position.set(x, 4, z);
+                scene.add(nLight);
+            }
+
+            spawnNextbotEntity(15, 15);
+        }
+
+        function buildGermanyTown() {
+            clearCurrentWorld();
+            applyTimeOfDay();
+
+            const floorGeo = new THREE.PlaneGeometry(140, 140);
+            const floorMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.95, metalness: 0.0 });
+            const floor = new THREE.Mesh(floorGeo, floorMat);
+            floor.rotation.x = -Math.PI / 2;
+            scene.add(floor);
+
+            // Roof / Town Ceiling Boundary
+            const ceilingMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 1.0, metalness: 0.0, side: THREE.DoubleSide });
+            const ceiling = new THREE.Mesh(floorGeo, ceilingMat);
+            ceiling.rotation.x = Math.PI / 2;
+            ceiling.position.y = 12;
+            scene.add(ceiling);
+
+            for (let i = 0; i < 35; i++) {
+                const h = 8 + Math.random() * 8;
+                const bGeo = new THREE.BoxGeometry(7, h, 7);
+                const bMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.9, metalness: 0.0 });
+                const b = new THREE.Mesh(bGeo, bMat);
+                const x = (Math.random() - 0.5) * 90;
+                const z = (Math.random() - 0.5) * 90;
+                if (Math.abs(x) < 8 && Math.abs(z) < 8) continue;
+                b.position.set(x, h / 2, z);
+                scene.add(b);
+                addWallCollider(b);
+            }
+
+            spawnNextbotEntity(-12, -12);
+        }
+
+        function buildInfiniteBackrooms() {
+            clearCurrentWorld();
+            buildDefaultBackrooms();
+            showToast("Infinite Procedural Level Active!");
+        }
+
+        function spawnNextbotEntity(x, z) {
+            if (!activeNextbotTexture) {
+                loadCountryballImage('japan', 'normal.png', (tex) => {
+                    activeNextbotTexture = tex;
+                    createEntityMesh(x, z);
+                });
+            } else {
+                createEntityMesh(x, z);
+            }
+        }
+
+        function createEntityMesh(x, z) {
+            const mat = new THREE.SpriteMaterial({ map: activeNextbotTexture });
+            const sprite = new THREE.Sprite(mat);
+            sprite.scale.set(2.5, 2.5, 1);
+            sprite.position.set(x, 1.25, z);
+            scene.add(sprite);
+            entities.push(sprite);
+        }
+
+        function updateEntitiesAI(delta) {
+            const speed = activeMode === 'survival' ? 5.2 : 3.8;
+
+            entities.forEach(ent => {
+                // Direction vector towards player
+                const dir = new THREE.Vector3().subVectors(playerPos, ent.position);
+                dir.y = 0;
+                const dist = dir.length();
+
+                if (dist > 0.5) {
+                    dir.normalize();
+                    // Move entity forward
+                    ent.position.addScaledVector(dir, speed * delta);
+
+                    // Resolve wall collision so entities do NOT walk through walls
+                    resolveWallCollisions(ent.position, 0.45);
+                }
+
+                // Jumpscare Collision Check
+                if (dist < 1.2) {
+                    triggerJumpscare();
+                }
+            });
+        }
+
+        function triggerJumpscare() {
+            playSound('jumpscare');
+            document.getElementById('jumpscare-overlay').classList.remove('hidden');
+            if (survivalInterval) clearInterval(survivalInterval);
+        }
+
+        function updateCountryballPreview() {
+            const country = document.getElementById('country-select').value;
+            const expr = document.getElementById('expression-select').value;
+            const previewCanvas = document.getElementById('countryball-preview-canvas');
+            const loadingText = document.getElementById('preview-loading');
+
+            loadingText.style.display = 'block';
+
+            loadCountryballImage(country, expr, (texture, canvasSource) => {
+                loadingText.style.display = 'none';
+                previewCanvas.width = canvasSource.width;
+                previewCanvas.height = canvasSource.height;
+                const ctx = previewCanvas.getContext('2d');
+                ctx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+                ctx.drawImage(canvasSource, 0, 0);
+            });
+        }
+
+        function applyActiveNextbot() {
+            const country = document.getElementById('country-select').value;
+            const expr = document.getElementById('expression-select').value;
+
+            loadCountryballImage(country, expr, (tex) => {
+                activeNextbotTexture = tex;
+                showToast(`Active Nextbot updated: ${country}/${expr}`);
+                closeEntityCreator();
+            });
+        }
+
+        function handleCustomImageUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.width; canvas.height = img.height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0);
+                    activeNextbotTexture = new THREE.CanvasTexture(canvas);
+                    showToast("Custom Image Nextbot Loaded!");
+                    closeEntityCreator();
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function initGridCanvas() {
+            const canvas = document.getElementById('grid-canvas');
+            canvas.width = 380;
+            canvas.height = 380;
+
+            canvas.addEventListener('pointerdown', handleGridClick);
+            canvas.addEventListener('pointermove', (e) => {
+                if (e.buttons === 1) handleGridClick(e);
+            });
+
+            drawGridCanvas();
+        }
+
+        function drawGridCanvas() {
+            const canvas = document.getElementById('grid-canvas');
+            const ctx = canvas.getContext('2d');
+            const cellSize = canvas.width / GRID_SIZE;
+
+            ctx.fillStyle = '#0a0a0a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            for (let r = 0; r < GRID_SIZE; r++) {
+                for (let c = 0; c < GRID_SIZE; c++) {
+                    const x = c * cellSize;
+                    const y = r * cellSize;
+
+                    if (customGrid[r][c] === 1) { // Wall
+                        ctx.fillStyle = '#eab308';
+                        ctx.fillRect(x, y, cellSize, cellSize);
+                    } else if (customGrid[r][c] === 2) { // Light
+                        ctx.fillStyle = '#fef08a';
+                        ctx.beginPath();
+                        ctx.arc(x + cellSize / 2, y + cellSize / 2, cellSize / 3, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+
+                    if (r === customPlayerSpawn.z && c === customPlayerSpawn.x) {
+                        ctx.fillStyle = '#3b82f6';
+                        ctx.fillRect(x + 2, y + 2, cellSize - 4, cellSize - 4);
+                    }
+
+                    if (customEntitySpawns.some(e => e.x === c && e.z === r)) {
+                        ctx.fillStyle = '#a855f7';
+                        ctx.beginPath();
+                        ctx.arc(x + cellSize / 2, y + cellSize / 2, cellSize / 3, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+
+                    ctx.strokeStyle = '#222';
+                    ctx.strokeRect(x, y, cellSize, cellSize);
+                }
+            }
+        }
+
+        function handleGridClick(e) {
+            const canvas = document.getElementById('grid-canvas');
+            const rect = canvas.getBoundingClientRect();
+            const cellSize = canvas.width / GRID_SIZE;
+            const c = Math.floor((e.clientX - rect.left) / cellSize);
+            const r = Math.floor((e.clientY - rect.top) / cellSize);
+
+            if (r < 0 || r >= GRID_SIZE || c < 0 || c >= GRID_SIZE) return;
+
+            if (activeMakerTool === 'wall') {
+                customGrid[r][c] = 1;
+            } else if (activeMakerTool === 'erase') {
+                customGrid[r][c] = 0;
+                customEntitySpawns = customEntitySpawns.filter(e => !(e.x === c && e.z === r));
+            } else if (activeMakerTool === 'light') {
+                customGrid[r][c] = 2;
+            } else if (activeMakerTool === 'player') {
+                customPlayerSpawn = { x: c, z: r };
+            } else if (activeMakerTool === 'entity') {
+                if (!customEntitySpawns.some(e => e.x === c && e.z === r)) {
+                    customEntitySpawns.push({ x: c, z: r });
+                }
+            }
+            drawGridCanvas();
+        }
+
+        function setMakerTool(tool) {
+            activeMakerTool = tool;
+            ['wall', 'erase', 'light', 'player', 'entity'].forEach(t => {
+                const btn = document.getElementById(`tool-${t}`);
+                if (t === tool) {
+                    btn.className = "px-3 py-1 bg-yellow-500 text-black font-bold rounded text-xs";
+                } else {
+                    btn.className = "px-3 py-1 bg-neutral-800 text-neutral-300 font-bold rounded text-xs";
+                }
+            });
+        }
+
+        function playCustomMap() {
+            closeMakerMode();
+            activeMode = 'custom';
+            document.getElementById('hud-mode-name').innerText = 'CUSTOM';
+
+            clearCurrentWorld();
+            applyTimeOfDay();
+
+            const lightColor = document.getElementById('custom-light-color').value;
+            const intensity = parseFloat(document.getElementById('custom-light-intensity').value);
+            const wallStyle = document.getElementById('custom-wall-style').value;
+
+            // Matte Floor & DoubleSide Ceiling
+            const mapSpan = GRID_SIZE * 3;
+            const floorGeo = new THREE.PlaneGeometry(mapSpan, mapSpan);
+            const floorMat = new THREE.MeshStandardMaterial({ color: 0x444444, roughness: 0.95, metalness: 0.0 });
+            const floor = new THREE.Mesh(floorGeo, floorMat);
+            floor.rotation.x = -Math.PI / 2;
+            scene.add(floor);
+
+            const ceilingMat = new THREE.MeshStandardMaterial({ color: 0xd2cbb8, roughness: 0.95, metalness: 0.0, side: THREE.DoubleSide });
+            const ceiling = new THREE.Mesh(floorGeo, ceilingMat);
+            ceiling.rotation.x = Math.PI / 2;
+            ceiling.position.y = 3.5;
+            scene.add(ceiling);
+
+            const wallGeo = new THREE.BoxGeometry(3, 3.5, 3);
+            const wallMat = new THREE.MeshStandardMaterial({
+                color: wallStyle === 'concrete' ? 0x555555 : (wallStyle === 'brick' ? 0x78350f : 0xc8b467),
+                roughness: 0.95,
+                metalness: 0.0
+            });
+
+            for (let r = 0; r < GRID_SIZE; r++) {
+                for (let c = 0; c < GRID_SIZE; c++) {
+                    const wx = (c - GRID_SIZE / 2) * 3;
+                    const wz = (r - GRID_SIZE / 2) * 3;
+
+                    if (customGrid[r][c] === 1) { // Wall
+                        const wall = new THREE.Mesh(wallGeo, wallMat);
+                        wall.position.set(wx, 1.75, wz);
+                        scene.add(wall);
+                        addWallCollider(wall);
+                    } else if (customGrid[r][c] === 2) { // Light
+                        const pLight = new THREE.PointLight(lightColor, intensity, 12);
+                        pLight.position.set(wx, 3.0, wz);
+                        scene.add(pLight);
+                    }
+                }
+            }
+
+            customEntitySpawns.forEach(sp => {
+                const ex = (sp.x - GRID_SIZE / 2) * 3;
+                const ez = (sp.z - GRID_SIZE / 2) * 3;
+                spawnNextbotEntity(ex, ez);
+            });
+
+            playerPos.set((customPlayerSpawn.x - GRID_SIZE / 2) * 3, 1.6, (customPlayerSpawn.z - GRID_SIZE / 2) * 3);
+
+            startGameHUD();
+        }
+
+        function initTouchControls() {
+            const joystickBase = document.getElementById('joystick-base');
+            const joystickStick = document.getElementById('joystick-stick');
+
+            let touchId = null;
+
+            joystickBase.addEventListener('pointerdown', (e) => {
+                touchId = e.pointerId;
+                updateJoystick(e);
+            });
+
+            window.addEventListener('pointermove', (e) => {
+                if (e.pointerId === touchId) {
+                    updateJoystick(e);
+                } else if (e.buttons === 1 && !e.target.closest('button') && !e.target.closest('#maker-modal')) {
+                    if (touchLookLast) {
+                        const dx = e.clientX - touchLookLast.x;
+                        const dy = e.clientY - touchLookLast.y;
+                        playerYaw -= dx * 0.005;
+                        playerPitch -= dy * 0.005;
+                        playerPitch = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, playerPitch));
+                    }
+                    touchLookLast = { x: e.clientX, y: e.clientY };
+                }
+            });
+
+            window.addEventListener('pointerup', (e) => {
+                if (e.pointerId === touchId) {
+                    touchId = null;
+                    joystickVector = { x: 0, y: 0 };
+                    joystickStick.style.transform = `translate(0px, 0px)`;
+                }
+                touchLookLast = null;
+            });
+
+            function updateJoystick(e) {
+                const rect = joystickBase.getBoundingClientRect();
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+                let dx = e.clientX - centerX;
+                let dy = e.clientY - centerY;
+
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                const maxRadius = 45;
+
+                if (distance > maxRadius) {
+                    dx = (dx / distance) * maxRadius;
+                    dy = (dy / distance) * maxRadius;
+                }
+
+                joystickStick.style.transform = `translate(${dx}px, ${dy}px)`;
+                joystickVector.x = dx / maxRadius;
+                joystickVector.y = dy / maxRadius;
+            }
+
+            document.getElementById('btn-jump').addEventListener('pointerdown', () => performJump(12));
+            document.getElementById('btn-highjump').addEventListener('pointerdown', () => performJump(20));
+
+            const dashBtn = document.getElementById('btn-dash');
+            dashBtn.addEventListener('pointerdown', () => { isDashing = true; });
+            dashBtn.addEventListener('pointerup', () => { isDashing = false; });
+
+            window.addEventListener('keydown', (e) => {
+                keysPressed[e.code] = true;
+                if (e.code === 'Space') performJump(12);
+                if (e.code === 'Digit1') equipItem('lexip');
+                if (e.code === 'Digit2') equipItem('isword');
+                if (e.code === 'Digit3') equipItem('axe');
+            });
+
+            window.addEventListener('keyup', (e) => {
+                keysPressed[e.code] = false;
+            });
+        }
+
+        function performJump(power) {
+            if (isGrounded) {
+                playerVelocity.y = power;
+                isGrounded = false;
+                playSound(power > 15 ? 'highjump' : 'jump');
+            }
+        }
+
+        function toggleCameraView() {
+            cameraMode = cameraMode === 'FPS' ? 'TPS' : 'FPS';
+            showToast(`Camera View: ${cameraMode}`);
+        }
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            } else {
+                if (document.exitFullscreen) document.exitFullscreen();
+            }
+        }
+
+        let lastTime = performance.now();
+
+        function gameLoop(now) {
+            requestAnimationFrame(gameLoop);
+
+            const delta = Math.min((now - lastTime) / 1000, 0.1);
+            lastTime = now;
+
+            if (document.getElementById('game-hud').classList.contains('hidden')) {
+                renderer.render(scene, camera);
+                return;
+            }
+
+            let moveX = joystickVector.x;
+            let moveZ = joystickVector.y;
+
+            if (keysPressed['KeyW'] || keysPressed['ArrowUp']) moveZ = -1;
+            if (keysPressed['KeyS'] || keysPressed['ArrowDown']) moveZ = 1;
+            if (keysPressed['KeyA'] || keysPressed['ArrowLeft']) moveX = -1;
+            if (keysPressed['KeyD'] || keysPressed['ArrowRight']) moveX = 1;
+
+            const moveSpeed = (isDashing || keysPressed['ShiftLeft']) ? 10 : 5;
+
+            const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), playerYaw);
+            const side = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), playerYaw);
+
+            const moveDir = new THREE.Vector3()
+                .addScaledVector(forward, -moveZ)
+                .addScaledVector(side, moveX);
+
+            if (moveDir.length() > 0) moveDir.normalize();
+
+            playerPos.x += moveDir.x * moveSpeed * delta;
+            playerPos.z += moveDir.z * moveSpeed * delta;
+            resolveWallCollisions(playerPos, PLAYER_RADIUS);
+
+            playerVelocity.y -= 30 * delta;
+            playerPos.y += playerVelocity.y * delta;
+
+            if (playerPos.y <= 1.6) {
+                playerPos.y = 1.6;
+                playerVelocity.y = 0;
+                isGrounded = true;
+            }
+
+            camera.rotation.y = playerYaw;
+            camera.rotation.x = playerPitch;
+
+            if (cameraMode === 'FPS') {
+                camera.position.copy(playerPos);
+                itemGroup.position.copy(playerPos);
+                itemGroup.rotation.y = playerYaw;
+                itemGroup.rotation.x = playerPitch;
+                if (playerBodyMesh) playerBodyMesh.visible = false;
+            } else { // TPS
+                const offset = new THREE.Vector3(0, 0.8, 3.0).applyAxisAngle(new THREE.Vector3(0, 1, 0), playerYaw);
+                camera.position.copy(playerPos).add(offset);
+                camera.lookAt(playerPos.x, playerPos.y - 0.2, playerPos.z);
+
+                itemGroup.position.copy(playerPos);
+                itemGroup.rotation.y = playerYaw;
+
+                if (playerBodyMesh) {
+                    playerBodyMesh.visible = true;
+                    playerBodyMesh.position.copy(playerPos);
+                    playerBodyMesh.rotation.y = playerYaw;
+                }
+            }
+
+            if (moveDir.length() > 0 && isGrounded) {
+                itemGroup.position.y += Math.sin(now * 0.01) * 0.02;
+            }
+
+            updateEntitiesAI(delta);
+            updatePhoneDisplay();
+
+            renderer.render(scene, camera);
+        }
+
+        function startGame(mode) {
+            activeMode = mode;
+            document.getElementById('hud-mode-name').innerText = mode.toUpperCase();
+
+            if (mode === 'default') buildDefaultBackrooms();
+            else if (mode === 'infinite') buildInfiniteBackrooms();
+            else if (mode === 'tokyo') buildTokyoCity();
+            else if (mode === 'germany') buildGermanyTown();
+
+            playerPos.set(0, 1.6, 0);
+            startGameHUD();
+        }
+
+        function startSurvivalMode() {
+            activeMode = 'survival';
+            document.getElementById('hud-mode-name').innerText = 'SURVIVAL';
+            buildDefaultBackrooms();
+
+            document.getElementById('survival-timer-container').classList.remove('hidden');
+            survivalTimerSeconds = 0;
+            if (survivalInterval) clearInterval(survivalInterval);
+            survivalInterval = setInterval(() => {
+                survivalTimerSeconds++;
+                const mins = String(Math.floor(survivalTimerSeconds / 60)).padStart(2, '0');
+                const secs = String(survivalTimerSeconds % 60).padStart(2, '0');
+                document.getElementById('survival-timer').innerText = `${mins}:${secs}`;
+            }, 1000);
+
+            startGameHUD();
+        }
+
+        function startGameHUD() {
+            document.getElementById('main-menu').classList.add('hidden');
+            document.getElementById('jumpscare-overlay').classList.add('hidden');
+            document.getElementById('game-hud').classList.remove('hidden');
+            initAudio();
+        }
+
+        function returnToMenu() {
+            document.getElementById('game-hud').classList.add('hidden');
+            document.getElementById('maker-modal').classList.add('hidden');
+            document.getElementById('jumpscare-overlay').classList.add('hidden');
+            document.getElementById('main-menu').classList.remove('hidden');
+            document.getElementById('survival-timer-container').classList.add('hidden');
+            if (survivalInterval) clearInterval(survivalInterval);
+        }
+
+        function openMakerMode() {
+            document.getElementById('main-menu').classList.add('hidden');
+            document.getElementById('maker-modal').classList.remove('hidden');
+            drawGridCanvas();
+        }
+
+        function closeMakerMode() {
+            document.getElementById('maker-modal').classList.add('hidden');
+            document.getElementById('main-menu').classList.remove('hidden');
+        }
+
+        function openEntityCreator() {
+            document.getElementById('entity-modal').classList.remove('hidden');
+            updateCountryballPreview();
+        }
+
+        function closeEntityCreator() {
+            document.getElementById('entity-modal').classList.add('hidden');
+        }
+
+        function showToast(text) {
+            const toast = document.getElementById('game-toast');
+            toast.innerText = text;
+            toast.classList.remove('opacity-0');
+            setTimeout(() => toast.classList.add('opacity-0'), 2500);
+        }
+
+        window.onload = function () {
+            initThree();
+            initTouchControls();
+            initGridCanvas();
+            setTimeOfDay('dark');
+            requestAnimationFrame(gameLoop);
+        };
+    </script>
+</body>
+</html>
