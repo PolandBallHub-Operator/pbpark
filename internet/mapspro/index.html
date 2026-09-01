@@ -1,0 +1,1821 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OsmMaps - MD2 Navigation & Spot Manager</title>
+
+  <!-- Material Icons (Google Fonts) -->
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <!-- Roboto Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <!-- Leaflet CSS for OpenStreetMap -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <style>
+    :root {
+      /* Light Theme (Material 2 Baseline) */
+      --md-primary: #6200ee;
+      --md-primary-variant: #3700b3;
+      --md-secondary: #03dac6;
+      --md-secondary-variant: #018786;
+      --md-background: #f5f5f5;
+      --md-surface: #ffffff;
+      --md-error: #b00020;
+      
+      --md-on-primary: #ffffff;
+      --md-on-secondary: #000000;
+      --md-on-background: #000000;
+      --md-on-surface: #000000;
+      --md-on-error: #ffffff;
+
+      --md-surface-variant: #f1f1f1;
+      --md-on-surface-medium: rgba(0, 0, 0, 0.6);
+      --md-on-surface-disabled: rgba(0, 0, 0, 0.38);
+      --md-divider: rgba(0, 0, 0, 0.12);
+      
+      --elevation-0: none;
+      --elevation-1: 0px 2px 1px -1px rgba(0,0,0,0.2), 0px 1px 1px 0px rgba(0,0,0,0.14), 0px 1px 3px 0px rgba(0,0,0,0.12);
+      --elevation-2: 0px 3px 1px -2px rgba(0,0,0,0.2), 0px 2px 2px 0px rgba(0,0,0,0.14), 0px 1px 5px 0px rgba(0,0,0,0.12);
+      --elevation-4: 0px 2px 4px -1px rgba(0,0,0,0.2), 0px 4px 5px 0px rgba(0,0,0,0.14), 0px 1px 10px 0px rgba(0,0,0,0.12);
+      --elevation-6: 0px 3px 5px -1px rgba(0,0,0,0.2), 0px 6px 10px 0px rgba(0,0,0,0.14), 0px 1px 18px 0px rgba(0,0,0,0.12);
+      --elevation-8: 0px 5px 5px -3px rgba(0,0,0,0.2), 0px 8px 10px 1px rgba(0,0,0,0.14), 0px 3px 14px 2px rgba(0,0,0,0.12);
+      --elevation-12: 0px 7px 8px -4px rgba(0,0,0,0.2), 0px 12px 17px 2px rgba(0,0,0,0.14), 0px 5px 22px 4px rgba(0,0,0,0.12);
+      --elevation-16: 0px 8px 10px -5px rgba(0,0,0,0.2), 0px 16px 24px 2px rgba(0,0,0,0.14), 0px 6px 30px 5px rgba(0,0,0,0.12);
+      --elevation-24: 0px 11px 15px -7px rgba(0,0,0,0.2), 0px 24px 38px 3px rgba(0,0,0,0.14), 0px 9px 46px 8px rgba(0,0,0,0.12);
+
+      --transition-standard: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    [data-theme="dark"] {
+      --md-primary: #bb86fc;
+      --md-primary-variant: #3700b3;
+      --md-secondary: #03dac6;
+      --md-secondary-variant: #03dac6;
+      --md-background: #121212;
+      --md-surface: #1e1e1e;
+      --md-error: #cf6679;
+
+      --md-on-primary: #000000;
+      --md-on-secondary: #000000;
+      --md-on-background: #ffffff;
+      --md-on-surface: #ffffff;
+      --md-on-error: #000000;
+
+      --md-surface-variant: #2d2d2d;
+      --md-on-surface-medium: rgba(255, 255, 255, 0.6);
+      --md-on-surface-disabled: rgba(255, 255, 255, 0.38);
+      --md-divider: rgba(255, 255, 255, 0.12);
+
+      --elevation-1: 0px 2px 1px -1px rgba(0,0,0,0.4), 0px 1px 1px 0px rgba(0,0,0,0.3), 0px 1px 3px 0px rgba(0,0,0,0.2);
+      --elevation-2: 0px 3px 1px -2px rgba(0,0,0,0.4), 0px 2px 2px 0px rgba(0,0,0,0.3), 0px 1px 5px 0px rgba(0,0,0,0.2);
+      --elevation-4: 0px 2px 4px -1px rgba(0,0,0,0.4), 0px 4px 5px 0px rgba(0,0,0,0.3), 0px 1px 10px 0px rgba(0,0,0,0.2);
+      --elevation-8: 0px 5px 5px -3px rgba(0,0,0,0.4), 0px 8px 10px 1px rgba(0,0,0,0.3), 0px 3px 14px 2px rgba(0,0,0,0.2);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: 'Roboto', sans-serif;
+      background-color: var(--md-background);
+      color: var(--md-on-background);
+      transition: var(--transition-standard);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    #app-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #map-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 56px;
+      z-index: 1;
+    }
+
+    #map {
+      width: 100%;
+      height: 100%;
+      background-color: #e5e3df;
+    }
+
+    /* Search Bar Layout */
+    .gmaps-search-bar {
+      position: absolute;
+      top: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: calc(100% - 32px);
+      max-width: 520px;
+      height: 48px;
+      background-color: var(--md-surface);
+      border-radius: 24px;
+      box-shadow: var(--elevation-4);
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      z-index: 10;
+      transition: var(--transition-standard);
+    }
+
+    .gmaps-search-bar input {
+      flex: 1;
+      border: none;
+      outline: none;
+      background: transparent;
+      font-size: 15px;
+      color: var(--md-on-surface);
+      padding: 0 8px;
+    }
+
+    .search-results-dropdown {
+      position: absolute;
+      top: 68px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: calc(100% - 32px);
+      max-width: 520px;
+      background-color: var(--md-surface);
+      border-radius: 12px;
+      box-shadow: var(--elevation-8);
+      z-index: 20;
+      max-height: 280px;
+      overflow-y: auto;
+      display: none;
+    }
+
+    .search-results-dropdown.active {
+      display: block;
+    }
+
+    /* Floating Action Buttons Area */
+    .fab-column {
+      position: absolute;
+      right: 16px;
+      bottom: 72px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      z-index: 10;
+    }
+
+    /* Navigation Turn-by-Turn HUD Banner */
+    .nav-hud-banner {
+      position: absolute;
+      top: 68px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: calc(100% - 32px);
+      max-width: 520px;
+      background-color: #1b5e20;
+      color: #ffffff;
+      border-radius: 12px;
+      box-shadow: var(--elevation-8);
+      z-index: 25;
+      padding: 14px 16px;
+      display: none;
+      align-items: center;
+      gap: 16px;
+      animation: slide-down 0.3s ease-out;
+    }
+
+    .nav-hud-banner.active {
+      display: flex;
+    }
+
+    @keyframes slide-down {
+      from { transform: translate(-50%, -20px); opacity: 0; }
+      to { transform: translate(-50%, 0); opacity: 1; }
+    }
+
+    .nav-hud-icon {
+      font-size: 36px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 50%;
+      padding: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .nav-hud-info {
+      flex: 1;
+    }
+
+    .nav-hud-distance {
+      font-size: 22px;
+      font-weight: 700;
+    }
+
+    .nav-hud-instruction {
+      font-size: 14px;
+      opacity: 0.9;
+      margin-top: 2px;
+    }
+
+    /* Bottom Navigation Bar */
+    .md-nav-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 56px;
+      background-color: var(--md-surface);
+      border-top: 1px solid var(--md-divider);
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      z-index: 10;
+    }
+    .md-nav-bar-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      height: 100%;
+      color: var(--md-on-surface-medium);
+      cursor: pointer;
+      font-size: 11px;
+      gap: 2px;
+      transition: var(--transition-standard);
+    }
+    .md-nav-bar-item.active {
+      color: var(--md-primary);
+    }
+
+    /* Base Buttons & Icons */
+    .md-btn {
+      font-family: 'Roboto', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      height: 36px;
+      padding: 0 16px;
+      border-radius: 4px;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: var(--transition-standard);
+      outline: none;
+    }
+    .md-btn.filled {
+      background-color: var(--md-primary);
+      color: var(--md-on-primary);
+      box-shadow: var(--elevation-2);
+    }
+    .md-btn.filled:hover {
+      box-shadow: var(--elevation-4);
+    }
+    .md-btn.outlined {
+      background-color: transparent;
+      color: var(--md-primary);
+      border: 1px solid var(--md-primary);
+    }
+    .md-btn.text {
+      background-color: transparent;
+      color: var(--md-primary);
+      padding: 0 8px;
+    }
+
+    .md-icon-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: none;
+      background: transparent;
+      color: var(--md-on-surface);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: var(--transition-standard);
+      outline: none;
+    }
+    .md-icon-btn:hover {
+      background-color: rgba(0, 0, 0, 0.06);
+    }
+    [data-theme="dark"] .md-icon-btn:hover {
+      background-color: rgba(255, 255, 255, 0.08);
+    }
+
+    .md-fab {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background-color: var(--md-surface);
+      color: var(--md-primary);
+      box-shadow: var(--elevation-6);
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: var(--transition-standard);
+      outline: none;
+    }
+    .md-fab:hover {
+      box-shadow: var(--elevation-8);
+    }
+    .md-fab.mini {
+      width: 40px;
+      height: 40px;
+    }
+    .md-fab.gps-syncing {
+      background-color: #2e7d32;
+      color: #ffffff;
+      animation: pulse-gps 1.5s infinite;
+    }
+
+    @keyframes pulse-gps {
+      0% { box-shadow: 0 0 0 0 rgba(46, 125, 50, 0.6); }
+      70% { box-shadow: 0 0 0 12px rgba(46, 125, 50, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(46, 125, 50, 0); }
+    }
+
+    /* Switch Component */
+    .md-switch-container {
+      display: inline-flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      cursor: pointer;
+      gap: 12px;
+      padding: 12px 0;
+    }
+    .md-switch-track {
+      position: relative;
+      width: 36px;
+      height: 14px;
+      background-color: rgba(0, 0, 0, 0.26);
+      border-radius: 7px;
+      transition: var(--transition-standard);
+    }
+    [data-theme="dark"] .md-switch-track {
+      background-color: rgba(255, 255, 255, 0.3);
+    }
+    .md-switch-thumb {
+      position: absolute;
+      top: -3px;
+      left: -2px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background-color: #fafafa;
+      box-shadow: var(--elevation-2);
+      transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s;
+    }
+    .md-switch-input {
+      display: none;
+    }
+    .md-switch-input:checked + .md-switch-track {
+      background-color: rgba(98, 0, 238, 0.5);
+    }
+    [data-theme="dark"] .md-switch-input:checked + .md-switch-track {
+      background-color: rgba(187, 134, 252, 0.5);
+    }
+    .md-switch-input:checked + .md-switch-track .md-switch-thumb {
+      transform: translateX(20px);
+      background-color: var(--md-primary);
+    }
+
+    /* Category Chips */
+    .chip-group {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 8px 0;
+      scrollbar-width: none;
+    }
+    .chip-group::-webkit-scrollbar { display: none; }
+    
+    .md-chip {
+      height: 32px;
+      border-radius: 16px;
+      padding: 0 12px;
+      background-color: var(--md-surface-variant);
+      color: var(--md-on-surface);
+      font-size: 13px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      white-space: nowrap;
+      border: 1px solid var(--md-divider);
+      transition: var(--transition-standard);
+    }
+    .md-chip.active {
+      background-color: var(--md-primary);
+      color: var(--md-on-primary);
+      border-color: var(--md-primary);
+    }
+
+    /* List Base Styling */
+    .md-list {
+      list-style: none;
+      background-color: var(--md-surface);
+    }
+    .md-list-item {
+      display: flex;
+      align-items: center;
+      padding: 12px 16px;
+      gap: 14px;
+      border-bottom: 1px solid var(--md-divider);
+      cursor: pointer;
+    }
+    .md-list-item-text {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+    .md-list-item-primary {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--md-on-surface);
+    }
+    .md-list-item-secondary {
+      font-size: 12px;
+      color: var(--md-on-surface-medium);
+      margin-top: 2px;
+    }
+
+    /* Full Pages Overlay */
+    .view-page {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: calc(100% - 56px);
+      background-color: var(--md-surface);
+      z-index: 15;
+      display: none;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+    .view-page.active {
+      display: flex;
+    }
+    .page-header {
+      height: 56px;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      border-bottom: 1px solid var(--md-divider);
+      gap: 16px;
+      background-color: var(--md-surface);
+      position: sticky;
+      top: 0;
+      z-index: 5;
+    }
+    .page-header h2 {
+      font-size: 18px;
+      font-weight: 500;
+    }
+
+    .ball-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      overflow: hidden;
+      display: inline-block;
+      vertical-align: middle;
+      border: 1px solid var(--md-divider);
+      background-color: #fff;
+    }
+    .ball-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .ball-avatar.uk-ball img {
+      object-fit: cover;
+      object-position: top;
+    }
+
+    .character-picker-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+      gap: 12px;
+      padding: 16px;
+    }
+    .char-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 8px;
+      border: 1px solid var(--md-divider);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: var(--transition-standard);
+    }
+    .char-card.selected {
+      border-color: var(--md-primary);
+      background-color: rgba(98, 0, 238, 0.08);
+    }
+    .char-card img {
+      width: 48px;
+      height: 48px;
+      object-fit: cover;
+    }
+    .char-card.uk-card img {
+      object-position: top;
+    }
+
+    /* Ripple Effect Base Styles */
+    .ripple-surface {
+      position: relative;
+      overflow: hidden;
+    }
+    .ripple-effect {
+      position: absolute;
+      border-radius: 50%;
+      background-color: rgba(255, 255, 255, 0.35);
+      transform: scale(0);
+      animation: ripple-animation 0.6s linear;
+      pointer-events: none;
+    }
+    .ripple-surface.ripple-dark .ripple-effect {
+      background-color: rgba(0, 0, 0, 0.15);
+    }
+    @keyframes ripple-animation {
+      to { transform: scale(4); opacity: 0; }
+    }
+
+    .md-select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--md-on-surface-medium);
+      border-radius: 4px;
+      background-color: var(--md-surface);
+      color: var(--md-on-surface);
+      font-size: 14px;
+      outline: none;
+    }
+
+    .md-text-input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--md-on-surface-medium);
+      border-radius: 4px;
+      background-color: var(--md-surface);
+      color: var(--md-on-surface);
+      font-size: 14px;
+      outline: none;
+    }
+    .md-text-input:focus {
+      border-color: var(--md-primary);
+    }
+
+    /* Modals & Dialogs */
+    .md-dialog-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .md-dialog-overlay.active { display: flex; }
+    .md-dialog {
+      background-color: var(--md-surface);
+      border-radius: 12px;
+      width: 100%;
+      max-width: 440px;
+      box-shadow: var(--elevation-24);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      padding: 24px;
+      animation: modal-pop 0.2s cubic-bezier(0, 0, 0.2, 1);
+    }
+    @keyframes modal-pop {
+      from { transform: scale(0.9); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    /* Custom Toast / Snackbar */
+    #snackbar {
+      position: fixed;
+      bottom: 68px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background-color: #323232;
+      color: #ffffff;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 14px;
+      box-shadow: var(--elevation-6);
+      z-index: 2000;
+      transition: transform 0.3s cubic-bezier(0, 0, 0.2, 1);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      max-width: 90vw;
+    }
+    #snackbar.show {
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* Custom Leaflet Direction Marker */
+    .user-gps-marker {
+      position: relative;
+      width: 24px;
+      height: 24px;
+      background-color: #1976D2;
+      border: 3px solid #ffffff;
+      border-radius: 50%;
+      box-shadow: 0 0 10px rgba(0,0,0,0.4);
+    }
+    .user-gps-heading {
+      position: absolute;
+      top: -12px;
+      left: 3px;
+      width: 0; height: 0;
+      border-left: 6px solid transparent;
+      border-right: 6px solid transparent;
+      border-bottom: 12px solid #1976D2;
+    }
+  </style>
+</head>
+<body data-theme="light">
+
+  <div id="app-container">
+    <div id="map-container">
+      <div id="map"></div>
+    </div>
+
+    <!-- Google Maps Floating Search Bar -->
+    <div class="gmaps-search-bar">
+      <button class="md-icon-btn ripple-surface ripple-dark" id="btn-side-menu" title="メニュー">
+        <span class="material-icons">menu</span>
+      </button>
+      <input type="text" id="search-input" placeholder="場所、住所、スポットを検索..." autocomplete="off">
+      <button class="md-icon-btn ripple-surface ripple-dark" id="btn-clear-search">
+        <span class="material-icons">clear</span>
+      </button>
+      <div class="ball-avatar uk-ball ripple-surface" id="btn-char-avatar" title="キャラ切替">
+        <img id="header-avatar-img" src="" alt="Avatar">
+      </div>
+    </div>
+
+    <!-- Active Navigation HUD Banner -->
+    <div class="nav-hud-banner" id="nav-hud">
+      <div class="nav-hud-icon">
+        <span class="material-icons" id="nav-hud-turn-icon">navigation</span>
+      </div>
+      <div class="nav-hud-info">
+        <div class="nav-hud-distance" id="nav-hud-dist">--- m</div>
+        <div class="nav-hud-instruction" id="nav-hud-text">案内を準備中...</div>
+      </div>
+      <button class="md-icon-btn ripple-surface" style="color:#fff;" id="btn-exit-nav" title="案内終了">
+        <span class="material-icons">close</span>
+      </button>
+    </div>
+
+    <!-- Search Results Dropdown -->
+    <div class="search-results-dropdown" id="search-results">
+      <ul class="md-list" id="search-results-list"></ul>
+    </div>
+
+    <!-- Floating Action Buttons -->
+    <div class="fab-column">
+      <button class="md-fab mini ripple-surface" id="fab-route" title="経路検索">
+        <span class="material-icons">directions</span>
+      </button>
+      <button class="md-fab mini ripple-surface" id="fab-layers" title="マップタイプ変更">
+        <span class="material-icons">layers</span>
+      </button>
+      <button class="md-fab mini ripple-surface" id="fab-download-map" title="表示範囲をオフライン保存">
+        <span class="material-icons">cloud_download</span>
+      </button>
+      <button class="md-fab ripple-surface" id="fab-my-location" title="現在地追従">
+        <span class="material-icons" id="gps-icon" style="color: #1976D2;">my_location</span>
+      </button>
+    </div>
+
+    <!-- View Page 1: My Spots & Categories -->
+    <div class="view-page" id="page-saved">
+      <div class="page-header">
+        <button class="md-icon-btn ripple-surface ripple-dark" onclick="switchTab('explore')">
+          <span class="material-icons">arrow_back</span>
+        </button>
+        <h2>マイスポット & マイプレイス</h2>
+        <div style="margin-left: auto;">
+          <button class="md-btn filled ripple-surface" onclick="openAddPlaceModal()">
+            <span class="material-icons" style="font-size:18px;">add</span>
+            <span>追加</span>
+          </button>
+        </div>
+      </div>
+      <div style="padding: 16px;">
+        
+        <!-- Category Filter Chips -->
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <span style="font-weight: 500; font-size: 14px;">カテゴリフィルター</span>
+          <button class="md-btn text ripple-surface" style="font-size: 11px;" onclick="openAddCategoryModal()">+ カテゴリ作成</button>
+        </div>
+        <div class="chip-group" id="category-chips-container">
+          <!-- Populated dynamically -->
+        </div>
+
+        <hr style="border:none; border-top: 1px solid var(--md-divider); margin: 12px 0;">
+
+        <!-- Spots List -->
+        <ul class="md-list" id="saved-places-list">
+          <li class="md-list-item">
+            <div class="md-list-item-text">
+              <span class="md-list-item-primary">保存されたスポットがありません</span>
+              <span class="md-list-item-secondary">マップ上の長押し・タップ、または上の追加ボタンから登録できます</span>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- View Page 2: Route Search & Step-by-Step Directions -->
+    <div class="view-page" id="page-route">
+      <div class="page-header">
+        <button class="md-icon-btn ripple-surface ripple-dark" onclick="switchTab('explore')">
+          <span class="material-icons">arrow_back</span>
+        </button>
+        <h2>経路検索・案内 (Routing)</h2>
+      </div>
+      <div style="padding: 16px; display: flex; flex-direction: column; gap: 14px;">
+        
+        <!-- Origin / Destination Inputs -->
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="material-icons" style="color: #4CAF50;">my_location</span>
+            <input type="text" class="md-text-input" id="route-start-input" placeholder="出発地 (デフォルト: 現在地)">
+            <button class="md-icon-btn" onclick="useCurrentLocationAsStart()" title="現在地を使う">
+              <span class="material-icons">gps_fixed</span>
+            </button>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="material-icons" style="color: #E53935;">place</span>
+            <input type="text" class="md-text-input" id="route-end-input" placeholder="目的地を入力またはマップで選択">
+            <button class="md-icon-btn" onclick="selectEndFromSaved()" title="マイスポットから選ぶ">
+              <span class="material-icons">bookmark</span>
+            </button>
+          </div>
+        </div>
+
+        <button class="md-btn filled ripple-surface" style="width: 100%;" onclick="calculateRoute()">
+          <span class="material-icons">search</span>
+          <span>ルートを検索</span>
+        </button>
+
+        <!-- Route Summary & Nav Action -->
+        <div id="route-summary-card" style="display: none; background: var(--md-surface-variant); padding: 14px; border-radius: 8px; border: 1px solid var(--md-divider);">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <div id="route-summary-time" style="font-size: 20px; font-weight: 700; color: var(--md-primary);">-- 分</div>
+              <div id="route-summary-dist" style="font-size: 13px; color: var(--md-on-surface-medium);">-- km</div>
+            </div>
+            <button class="md-btn filled ripple-surface" style="background-color: #2e7d32; color: #fff;" onclick="startTurnByTurnNavigation()">
+              <span class="material-icons">navigation</span>
+              <span>案内開始</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Step-by-Step Directions List -->
+        <div style="font-weight: 500; font-size: 14px; margin-top: 8px;">ターンバイターン道順</div>
+        <ul class="md-list" id="route-steps-list">
+          <li class="md-list-item">
+            <div class="md-list-item-text">
+              <span class="md-list-item-primary">経路が検索されていません</span>
+              <span class="md-list-item-secondary">出発地と目的地を入力して「ルートを検索」を押してください</span>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- View Page 3: Offline Tiles Storage -->
+    <div class="view-page" id="page-offline">
+      <div class="page-header">
+        <button class="md-icon-btn ripple-surface ripple-dark" onclick="switchTab('explore')">
+          <span class="material-icons">arrow_back</span>
+        </button>
+        <h2>OfflidbMap (IndexedDB キャッシュ)</h2>
+      </div>
+      <div style="padding: 16px;">
+        <div class="md-list-item">
+          <div class="md-list-item-text">
+            <span class="md-list-item-primary">IndexedDB 保存済みタイル数</span>
+            <span class="md-list-item-secondary" id="offline-tile-count">計算中...</span>
+          </div>
+          <button class="md-btn outlined ripple-surface" onclick="clearOfflineMapData()">削除</button>
+        </div>
+        <p style="margin-top: 16px; font-size: 13px; color: var(--md-on-surface-medium); line-height: 1.5;">
+          ダウンロードボタンを押すと、現在表示しているマップ範囲の OpenStreetMap タイルデータが IndexedDB へ自動保存され、オフライン下でも閲覧が可能になります。
+        </p>
+        <div style="margin-top: 24px;">
+          <button class="md-btn filled ripple-surface" style="width:100%" onclick="downloadCurrentBounds()">現在の画面エリアを IndexedDB に保存</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- View Page 4: Settings Page -->
+    <div class="view-page" id="page-settings">
+      <div class="page-header">
+        <button class="md-icon-btn ripple-surface ripple-dark" onclick="switchTab('explore')">
+          <span class="material-icons">arrow_back</span>
+        </button>
+        <h2>設定 (Settings)</h2>
+      </div>
+      <div style="padding: 8px 16px;">
+        <!-- Theme Toggle Switch -->
+        <label class="md-switch-container">
+          <div>
+            <div style="font-size: 15px;">ダークテーマ</div>
+            <div style="font-size: 12px; color: var(--md-on-surface-medium);">アプリ全体のカラーモードを切替</div>
+          </div>
+          <input type="checkbox" class="md-switch-input" id="setting-dark-theme">
+          <div class="md-switch-track">
+            <span class="md-switch-thumb"></span>
+          </div>
+        </label>
+
+        <hr style="border:none; border-top: 1px solid var(--md-divider); margin: 8px 0;">
+
+        <!-- Character Selection Section -->
+        <div style="margin-top: 12px;">
+          <span style="font-weight: 500; font-size: 15px;">ボールキャラ選択 (Polandball)</span>
+          <div style="font-size: 12px; color: var(--md-on-surface-medium); margin-bottom: 8px;">
+            国と表情を組み合わせてマップピン・アバターを設定
+          </div>
+          <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+            <select class="md-select" id="select-country" style="flex: 1;"></select>
+            <select class="md-select" id="select-expression" style="flex: 1;"></select>
+          </div>
+          <div class="character-picker-grid" id="char-grid"></div>
+        </div>
+
+        <hr style="border:none; border-top: 1px solid var(--md-divider); margin: 16px 0;">
+
+        <!-- Map Layer Setting -->
+        <div style="margin-top: 8px;">
+          <div style="font-size: 15px; margin-bottom: 6px;">デフォルト地図表示</div>
+          <select class="md-select" id="select-map-provider" onchange="changeMapProvider(this.value)">
+            <option value="osm">OpenStreetMap Standard</option>
+            <option value="carto">CARTO Positron Light</option>
+            <option value="dark">CARTO Dark Matter</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Navigation Bar -->
+    <nav class="md-nav-bar">
+      <div class="md-nav-bar-item active" id="nav-explore" onclick="switchTab('explore')">
+        <span class="material-icons">explore</span>
+        <span>マップ</span>
+      </div>
+      <div class="md-nav-bar-item" id="nav-saved" onclick="switchTab('saved')">
+        <span class="material-icons">bookmark_border</span>
+        <span>マイスポット</span>
+      </div>
+      <div class="md-nav-bar-item" id="nav-route" onclick="switchTab('route')">
+        <span class="material-icons">directions</span>
+        <span>経路検索</span>
+      </div>
+      <div class="md-nav-bar-item" id="nav-offline" onclick="switchTab('offline')">
+        <span class="material-icons">offline_pin</span>
+        <span>オフライン</span>
+      </div>
+      <div class="md-nav-bar-item" id="nav-settings" onclick="switchTab('settings')">
+        <span class="material-icons">settings</span>
+        <span>設定</span>
+      </div>
+    </nav>
+  </div>
+
+  <!-- Custom Modal 1: Add Place Modal -->
+  <div class="md-dialog-overlay" id="modal-add-place">
+    <div class="md-dialog">
+      <h3 style="font-size:18px; font-weight:500;">マイプレイス登録</h3>
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <label style="font-size:12px; color:var(--md-on-surface-medium);">スポット名</label>
+        <input type="text" class="md-text-input" id="modal-place-name" placeholder="例: 東京タワー、お気に入りカフェ">
+        
+        <label style="font-size:12px; color:var(--md-on-surface-medium);">カテゴリ</label>
+        <select class="md-select" id="modal-place-category"></select>
+
+        <label style="font-size:12px; color:var(--md-on-surface-medium);">メモ・説明 (任意)</label>
+        <input type="text" class="md-text-input" id="modal-place-notes" placeholder="メモを入力...">
+
+        <input type="hidden" id="modal-place-lat">
+        <input type="hidden" id="modal-place-lng">
+      </div>
+      <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:8px;">
+        <button class="md-btn text ripple-surface" onclick="closeModal('modal-add-place')">キャンセル</button>
+        <button class="md-btn filled ripple-surface" onclick="saveNewPlaceFromModal()">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Custom Modal 2: Add Category Modal -->
+  <div class="md-dialog-overlay" id="modal-add-category">
+    <div class="md-dialog">
+      <h3 style="font-size:18px; font-weight:500;">新しいカテゴリ作成</h3>
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <label style="font-size:12px; color:var(--md-on-surface-medium);">カテゴリ名</label>
+        <input type="text" class="md-text-input" id="modal-cat-name" placeholder="例: キャンプ、ラーメン、仕事">
+      </div>
+      <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:8px;">
+        <button class="md-btn text ripple-surface" onclick="closeModal('modal-add-category')">キャンセル</button>
+        <button class="md-btn filled ripple-surface" onclick="saveNewCategory()">作成</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Custom Toast Snackbar -->
+  <div id="snackbar">
+    <span class="material-icons" id="snackbar-icon" style="color:#2e7d32;">info</span>
+    <span id="snackbar-msg">メッセージ</span>
+  </div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script>
+    // Polandball Configuration
+    const BASE_BALL_URL = "https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/";
+    const COUNTRIES = [
+      'germany', 'japan', 'china', 'italy', 'sierraleone', 
+      'russia', 'france', 'poland', 'england472x600', 'usa', 'korea', 'austria'
+    ];
+    const EXPRESSIONS = [
+      'normal.png', 'anger.png', 'dissatisfaction.png', 'happy.png', 
+      'itome.png', 'lol.png', 'plot.png', 'sample', 'smile.png', 'surprise.png'
+    ];
+
+    let currentCountry = 'japan';
+    let currentExpression = 'normal.png';
+    let map;
+    let baseTileLayer;
+    let currentMarker;
+    let userLocationMarker;
+    let routePolyline;
+    let routeStepMarkers = [];
+    let savedPlaces = [];
+    let categories = ['すべて', 'お気に入り', 'カフェ・レストラン', '観光・レジャー', '仕事・学業'];
+    let selectedCategoryFilter = 'すべて';
+    let db;
+
+    // Real-Time GPS Tracking State
+    let watchId = null;
+    let isGpsSyncing = false;
+    let userCurrentLat = null;
+    let userCurrentLng = null;
+
+    // Route & Navigation State
+    let currentRouteData = null;
+    let isNavigating = false;
+    let activeNavStepIndex = 0;
+    let startCoords = null;
+    let endCoords = null;
+
+    function initDB() {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open('OsmMapsTileDB', 2);
+        request.onupgradeneeded = (e) => {
+          const database = e.target.result;
+          if (!database.objectStoreNames.contains('tiles')) {
+            database.createObjectStore('tiles', { keyPath: 'key' });
+          }
+          if (!database.objectStoreNames.contains('saved_places')) {
+            database.createObjectStore('saved_places', { keyPath: 'id' });
+          }
+          if (!database.objectStoreNames.contains('categories')) {
+            database.createObjectStore('categories', { keyPath: 'name' });
+          }
+        };
+        request.onsuccess = (e) => {
+          db = e.target.result;
+          updateOfflineTileCount();
+          loadCategories();
+          loadSavedPlaces();
+          resolve(db);
+        };
+        request.onerror = (e) => reject(e);
+      });
+    }
+
+    function showToast(msg, icon = 'info') {
+      const snackbar = document.getElementById('snackbar');
+      document.getElementById('snackbar-msg').textContent = msg;
+      document.getElementById('snackbar-icon').textContent = icon;
+      snackbar.classList.add('show');
+      setTimeout(() => snackbar.classList.remove('show'), 3200);
+    }
+
+    function getBallImageUrl(country, expression) {
+      let file = expression;
+      if (!file.endsWith('.png')) {
+        file += '.png';
+      }
+      return `${BASE_BALL_URL}${country}/${file}`;
+    }
+
+    L.TileLayer.IndexedDB = L.TileLayer.extend({
+      createTile: function (coords, done) {
+        const tile = document.createElement('img');
+        L.DomEvent.on(tile, 'load', L.Util.bind(this._tileOnLoad, this, done, tile));
+        L.DomEvent.on(tile, 'error', L.Util.bind(this._tileOnError, this, done, tile));
+
+        if (this.options.crossOrigin || this.options.crossOrigin === '') {
+          tile.crossOrigin = this.options.crossOrigin === true ? '' : this.options.crossOrigin;
+        }
+
+        tile.alt = '';
+        tile.setAttribute('role', 'presentation');
+
+        const tileUrl = this.getTileUrl(coords);
+        const key = `${coords.z}_${coords.x}_${coords.y}`;
+
+        if (db) {
+          const tx = db.transaction('tiles', 'readonly');
+          const store = tx.objectStore('tiles');
+          const req = store.get(key);
+          req.onsuccess = () => {
+            if (req.result) {
+              tile.src = req.result.blobUrl;
+            } else {
+              fetchAndCacheTile(tileUrl, key, tile);
+            }
+          };
+          req.onerror = () => {
+            tile.src = tileUrl;
+          };
+        } else {
+          tile.src = tileUrl;
+        }
+
+        return tile;
+      }
+    });
+
+    function fetchAndCacheTile(url, key, tileImg) {
+      fetch(url)
+        .then(res => res.blob())
+        .then(blob => {
+          const blobUrl = URL.createObjectURL(blob);
+          if (tileImg) tileImg.src = blobUrl;
+          
+          if (db) {
+            const tx = db.transaction('tiles', 'readwrite');
+            const store = tx.objectStore('tiles');
+            const reader = new FileReader();
+            reader.readAsDataURL(blob);
+            reader.onloadend = () => {
+              store.put({ key: key, blobUrl: reader.result, timestamp: Date.now() });
+              updateOfflineTileCount();
+            };
+          }
+        })
+        .catch(() => {
+          if (tileImg) tileImg.src = url;
+        });
+    }
+
+    function initMap() {
+      // Default Center: Tokyo Station
+      map = L.map('map', { zoomControl: false }).setView([35.681236, 139.767125], 13);
+
+      baseTileLayer = new L.TileLayer.IndexedDB('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(map);
+
+      // Player Marker
+      updatePlayerMarker([35.681236, 139.767125]);
+
+      map.on('click', (e) => {
+        updatePlayerMarker([e.latlng.lat, e.latlng.lng]);
+      });
+
+      // Long press / Context menu to quick add spot
+      map.on('contextmenu', (e) => {
+        openAddPlaceModal(e.latlng.lat, e.latlng.lng);
+      });
+
+      // Auto start real-time GPS synchronization
+      startRealtimeGPS();
+    }
+
+    function changeMapProvider(type) {
+      if (!map) return;
+      if (baseTileLayer) map.removeLayer(baseTileLayer);
+
+      let url = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+      if (type === 'carto') {
+        url = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+      } else if (type === 'dark') {
+        url = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+      }
+
+      baseTileLayer = new L.TileLayer.IndexedDB(url, { maxZoom: 19 }).addTo(map);
+      showToast("マップレイヤーを変更しました");
+    }
+
+    function createBallIconHtml(country, expression) {
+      const url = getBallImageUrl(country, expression);
+      const isUk = country === 'england472x600';
+      const ukClass = isUk ? 'uk-ball' : '';
+      return `
+        <div class="ball-avatar ${ukClass}" style="width:42px; height:42px; box-shadow: 0 3px 6px rgba(0,0,0,0.3); border:2px solid #fff;">
+          <img src="${url}" alt="${country}">
+        </div>
+      `;
+    }
+
+    function updatePlayerMarker(latlng) {
+      const iconHtml = createBallIconHtml(currentCountry, currentExpression);
+      const customIcon = L.divIcon({
+        html: iconHtml,
+        className: 'custom-pb-icon',
+        iconSize: [42, 42],
+        iconAnchor: [21, 21]
+      });
+
+      if (currentMarker) {
+        currentMarker.setLatLng(latlng);
+        currentMarker.setIcon(customIcon);
+      } else {
+        currentMarker = L.marker(latlng, { icon: customIcon }).addTo(map);
+      }
+
+      currentMarker.unbindPopup();
+      currentMarker.bindPopup(`
+        <div style="text-align:center; padding:4px;">
+          <b>選択したポイント</b><br>
+          <span style="font-size:11px; color:#666;">Lat: ${latlng[0].toFixed(4)}, Lng: ${latlng[1].toFixed(4)}</span><br><br>
+          <div style="display:flex; gap:6px; justify-content:center;">
+            <button class="md-btn filled ripple-surface" style="font-size:11px; height:28px; padding:0 8px;" onclick="openAddPlaceModal(${latlng[0]}, ${latlng[1]})">スポット登録</button>
+            <button class="md-btn outlined ripple-surface" style="font-size:11px; height:28px; padding:0 8px;" onclick="setAsRouteDestination(${latlng[0]}, ${latlng[1]})">ここへ行く</button>
+          </div>
+        </div>
+      `).openPopup();
+    }
+
+    function startRealtimeGPS() {
+      if (!navigator.geolocation) {
+        showToast("お使いのブラウザは位置情報をサポートしていません", "warning");
+        return;
+      }
+
+      isGpsSyncing = true;
+      document.getElementById('fab-my-location').classList.add('gps-syncing');
+
+      watchId = navigator.geolocation.watchPosition(
+        (pos) => {
+          userCurrentLat = pos.coords.latitude;
+          userCurrentLng = pos.coords.longitude;
+
+          // Start position coords for navigation
+          if (!startCoords) {
+            startCoords = [userCurrentLat, userCurrentLng];
+          }
+
+          updateUserGpsMarker(userCurrentLat, userCurrentLng, pos.coords.heading);
+
+          if (isNavigating) {
+            updateTurnByTurnProgress(userCurrentLat, userCurrentLng);
+          }
+        },
+        (err) => {
+          console.warn("GPS sync error: ", err);
+          showToast("現在地の取得に失敗しました", "error");
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 2000 }
+      );
+    }
+
+    function updateUserGpsMarker(lat, lng, heading) {
+      const headingAngle = heading || 0;
+      const customGpsIcon = L.divIcon({
+        html: `<div class="user-gps-marker"><div class="user-gps-heading" style="transform: rotate(${headingAngle}deg);"></div></div>`,
+        className: 'user-gps-container',
+        iconSize: [24, 24],
+        iconAnchor: [12, 12]
+      });
+
+      if (userLocationMarker) {
+        userLocationMarker.setLatLng([lat, lng]);
+        userLocationMarker.setIcon(customGpsIcon);
+      } else {
+        userLocationMarker = L.marker([lat, lng], { icon: customGpsIcon, zIndexOffset: 1000 }).addTo(map);
+      }
+    }
+
+    document.getElementById('fab-my-location').addEventListener('click', () => {
+      if (userCurrentLat && userCurrentLng) {
+        map.flyTo([userCurrentLat, userCurrentLng], 16);
+        showToast("現在地を追従中", "my_location");
+      } else {
+        showToast("現在地を取得中...", "hourglass_empty");
+      }
+    });
+
+    function loadCategories() {
+      if (!db) return;
+      const tx = db.transaction('categories', 'readonly');
+      const store = tx.objectStore('categories');
+      const req = store.getAll();
+      req.onsuccess = () => {
+        const storedCats = req.result.map(c => c.name);
+        storedCats.forEach(c => {
+          if (!categories.includes(c)) categories.push(c);
+        });
+        renderCategoryChips();
+        updateModalCategorySelect();
+      };
+    }
+
+    function renderCategoryChips() {
+      const container = document.getElementById('category-chips-container');
+      if (!container) return;
+      container.innerHTML = categories.map(cat => `
+        <div class="md-chip ${cat === selectedCategoryFilter ? 'active' : ''}" onclick="filterPlacesByCategory('${cat}')">
+          <span>${cat}</span>
+        </div>
+      `).join('');
+    }
+
+    function filterPlacesByCategory(cat) {
+      selectedCategoryFilter = cat;
+      renderCategoryChips();
+      renderSavedPlaces();
+    }
+
+    function openAddCategoryModal() {
+      document.getElementById('modal-cat-name').value = '';
+      document.getElementById('modal-add-category').classList.add('active');
+    }
+
+    function saveNewCategory() {
+      const name = document.getElementById('modal-cat-name').value.trim();
+      if (!name) {
+        showToast("カテゴリ名を入力してください", "warning");
+        return;
+      }
+      if (!categories.includes(name)) {
+        categories.push(name);
+        if (db) {
+          const tx = db.transaction('categories', 'readwrite');
+          tx.objectStore('categories').put({ name: name });
+        }
+      }
+      renderCategoryChips();
+      updateModalCategorySelect();
+      closeModal('modal-add-category');
+      showToast(`カテゴリ「${name}」を追加しました`);
+    }
+
+    function updateModalCategorySelect() {
+      const select = document.getElementById('modal-place-category');
+      if (!select) return;
+      const validCats = categories.filter(c => c !== 'すべて');
+      select.innerHTML = validCats.map(c => `<option value="${c}">${c}</option>`).join('');
+    }
+
+    function openAddPlaceModal(lat, lng) {
+      updateModalCategorySelect();
+      document.getElementById('modal-place-name').value = '';
+      document.getElementById('modal-place-notes').value = '';
+      document.getElementById('modal-place-lat').value = lat || (currentMarker ? currentMarker.getLatLng().lat : 35.681236);
+      document.getElementById('modal-place-lng').value = lng || (currentMarker ? currentMarker.getLatLng().lng : 139.767125);
+      document.getElementById('modal-add-place').classList.add('active');
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.remove('active');
+    }
+
+    function saveNewPlaceFromModal() {
+      const name = document.getElementById('modal-place-name').value.trim();
+      const cat = document.getElementById('modal-place-category').value;
+      const notes = document.getElementById('modal-place-notes').value.trim();
+      const lat = parseFloat(document.getElementById('modal-place-lat').value);
+      const lng = parseFloat(document.getElementById('modal-place-lng').value);
+
+      if (!name) {
+        showToast("スポット名を入力してください", "warning");
+        return;
+      }
+
+      const newPlace = {
+        id: Date.now().toString(),
+        name: name,
+        category: cat,
+        notes: notes,
+        lat: lat,
+        lng: lng,
+        createdAt: new Date().toLocaleDateString('ja-JP')
+      };
+
+      if (db) {
+        const tx = db.transaction('saved_places', 'readwrite');
+        tx.objectStore('saved_places').put(newPlace);
+      }
+
+      savedPlaces.push(newPlace);
+      renderSavedPlaces();
+      closeModal('modal-add-place');
+      showToast(`マイプレイス「${name}」を保存しました`);
+    }
+
+    function loadSavedPlaces() {
+      if (!db) return;
+      const tx = db.transaction('saved_places', 'readonly');
+      const store = tx.objectStore('saved_places');
+      const req = store.getAll();
+      req.onsuccess = () => {
+        savedPlaces = req.result || [];
+        renderSavedPlaces();
+      };
+    }
+
+    function renderSavedPlaces() {
+      const listElem = document.getElementById('saved-places-list');
+      if (!listElem) return;
+
+      const filtered = selectedCategoryFilter === 'すべて' 
+        ? savedPlaces 
+        : savedPlaces.filter(p => p.category === selectedCategoryFilter);
+
+      if (filtered.length === 0) {
+        listElem.innerHTML = `
+          <li class="md-list-item">
+            <div class="md-list-item-text">
+              <span class="md-list-item-primary">該当するスポットがありません</span>
+              <span class="md-list-item-secondary">スポットを追加して自分だけのマップを作成しましょう</span>
+            </div>
+          </li>`;
+        return;
+      }
+
+      listElem.innerHTML = filtered.map(p => `
+        <li class="md-list-item ripple-surface ripple-dark" onclick="flyToSaved(${p.lat}, ${p.lng})">
+          <span class="material-icons" style="color:var(--md-primary)">place</span>
+          <div class="md-list-item-text">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span class="md-list-item-primary">${p.name}</span>
+              <span style="font-size:10px; background:rgba(98,0,238,0.1); color:var(--md-primary); padding:2px 6px; border-radius:10px;">${p.category || '未分類'}</span>
+            </div>
+            <span class="md-list-item-secondary">${p.notes ? p.notes + ' • ' : ''}${p.lat.toFixed(4)}, ${p.lng.toFixed(4)}</span>
+          </div>
+          <button class="md-icon-btn" title="ここへ行く" onclick="event.stopPropagation(); setAsRouteDestination(${p.lat}, ${p.lng}, '${p.name}')">
+            <span class="material-icons" style="color:#2e7d32;">directions</span>
+          </button>
+          <button class="md-icon-btn" title="削除" onclick="event.stopPropagation(); deleteSaved('${p.id}')">
+            <span class="material-icons">delete</span>
+          </button>
+        </li>
+      `).join('');
+    }
+
+    function flyToSaved(lat, lng) {
+      switchTab('explore');
+      map.flyTo([lat, lng], 15);
+      updatePlayerMarker([lat, lng]);
+    }
+
+    function deleteSaved(id) {
+      if (db) {
+        const tx = db.transaction('saved_places', 'readwrite');
+        tx.objectStore('saved_places').delete(id);
+      }
+      savedPlaces = savedPlaces.filter(p => p.id !== id);
+      renderSavedPlaces();
+      showToast("スポットを削除しました");
+    }
+
+    function useCurrentLocationAsStart() {
+      if (userCurrentLat && userCurrentLng) {
+        startCoords = [userCurrentLat, userCurrentLng];
+        document.getElementById('route-start-input').value = "現在地";
+        showToast("出発地に現在地を設定しました");
+      } else {
+        showToast("現在地を取得できません", "warning");
+      }
+    }
+
+    function selectEndFromSaved() {
+      if (savedPlaces.length === 0) {
+        showToast("保存済みスポットがありません", "warning");
+        return;
+      }
+      switchTab('saved');
+    }
+
+    function setAsRouteDestination(lat, lng, name) {
+      endCoords = [lat, lng];
+      document.getElementById('route-end-input').value = name || `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+      switchTab('route');
+      calculateRoute();
+    }
+
+    function calculateRoute() {
+      if (!startCoords && userCurrentLat && userCurrentLng) {
+        startCoords = [userCurrentLat, userCurrentLng];
+        document.getElementById('route-start-input').value = "現在地";
+      }
+
+      if (!startCoords || !endCoords) {
+        showToast("出発地と目的地を指定してください", "warning");
+        return;
+      }
+
+      showToast("経路を計算中...", "hourglass_empty");
+
+      // Request OSRM Routing API
+      const url = `https://router.project-osrm.org/route/v1/driving/${startCoords[1]},${startCoords[0]};${endCoords[1]},${endCoords[0]}?overview=full&geometries=geojson&steps=true`;
+
+      fetch(url)
+        .then(res => res.json())
+        .then(data => {
+          if (!data.routes || data.routes.length === 0) {
+            showToast("ルートが見つかりませんでした", "error");
+            return;
+          }
+
+          currentRouteData = data.routes[0];
+          renderRouteOnMap(currentRouteData);
+          renderRouteSteps(currentRouteData);
+          showToast("ルートが見つかりました！", "check_circle");
+        })
+        .catch(err => {
+          console.error(err);
+          showToast("経路検索エラーが発生しました", "error");
+        });
+    }
+
+    function renderRouteOnMap(route) {
+      if (routePolyline) map.removeLayer(routePolyline);
+      routeStepMarkers.forEach(m => map.removeLayer(m));
+      routeStepMarkers = [];
+
+      const coords = route.geometry.coordinates.map(c => [c[1], c[0]]);
+      routePolyline = L.polyline(coords, { color: '#29b6f6', weight: 6, opacity: 0.85 }).addTo(map);
+      
+      map.fitBounds(routePolyline.getBounds(), { padding: [50, 50] });
+    }
+
+    function renderRouteSteps(route) {
+      const summaryCard = document.getElementById('route-summary-card');
+      const timeElem = document.getElementById('route-summary-time');
+      const distElem = document.getElementById('route-summary-dist');
+      const stepsList = document.getElementById('route-steps-list');
+
+      const totalMins = Math.round(route.duration / 60);
+      const totalKm = (route.distance / 1000).toFixed(1);
+
+      summaryCard.style.display = 'block';
+      timeElem.textContent = `約 ${totalMins} 分`;
+      distElem.textContent = `${totalKm} km`;
+
+      const steps = route.legs[0].steps;
+      stepsList.innerHTML = steps.map((s, idx) => {
+        const icon = getManeuverIcon(s.maneuver.type, s.maneuver.modifier);
+        const text = s.maneuver.instruction || translateManeuver(s.maneuver);
+        return `
+          <li class="md-list-item ripple-surface ripple-dark" onclick="focusRouteStep(${s.maneuver.location[1]}, ${s.maneuver.location[0]})">
+            <span class="material-icons" style="color:var(--md-primary);">${icon}</span>
+            <div class="md-list-item-text">
+              <span class="md-list-item-primary">${text}</span>
+              <span class="md-list-item-secondary">${Math.round(s.distance)} m</span>
+            </div>
+          </li>
+        `;
+      }).join('');
+    }
+
+    function focusRouteStep(lat, lng) {
+      switchTab('explore');
+      map.flyTo([lat, lng], 17);
+    }
+
+    function getManeuverIcon(type, modifier) {
+      if (type === 'depart') return 'trip_origin';
+      if (type === 'arrive') return 'flag';
+      if (modifier && modifier.includes('left')) return 'turn_left';
+      if (modifier && modifier.includes('right')) return 'turn_right';
+      if (modifier && modifier.includes('slight left')) return 'turn_slight_left';
+      if (modifier && modifier.includes('slight right')) return 'turn_slight_right';
+      return 'navigation';
+    }
+
+    function translateManeuver(maneuver) {
+      const mod = maneuver.modifier || '';
+      if (maneuver.type === 'depart') return '出発します';
+      if (maneuver.type === 'arrive') return '目的地に到着します';
+      if (mod.includes('left')) return '左方向へ曲がります';
+      if (mod.includes('right')) return '右方向へ曲がります';
+      return '直進します';
+    }
+
+    function startTurnByTurnNavigation() {
+      if (!currentRouteData) return;
+      isNavigating = true;
+      activeNavStepIndex = 0;
+      switchTab('explore');
+
+      document.getElementById('nav-hud').classList.add('active');
+      showToast("リアルタイム音声ナビを開始しました", "navigation");
+
+      if (userCurrentLat && userCurrentLng) {
+        map.flyTo([userCurrentLat, userCurrentLng], 18);
+      }
+    }
+
+    document.getElementById('btn-exit-nav').addEventListener('click', () => {
+      isNavigating = false;
+      document.getElementById('nav-hud').classList.remove('active');
+      showToast("ナビゲーションを終了しました");
+    });
+
+    function updateTurnByTurnProgress(lat, lng) {
+      if (!currentRouteData || !isNavigating) return;
+
+      const steps = currentRouteData.legs[0].steps;
+      if (activeNavStepIndex >= steps.length) {
+        document.getElementById('nav-hud-dist').textContent = "到着";
+        document.getElementById('nav-hud-text').textContent = "目的地に到着しました！";
+        showToast("目的地に到着しました！", "flag");
+        isNavigating = false;
+        setTimeout(() => document.getElementById('nav-hud').classList.remove('active'), 4000);
+        return;
+      }
+
+      const currentStep = steps[activeNavStepIndex];
+      const targetLoc = currentStep.maneuver.location; // [lng, lat]
+      const distToStep = getDistanceMeters(lat, lng, targetLoc[1], targetLoc[0]);
+
+      document.getElementById('nav-hud-dist').textContent = `${Math.round(distToStep)} m`;
+      document.getElementById('nav-hud-text').textContent = currentStep.maneuver.instruction || translateManeuver(currentStep.maneuver);
+      document.getElementById('nav-hud-turn-icon').textContent = getManeuverIcon(currentStep.maneuver.type, currentStep.maneuver.modifier);
+
+      // Advance step if close enough (< 25m)
+      if (distToStep < 25) {
+        activeNavStepIndex++;
+      }
+    }
+
+    function getDistanceMeters(lat1, lon1, lat2, lon2) {
+      const R = 6371e3; // Earth radius in meters
+      const φ1 = lat1 * Math.PI/180;
+      const φ2 = lat2 * Math.PI/180;
+      const Δφ = (lat2-lat1) * Math.PI/180;
+      const Δλ = (lon2-lon1) * Math.PI/180;
+
+      const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+                Math.cos(φ1) * Math.cos(φ2) *
+                Math.sin(Δλ/2) * Math.sin(Δλ/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return R * c;
+    }
+
+    const searchInput = document.getElementById('search-input');
+    const searchResults = document.getElementById('search-results');
+    const searchResultsList = document.getElementById('search-results-list');
+
+    let searchTimeout;
+    searchInput.addEventListener('input', (e) => {
+      clearTimeout(searchTimeout);
+      const query = e.target.value.trim();
+      if (!query) {
+        searchResults.classList.remove('active');
+        return;
+      }
+      searchTimeout = setTimeout(() => {
+        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`)
+          .then(res => res.json())
+          .then(data => {
+            if (data.length === 0) {
+              searchResultsList.innerHTML = `<li class="md-list-item"><span class="md-list-item-primary">結果が見つかりませんでした</span></li>`;
+            } else {
+              searchResultsList.innerHTML = data.slice(0, 5).map(item => `
+                <li class="md-list-item ripple-surface ripple-dark" onclick="selectSearchResult(${item.lat}, ${item.lon}, '${item.display_name.replace(/'/g, "\\'")}')">
+                  <span class="material-icons">location_on</span>
+                  <div class="md-list-item-text">
+                    <span class="md-list-item-primary">${item.display_name.split(',')[0]}</span>
+                    <span class="md-list-item-secondary">${item.display_name}</span>
+                  </div>
+                </li>
+              `).join('');
+            }
+            searchResults.classList.add('active');
+          });
+      }, 400);
+    });
+
+    document.getElementById('btn-clear-search').addEventListener('click', () => {
+      searchInput.value = '';
+      searchResults.classList.remove('active');
+    });
+
+    function selectSearchResult(lat, lon, name) {
+      searchResults.classList.remove('active');
+      map.flyTo([lat, lon], 15);
+      updatePlayerMarker([lat, lon]);
+      endCoords = [parseFloat(lat), parseFloat(lon)];
+      document.getElementById('route-end-input').value = name.split(',')[0];
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.view-page').forEach(page => page.classList.remove('active'));
+      document.querySelectorAll('.md-nav-bar-item').forEach(item => item.classList.remove('active'));
+
+      const navItem = document.getElementById(`nav-${tabId}`);
+      if (navItem) navItem.classList.add('active');
+
+      if (tabId !== 'explore') {
+        const page = document.getElementById(`page-${tabId}`);
+        if (page) page.classList.add('active');
+      }
+    }
+
+    function initCharacterPicker() {
+      const countrySelect = document.getElementById('select-country');
+      const exprSelect = document.getElementById('select-expression');
+      const grid = document.getElementById('char-grid');
+
+      COUNTRIES.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c;
+        opt.textContent = c === 'england472x600' ? 'UK (England)' : c.toUpperCase();
+        if (c === currentCountry) opt.selected = true;
+        countrySelect.appendChild(opt);
+      });
+
+      EXPRESSIONS.forEach(e => {
+        const opt = document.createElement('option');
+        opt.value = e;
+        opt.textContent = e.replace('.png', '');
+        if (e === currentExpression) opt.selected = true;
+        exprSelect.appendChild(opt);
+      });
+
+      function renderGrid() {
+        grid.innerHTML = COUNTRIES.map(c => {
+          const isUk = c === 'england472x600';
+          const ukClass = isUk ? 'uk-card' : '';
+          const url = getBallImageUrl(c, currentExpression);
+          const isSelected = c === currentCountry ? 'selected' : '';
+          return `
+            <div class="char-card ${ukClass} ${isSelected}" onclick="changeCharacter('${c}', '${currentExpression}')">
+              <img src="${url}" alt="${c}">
+              <span style="font-size:10px; margin-top:4px;">${c === 'england472x600' ? 'UK' : c}</span>
+            </div>
+          `;
+        }).join('');
+      }
+
+      countrySelect.addEventListener('change', (e) => {
+        currentCountry = e.target.value;
+        updateHeaderAvatar();
+        renderGrid();
+      });
+
+      exprSelect.addEventListener('change', (e) => {
+        currentExpression = e.target.value;
+        updateHeaderAvatar();
+        renderGrid();
+      });
+
+      renderGrid();
+      updateHeaderAvatar();
+    }
+
+    function changeCharacter(country, expr) {
+      currentCountry = country;
+      currentExpression = expr;
+      document.getElementById('select-country').value = country;
+      updateHeaderAvatar();
+      initCharacterPicker();
+      if (currentMarker) {
+        updatePlayerMarker([currentMarker.getLatLng().lat, currentMarker.getLatLng().lng]);
+      }
+    }
+
+    function updateHeaderAvatar() {
+      const img = document.getElementById('header-avatar-img');
+      img.src = getBallImageUrl(currentCountry, currentExpression);
+      const container = document.getElementById('btn-char-avatar');
+      if (currentCountry === 'england472x600') {
+        container.classList.add('uk-ball');
+      } else {
+        container.classList.remove('uk-ball');
+      }
+    }
+
+    document.getElementById('btn-char-avatar').addEventListener('click', () => switchTab('settings'));
+    document.getElementById('btn-side-menu').addEventListener('click', () => switchTab('settings'));
+    document.getElementById('fab-route').addEventListener('click', () => switchTab('route'));
+    document.getElementById('fab-layers').addEventListener('click', () => switchTab('settings'));
+    document.getElementById('fab-download-map').addEventListener('click', () => downloadCurrentBounds());
+
+    function downloadCurrentBounds() {
+      if (!map) return;
+      const bounds = map.getBounds();
+      const zoom = map.getZoom();
+      
+      const minTile = map.project(bounds.getNorthWest(), zoom).divideBy(256).floor();
+      const maxTile = map.project(bounds.getSouthEast(), zoom).divideBy(256).floor();
+
+      let total = 0;
+      for (let x = minTile.x; x <= maxTile.x; x++) {
+        for (let y = minTile.y; y <= maxTile.y; y++) {
+          const tileUrl = `https://a.tile.openstreetmap.org/${zoom}/${x}/${y}.png`;
+          const key = `${zoom}_${x}_${y}`;
+          fetchAndCacheTile(tileUrl, key, null);
+          total++;
+        }
+      }
+      showToast(`${total} 個のマップタイルをIndexedDBに保存開始しました`, "cloud_download");
+    }
+
+    function updateOfflineTileCount() {
+      if (!db) return;
+      const tx = db.transaction('tiles', 'readonly');
+      const store = tx.objectStore('tiles');
+      const req = store.count();
+      req.onsuccess = () => {
+        const countElem = document.getElementById('offline-tile-count');
+        if (countElem) countElem.textContent = `${req.result} タイルキャッシュ済み`;
+      };
+    }
+
+    function clearOfflineMapData() {
+      if (!db) return;
+      const tx = db.transaction('tiles', 'readwrite');
+      const store = tx.objectStore('tiles');
+      store.clear().onsuccess = () => {
+        updateOfflineTileCount();
+        showToast("オフラインキャッシュをクリアしました");
+      };
+    }
+
+    const darkSwitch = document.getElementById('setting-dark-theme');
+    darkSwitch.addEventListener('change', (e) => {
+      document.body.setAttribute('data-theme', e.target.checked ? 'dark' : 'light');
+    });
+
+    // Global Ripple Effect
+    document.addEventListener('click', function (e) {
+      const surface = e.target.closest('.ripple-surface');
+      if (surface) {
+        const rect = surface.getBoundingClientRect();
+        const size = Math.max(rect.width, rect.height);
+        
+        const prevRipple = surface.querySelector('.ripple-effect');
+        if (prevRipple) prevRipple.remove();
+
+        const ripple = document.createElement('span');
+        ripple.className = 'ripple-effect';
+        ripple.style.width = ripple.style.height = `${size}px`;
+        
+        const x = e.clientX - rect.left - size / 2;
+        const y = e.clientY - rect.top - size / 2;
+        
+        ripple.style.left = `${x}px`;
+        ripple.style.top = `${y}px`;
+        
+        surface.appendChild(ripple);
+      }
+    });
+
+    window.onload = function() {
+      initDB().then(() => {
+        initMap();
+        initCharacterPicker();
+      });
+    };
+  </script>
+</body>
+</html>
