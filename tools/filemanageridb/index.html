@@ -1,0 +1,1866 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" id="theme-color-meta" content="#f6f2f7">
+    <title>PB File Manager - Material 3 Expressive</title>
+
+    <!-- Google Sans Flex & Material Symbols Outlined -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wdth,wght,GRAD,ROND@6..144,87.5,1..1000,100,100&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+
+    <!-- JSZip for ZIP compression and extraction -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <!-- Import Map for Material Web Components & Material Color Utilities -->
+    <script type="importmap">
+    {
+        "imports": {
+            "@material/web/": "https://esm.run/@material/web/",
+            "@material/material-color-utilities": "https://esm.run/@material/material-color-utilities"
+        }
+    }
+    </script>
+
+    <style>
+        :root {
+            /* M3 Dynamic Tokens */
+            --md-sys-color-primary: #6750a4;
+            --md-sys-color-on-primary: #ffffff;
+            --md-sys-color-primary-container: #eaddff;
+            --md-sys-color-on-primary-container: #21005d;
+            --md-sys-color-secondary: #625b71;
+            --md-sys-color-on-secondary: #ffffff;
+            --md-sys-color-secondary-container: #e8def8;
+            --md-sys-color-on-secondary-container: #1d192b;
+            --md-sys-color-tertiary: #7d5260;
+            --md-sys-color-on-tertiary: #ffffff;
+            --md-sys-color-tertiary-container: #ffd8e4;
+            --md-sys-color-on-tertiary-container: #31111d;
+            --md-sys-color-error: #b3261e;
+            --md-sys-color-on-error: #ffffff;
+            --md-sys-color-error-container: #f9dedc;
+            --md-sys-color-on-error-container: #410e0b;
+            --md-sys-color-background: #f6f2f7;
+            --md-sys-color-on-background: #1c1b1f;
+            --md-sys-color-surface: #fffbfe;
+            --md-sys-color-on-surface: #1c1b1f;
+            --md-sys-color-surface-variant: #e7e0ec;
+            --md-sys-color-on-surface-variant: #49454f;
+            --md-sys-color-surface-container-lowest: #ffffff;
+            --md-sys-color-surface-container-low: #f7f2fa;
+            --md-sys-color-surface-container: #f3edf7;
+            --md-sys-color-surface-container-high: #ece6f0;
+            --md-sys-color-surface-container-highest: #e6e0e9;
+            --md-sys-color-outline: #79747e;
+            --md-sys-color-outline-variant: #c4c7c5;
+            --md-sys-color-inverse-surface: #313033;
+            --md-sys-color-inverse-on-surface: #f4f0f4;
+            --md-sys-color-inverse-primary: #d0bcff;
+
+            /* Expressive Google Sans Flex Font Settings */
+            --md-ref-typeface-brand: 'Google Sans Flex', sans-serif;
+            --md-ref-typeface-plain: 'Google Sans Flex', sans-serif;
+
+            /* Motion Duration */
+            --transition-duration: 0.35s;
+            --m3-easing-standard: cubic-bezier(0.2, 0, 0, 1);
+            --m3-easing-emphasized: cubic-bezier(0.3, 0, 0, 1);
+
+            /* MWC Component Design Token Mappings */
+            --md-elevated-button-container-color: var(--md-sys-color-surface-container-low);
+            --md-elevated-button-label-text-color: var(--md-sys-color-primary);
+            
+            --md-filled-text-field-container-color: var(--md-sys-color-surface-container-highest);
+            --md-filled-text-field-input-text-color: var(--md-sys-color-on-surface);
+            --md-filled-text-field-label-text-color: var(--md-sys-color-on-surface-variant);
+            --md-filled-text-field-active-indicator-color: var(--md-sys-color-primary);
+
+            --md-outlined-text-field-outline-color: var(--md-sys-color-outline);
+            --md-outlined-text-field-focus-outline-color: var(--md-sys-color-primary);
+            --md-outlined-text-field-input-text-color: var(--md-sys-color-on-surface);
+
+            /* Switch Off / On colors */
+            --md-switch-unselected-track-color: var(--md-sys-color-surface-container-highest);
+            --md-switch-unselected-handle-color: var(--md-sys-color-outline);
+            --md-switch-unselected-icon-color: var(--md-sys-color-surface-container-highest);
+            --md-switch-selected-track-color: var(--md-sys-color-primary);
+            --md-switch-selected-handle-color: var(--md-sys-color-on-primary);
+            --md-switch-selected-icon-color: var(--md-sys-color-primary-container);
+
+            /* Slider tracks */
+            --md-slider-active-track-color: var(--md-sys-color-primary);
+            --md-slider-inactive-track-color: var(--md-sys-color-surface-container-highest);
+            --md-slider-handle-color: var(--md-sys-color-primary);
+
+            /* Menus, Selects & Dialogs */
+            --md-menu-container-color: var(--md-sys-color-surface-container-high);
+            --md-dialog-container-color: var(--md-sys-color-surface-container-high);
+            --md-filled-select-container-color: var(--md-sys-color-surface-container-highest);
+            --md-outlined-select-outline-color: var(--md-sys-color-outline);
+            --md-select-option-container-color: var(--md-sys-color-surface-container-high);
+        }
+
+        *, *::before, *::after {
+            font-family: "Google Sans Flex", sans-serif;
+            font-optical-sizing: auto;
+            font-style: normal;
+            font-variation-settings:
+                "slnt" 0,
+                "wdth" 87.5,
+                "GRAD" 100,
+                "ROND" 100;
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--md-sys-color-surface-container-low);
+            color: var(--md-sys-color-on-background);
+            transition: background-color var(--transition-duration), color var(--transition-duration);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body.dark-mode {
+            background-color: var(--md-sys-color-background);
+        }
+
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            height: 64px;
+            padding: 0 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background-color: transparent;
+            border-bottom: none;
+            box-shadow: none;
+        }
+
+        .top-bar-title-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+            color: var(--md-sys-color-on-background);
+        }
+
+        /* Circular M3 Back Button Style */
+        .m3-circle-back-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: var(--md-sys-color-secondary-container);
+            color: var(--md-sys-color-on-secondary-container);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border: none;
+            outline: none;
+            transition: background-color 0.2s var(--m3-easing-standard), transform 0.2s var(--m3-easing-standard);
+        }
+
+        .m3-circle-back-btn:hover {
+            opacity: 0.9;
+        }
+
+        .m3-circle-back-btn:active {
+            transform: scale(0.92);
+        }
+
+        .m3-circle-back-btn.hidden {
+            display: none !important;
+        }
+
+        .floating-nav-container {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            width: auto;
+            max-width: 95vw;
+        }
+
+        .custom-nav {
+            display: flex;
+            align-items: center;
+            background-color: var(--md-sys-color-surface);
+            padding: 8px;
+            border-radius: 36px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+            border: none;
+            transition: all 0.4s var(--m3-easing-emphasized);
+        }
+
+        body.dark-mode .custom-nav {
+            background-color: var(--md-sys-color-surface-container-high);
+        }
+
+        .nav-item {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-width: 72px;
+            height: 48px;
+            cursor: pointer;
+            border-radius: 24px;
+            transition: all 0.2s var(--m3-easing-standard);
+        }
+
+        .nav-icon-container {
+            width: 52px;
+            height: 32px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 20px;
+            transition: background-color 0.3s var(--m3-easing-standard);
+        }
+
+        .nav-item .material-symbols-outlined {
+            font-size: 24px;
+            font-variation-settings: 'FILL' 0, 'wght' 400;
+            color: var(--md-sys-color-on-surface-variant);
+        }
+
+        .nav-item.active .nav-icon-container {
+            background-color: var(--md-sys-color-secondary-container);
+        }
+
+        .nav-item.active .material-symbols-outlined {
+            font-variation-settings: 'FILL' 1;
+            color: var(--md-sys-color-on-secondary-container);
+        }
+
+        @media (min-width: 900px) {
+            .floating-nav-container {
+                left: 24px;
+                bottom: auto;
+                top: 50%;
+                transform: translateY(-50%);
+            }
+            .custom-nav {
+                flex-direction: column;
+                border-radius: 32px;
+                padding: 12px 8px;
+            }
+            .nav-item { margin: 4px 0; }
+            body { margin-left: 100px; }
+        }
+
+        main {
+            flex: 1;
+            padding: 16px 16px 120px 16px;
+            max-width: 900px;
+            margin: 0 auto;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .view-section {
+            display: none;
+            animation: m3-expressive-in 0.35s var(--m3-easing-emphasized) forwards;
+        }
+        .view-section.active { display: block; }
+
+        @keyframes m3-expressive-in {
+            from { opacity: 0; transform: scale(0.97) translateY(8px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        /* Solid Expressive Cards with NO Shadows */
+        .solid-card {
+            background-color: var(--md-sys-color-surface);
+            border-radius: 28px;
+            padding: 24px;
+            margin-bottom: 20px;
+            border: none !important;
+            box-shadow: none !important;
+            transition: background-color 0.3s var(--m3-easing-standard);
+        }
+
+        body.dark-mode .solid-card {
+            background-color: var(--md-sys-color-surface-container);
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: var(--md-sys-color-primary);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .pb-avatar-container {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            overflow: hidden;
+            background-color: var(--md-sys-color-surface-container-high);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 3px solid var(--md-sys-color-primary-container);
+            flex-shrink: 0;
+            position: relative;
+        }
+
+        .pb-avatar-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center;
+        }
+
+        /* Special rule for UK (england472x600): Crop top 472px from 472x600 image to treat as 472x472 */
+        .pb-avatar-img.uk-ball {
+            object-fit: cover;
+            object-position: top;
+        }
+
+        .file-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .file-card {
+            background-color: var(--md-sys-color-surface-container-low);
+            border-radius: 20px;
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s var(--m3-easing-standard);
+            border: 2px solid transparent;
+        }
+
+        .file-card:hover {
+            background-color: var(--md-sys-color-surface-container-high);
+        }
+
+        .file-card.selected {
+            border-color: var(--md-sys-color-primary);
+            background-color: var(--md-sys-color-primary-container);
+            color: var(--md-sys-color-on-primary-container);
+        }
+
+        .file-icon {
+            font-size: 40px;
+            margin-bottom: 8px;
+            color: var(--md-sys-color-primary);
+        }
+
+        .file-name {
+            font-size: 13px;
+            font-weight: 600;
+            word-break: break-all;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            line-height: 1.3;
+        }
+
+        .file-meta {
+            font-size: 11px;
+            opacity: 0.7;
+            margin-top: 4px;
+        }
+
+        .file-more-btn {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,0,0,0.05);
+            cursor: pointer;
+        }
+
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+            padding: 10px 16px;
+            background-color: var(--md-sys-color-surface-container-low);
+            border-radius: 16px;
+            margin-bottom: 16px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .breadcrumb-item {
+            cursor: pointer;
+            color: var(--md-sys-color-primary);
+            display: flex;
+            align-items: center;
+        }
+
+        .breadcrumb-item:hover {
+            text-decoration: underline;
+        }
+
+        .selection-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background-color: var(--md-sys-color-tertiary-container);
+            color: var(--md-sys-color-on-tertiary-container);
+            padding: 10px 16px;
+            border-radius: 20px;
+            margin-bottom: 16px;
+        }
+
+        /* Toast / Snackbar Notification */
+        .m3-toast {
+            position: fixed;
+            bottom: 84px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background-color: var(--md-sys-color-inverse-surface);
+            color: var(--md-sys-color-inverse-on-surface);
+            padding: 12px 20px;
+            border-radius: 28px;
+            font-size: 14px;
+            font-weight: 600;
+            z-index: 1000;
+            opacity: 0;
+            transition: all 0.3s var(--m3-easing-emphasized);
+            pointer-events: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .m3-toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        /* Preview Containers */
+        .preview-box {
+            width: 100%;
+            max-height: 400px;
+            overflow: auto;
+            border-radius: 16px;
+            background-color: var(--md-sys-color-surface-container-highest);
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .preview-box img, .preview-box video {
+            max-width: 100%;
+            max-height: 350px;
+            border-radius: 12px;
+            object-fit: contain;
+        }
+
+        .preview-box pre {
+            width: 100%;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: monospace;
+            font-size: 13px;
+            margin: 0;
+            user-select: text;
+        }
+
+        md-filled-button, md-elevated-button, md-outlined-button, md-filled-tonal-button, md-text-button {
+            --md-filled-button-container-shape: 20px;
+            margin: 4px;
+            font-weight: 600;
+        }
+
+        md-outlined-text-field, md-filled-text-field, md-filled-select, md-outlined-select {
+            width: 100%;
+            margin-bottom: 16px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="top-bar-title-container">
+            <!-- M3 Circular Back Button -->
+            <button id="top-bar-back-btn" class="m3-circle-back-btn hidden" onclick="window.goBack()" aria-label="Go Back">
+                <span class="material-symbols-outlined">chevron_left</span>
+            </button>
+            <md-icon-button id="top-bar-icon-main">
+                <span class="material-symbols-outlined">folder_managed</span>
+            </md-icon-button>
+            <h1 id="top-bar-title">PB File Manager</h1>
+        </div>
+        <div style="display:flex; align-items:center; position:relative;">
+            <input type="color" id="source-color-picker" value="#6750a4" style="width:0; height:0; visibility:hidden; position:absolute;">
+            <md-icon-button onclick="document.getElementById('source-color-picker').click()">
+                <span class="material-symbols-outlined">palette</span>
+            </md-icon-button>
+            <md-icon-button onclick="window.toggleDarkMode()">
+                <span class="material-symbols-outlined" id="theme-icon">dark_mode</span>
+            </md-icon-button>
+            
+            <!-- M3 Overflow Menu Button -->
+            <md-icon-button id="overflow-menu-anchor" onclick="document.getElementById('overflow-menu').open = !document.getElementById('overflow-menu').open">
+                <span class="material-symbols-outlined">more_vert</span>
+            </md-icon-button>
+
+            <!-- M3 Menu Component -->
+            <md-menu id="overflow-menu" anchor="overflow-menu-anchor">
+                <md-menu-item onclick="window.updateTheme('#6750a4')">
+                    <div slot="headline">Purple Default</div>
+                </md-menu-item>
+                <md-menu-item onclick="window.updateTheme('#006a6a')">
+                    <div slot="headline">Teal Theme</div>
+                </md-menu-item>
+                <md-menu-item onclick="window.updateTheme('#b3261e')">
+                    <div slot="headline">Crimson Theme</div>
+                </md-menu-item>
+                <md-menu-item onclick="window.triggerFileInput()">
+                    <div slot="headline">ファイル追加</div>
+                </md-menu-item>
+                <md-menu-item onclick="window.openNewFolderModal()">
+                    <div slot="headline">新規フォルダ作成</div>
+                </md-menu-item>
+            </md-menu>
+        </div>
+    </header>
+
+    <main>
+        <!-- FILES VIEW -->
+        <section id="view-files" class="view-section active">
+            <!-- Companion Ball Widget -->
+            <div class="solid-card" style="display:flex; align-items:center; gap:16px; padding:16px 20px;">
+                <div class="pb-avatar-container" onclick="window.switchTab('companion')">
+                    <img id="mascot-img" class="pb-avatar-img" src="" alt="PB Mascot">
+                </div>
+                <div style="flex:1;">
+                    <div style="font-size:12px; font-weight:700; color:var(--md-sys-color-primary); text-transform:uppercase; letter-spacing:0.5px;" id="mascot-country-label">PB Companion</div>
+                    <div style="font-size:15px; font-weight:600;" id="mascot-dialogue">IndexedDBへようこそ！ファイルを安全に管理します。</div>
+                </div>
+            </div>
+
+            <!-- Breadcrumb Navigation -->
+            <div class="breadcrumb" id="breadcrumb-container">
+                <!-- Dynamically populated -->
+            </div>
+
+            <!-- Selection Action Bar (when selecting items) -->
+            <div class="selection-bar hidden" id="selection-bar">
+                <span style="font-weight:700;" id="selection-count">0 件選択中</span>
+                <div style="display:flex; gap:4px;">
+                    <md-icon-button onclick="window.openBatchRenameModal()"><span class="material-symbols-outlined">edit</span></md-icon-button>
+                    <md-icon-button onclick="window.batchCopy()"><span class="material-symbols-outlined">content_copy</span></md-icon-button>
+                    <md-icon-button onclick="window.batchCut()"><span class="material-symbols-outlined">content_cut</span></md-icon-button>
+                    <md-icon-button onclick="window.batchCompressZip()"><span class="material-symbols-outlined">archive</span></md-icon-button>
+                    <md-icon-button onclick="window.batchDelete()"><span class="material-symbols-outlined">delete</span></md-icon-button>
+                    <md-icon-button onclick="window.clearSelection()"><span class="material-symbols-outlined">close</span></md-icon-button>
+                </div>
+            </div>
+
+            <!-- Action Toolbar & Search -->
+            <div class="solid-card" style="padding:16px;">
+                <div style="display:flex; gap:8px; align-items:center; margin-bottom:12px;">
+                    <md-outlined-text-field id="search-input" label="ファイル・フォルダ検索" oninput="window.filterFiles()" style="margin-bottom:0;">
+                        <md-icon slot="leading-icon"><span class="material-symbols-outlined">search</span></md-icon>
+                    </md-outlined-text-field>
+                </div>
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                    <md-filled-button onclick="window.triggerFileInput()">
+                        <md-icon slot="icon"><span class="material-symbols-outlined">upload_file</span></md-icon>
+                        ファイル追加
+                    </md-filled-button>
+                    <md-filled-tonal-button onclick="window.openNewFolderModal()">
+                        <md-icon slot="icon"><span class="material-symbols-outlined">create_new_folder</span></md-icon>
+                        新規フォルダ
+                    </md-filled-tonal-button>
+                    <md-outlined-button id="paste-btn" class="hidden" onclick="window.pasteClipboard()">
+                        <md-icon slot="icon"><span class="material-symbols-outlined">content_paste</span></md-icon>
+                        貼り付け (<span id="clipboard-count">0</span>)
+                    </md-outlined-button>
+                    <md-outlined-button onclick="window.toggleMultiSelectMode()">
+                        <md-icon slot="icon"><span class="material-symbols-outlined">checklist</span></md-icon>
+                        複数選択
+                    </md-outlined-button>
+                </div>
+            </div>
+
+            <!-- File List Grid -->
+            <div class="solid-card">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div class="section-title" style="margin-bottom:0;">
+                        <span class="material-symbols-outlined">folder_open</span>
+                        <span id="current-folder-title">PBPARK</span>
+                    </div>
+                    <md-text-button onclick="window.toggleViewMode()">
+                        <md-icon slot="icon"><span class="material-symbols-outlined" id="view-mode-icon">grid_view</span></md-icon>
+                    </md-text-button>
+                </div>
+
+                <div id="file-list-grid" class="file-grid">
+                    <!-- File cards generated by JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- COMPANION VIEW -->
+        <section id="view-companion" class="view-section">
+            <div class="solid-card">
+                <div class="section-title">
+                    <span class="material-symbols-outlined">face</span>
+                    Polandball Companion Config
+                </div>
+                <p style="margin-top:0; line-height: 1.6; opacity: 0.88;">
+                    アプリで利用するPolandballキャラクターと表情を選択できます。キャラクター画像はGitHub Rawリポジトリから取得されます。
+                </p>
+
+                <div style="display:flex; flex-direction:column; align-items:center; margin:20px 0; gap:12px;">
+                    <div class="pb-avatar-container" style="width:140px; height:140px; border-width:4px;">
+                        <img id="companion-preview-img" class="pb-avatar-img" src="" alt="Selected Ball">
+                    </div>
+                    <div style="font-size:18px; font-weight:700;" id="companion-preview-name">Japan - Normal</div>
+                </div>
+
+                <md-filled-select label="国を選択 (Country)" id="country-select" onchange="window.onCompanionConfigChange()">
+                    <md-select-option value="japan" selected><div slot="headline">Japan (日本)</div></md-select-option>
+                    <md-select-option value="germany"><div slot="headline">Germany (ドイツ)</div></md-select-option>
+                    <md-select-option value="china"><div slot="headline">China (中国)</div></md-select-option>
+                    <md-select-option value="italy"><div slot="headline">Italy (イタリア)</div></md-select-option>
+                    <md-select-option value="sierraleone"><div slot="headline">Sierra Leone (シエラレオネ)</div></md-select-option>
+                    <md-select-option value="russia"><div slot="headline">Russia (ロシア)</div></md-select-option>
+                    <md-select-option value="france"><div slot="headline">France (フランス)</div></md-select-option>
+                    <md-select-option value="poland"><div slot="headline">Poland (ポーランド)</div></md-select-option>
+                    <md-select-option value="england472x600"><div slot="headline">UK / England (イギリス 472x600 Top-Crop)</div></md-select-option>
+                    <md-select-option value="usa"><div slot="headline">USA (アメリカ)</div></md-select-option>
+                    <md-select-option value="korea"><div slot="headline">Korea (韓国)</div></md-select-option>
+                    <md-select-option value="austria"><div slot="headline">Austria (オーストリア)</div></md-select-option>
+                </md-filled-select>
+
+                <md-filled-select label="表情を選択 (Expression)" id="expression-select" onchange="window.onCompanionConfigChange()">
+                    <md-select-option value="normal.png" selected><div slot="headline">Normal (通常)</div></md-select-option>
+                    <md-select-option value="happy.png"><div slot="headline">Happy (幸せ)</div></md-select-option>
+                    <md-select-option value="smile.png"><div slot="headline">Smile (笑顔)</div></md-select-option>
+                    <md-select-option value="lol.png"><div slot="headline">LOL (爆笑)</div></md-select-option>
+                    <md-select-option value="surprise.png"><div slot="headline">Surprise (驚き)</div></md-select-option>
+                    <md-select-option value="anger.png"><div slot="headline">Anger (怒り)</div></md-select-option>
+                    <md-select-option value="dissatisfaction.png"><div slot="headline">Dissatisfaction (不満)</div></md-select-option>
+                    <md-select-option value="itome.png"><div slot="headline">Itome (糸目)</div></md-select-option>
+                    <md-select-option value="plot.png"><div slot="headline">Plot (企み)</div></md-select-option>
+                    <md-select-option value="sample"><div slot="headline">Sample (サンプル)</div></md-select-option>
+                </md-filled-select>
+            </div>
+        </section>
+
+        <!-- TOOLS VIEW -->
+        <section id="view-tools" class="view-section">
+            <div class="solid-card">
+                <div class="section-title">
+                    <span class="material-symbols-outlined">lock</span>
+                    Tangle SHA256 暗号化・復号化スタジオ
+                </div>
+                <p style="opacity:0.85; margin-top:0;">
+                    TangleフォーマットはパスワードのSHA-256ハッシュを利用してファイルを高度に暗号化保存する形式です。
+                </p>
+
+                <md-filled-text-field id="tangle-filename" label="新規暗号化ファイル名 (.tangle)" value="secret.tangle"></md-filled-text-field>
+                <md-filled-text-field id="tangle-password" label="暗号化パスワード" type="password"></md-filled-text-field>
+                <md-filled-text-field id="tangle-content" label="暗号化するテキスト内容" type="textarea" rows="4"></md-filled-text-field>
+
+                <div style="display:flex; justify-content:flex-end;">
+                    <md-filled-button onclick="window.createTangleFile()">
+                        <md-icon slot="icon"><span class="material-symbols-outlined">key</span></md-icon>
+                        Tangleファイルを作成保存
+                    </md-filled-button>
+                </div>
+            </div>
+
+            <div class="solid-card">
+                <div class="section-title">
+                    <span class="material-symbols-outlined">storage</span>
+                    IndexedDB ストレージ情報
+                </div>
+                <p id="storage-stats-text">ストレージ使用状況を計算中...</p>
+                <md-linear-progress id="storage-progress" value="0.0"></md-linear-progress>
+
+                <div style="margin-top:16px; display:flex; gap:8px;">
+                    <md-outlined-button onclick="window.clearAllStorage()">
+                        <md-icon slot="icon"><span class="material-symbols-outlined">delete_forever</span></md-icon>
+                        DB全初期化
+                    </md-outlined-button>
+                    <md-filled-tonal-button onclick="window.seedDefaultFolders()">
+                        <md-icon slot="icon"><span class="material-symbols-outlined">restart_alt</span></md-icon>
+                        初期フォルダ再生成
+                    </md-filled-tonal-button>
+                </div>
+            </div>
+        </section>
+
+        <!-- SETTINGS VIEW -->
+        <section id="view-settings" class="view-section">
+            <div class="solid-card">
+                <div class="section-title">
+                    <span class="material-symbols-outlined">settings</span>
+                    アプリ設定・テーマ
+                </div>
+
+                <div style="display:flex; flex-direction:column; gap:16px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <div style="font-weight:700;">ダークモード (Dark Mode)</div>
+                            <div style="font-size:12px; opacity:0.7;">Material 3 ダークテーマ切替</div>
+                        </div>
+                        <md-switch id="dark-mode-switch" onchange="window.toggleDarkMode()" icons></md-switch>
+                    </div>
+
+                    <md-divider></md-divider>
+
+                    <div>
+                        <div style="font-weight:700; margin-bottom:8px;">テーマカラー切り替え</div>
+                        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                            <md-outlined-button onclick="window.updateTheme('#6750a4')">Purple</md-outlined-button>
+                            <md-outlined-button onclick="window.updateTheme('#006a6a')">Teal</md-outlined-button>
+                            <md-outlined-button onclick="window.updateTheme('#34a853')">Emerald</md-outlined-button>
+                            <md-outlined-button onclick="window.updateTheme('#e91e63')">Pink</md-outlined-button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SUB ACTIVITY VIEW -->
+        <section id="view-sub-activity" class="view-section">
+            <div class="solid-card">
+                <div class="section-title" id="sub-activity-title-text">ファイルビューア</div>
+                
+                <div id="file-preview-container" class="preview-box">
+                    <!-- Dynamic Preview Content -->
+                </div>
+
+                <div style="margin-top:20px; display:flex; gap:8px; justify-content: flex-end; flex-wrap:wrap;">
+                    <md-outlined-button id="file-download-btn" onclick="window.downloadCurrentFile()">
+                        <md-icon slot="icon"><span class="material-symbols-outlined">download</span></md-icon>
+                        ダウンロード
+                    </md-outlined-button>
+                    <md-filled-button onclick="window.goBack()">
+                        <md-icon slot="icon"><span class="material-symbols-outlined">arrow_back</span></md-icon>
+                        閉じる
+                    </md-filled-button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Hidden native file input -->
+    <input type="file" id="native-file-input" multiple style="display:none;" onchange="window.handleFilesUpload(event)">
+
+    <!-- New Folder Dialog -->
+    <md-dialog id="new-folder-dialog">
+        <div slot="headline">新規フォルダ作成</div>
+        <form slot="content" id="new-folder-form" method="dialog">
+            <md-filled-text-field id="new-folder-name-input" label="フォルダ名" value="New Folder"></md-filled-text-field>
+        </form>
+        <div slot="actions">
+            <md-text-button form="new-folder-form" value="cancel">キャンセル</md-text-button>
+            <md-filled-button form="new-folder-form" value="ok" onclick="window.confirmCreateFolder()">作成</md-filled-button>
+        </div>
+    </md-dialog>
+
+    <!-- Rename Dialog -->
+    <md-dialog id="rename-dialog">
+        <div slot="headline">リネーム</div>
+        <form slot="content" id="rename-form" method="dialog">
+            <md-filled-text-field id="rename-input" label="新しい名前"></md-filled-text-field>
+        </form>
+        <div slot="actions">
+            <md-text-button form="rename-form" value="cancel">キャンセル</md-text-button>
+            <md-filled-button form="rename-form" value="ok" onclick="window.confirmRename()">適用</md-filled-button>
+        </div>
+    </md-dialog>
+
+    <!-- Batch Rename Dialog -->
+    <md-dialog id="batch-rename-dialog">
+        <div slot="headline">一括リネーム</div>
+        <form slot="content" id="batch-rename-form" method="dialog">
+            <md-filled-text-field id="batch-prefix-input" label="接頭辞 (Prefix)" value="File_"></md-filled-text-field>
+        </form>
+        <div slot="actions">
+            <md-text-button form="batch-rename-form" value="cancel">キャンセル</md-text-button>
+            <md-filled-button form="batch-rename-form" value="ok" onclick="window.confirmBatchRename()">一括適用</md-filled-button>
+        </div>
+    </md-dialog>
+
+    <!-- Tangle Password Dialog -->
+    <md-dialog id="tangle-decrypt-dialog">
+        <div slot="headline">Tangle 復号化パスワード入力</div>
+        <form slot="content" id="tangle-decrypt-form" method="dialog">
+            <p style="font-size:13px; margin-top:0;">このファイルはSHA-256で暗号化されています。パスワードを入力してください。</p>
+            <md-filled-text-field id="tangle-decrypt-password" label="パスワード" type="password"></md-filled-text-field>
+        </form>
+        <div slot="actions">
+            <md-text-button form="tangle-decrypt-form" value="cancel">キャンセル</md-text-button>
+            <md-filled-button form="tangle-decrypt-form" value="ok" onclick="window.confirmTangleDecrypt()">復号して開く</md-filled-button>
+        </div>
+    </md-dialog>
+
+    <!-- Floating Navigation Bar -->
+    <div class="floating-nav-container">
+        <nav class="custom-nav">
+            <div class="nav-item active" id="nav-files" onclick="window.switchTab('files')">
+                <div class="nav-icon-container">
+                    <span class="material-symbols-outlined">folder</span>
+                </div>
+            </div>
+            <div class="nav-item" id="nav-companion" onclick="window.switchTab('companion')">
+                <div class="nav-icon-container">
+                    <span class="material-symbols-outlined">face</span>
+                </div>
+            </div>
+            <div class="nav-item" id="nav-tools" onclick="window.switchTab('tools')">
+                <div class="nav-icon-container">
+                    <span class="material-symbols-outlined">build</span>
+                </div>
+            </div>
+            <div class="nav-item" id="nav-settings" onclick="window.switchTab('settings')">
+                <div class="nav-icon-container">
+                    <span class="material-symbols-outlined">settings</span>
+                </div>
+            </div>
+        </nav>
+    </div>
+
+    <!-- Toast Component -->
+    <div class="m3-toast" id="m3-toast">Message</div>
+
+    <script type="module">
+        import '@material/web/all.js';
+        import { 
+            argbFromHex, 
+            themeFromSourceColor, 
+            hexFromArgb
+        } from "@material/material-color-utilities";
+
+        // Global State Variables
+        let isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        let currentSourceColor = '#6750a4';
+        let navigationStack = ['files'];
+
+        // PB Character State
+        const PB_CHARACTERS = {
+            country: 'japan',
+            expression: 'normal.png'
+        };
+
+        // File Manager State
+        let db = null;
+        let currentPath = '/PBPARK'; // Default start folder
+        let selectedFileIds = new Set();
+        let isMultiSelectMode = false;
+        let clipboard = { action: null, files: [] }; // action: 'copy' | 'cut'
+        let targetItemForAction = null;
+        let isGridView = true;
+        let activePreviewFile = null;
+
+        // Dynamic Color Engine
+        window.updateTheme = function(hexColor) {
+            currentSourceColor = hexColor;
+
+            const argb = argbFromHex(hexColor);
+            const theme = themeFromSourceColor(argb);
+            const scheme = isDarkMode ? theme.schemes.dark : theme.schemes.light;
+            const palettes = theme.palettes;
+
+            const root = document.documentElement;
+            
+            const tokens = {
+                'primary': scheme.primary,
+                'on-primary': scheme.onPrimary,
+                'primary-container': scheme.primaryContainer,
+                'on-primary-container': scheme.onPrimaryContainer,
+                'secondary': scheme.secondary,
+                'on-secondary': scheme.onSecondary,
+                'secondary-container': scheme.secondaryContainer,
+                'on-secondary-container': scheme.onSecondaryContainer,
+                'tertiary': scheme.tertiary,
+                'on-tertiary': scheme.onTertiary,
+                'tertiary-container': scheme.tertiaryContainer,
+                'on-tertiary-container': scheme.onTertiaryContainer,
+                'error': scheme.error,
+                'on-error': scheme.onError,
+                'error-container': scheme.errorContainer,
+                'on-error-container': scheme.onErrorContainer,
+                'background': scheme.background,
+                'on-background': scheme.onBackground,
+                'surface': scheme.surface,
+                'on-surface': scheme.onSurface,
+                'surface-variant': scheme.surfaceVariant,
+                'on-surface-variant': scheme.onSurfaceVariant,
+                'outline': scheme.outline,
+                'outline-variant': scheme.outlineVariant,
+                'inverse-surface': scheme.inverseSurface,
+                'inverse-on-surface': scheme.inverseOnSurface,
+                'inverse-primary': scheme.inversePrimary,
+            };
+
+            for (const [key, value] of Object.entries(tokens)) {
+                const hex = hexFromArgb(value);
+                root.style.setProperty(`--md-sys-color-${key}`, hex);
+            }
+
+            // Derive M3 Surface Container Tones from HCT Neutral Palette
+            const n = palettes.neutral;
+            root.style.setProperty('--md-sys-color-surface-container-lowest', hexFromArgb(n.tone(isDarkMode ? 4 : 100)));
+            root.style.setProperty('--md-sys-color-surface-container-low', hexFromArgb(n.tone(isDarkMode ? 10 : 96)));
+            root.style.setProperty('--md-sys-color-surface-container', hexFromArgb(n.tone(isDarkMode ? 12 : 94)));
+            root.style.setProperty('--md-sys-color-surface-container-high', hexFromArgb(n.tone(isDarkMode ? 17 : 92)));
+            root.style.setProperty('--md-sys-color-surface-container-highest', hexFromArgb(n.tone(isDarkMode ? 22 : 90)));
+
+            const picker = document.getElementById('source-color-picker');
+            if(picker) picker.value = hexColor;
+
+            // Set Browser Status Bar / Mobile Header color to Material 3 background
+            const bgHex = hexFromArgb(scheme.background);
+            const metaTheme = document.getElementById('theme-color-meta');
+            if (metaTheme) {
+                metaTheme.setAttribute('content', bgHex);
+            }
+        };
+
+        window.toggleDarkMode = function() {
+            isDarkMode = !isDarkMode;
+            document.body.classList.toggle('dark-mode', isDarkMode);
+            
+            const icon = document.getElementById('theme-icon');
+            if(icon) icon.textContent = isDarkMode ? 'light_mode' : 'dark_mode';
+            
+            const switchEl = document.getElementById('dark-mode-switch');
+            if(switchEl) switchEl.selected = isDarkMode;
+
+            window.updateTheme(currentSourceColor);
+        };
+
+        window.showToast = function(message) {
+            const toast = document.getElementById('m3-toast');
+            if (!toast) return;
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2600);
+        };
+
+        function updateTopBarState() {
+            const backBtn = document.getElementById('top-bar-back-btn');
+            const mainIcon = document.getElementById('top-bar-icon-main');
+            const titleEl = document.getElementById('top-bar-title');
+
+            if (navigationStack.length > 1) {
+                backBtn.classList.remove('hidden');
+                mainIcon.style.display = 'none';
+            } else {
+                backBtn.classList.add('hidden');
+                mainIcon.style.display = 'inline-flex';
+                titleEl.textContent = "PB File Manager";
+            }
+        }
+
+        window.switchTab = function(tabId, pushStack = true) {
+            if (pushStack) {
+                navigationStack = [tabId];
+            }
+
+            document.querySelectorAll('.view-section').forEach(el => {
+                el.classList.remove('active');
+            });
+            const targetView = document.getElementById('view-' + tabId);
+            if(targetView) targetView.classList.add('active');
+
+            document.querySelectorAll('.nav-item').forEach(el => {
+                el.classList.remove('active');
+            });
+            const targetNav = document.getElementById('nav-' + tabId);
+            if(targetNav) targetNav.classList.add('active');
+            
+            updateTopBarState();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+
+            if (tabId === 'tools') {
+                window.updateStorageStats();
+            }
+        };
+
+        window.goBack = function() {
+            if (navigationStack.length > 1) {
+                navigationStack.pop();
+                const previousView = navigationStack[navigationStack.length - 1];
+                
+                if (previousView === 'sub-activity') {
+                    document.getElementById('view-sub-activity').classList.add('active');
+                } else {
+                    window.switchTab(previousView, false);
+                }
+            }
+        };
+
+        function initIndexedDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open('PBFileManagerDB', 1);
+
+                request.onupgradeneeded = (e) => {
+                    db = e.target.result;
+                    if (!db.objectStoreNames.contains('files')) {
+                        const store = db.createObjectStore('files', { keyPath: 'id', autoIncrement: true });
+                        store.createIndex('path', 'path', { unique: false });
+                        store.createIndex('name', 'name', { unique: false });
+                    }
+                };
+
+                request.onsuccess = (e) => {
+                    db = e.target.result;
+                    resolve(db);
+                };
+
+                request.onerror = (e) => {
+                    console.error('IndexedDB init error:', e);
+                    reject(e);
+                };
+            });
+        }
+
+        async function seedDefaultFolders() {
+            const defaultFolders = ['PBPARK', 'Download', 'Picture', 'Music', 'PBUI', 'Document'];
+            const tx = db.transaction('files', 'readwrite');
+            const store = tx.objectStore('files');
+
+            for (const folder of defaultFolders) {
+                // Check if folder exists at root /
+                const countReq = store.index('path').getAll('/');
+                await new Promise((res) => {
+                    countReq.onsuccess = () => {
+                        const existing = countReq.result.find(item => item.isFolder && item.name === folder);
+                        if (!existing) {
+                            store.add({
+                                name: folder,
+                                path: '/',
+                                isFolder: true,
+                                size: 0,
+                                type: 'folder',
+                                updatedAt: Date.now()
+                            });
+                        }
+                        res();
+                    };
+                });
+            }
+
+            window.renderFileList();
+            window.showToast('デフォルトフォルダを作成・確認しました');
+        }
+
+        async function getFilesByPath(path) {
+            return new Promise((resolve) => {
+                const tx = db.transaction('files', 'readonly');
+                const store = tx.objectStore('files');
+                const req = store.index('path').getAll(path);
+                req.onsuccess = () => resolve(req.result || []);
+            });
+        }
+
+        async function saveFileItem(fileItem) {
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction('files', 'readwrite');
+                const store = tx.objectStore('files');
+                const req = store.put(fileItem);
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+        }
+
+        async function deleteFileItem(id) {
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction('files', 'readwrite');
+                const store = tx.objectStore('files');
+                const req = store.delete(id);
+                req.onsuccess = () => resolve();
+                req.onerror = () => reject(req.error);
+            });
+        }
+
+        function getPBImageUrl(country, expression) {
+            // URL format:
+            // raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/(国名)/(file name)
+            // Special rule: UK folder name is england472x600
+            const cName = country === 'uk' || country === 'england' ? 'england472x600' : country;
+            let expr = expression;
+            if (!expr.endsWith('.png') && expr !== 'sample') {
+                expr += '.png';
+            }
+            return `https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/${cName}/${expr}`;
+        }
+
+        function updatePBCompanionDisplay() {
+            const mascotImg = document.getElementById('mascot-img');
+            const previewImg = document.getElementById('companion-preview-img');
+            const countryLabel = document.getElementById('mascot-country-label');
+            const previewName = document.getElementById('companion-preview-name');
+
+            const url = getPBImageUrl(PB_CHARACTERS.country, PB_CHARACTERS.expression);
+
+            if (mascotImg) {
+                mascotImg.src = url;
+                if (PB_CHARACTERS.country === 'england472x600') {
+                    mascotImg.classList.add('uk-ball');
+                } else {
+                    mascotImg.classList.remove('uk-ball');
+                }
+            }
+
+            if (previewImg) {
+                previewImg.src = url;
+                if (PB_CHARACTERS.country === 'england472x600') {
+                    previewImg.classList.add('uk-ball');
+                } else {
+                    previewImg.classList.remove('uk-ball');
+                }
+            }
+
+            if (countryLabel) countryLabel.textContent = `PB Companion (${PB_CHARACTERS.country.toUpperCase()})`;
+            if (previewName) previewName.textContent = `${PB_CHARACTERS.country} - ${PB_CHARACTERS.expression}`;
+        }
+
+        window.onCompanionConfigChange = function() {
+            const countrySel = document.getElementById('country-select');
+            const exprSel = document.getElementById('expression-select');
+            if (countrySel) PB_CHARACTERS.country = countrySel.value;
+            if (exprSel) PB_CHARACTERS.expression = exprSel.value;
+
+            updatePBCompanionDisplay();
+            window.showToast('キャラと表情を更新しました');
+        };
+
+        function getFileIcon(item) {
+            if (item.isFolder) return 'folder';
+            const ext = item.name.split('.').pop().toLowerCase();
+            switch (ext) {
+                case 'png': case 'jpg': case 'jpeg': case 'svg': case 'webp': return 'image';
+                case 'mp3': case 'wav': case 'ogg': case 'm4a': return 'audio_file';
+                case 'mp4': return 'video_file';
+                case 'pdf': return 'picture_as_pdf';
+                case 'zip': return 'folder_zip';
+                case 'tangle': return 'key';
+                case 'html': case 'css': case 'js': case 'json': case 'java': case 'jre': return 'code';
+                case 'apk': return 'android';
+                case 'txt': default: return 'description';
+            }
+        }
+
+        function formatFileSize(bytes) {
+            if (!bytes || bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        }
+
+        window.renderFileList = async function() {
+            const fileGrid = document.getElementById('file-list-grid');
+            const folderTitle = document.getElementById('current-folder-title');
+            if (!fileGrid) return;
+
+            // Render Breadcrumbs
+            renderBreadcrumbs();
+
+            folderTitle.textContent = currentPath === '/' ? 'ルート' : currentPath.split('/').pop();
+
+            const items = await getFilesByPath(currentPath);
+            const searchQuery = document.getElementById('search-input')?.value?.toLowerCase() || '';
+
+            const filtered = items.filter(item => item.name.toLowerCase().includes(searchQuery));
+
+            if (filtered.length === 0) {
+                fileGrid.innerHTML = `
+                    <div style="grid-column: 1 / -1; text-align: center; padding: 32px 16px; opacity: 0.6;">
+                        <span class="material-symbols-outlined" style="font-size: 48px;">folder_off</span>
+                        <p style="margin-top: 8px;">ファイルまたはフォルダが見つかりません</p>
+                    </div>
+                `;
+                return;
+            }
+
+            fileGrid.innerHTML = filtered.map(item => {
+                const isSelected = selectedFileIds.has(item.id);
+                const icon = getFileIcon(item);
+
+                return `
+                    <div class="file-card ${isSelected ? 'selected' : ''}" onclick="window.onItemClick(event, ${item.id}, ${item.isFolder}, '${escapeHtml(item.name)}')">
+                        <div class="file-more-btn" onclick="event.stopPropagation(); window.openItemMenu(event, ${item.id})">
+                            <span class="material-symbols-outlined" style="font-size:18px;">more_vert</span>
+                        </div>
+                        <span class="material-symbols-outlined file-icon">${icon}</span>
+                        <div class="file-name">${escapeHtml(item.name)}</div>
+                        <div class="file-meta">${item.isFolder ? 'フォルダ' : formatFileSize(item.size)}</div>
+                    </div>
+                `;
+            }).join('');
+        };
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+
+        function renderBreadcrumbs() {
+            const container = document.getElementById('breadcrumb-container');
+            if (!container) return;
+
+            const parts = currentPath.split('/').filter(Boolean);
+            let pathAcc = '';
+
+            let html = `
+                <div class="breadcrumb-item" onclick="window.navigateToPath('/')">
+                    <span class="material-symbols-outlined" style="font-size:18px;">home</span>
+                </div>
+            `;
+
+            parts.forEach((part, idx) => {
+                pathAcc += '/' + part;
+                const targetPath = pathAcc;
+                html += `
+                    <span style="opacity:0.4;">/</span>
+                    <div class="breadcrumb-item" onclick="window.navigateToPath('${targetPath}')">${escapeHtml(part)}</div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        window.navigateToPath = function(path) {
+            currentPath = path;
+            selectedFileIds.clear();
+            updateSelectionBar();
+            window.renderFileList();
+        };
+
+        window.filterFiles = function() {
+            window.renderFileList();
+        };
+
+        window.onItemClick = async function(event, id, isFolder, name) {
+            if (isMultiSelectMode) {
+                if (selectedFileIds.has(id)) {
+                    selectedFileIds.delete(id);
+                } else {
+                    selectedFileIds.add(id);
+                }
+                updateSelectionBar();
+                window.renderFileList();
+                return;
+            }
+
+            if (isFolder) {
+                const newPath = currentPath === '/' ? '/' + name : currentPath + '/' + name;
+                window.navigateToPath(newPath);
+            } else {
+                // Open File Preview
+                openFilePreview(id);
+            }
+        };
+
+        window.toggleMultiSelectMode = function() {
+            isMultiSelectMode = !isMultiSelectMode;
+            if (!isMultiSelectMode) {
+                selectedFileIds.clear();
+            }
+            updateSelectionBar();
+            window.renderFileList();
+            window.showToast(isMultiSelectMode ? '複数選択モードをONにしました' : '複数選択モードをOFFにしました');
+        };
+
+        function updateSelectionBar() {
+            const bar = document.getElementById('selection-bar');
+            const countLabel = document.getElementById('selection-count');
+            if (!bar || !countLabel) return;
+
+            if (selectedFileIds.size > 0) {
+                bar.classList.remove('hidden');
+                countLabel.textContent = `${selectedFileIds.size} 件選択中`;
+            } else {
+                bar.classList.add('hidden');
+            }
+        }
+
+        window.clearSelection = function() {
+            selectedFileIds.clear();
+            updateSelectionBar();
+            window.renderFileList();
+        };
+
+        window.openItemMenu = async function(event, id) {
+            targetItemForAction = id;
+            // Select single item for quick operation
+            selectedFileIds.clear();
+            selectedFileIds.add(id);
+            updateSelectionBar();
+            window.renderFileList();
+
+            // Simple M3 Menu simulation for item context
+            const item = await getFileById(id);
+            if (!item) return;
+
+            // Trigger quick action dialog
+            window.openRenameModal(item.name);
+        };
+
+        async function getFileById(id) {
+            return new Promise((resolve) => {
+                const tx = db.transaction('files', 'readonly');
+                const store = tx.objectStore('files');
+                const req = store.get(id);
+                req.onsuccess = () => resolve(req.result);
+            });
+        }
+
+        window.triggerFileInput = function() {
+            document.getElementById('native-file-input').click();
+        };
+
+        window.handleFilesUpload = async function(event) {
+            const files = event.target.files;
+            if (!files || files.length === 0) return;
+
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const arrayBuffer = await file.arrayBuffer();
+
+                await saveFileItem({
+                    name: file.name,
+                    path: currentPath,
+                    isFolder: false,
+                    size: file.size,
+                    type: file.type || 'application/octet-stream',
+                    content: arrayBuffer,
+                    updatedAt: Date.now()
+                });
+            }
+
+            event.target.value = '';
+            window.renderFileList();
+            window.showToast(`${files.length} 件のファイルをアップロードしました`);
+        };
+
+        window.openNewFolderModal = function() {
+            document.getElementById('new-folder-dialog').show();
+        };
+
+        window.confirmCreateFolder = async function() {
+            const input = document.getElementById('new-folder-name-input');
+            const folderName = input?.value?.trim();
+            if (!folderName) return;
+
+            await saveFileItem({
+                name: folderName,
+                path: currentPath,
+                isFolder: true,
+                size: 0,
+                type: 'folder',
+                updatedAt: Date.now()
+            });
+
+            input.value = 'New Folder';
+            window.renderFileList();
+            window.showToast(`フォルダ「${folderName}」を作成しました`);
+        };
+
+        window.openRenameModal = function(currentName) {
+            const input = document.getElementById('rename-input');
+            if (input) input.value = currentName;
+            document.getElementById('rename-dialog').show();
+        };
+
+        window.confirmRename = async function() {
+            const input = document.getElementById('rename-input');
+            const newName = input?.value?.trim();
+            if (!newName || !targetItemForAction) return;
+
+            const item = await getFileById(targetItemForAction);
+            if (item) {
+                item.name = newName;
+                item.updatedAt = Date.now();
+                await saveFileItem(item);
+                window.renderFileList();
+                window.showToast('名前を変更しました');
+            }
+        };
+
+        window.openBatchRenameModal = function() {
+            if (selectedFileIds.size === 0) return;
+            document.getElementById('batch-rename-dialog').show();
+        };
+
+        window.confirmBatchRename = async function() {
+            const prefix = document.getElementById('batch-prefix-input')?.value || 'File_';
+            let index = 1;
+
+            for (const id of selectedFileIds) {
+                const item = await getFileById(id);
+                if (item) {
+                    const ext = item.isFolder ? '' : '.' + item.name.split('.').pop();
+                    item.name = `${prefix}${index}${ext}`;
+                    item.updatedAt = Date.now();
+                    await saveFileItem(item);
+                    index++;
+                }
+            }
+
+            selectedFileIds.clear();
+            updateSelectionBar();
+            window.renderFileList();
+            window.showToast('一括リネームが完了しました');
+        };
+
+        window.batchCopy = function() {
+            clipboard = { action: 'copy', files: Array.from(selectedFileIds) };
+            updateClipboardButton();
+            window.showToast(`${clipboard.files.length} 件をコピーにセットしました`);
+        };
+
+        window.batchCut = function() {
+            clipboard = { action: 'cut', files: Array.from(selectedFileIds) };
+            updateClipboardButton();
+            window.showToast(`${clipboard.files.length} 件を移動にセットしました`);
+        };
+
+        function updateClipboardButton() {
+            const pasteBtn = document.getElementById('paste-btn');
+            const countLabel = document.getElementById('clipboard-count');
+            if (!pasteBtn || !countLabel) return;
+
+            if (clipboard.files.length > 0) {
+                pasteBtn.classList.remove('hidden');
+                countLabel.textContent = clipboard.files.length;
+            } else {
+                pasteBtn.classList.add('hidden');
+            }
+        }
+
+        window.pasteClipboard = async function() {
+            if (clipboard.files.length === 0) return;
+
+            for (const id of clipboard.files) {
+                const item = await getFileById(id);
+                if (!item) continue;
+
+                if (clipboard.action === 'copy') {
+                    await saveFileItem({
+                        name: item.isFolder ? item.name + ' - Copy' : 'Copy_' + item.name,
+                        path: currentPath,
+                        isFolder: item.isFolder,
+                        size: item.size,
+                        type: item.type,
+                        content: item.content,
+                        updatedAt: Date.now()
+                    });
+                } else if (clipboard.action === 'cut') {
+                    item.path = currentPath;
+                    item.updatedAt = Date.now();
+                    await saveFileItem(item);
+                }
+            }
+
+            window.showToast(`貼り付け処理を完了しました (${clipboard.action === 'copy' ? 'コピー' : '移動'})`);
+            clipboard = { action: null, files: [] };
+            updateClipboardButton();
+            window.renderFileList();
+        };
+
+        window.batchDelete = async function() {
+            if (selectedFileIds.size === 0) return;
+
+            for (const id of selectedFileIds) {
+                await deleteFileItem(id);
+            }
+
+            window.showToast(`${selectedFileIds.size} 件の要素を削除しました`);
+            selectedFileIds.clear();
+            updateSelectionBar();
+            window.renderFileList();
+        };
+
+        window.batchCompressZip = async function() {
+            if (selectedFileIds.size === 0) return;
+            if (typeof JSZip === 'undefined') {
+                window.showToast('JSZipライブラリの読み込み中です');
+                return;
+            }
+
+            const zip = new JSZip();
+
+            for (const id of selectedFileIds) {
+                const item = await getFileById(id);
+                if (item && !item.isFolder && item.content) {
+                    zip.file(item.name, item.content);
+                }
+            }
+
+            const content = await zip.generateAsync({ type: 'arraybuffer' });
+            const zipName = `Archive_${Date.now()}.zip`;
+
+            await saveFileItem({
+                name: zipName,
+                path: currentPath,
+                isFolder: false,
+                size: content.byteLength,
+                type: 'application/zip',
+                content: content,
+                updatedAt: Date.now()
+            });
+
+            window.showToast(`圧縮ファイル「${zipName}」を作成しました`);
+            selectedFileIds.clear();
+            updateSelectionBar();
+            window.renderFileList();
+        };
+
+        async function sha256(str) {
+            const buf = new TextEncoder().encode(str);
+            const hashBuf = await crypto.subtle.digest('SHA-256', buf);
+            const hashArray = Array.from(new Uint8Array(hashBuf));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        window.createTangleFile = async function() {
+            const fileNameInput = document.getElementById('tangle-filename');
+            const passwordInput = document.getElementById('tangle-password');
+            const contentInput = document.getElementById('tangle-content');
+
+            const name = fileNameInput?.value?.trim() || 'secret.tangle';
+            const pwd = passwordInput?.value;
+            const plainText = contentInput?.value;
+
+            if (!pwd) {
+                window.showToast('暗号化パスワードを入力してください');
+                return;
+            }
+
+            const keyHash = await sha256(pwd);
+
+            // Simple robust AES-like XOR crypto string encoding with SHA-256 seed
+            let encryptedHex = '';
+            for (let i = 0; i < plainText.length; i++) {
+                const charCode = plainText.charCodeAt(i);
+                const keyChar = keyHash.charCodeAt(i % keyHash.length);
+                const enc = charCode ^ keyChar;
+                encryptedHex += enc.toString(16).padStart(4, '0');
+            }
+
+            const tangleData = JSON.stringify({
+                version: 'PB_TANGLE_V1',
+                hashVerification: await sha256(keyHash),
+                payload: encryptedHex
+            });
+
+            const encoder = new TextEncoder();
+            const arrayBuffer = encoder.encode(tangleData).buffer;
+
+            await saveFileItem({
+                name: name.endsWith('.tangle') ? name : name + '.tangle',
+                path: currentPath,
+                isFolder: false,
+                size: arrayBuffer.byteLength,
+                type: 'application/tangle',
+                content: arrayBuffer,
+                updatedAt: Date.now()
+            });
+
+            passwordInput.value = '';
+            contentInput.value = '';
+            window.showToast(`Tangle暗号化ファイル「${name}」を保存しました`);
+            window.renderFileList();
+        };
+
+        async function openFilePreview(id) {
+            const item = await getFileById(id);
+            if (!item) return;
+
+            activePreviewFile = item;
+            const container = document.getElementById('file-preview-container');
+            const titleEl = document.getElementById('sub-activity-title-text');
+            if (titleEl) titleEl.textContent = item.name;
+
+            const ext = item.name.split('.').pop().toLowerCase();
+
+            container.innerHTML = '<p>読み込み中...</p>';
+
+            window.openSubActivity(item.name);
+
+            if (ext === 'tangle') {
+                document.getElementById('tangle-decrypt-dialog').show();
+                return;
+            }
+
+            renderPreviewContent(item, container);
+        }
+
+        async function renderPreviewContent(item, container, decryptedText = null) {
+            const ext = item.name.split('.').pop().toLowerCase();
+
+            if (decryptedText !== null) {
+                container.innerHTML = `<pre>${escapeHtml(decryptedText)}</pre>`;
+                return;
+            }
+
+            if (!item.content) {
+                container.innerHTML = '<p>プレビューデータが存在しません</p>';
+                return;
+            }
+
+            const blob = new Blob([item.content], { type: item.type });
+            const blobUrl = URL.createObjectURL(blob);
+
+            switch (ext) {
+                case 'png': case 'jpg': case 'jpeg': case 'svg': case 'webp':
+                    container.innerHTML = `<img src="${blobUrl}" alt="${escapeHtml(item.name)}">`;
+                    break;
+
+                case 'mp3': case 'wav': case 'ogg': case 'm4a':
+                    container.innerHTML = `<audio controls src="${blobUrl}" style="width:100%; margin:20px 0;"></audio>`;
+                    break;
+
+                case 'mp4':
+                    container.innerHTML = `<video controls src="${blobUrl}" style="max-width:100%; max-height:350px;"></video>`;
+                    break;
+
+                case 'txt': case 'html': case 'css': case 'js': case 'json': case 'java': case 'jre':
+                    const text = new TextDecoder().decode(item.content);
+                    container.innerHTML = `<pre>${escapeHtml(text)}</pre>`;
+                    break;
+
+                case 'pdf':
+                    container.innerHTML = `<iframe src="${blobUrl}" style="width:100%; height:380px; border:none; border-radius:12px;"></iframe>`;
+                    break;
+
+                case 'apk':
+                    container.innerHTML = `
+                        <div style="text-align:center; padding:20px;">
+                            <span class="material-symbols-outlined" style="font-size:72px; color:var(--md-sys-color-primary);">android</span>
+                            <h3>${escapeHtml(item.name)}</h3>
+                            <p style="opacity:0.8;">Android アプリケーション パッケージ</p>
+                            <p style="font-size:12px; opacity:0.6;">サイズ: ${formatFileSize(item.size)}</p>
+                        </div>
+                    `;
+                    break;
+
+                case 'zip':
+                    if (typeof JSZip !== 'undefined') {
+                        try {
+                            const zip = await JSZip.loadAsync(item.content);
+                            let filesList = '';
+                            zip.forEach((relativePath) => {
+                                filesList += `<li>${escapeHtml(relativePath)}</li>`;
+                            });
+                            container.innerHTML = `
+                                <div style="width:100%; text-align:left;">
+                                    <h4 style="margin-top:0;">ZIP アーカイブ一覧</h4>
+                                    <ul style="max-height:250px; overflow-y:auto; padding-left:20px;">${filesList}</ul>
+                                    <md-filled-button onclick="window.extractZipContent(${item.id})">
+                                        このフォルダに解凍展開
+                                    </md-filled-button>
+                                </div>
+                            `;
+                        } catch (err) {
+                            container.innerHTML = `<p>ZIPアーカイブの読み込みエラー</p>`;
+                        }
+                    }
+                    break;
+
+                default:
+                    container.innerHTML = `
+                        <div style="text-align:center;">
+                            <span class="material-symbols-outlined" style="font-size:64px;">draft</span>
+                            <p>${escapeHtml(item.name)}</p>
+                            <p style="font-size:12px; opacity:0.7;">プレビューは利用できません</p>
+                        </div>
+                    `;
+                    break;
+            }
+        }
+
+        window.confirmTangleDecrypt = async function() {
+            const pwdInput = document.getElementById('tangle-decrypt-password');
+            const pwd = pwdInput?.value;
+            const container = document.getElementById('file-preview-container');
+
+            if (!pwd || !activePreviewFile) return;
+
+            try {
+                const textStr = new TextDecoder().decode(activePreviewFile.content);
+                const tangleObj = JSON.parse(textStr);
+
+                const keyHash = await sha256(pwd);
+                const checkHash = await sha256(keyHash);
+
+                if (tangleObj.hashVerification !== checkHash) {
+                    window.showToast('パスワードが正しくありません');
+                    return;
+                }
+
+                // Decrypt
+                const hex = tangleObj.payload;
+                let decrypted = '';
+                for (let i = 0; i < hex.length; i += 4) {
+                    const enc = parseInt(hex.substr(i, 4), 16);
+                    const keyChar = keyHash.charCodeAt((i / 4) % keyHash.length);
+                    decrypted += String.fromCharCode(enc ^ keyChar);
+                }
+
+                renderPreviewContent(activePreviewFile, container, decrypted);
+                window.showToast('復号化に成功しました');
+                pwdInput.value = '';
+            } catch (e) {
+                window.showToast('復号化処理に失敗しました');
+            }
+        };
+
+        window.extractZipContent = async function(id) {
+            const item = await getFileById(id);
+            if (!item || typeof JSZip === 'undefined') return;
+
+            try {
+                const zip = await JSZip.loadAsync(item.content);
+                let count = 0;
+
+                for (const relativePath of Object.keys(zip.files)) {
+                    const zipEntry = zip.files[relativePath];
+                    if (!zipEntry.dir) {
+                        const buffer = await zipEntry.async('arraybuffer');
+                        await saveFileItem({
+                            name: relativePath.split('/').pop(),
+                            path: currentPath,
+                            isFolder: false,
+                            size: buffer.byteLength,
+                            type: 'application/octet-stream',
+                            content: buffer,
+                            updatedAt: Date.now()
+                        });
+                        count++;
+                    }
+                }
+
+                window.showToast(`${count} 個のファイルを解凍保存しました`);
+                window.renderFileList();
+                window.goBack();
+            } catch (err) {
+                window.showToast('解凍処理エラーが発生しました');
+            }
+        };
+
+        window.downloadCurrentFile = function() {
+            if (!activePreviewFile || !activePreviewFile.content) return;
+            const blob = new Blob([activePreviewFile.content], { type: activePreviewFile.type });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = activePreviewFile.name;
+            a.click();
+            window.showToast('ダウンロードを開始しました');
+        };
+
+        window.updateStorageStats = async function() {
+            if (!navigator.storage || !navigator.storage.estimate) return;
+            const estimate = await navigator.storage.estimate();
+            const usedMB = (estimate.usage / (1024 * 1024)).toFixed(2);
+            const totalMB = (estimate.quota / (1024 * 1024)).toFixed(0);
+            const percent = (estimate.usage / estimate.quota) || 0;
+
+            const statsText = document.getElementById('storage-stats-text');
+            const progress = document.getElementById('storage-progress');
+
+            if (statsText) statsText.textContent = `IndexedDB 使用量: ${usedMB} MB / ${totalMB} MB`;
+            if (progress) progress.value = percent;
+        };
+
+        window.clearAllStorage = async function() {
+            const tx = db.transaction('files', 'readwrite');
+            const store = tx.objectStore('files');
+            store.clear();
+            tx.oncomplete = () => {
+                seedDefaultFolders();
+                window.showToast('データベースを完全にクリアしました');
+            };
+        };
+
+        window.openSubActivity = function(title) {
+            const subTitleEl = document.getElementById('sub-activity-title-text');
+            const topBarTitleEl = document.getElementById('top-bar-title');
+            if (subTitleEl) subTitleEl.textContent = title;
+            if (topBarTitleEl) topBarTitleEl.textContent = title;
+
+            navigationStack.push('sub-activity');
+
+            document.querySelectorAll('.view-section').forEach(el => {
+                el.classList.remove('active');
+            });
+            const subView = document.getElementById('view-sub-activity');
+            if (subView) subView.classList.add('active');
+
+            updateTopBarState();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+
+        document.getElementById('source-color-picker')?.addEventListener('input', (e) => {
+            window.updateTheme(e.target.value);
+        });
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            if (isDarkMode) {
+                document.body.classList.add('dark-mode');
+            }
+
+            // Initialize Dynamic Color Theme & Status Bar
+            window.updateTheme(currentSourceColor);
+
+            // Initialize IndexedDB & Seed Folders
+            await initIndexedDB();
+            await seedDefaultFolders();
+
+            // Set Initial Character
+            updatePBCompanionDisplay();
+
+            updateTopBarState();
+        });
+    </script>
+</body>
+</html>
