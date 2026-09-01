@@ -1,0 +1,1270 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PBhook - Polandball Hook Action</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Matter.js Physics Engine -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Canvas Confetti for Win Effect -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&display=swap');
+        body {
+            font-family: 'Outfit', sans-serif;
+            touch-action: manipulation;
+            user-select: none;
+            overflow: hidden;
+            background-color: #0f172a;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        .glass-card {
+            background: rgba(30, 41, 59, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="text-slate-100 h-screen w-screen relative select-none">
+
+    <!-- Main Game Canvas Container -->
+    <div id="game-container" class="absolute inset-0 z-0">
+        <canvas id="game-canvas"></canvas>
+    </div>
+
+    <!-- UI Overlay Header -->
+    <div id="ui-header" class="absolute top-4 left-4 right-4 z-10 flex justify-between items-center pointer-events-none">
+        <!-- Level & Timer Info -->
+        <div class="flex items-center gap-3">
+            <button id="btn-menu" class="pointer-events-auto bg-slate-800/80 hover:bg-slate-700 text-white p-3 rounded-2xl border border-slate-700 shadow-lg transition active:scale-95">
+                <i class="fa-solid fa-bars text-xl"></i>
+            </button>
+            <div class="glass-card px-4 py-2 rounded-2xl flex items-center gap-4">
+                <div>
+                    <div class="text-xs text-slate-400 font-bold tracking-wider uppercase">Level</div>
+                    <div id="ui-level-name" class="text-xl font-extrabold text-amber-400">STAGE 1</div>
+                </div>
+                <div class="h-8 w-px bg-slate-700"></div>
+                <div>
+                    <div class="text-xs text-slate-400 font-bold tracking-wider uppercase">Time</div>
+                    <div id="ui-timer" class="text-xl font-mono font-bold text-sky-400">00:00.00</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Character & Ghost Status -->
+        <div class="flex items-center gap-3">
+            <div id="ui-ghost-badge" class="hidden glass-card px-3 py-1.5 rounded-xl flex items-center gap-2 border-indigo-500/30 text-indigo-300 text-xs font-bold animate-pulse">
+                <i class="fa-solid fa-ghost"></i> VS Ghost
+            </div>
+            <button id="btn-restart" class="pointer-events-auto bg-amber-500 hover:bg-amber-400 text-slate-900 p-3 rounded-2xl font-bold shadow-lg transition active:scale-95 flex items-center justify-center">
+                <i class="fa-solid fa-rotate-right text-xl"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Controls Helper Overlay (Touch / Mouse Prompt) -->
+    <div id="controls-hint" class="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 pointer-events-none text-center">
+        <div class="glass-card px-6 py-3 rounded-full text-sm font-semibold text-slate-300 shadow-2xl flex items-center gap-3 animate-bounce">
+            <i class="fa-solid fa-hand-pointer text-amber-400"></i>
+            <span>画面を長押し / スペースキーでフック発射！</span>
+        </div>
+    </div>
+
+    <!-- Main Title / Level Selection Modal -->
+    <div id="menu-modal" class="absolute inset-0 z-20 glass-card bg-slate-950/90 flex items-center justify-center p-4 transition-all duration-300">
+        <div class="max-w-2xl w-full max-h-[90vh] flex flex-col glass-card rounded-3xl p-6 sm:p-8 border border-slate-700 shadow-2xl overflow-hidden">
+            <!-- Header -->
+            <div class="flex justify-between items-center mb-6">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-rose-500 flex items-center justify-center text-slate-950 text-2xl font-black shadow-lg">
+                        PB
+                    </div>
+                    <div>
+                        <h1 class="text-2xl sm:text-3xl font-black tracking-tight text-white">PBhook</h1>
+                        <p class="text-xs text-slate-400">Polandball Hook Action & Ghost Race</p>
+                    </div>
+                </div>
+                <button id="btn-close-menu" class="hidden text-slate-400 hover:text-white text-2xl p-2">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Tab Navigation -->
+            <div class="flex bg-slate-800/60 p-1 rounded-2xl mb-6 text-sm font-bold">
+                <button id="tab-btn-char" class="flex-1 py-2.5 rounded-xl transition bg-amber-500 text-slate-950 shadow">キャラ選択</button>
+                <button id="tab-btn-level" class="flex-1 py-2.5 rounded-xl transition text-slate-400 hover:text-white">ステージ</button>
+                <button id="tab-btn-ghost" class="flex-1 py-2.5 rounded-xl transition text-slate-400 hover:text-white">友達対戦/DB</button>
+            </div>
+
+            <!-- Scrollable Content -->
+            <div id="modal-body" class="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-6">
+                <!-- Tab 1: Character Selector -->
+                <div id="tab-content-char" class="space-y-4">
+                    <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider">Polandball キャラクター選択</h2>
+                    <div id="country-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        <!-- JS Dynamic Insertion -->
+                    </div>
+                    <!-- Expression Preview Card -->
+                    <div class="glass-card p-4 rounded-2xl border border-slate-700/50 flex flex-col items-center">
+                        <span class="text-xs font-bold text-slate-400 mb-2">現在のボールと表情プレビュー</span>
+                        <div class="flex items-center gap-4 my-2">
+                            <canvas id="preview-canvas" width="90" height="90" class="rounded-full shadow-lg bg-slate-800"></canvas>
+                            <div id="expression-selector" class="grid grid-cols-3 gap-1.5">
+                                <!-- Expression Buttons Inserted by JS -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 2: Level Selector -->
+                <div id="tab-content-level" class="hidden space-y-4">
+                    <div class="flex justify-between items-center mb-1">
+                        <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider">ステージ選択 (全40ステージ)</h2>
+                    </div>
+
+                    <!-- World Sub-tabs -->
+                    <div id="world-tabs" class="flex gap-2 overflow-x-auto pb-1 text-xs font-bold custom-scrollbar">
+                        <button data-world="1" class="world-tab-btn px-3 py-1.5 rounded-xl bg-amber-500 text-slate-950 transition">WORLD 1 (1-10)</button>
+                        <button data-world="2" class="world-tab-btn px-3 py-1.5 rounded-xl bg-slate-800 text-slate-300 hover:text-white transition">WORLD 2 (11-20)</button>
+                        <button data-world="3" class="world-tab-btn px-3 py-1.5 rounded-xl bg-slate-800 text-slate-300 hover:text-white transition">WORLD 3 (21-30)</button>
+                        <button data-world="4" class="world-tab-btn px-3 py-1.5 rounded-xl bg-slate-800 text-slate-300 hover:text-white transition">WORLD 4 (31-40)</button>
+                    </div>
+
+                    <div id="level-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        <!-- JS Dynamic Level Buttons -->
+                    </div>
+                </div>
+
+                <!-- Tab 3: Ghost / IndexedDB vs Mode -->
+                <div id="tab-content-ghost" class="hidden space-y-4">
+                    <div class="glass-card p-4 rounded-2xl border border-indigo-500/30 bg-indigo-950/20">
+                        <h3 class="text-base font-bold text-indigo-300 mb-1"><i class="fa-solid fa-database mr-2"></i>IndexedDB 記録 & ゴースト対戦</h3>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            ローカルデータベース（IndexedDB）に保存された最速ゴーストと同時に走ることができます。友達のゴーストコードを貼り付けて対戦することも可能です！
+                        </p>
+                    </div>
+
+                    <!-- Ghost Code Export / Import -->
+                    <div class="space-y-3">
+                        <label class="block text-xs font-bold text-slate-400">ゴーストデータの共有コード (対戦コード)</label>
+                        <div class="flex gap-2">
+                            <input id="input-ghost-code" type="text" placeholder="ゴーストコードを入力または貼り付け" class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono text-slate-200 focus:outline-none focus:border-amber-500">
+                            <button id="btn-import-ghost" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl text-xs font-bold transition">
+                                読み込み
+                            </button>
+                        </div>
+                        <div class="flex gap-2">
+                            <button id="btn-export-ghost" class="flex-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 py-2 rounded-xl text-xs font-bold transition">
+                                <i class="fa-solid fa-copy mr-1"></i> 現在レベルのベストゴーストコードをコピー
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Recorded Ghosts List in IndexedDB -->
+                    <div class="space-y-2">
+                        <h4 class="text-xs font-bold text-slate-400 uppercase">保存済みローカルゴースト一覧</h4>
+                        <div id="ghost-list" class="space-y-2 max-h-40 overflow-y-auto custom-scrollbar">
+                            <!-- JS Dynamically Loads IndexedDB Ghost Entries -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Start Game Button -->
+            <div class="mt-6 pt-4 border-t border-slate-800 flex gap-3">
+                <button id="btn-start-game" class="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black text-lg tracking-wide shadow-xl transition active:scale-98">
+                    ゲームスタート !
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Level Clear Result Modal -->
+    <div id="clear-modal" class="hidden absolute inset-0 z-30 glass-card bg-slate-950/80 flex items-center justify-center p-4">
+        <div class="max-w-md w-full glass-card rounded-3xl p-6 border border-amber-500/30 text-center shadow-2xl animate-scaleIn">
+            <div class="w-20 h-20 mx-auto mb-4 rounded-3xl bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center text-4xl">
+                <i class="fa-solid fa-trophy"></i>
+            </div>
+            <h2 class="text-3xl font-black text-white mb-1">STAGE CLEAR!</h2>
+            <p id="clear-level-title" class="text-sm font-semibold text-amber-400 mb-6">STAGE 1</p>
+
+            <div class="bg-slate-900/80 rounded-2xl p-4 border border-slate-800 space-y-3 mb-6">
+                <div class="flex justify-between items-center text-sm">
+                    <span class="text-slate-400">タイム</span>
+                    <span id="clear-time" class="text-2xl font-mono font-bold text-sky-400">00:00.00</span>
+                </div>
+                <div id="clear-record-badge" class="hidden bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-bold py-1 rounded-lg">
+                    🎉 NEW RECORD! 記録更新 & IndexedDBに保存完了
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <button id="btn-next-level" class="col-span-2 py-3.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-base transition">
+                    次のステージへ <i class="fa-solid fa-arrow-right ml-1"></i>
+                </button>
+                <button id="btn-clear-retry" class="py-3 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl text-sm border border-slate-700 transition">
+                    リトライ
+                </button>
+                <button id="btn-clear-menu" class="py-3 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl text-sm border border-slate-700 transition">
+                    メニュー
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="hidden absolute top-20 left-1/2 -translate-x-1/2 z-50 glass-card bg-slate-900/95 border border-amber-500/50 text-amber-300 text-xs font-bold px-4 py-2.5 rounded-full shadow-2xl transition-all">
+        <span id="toast-message">Message</span>
+    </div>
+
+    <script>
+        /* ==========================================================================
+           1. CONSTANTS & DEFINITIONS
+           ========================================================================== */
+        const BASE_IMAGE_URL = 'https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/';
+
+        const COUNTRIES = [
+            { id: 'germany', name: 'ドイツ' },
+            { id: 'japan', name: '日本' },
+            { id: 'china', name: '中国' },
+            { id: 'italy', name: 'イタリア' },
+            { id: 'sierraleone', name: 'シエラレオネ' },
+            { id: 'russia', name: 'ロシア' },
+            { id: 'france', name: 'フランス' },
+            { id: 'poland', name: 'ポーランド' },
+            { id: 'england472x600', name: 'イギリス' }, // UK Special 472x600 image
+            { id: 'usa', name: 'アメリカ' },
+            { id: 'korea', name: '韓国' },
+            { id: 'austria', name: 'オーストリア' }
+        ];
+
+        const EXPRESSIONS = [
+            'normal', 'happy', 'anger', 'dissatisfaction',
+            'itome', 'lol', 'plot', 'smile', 'surprise'
+        ];
+
+        /* ==========================================================================
+           2. ASSET MANAGER (IMAGES & UK SPECIAL TRIMMING)
+           ========================================================================== */
+        class AssetManager {
+            constructor() {
+                this.textures = {}; // Key: `${countryId}_${expression}`
+            }
+
+            async loadAllAssets() {
+                const loadPromises = [];
+
+                COUNTRIES.forEach(country => {
+                    EXPRESSIONS.forEach(expr => {
+                        const key = `${country.id}_${expr}`;
+                        const url = `${BASE_IMAGE_URL}${country.id}/${expr}.png`;
+
+                        const p = new Promise((resolve) => {
+                            const img = new Image();
+                            img.crossOrigin = 'Anonymous';
+                            img.src = url;
+
+                            img.onload = () => {
+                                if (country.id === 'england472x600') {
+                                    // UK Special Cropping: Crop top 472px from 600px height to make 472x472
+                                    const cropCanvas = document.createElement('canvas');
+                                    cropCanvas.width = 472;
+                                    cropCanvas.height = 472;
+                                    const ctx = cropCanvas.getContext('2d');
+                                    ctx.drawImage(img, 0, 0, 472, 472, 0, 0, 472, 472);
+                                    this.textures[key] = cropCanvas;
+                                } else {
+                                    this.textures[key] = img;
+                                }
+                                resolve();
+                            };
+
+                            img.onerror = () => {
+                                // Fallback canvas generation if image fails to load
+                                const fallbackCanvas = document.createElement('canvas');
+                                fallbackCanvas.width = 120;
+                                fallbackCanvas.height = 120;
+                                const ctx = fallbackCanvas.getContext('2d');
+                                ctx.fillStyle = '#f43f5e';
+                                ctx.beginPath();
+                                ctx.arc(60, 60, 55, 0, Math.PI * 2);
+                                ctx.fill();
+                                ctx.fillStyle = '#ffffff';
+                                ctx.font = 'bold 16px sans-serif';
+                                ctx.textAlign = 'center';
+                                ctx.textBaseline = 'middle';
+                                ctx.fillText(country.name, 60, 60);
+                                this.textures[key] = fallbackCanvas;
+                                resolve();
+                            };
+                        });
+                        loadPromises.push(p);
+                    });
+                });
+
+                await Promise.all(loadPromises);
+            }
+
+            getTexture(countryId, expression = 'normal') {
+                return this.textures[`${countryId}_${expression}`] || this.textures[`${countryId}_normal`];
+            }
+        }
+
+        const assetManager = new AssetManager();
+
+        /* ==========================================================================
+           3. INDEXEDDB MANAGER (LOCAL GHOST PERSISTENCE)
+           ========================================================================== */
+        class DBManager {
+            constructor() {
+                this.dbName = 'PBHookDB';
+                this.storeName = 'ghosts';
+                this.db = null;
+            }
+
+            async init() {
+                return new Promise((resolve, reject) => {
+                    const request = indexedDB.open(this.dbName, 1);
+                    request.onupgradeneeded = (e) => {
+                        const db = e.target.result;
+                        if (!db.objectStoreNames.contains(this.storeName)) {
+                            db.createObjectStore(this.storeName, { keyPath: 'levelId' });
+                        }
+                    };
+                    request.onsuccess = (e) => {
+                        this.db = e.target.result;
+                        resolve();
+                    };
+                    request.onerror = (e) => reject(e);
+                });
+            }
+
+            async saveGhost(levelId, countryId, time, pathData) {
+                if (!this.db) return false;
+                const existing = await this.getGhost(levelId);
+                
+                // Only save if best time or no previous record
+                if (!existing || time < existing.time) {
+                    return new Promise((resolve) => {
+                        const tx = this.db.transaction(this.storeName, 'readwrite');
+                        const store = tx.objectStore(this.storeName);
+                        store.put({
+                            levelId: levelId,
+                            countryId: countryId,
+                            time: time,
+                            date: new Date().toLocaleDateString(),
+                            pathData: pathData
+                        });
+                        tx.oncomplete = () => resolve(true); // New Record!
+                        tx.onerror = () => resolve(false);
+                    });
+                }
+                return false;
+            }
+
+            async getGhost(levelId) {
+                if (!this.db) return null;
+                return new Promise((resolve) => {
+                    const tx = this.db.transaction(this.storeName, 'readonly');
+                    const store = tx.objectStore(this.storeName);
+                    const req = store.get(levelId);
+                    req.onsuccess = () => resolve(req.result || null);
+                    req.onerror = () => resolve(null);
+                });
+            }
+
+            async getAllGhosts() {
+                if (!this.db) return [];
+                return new Promise((resolve) => {
+                    const tx = this.db.transaction(this.storeName, 'readonly');
+                    const store = tx.objectStore(this.storeName);
+                    const req = store.getAll();
+                    req.onsuccess = () => resolve(req.result || []);
+                    req.onerror = () => resolve([]);
+                });
+            }
+        }
+
+        const dbManager = new DBManager();
+
+        /* ==========================================================================
+           4. LEVEL DESIGNS (40 LEVELS GENERATOR & DEFINITIONS)
+           ========================================================================== */
+        function build40Levels() {
+            const levelNames = [
+                // World 1
+                "1. 初めてのスイング", "2. トランポリンジャンプ", "3. 連続ピンフック", "4. 壁の抜け道", "5. ハイパーグラビティ",
+                "6. スカイラダー", "7. バウンドダンス", "8. タイトロープ", "9. ビッグジャンプ", "10. W1 BOSS - 試練の大跳躍",
+                // World 2
+                "11. S字スイング", "12. ピンポイントターゲット", "13. 垂直フォール＆昇竜", "14. ジグザグタワー", "15. トリプルバウンサー",
+                "16. スカイハイウェイ", "17. 狭小トンネル", "18. スピードマスター", "19. トラップウェイ", "20. W2 BOSS - 精密フックレース",
+                // World 3
+                "21. ディープキャニオン", "22. 連動ジャンパー", "23. アクロバティックス", "24. フックサーカス", "25. フリーフォールキャッチ",
+                "26. ロケットドライブ", "27. 迷宮エリア", "28. ハイバウンドスプリント", "29. インフィニティループ", "30. W3 BOSS - 極限の空中戦",
+                // World 4
+                "31. アッパーディメンション", "32. 針の穴通し", "33. カオススイング", "34. 重力加速エリア", "35. 超絶ピンポイント",
+                "36. スカイキャッスル", "37. デスジャンプキャニオン", "38. アルティメットスプリント", "39. 神々の試練", "40. FINAL STAGE - PBHOOK MASTER"
+            ];
+
+            const levels = [];
+
+            for (let i = 1; i <= 40; i++) {
+                const world = Math.ceil(i / 10);
+                const stageLength = 1200 + i * 150;
+
+                const start = { x: 100, y: 300 };
+                const goal = { x: stageLength, y: 300 + (i % 3 === 0 ? -50 : (i % 2 === 0 ? 50 : 0)) };
+
+                const hooks = [];
+                const bouncers = [];
+                const obstacles = [];
+                const floors = [
+                    { x: 100, y: 450, width: 250, height: 30 },
+                    { x: stageLength, y: goal.y + 150, width: 300, height: 30 }
+                ];
+
+                // Dynamic Hook Spacing and Placement
+                const hookSpacing = Math.max(180, 380 - i * 3);
+                let currentX = 350;
+                let hookYToggle = 0;
+
+                while (currentX < stageLength - 200) {
+                    let hookY = 120 + (hookYToggle % 3) * 40;
+                    if (i > 20 && hookYToggle % 2 === 0) hookY -= 30; // High hooks in later worlds
+                    hooks.push({ x: currentX, y: hookY });
+
+                    // Add Bouncer Trampolines
+                    if (hookYToggle % 2 === 1 && currentX < stageLength - 300) {
+                        bouncers.push({
+                            x: currentX + hookSpacing / 2,
+                            y: 540 - (i % 5) * 10,
+                            width: Math.max(80, 160 - i * 1.5),
+                            height: 25,
+                            bounce: Math.min(38, 22 + i * 0.4)
+                        });
+                    }
+
+                    // Add Wall Obstacles
+                    if (i >= 4 && hookYToggle % 4 === 3 && currentX < stageLength - 400) {
+                        obstacles.push({
+                            x: currentX + hookSpacing * 0.6,
+                            y: 300,
+                            width: 35,
+                            height: Math.min(420, 220 + (i % 6) * 30)
+                        });
+                    }
+
+                    currentX += hookSpacing + (Math.sin(hookYToggle) * 40);
+                    hookYToggle++;
+                }
+
+                // Boss Stages (10, 20, 30, 40) Extra Hazards
+                if (i % 10 === 0) {
+                    bouncers.push({
+                        x: stageLength / 2,
+                        y: 580,
+                        width: 260,
+                        height: 30,
+                        bounce: 36
+                    });
+                }
+
+                levels.push({
+                    id: i,
+                    world: world,
+                    name: levelNames[i - 1],
+                    start: start,
+                    goal: goal,
+                    hooks: hooks,
+                    bouncers: bouncers,
+                    obstacles: obstacles,
+                    floors: floors
+                });
+            }
+
+            return levels;
+        }
+
+        const LEVELS = build40Levels();
+
+        /* ==========================================================================
+           5. MAIN GAME ENGINE
+           ========================================================================== */
+        class PBGame {
+            constructor() {
+                this.canvas = document.getElementById('game-canvas');
+                this.ctx = this.canvas.getContext('2d');
+
+                // Matter.js components
+                this.Engine = Matter.Engine;
+                this.World = Matter.World;
+                this.Bodies = Matter.Bodies;
+                this.Constraint = Matter.Constraint;
+                this.Vector = Matter.Vector;
+                this.Body = Matter.Body;
+
+                this.engine = this.Engine.create({
+                    gravity: { x: 0, y: 1.2 }
+                });
+
+                this.player = null;
+                this.rope = null;
+                this.activeHook = null;
+                this.currentLevel = LEVELS[0];
+                this.selectedCountry = COUNTRIES[7]; // Default Poland
+                this.currentExpression = 'normal';
+
+                // Game State
+                this.isHooking = false;
+                this.isPlaying = false;
+                this.isCleared = false;
+                this.startTime = 0;
+                this.elapsedTime = 0;
+
+                // Ghost Recording & VS System
+                this.currentPathRecord = []; // [{t, x, y, expr, r}]
+                this.ghostData = null; // Loaded ghost
+                this.ghostPlaybackIndex = 0;
+                this.isVsGhostMode = false;
+
+                // Camera Position
+                this.camera = { x: 0, y: 0 };
+
+                this.resize();
+                this.bindEvents();
+            }
+
+            resize() {
+                this.width = window.innerWidth;
+                this.height = window.innerHeight;
+                this.canvas.width = this.width;
+                this.canvas.height = this.height;
+            }
+
+            bindEvents() {
+                window.addEventListener('resize', () => this.resize());
+
+                // Hook Trigger Controls (Touch / Mouse / Keyboard)
+                const startHook = (e) => {
+                    if (!this.isPlaying || this.isCleared) return;
+                    this.attachHook();
+                };
+
+                const endHook = (e) => {
+                    if (!this.isPlaying) return;
+                    this.detachHook();
+                };
+
+                window.addEventListener('mousedown', startHook);
+                window.addEventListener('mouseup', endHook);
+                window.addEventListener('touchstart', (e) => { startHook(e); }, { passive: true });
+                window.addEventListener('touchend', endHook);
+
+                window.addEventListener('keydown', (e) => {
+                    if (e.code === 'Space' && !e.repeat) startHook();
+                    if (e.code === 'KeyR') this.restartLevel();
+                });
+                window.addEventListener('keyup', (e) => {
+                    if (e.code === 'Space') endHook();
+                });
+            }
+
+            restartLevel() {
+                if (this.currentLevel) {
+                    this.loadLevel(this.currentLevel, this.isVsGhostMode && this.ghostData ? btoa(JSON.stringify(this.ghostData)) : null);
+                }
+            }
+
+            async loadLevel(level, vsGhostCode = null) {
+                this.currentLevel = level;
+                this.World.clear(this.engine.world);
+                this.engine.events = {};
+
+                // Create Player (Polandball)
+                const radius = 26;
+                this.player = this.Bodies.circle(level.start.x, level.start.y, radius, {
+                    density: 0.003,
+                    friction: 0.05,
+                    frictionAir: 0.002,
+                    restitution: 0.6,
+                    label: 'player'
+                });
+                this.World.add(this.engine.world, this.player);
+
+                // Create Floors
+                (level.floors || []).forEach(f => {
+                    const floor = this.Bodies.rectangle(f.x, f.y, f.width, f.height, {
+                        isStatic: true,
+                        render: { fillStyle: '#334155' }
+                    });
+                    this.World.add(this.engine.world, floor);
+                });
+
+                // Create Obstacles
+                (level.obstacles || []).forEach(o => {
+                    const obs = this.Bodies.rectangle(o.x, o.y, o.width, o.height, {
+                        isStatic: true,
+                        label: 'obstacle'
+                    });
+                    this.World.add(this.engine.world, obs);
+                });
+
+                // Create Bouncers
+                this.bouncers = [];
+                (level.bouncers || []).forEach(b => {
+                    const bouncer = this.Bodies.rectangle(b.x, b.y, b.width, b.height, {
+                        isStatic: true,
+                        label: 'bouncer',
+                        bounceForce: b.bounce || 24
+                    });
+                    this.bouncers.push(bouncer);
+                    this.World.add(this.engine.world, bouncer);
+                });
+
+                // Set Up Collision Detection for Bouncers
+                Matter.Events.on(this.engine, 'collisionStart', (event) => {
+                    event.pairs.forEach(pair => {
+                        const { bodyA, bodyB } = pair;
+                        const bouncer = bodyA.label === 'bouncer' ? bodyA : (bodyB.label === 'bouncer' ? bodyB : null);
+                        if (bouncer && (bodyA === this.player || bodyB === this.player)) {
+                            // Apply Bounce Impulse upwards / angled
+                            const impulseY = -bouncer.bounceForce;
+                            this.Body.setVelocity(this.player, {
+                                x: this.player.velocity.x * 1.1 + 3,
+                                y: impulseY
+                            });
+                            this.currentExpression = 'surprise';
+                        }
+                    });
+                });
+
+                // Reset Game States
+                this.detachHook();
+                this.isCleared = false;
+                this.isPlaying = true;
+                this.startTime = Date.now();
+                this.elapsedTime = 0;
+                this.currentPathRecord = [];
+                this.ghostPlaybackIndex = 0;
+
+                // Load Ghost for VS Mode
+                if (vsGhostCode) {
+                    try {
+                        this.ghostData = JSON.parse(atob(vsGhostCode));
+                        this.isVsGhostMode = true;
+                    } catch (e) {
+                        this.ghostData = null;
+                        this.isVsGhostMode = false;
+                    }
+                } else {
+                    const dbGhost = await dbManager.getGhost(level.id);
+                    if (dbGhost) {
+                        this.ghostData = dbGhost;
+                        this.isVsGhostMode = true;
+                    } else {
+                        this.ghostData = null;
+                        this.isVsGhostMode = false;
+                    }
+                }
+
+                // UI Badges Update
+                document.getElementById('ui-level-name').innerText = level.name;
+                document.getElementById('ui-ghost-badge').classList.toggle('hidden', !this.isVsGhostMode);
+            }
+
+            findClosestHook() {
+                if (!this.currentLevel.hooks.length) return null;
+                const pos = this.player.position;
+
+                let closest = null;
+                let minDst = Infinity;
+
+                for (const hook of this.currentLevel.hooks) {
+                    const dx = hook.x - pos.x;
+                    const dy = hook.y - pos.y;
+                    const dst = Math.sqrt(dx * dx + dy * dy);
+
+                    if (dst < 650 && hook.x > pos.x - 150) {
+                        if (dst < minDst) {
+                            minDst = dst;
+                            closest = hook;
+                        }
+                    }
+                }
+                return closest;
+            }
+
+            attachHook() {
+                if (this.rope) return;
+                const targetHook = this.findClosestHook();
+                if (!targetHook) return;
+
+                this.activeHook = targetHook;
+                const pos = this.player.position;
+                const dist = Math.hypot(targetHook.x - pos.x, targetHook.y - pos.y);
+
+                this.rope = this.Constraint.create({
+                    bodyA: this.player,
+                    pointB: { x: targetHook.x, y: targetHook.y },
+                    length: dist * 0.85,
+                    stiffness: 0.9,
+                    damping: 0.02
+                });
+
+                this.World.add(this.engine.world, this.rope);
+                this.isHooking = true;
+                this.currentExpression = 'plot';
+
+                this.Body.applyForce(this.player, this.player.position, { x: 0.008, y: -0.005 });
+            }
+
+            detachHook() {
+                if (this.rope) {
+                    this.World.remove(this.engine.world, this.rope);
+                    this.rope = null;
+                    this.activeHook = null;
+                    this.isHooking = false;
+
+                    if (this.player) {
+                        const vel = this.player.velocity;
+                        this.Body.setVelocity(this.player, {
+                            x: vel.x * 1.15,
+                            y: vel.y * 1.05 - 1.5
+                        });
+                    }
+                }
+            }
+
+            updateExpressions() {
+                if (!this.player) return;
+                const vel = this.player.velocity;
+                const speed = Math.hypot(vel.x, vel.y);
+
+                if (this.isHooking) {
+                    this.currentExpression = speed > 18 ? 'anger' : 'plot';
+                } else if (speed > 22) {
+                    this.currentExpression = 'lol';
+                } else if (speed > 14) {
+                    this.currentExpression = 'happy';
+                } else if (vel.y > 10) {
+                    this.currentExpression = 'surprise';
+                } else if (speed < 2) {
+                    this.currentExpression = 'itome';
+                } else {
+                    this.currentExpression = 'normal';
+                }
+            }
+
+            update() {
+                if (!this.isPlaying || this.isCleared) return;
+
+                this.Engine.update(this.engine, 1000 / 60);
+
+                this.elapsedTime = (Date.now() - this.startTime) / 1000;
+                document.getElementById('ui-timer').innerText = this.formatTime(this.elapsedTime);
+
+                this.updateExpressions();
+
+                this.currentPathRecord.push({
+                    t: this.elapsedTime,
+                    x: Math.round(this.player.position.x * 10) / 10,
+                    y: Math.round(this.player.position.y * 10) / 10,
+                    expr: this.currentExpression,
+                    r: Math.round(this.player.angle * 100) / 100
+                });
+
+                const targetCamX = this.player.position.x - this.width * 0.35;
+                const targetCamY = this.player.position.y - this.height * 0.55;
+                this.camera.x += (targetCamX - this.camera.x) * 0.1;
+                this.camera.y += (targetCamY - this.camera.y) * 0.1;
+
+                const goal = this.currentLevel.goal;
+                const pPos = this.player.position;
+                if (Math.hypot(goal.x - pPos.x, goal.y - pPos.y) < 70) {
+                    this.handleLevelClear();
+                }
+
+                if (pPos.y > 1000 || pPos.x < -400) {
+                    this.loadLevel(this.currentLevel, this.isVsGhostMode && this.ghostData ? btoa(JSON.stringify(this.ghostData)) : null);
+                }
+            }
+
+            async handleLevelClear() {
+                this.isCleared = true;
+                this.isPlaying = false;
+                this.detachHook();
+
+                confetti({
+                    particleCount: 120,
+                    spread: 80,
+                    origin: { y: 0.6 }
+                });
+
+                const isNewRecord = await dbManager.saveGhost(
+                    this.currentLevel.id,
+                    this.selectedCountry.id,
+                    this.elapsedTime,
+                    this.currentPathRecord
+                );
+
+                document.getElementById('clear-level-title').innerText = this.currentLevel.name;
+                document.getElementById('clear-time').innerText = this.formatTime(this.elapsedTime);
+                document.getElementById('clear-record-badge').classList.toggle('hidden', !isNewRecord);
+                document.getElementById('clear-modal').classList.remove('hidden');
+            }
+
+            formatTime(seconds) {
+                const mins = Math.floor(seconds / 60);
+                const secs = Math.floor(seconds % 60);
+                const ms = Math.floor((seconds % 1) * 100);
+                return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}.${String(ms).padStart(2, '0')}`;
+            }
+
+            render() {
+                this.ctx.clearRect(0, 0, this.width, this.height);
+
+                this.ctx.save();
+                this.ctx.translate(-this.camera.x, -this.camera.y);
+
+                this.renderBackground();
+
+                if (this.currentLevel) {
+                    // Floors
+                    (this.currentLevel.floors || []).forEach(f => {
+                        this.ctx.fillStyle = '#1e293b';
+                        this.ctx.strokeStyle = '#475569';
+                        this.ctx.lineWidth = 3;
+                        this.ctx.beginPath();
+                        this.ctx.roundRect(f.x - f.width / 2, f.y - f.height / 2, f.width, f.height, 12);
+                        this.ctx.fill();
+                        this.ctx.stroke();
+                    });
+
+                    // Obstacles
+                    (this.currentLevel.obstacles || []).forEach(o => {
+                        this.ctx.fillStyle = '#334155';
+                        this.ctx.strokeStyle = '#64748b';
+                        this.ctx.lineWidth = 2;
+                        this.ctx.beginPath();
+                        this.ctx.roundRect(o.x - o.width / 2, o.y - o.height / 2, o.width, o.height, 8);
+                        this.ctx.fill();
+                        this.ctx.stroke();
+                    });
+
+                    // Bouncers
+                    (this.currentLevel.bouncers || []).forEach(b => {
+                        this.ctx.fillStyle = '#f59e0b';
+                        this.ctx.shadowColor = '#f59e0b';
+                        this.ctx.shadowBlur = 15;
+                        this.ctx.beginPath();
+                        this.ctx.roundRect(b.x - b.width / 2, b.y - b.height / 2, b.width, b.height, 10);
+                        this.ctx.fill();
+                        this.ctx.shadowBlur = 0;
+                    });
+
+                    // Goal Zone
+                    const goal = this.currentLevel.goal;
+                    const pulse = Math.sin(Date.now() * 0.005) * 8;
+                    this.ctx.fillStyle = 'rgba(16, 185, 129, 0.2)';
+                    this.ctx.strokeStyle = '#10b981';
+                    this.ctx.lineWidth = 4;
+                    this.ctx.beginPath();
+                    this.ctx.arc(goal.x, goal.y, 45 + pulse, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    this.ctx.stroke();
+
+                    this.ctx.fillStyle = '#10b981';
+                    this.ctx.font = '900 24px "Font Awesome 6 Free"';
+                    this.ctx.textAlign = 'center';
+                    this.ctx.textBaseline = 'middle';
+                    this.ctx.fillText('\uf024', goal.x, goal.y);
+
+                    // Hooks
+                    const closestHook = this.findClosestHook();
+                    this.currentLevel.hooks.forEach(h => {
+                        const isTarget = closestHook && closestHook.x === h.x && closestHook.y === h.y;
+
+                        if (isTarget && !this.isHooking) {
+                            this.ctx.strokeStyle = 'rgba(245, 158, 11, 0.8)';
+                            this.ctx.lineWidth = 3;
+                            this.ctx.beginPath();
+                            this.ctx.arc(h.x, h.y, 22, 0, Math.PI * 2);
+                            this.ctx.stroke();
+                        }
+
+                        this.ctx.fillStyle = isTarget ? '#f59e0b' : '#64748b';
+                        this.ctx.beginPath();
+                        this.ctx.arc(h.x, h.y, 9, 0, Math.PI * 2);
+                        this.ctx.fill();
+                        this.ctx.lineWidth = 2;
+                        this.ctx.strokeStyle = '#ffffff';
+                        this.ctx.stroke();
+                    });
+
+                    // Grappling Hook Rope Line
+                    if (this.isHooking && this.activeHook && this.player) {
+                        const p = this.player.position;
+                        this.ctx.strokeStyle = '#f59e0b';
+                        this.ctx.lineWidth = 4;
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(this.activeHook.x, this.activeHook.y);
+                        this.ctx.lineTo(p.x, p.y);
+                        this.ctx.stroke();
+
+                        this.ctx.strokeStyle = '#ffffff';
+                        this.ctx.lineWidth = 2;
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(this.activeHook.x, this.activeHook.y);
+                        this.ctx.lineTo(p.x, p.y);
+                        this.ctx.stroke();
+                    }
+
+                    // Ghost Ball
+                    if (this.isVsGhostMode && this.ghostData && this.ghostData.pathData) {
+                        const path = this.ghostData.pathData;
+                        while (this.ghostPlaybackIndex < path.length - 1 && path[this.ghostPlaybackIndex].t < this.elapsedTime) {
+                            this.ghostPlaybackIndex++;
+                        }
+                        const gFrame = path[this.ghostPlaybackIndex];
+                        if (gFrame) {
+                            this.ctx.save();
+                            this.ctx.globalAlpha = 0.45;
+                            this.ctx.translate(gFrame.x, gFrame.y);
+                            this.ctx.rotate(gFrame.r || 0);
+
+                            const gTex = assetManager.getTexture(this.ghostData.countryId || 'poland', gFrame.expr || 'normal');
+                            if (gTex) {
+                                this.ctx.drawImage(gTex, -26, -26, 52, 52);
+                            }
+                            this.ctx.restore();
+                        }
+                    }
+
+                    // Player Polandball
+                    if (this.player) {
+                        const p = this.player.position;
+                        this.ctx.save();
+                        this.ctx.translate(p.x, p.y);
+                        this.ctx.rotate(this.player.angle);
+
+                        const tex = assetManager.getTexture(this.selectedCountry.id, this.currentExpression);
+                        if (tex) {
+                            this.ctx.drawImage(tex, -26, -26, 52, 52);
+                        }
+                        this.ctx.restore();
+                    }
+                }
+
+                this.ctx.restore();
+            }
+
+            renderBackground() {
+                this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+                this.ctx.lineWidth = 1;
+                const gridSize = 100;
+
+                const startX = Math.floor(this.camera.x / gridSize) * gridSize;
+                const endX = startX + this.width + gridSize;
+                const startY = Math.floor(this.camera.y / gridSize) * gridSize;
+                const endY = startY + this.height + gridSize;
+
+                for (let x = startX; x < endX; x += gridSize) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(x, startY);
+                    this.ctx.lineTo(x, endY);
+                    this.ctx.stroke();
+                }
+                for (let y = startY; y < endY; y += gridSize) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(startX, y);
+                    this.ctx.lineTo(endX, y);
+                    this.ctx.stroke();
+                }
+            }
+        }
+
+        /* ==========================================================================
+           6. GLOBAL UI & EVENT HANDLERS
+           ========================================================================== */
+        let game = null;
+        let currentSelectedWorld = 1;
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-message').innerText = message;
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 3000);
+        }
+
+        function initUI() {
+            // Populate Country Grid in Character Tab
+            const countryGrid = document.getElementById('country-grid');
+            countryGrid.innerHTML = '';
+
+            COUNTRIES.forEach(country => {
+                const btn = document.createElement('button');
+                btn.className = `p-3 rounded-2xl glass-card border flex flex-col items-center gap-2 transition hover:scale-105 active:scale-95 ${game.selectedCountry.id === country.id ? 'border-amber-500 bg-amber-500/10' : 'border-slate-800'}`;
+                
+                const miniCanvas = document.createElement('canvas');
+                miniCanvas.width = 48;
+                miniCanvas.height = 48;
+                const ctx = miniCanvas.getContext('2d');
+                const tex = assetManager.getTexture(country.id, 'normal');
+                if (tex) ctx.drawImage(tex, 0, 0, 48, 48);
+
+                btn.appendChild(miniCanvas);
+                const label = document.createElement('span');
+                label.className = 'text-xs font-bold text-slate-200';
+                label.innerText = country.name;
+                btn.appendChild(label);
+
+                btn.onclick = () => {
+                    game.selectedCountry = country;
+                    initUI();
+                    updatePreviewCanvas('normal');
+                };
+                countryGrid.appendChild(btn);
+            });
+
+            // Populate Expression Buttons for Preview
+            const exprSelector = document.getElementById('expression-selector');
+            exprSelector.innerHTML = '';
+            EXPRESSIONS.forEach(expr => {
+                const btn = document.createElement('button');
+                btn.className = 'px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded-lg text-[10px] font-bold text-slate-300 border border-slate-700';
+                btn.innerText = expr;
+                btn.onclick = () => updatePreviewCanvas(expr);
+                exprSelector.appendChild(btn);
+            });
+
+            // Setup World Selector Tabs
+            const worldTabBtns = document.querySelectorAll('.world-tab-btn');
+            worldTabBtns.forEach(btn => {
+                btn.onclick = (e) => {
+                    currentSelectedWorld = parseInt(e.target.getAttribute('data-world'));
+                    worldTabBtns.forEach(b => {
+                        if (parseInt(b.getAttribute('data-world')) === currentSelectedWorld) {
+                            b.className = 'world-tab-btn px-3 py-1.5 rounded-xl bg-amber-500 text-slate-950 font-bold transition';
+                        } else {
+                            b.className = 'world-tab-btn px-3 py-1.5 rounded-xl bg-slate-800 text-slate-300 hover:text-white transition';
+                        }
+                    });
+                    renderLevelGrid();
+                };
+            });
+
+            renderLevelGrid();
+            updatePreviewCanvas('normal');
+            refreshGhostListUI();
+        }
+
+        function renderLevelGrid() {
+            const levelGrid = document.getElementById('level-grid');
+            levelGrid.innerHTML = '';
+
+            const worldLevels = LEVELS.filter(lvl => lvl.world === currentSelectedWorld);
+
+            worldLevels.forEach(lvl => {
+                const btn = document.createElement('button');
+                const isBoss = lvl.id % 10 === 0;
+                btn.className = `p-4 rounded-2xl glass-card border ${isBoss ? 'border-rose-500/50 bg-rose-950/20' : 'border-slate-800'} hover:border-amber-500 text-left transition active:scale-95 flex flex-col justify-between`;
+                btn.innerHTML = `
+                    <div>
+                        <div class="text-xs font-bold ${isBoss ? 'text-rose-400' : 'text-amber-400'}">STAGE ${lvl.id}</div>
+                        <div class="text-sm font-extrabold text-white mt-1 line-clamp-1">${lvl.name}</div>
+                    </div>
+                    <div class="text-[10px] font-bold text-slate-400 mt-3 flex items-center gap-1">
+                        <i class="fa-solid fa-flag-checkered"></i> 挑戦する
+                    </div>
+                `;
+                btn.onclick = () => {
+                    game.loadLevel(lvl);
+                    document.getElementById('menu-modal').classList.add('hidden');
+                    document.getElementById('btn-close-menu').classList.remove('hidden');
+                };
+                levelGrid.appendChild(btn);
+            });
+        }
+
+        function updatePreviewCanvas(expr) {
+            const canvas = document.getElementById('preview-canvas');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, 90, 90);
+            const tex = assetManager.getTexture(game.selectedCountry.id, expr);
+            if (tex) ctx.drawImage(tex, 0, 0, 90, 90);
+        }
+
+        async function refreshGhostListUI() {
+            const container = document.getElementById('ghost-list');
+            container.innerHTML = '';
+            const ghosts = await dbManager.getAllGhosts();
+
+            if (!ghosts.length) {
+                container.innerHTML = `<div class="text-xs text-slate-500 italic p-2">IndexedDBに保存された記録がまだありません</div>`;
+                return;
+            }
+
+            ghosts.forEach(g => {
+                const lvl = LEVELS.find(l => l.id === g.levelId);
+                const item = document.createElement('div');
+                item.className = 'glass-card p-3 rounded-xl border border-slate-800 flex justify-between items-center text-xs';
+                item.innerHTML = `
+                    <div>
+                        <span class="font-bold text-amber-400">${lvl ? lvl.name : 'Level ' + g.levelId}</span>
+                        <div class="text-[10px] text-slate-400">Ball: ${g.countryId} | ${g.date}</div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="font-mono font-bold text-sky-400">${game.formatTime(g.time)}</span>
+                        <button class="bg-indigo-600 hover:bg-indigo-500 text-white px-2.5 py-1 rounded-lg font-bold text-[10px]">
+                            VS対戦
+                        </button>
+                    </div>
+                `;
+                item.querySelector('button').onclick = () => {
+                    if (lvl) {
+                        game.loadLevel(lvl, btoa(JSON.stringify(g)));
+                        document.getElementById('menu-modal').classList.add('hidden');
+                        document.getElementById('btn-close-menu').classList.remove('hidden');
+                        showToast(`Level ${lvl.id} ゴースト対戦スタート！`);
+                    }
+                };
+                container.appendChild(item);
+            });
+        }
+
+        // Tab Navigation Event Handlers
+        document.getElementById('tab-btn-char').onclick = () => switchTab('char');
+        document.getElementById('tab-btn-level').onclick = () => switchTab('level');
+        document.getElementById('tab-btn-ghost').onclick = () => switchTab('ghost');
+
+        function switchTab(tab) {
+            ['char', 'level', 'ghost'].forEach(t => {
+                const btn = document.getElementById(`tab-btn-${t}`);
+                const content = document.getElementById(`tab-content-${t}`);
+                if (t === tab) {
+                    btn.className = 'flex-1 py-2.5 rounded-xl transition bg-amber-500 text-slate-950 shadow font-bold';
+                    content.classList.remove('hidden');
+                } else {
+                    btn.className = 'flex-1 py-2.5 rounded-xl transition text-slate-400 hover:text-white font-bold';
+                    content.classList.add('hidden');
+                }
+            });
+        }
+
+        // Top UI Buttons
+        document.getElementById('btn-menu').onclick = () => {
+            document.getElementById('menu-modal').classList.remove('hidden');
+        };
+        document.getElementById('btn-close-menu').onclick = () => {
+            document.getElementById('menu-modal').classList.add('hidden');
+        };
+        document.getElementById('btn-restart').onclick = () => game.restartLevel();
+
+        // Start Game Button in Modal
+        document.getElementById('btn-start-game').onclick = () => {
+            document.getElementById('menu-modal').classList.add('hidden');
+            document.getElementById('btn-close-menu').classList.remove('hidden');
+            if (!game.isPlaying) game.loadLevel(game.currentLevel);
+        };
+
+        // Clear Modal Buttons
+        document.getElementById('btn-next-level').onclick = () => {
+            document.getElementById('clear-modal').classList.add('hidden');
+            const nextIdx = (LEVELS.findIndex(l => l.id === game.currentLevel.id) + 1) % LEVELS.length;
+            game.loadLevel(LEVELS[nextIdx]);
+        };
+        document.getElementById('btn-clear-retry').onclick = () => {
+            document.getElementById('clear-modal').classList.add('hidden');
+            game.restartLevel();
+        };
+        document.getElementById('btn-clear-menu').onclick = () => {
+            document.getElementById('clear-modal').classList.add('hidden');
+            document.getElementById('menu-modal').classList.remove('hidden');
+        };
+
+        // Export Ghost Code to Clipboard
+        document.getElementById('btn-export-ghost').onclick = async () => {
+            const currentGhost = await dbManager.getGhost(game.currentLevel.id);
+            if (!currentGhost) {
+                showToast('現在ステージの記録がありません。クリアして記録を作成してください！');
+                return;
+            }
+            const code = btoa(JSON.stringify(currentGhost));
+            document.getElementById('input-ghost-code').value = code;
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(code);
+            } else {
+                document.getElementById('input-ghost-code').select();
+                document.execCommand('copy');
+            }
+            showToast('対戦ゴーストコードをクリップボードにコピーしました！');
+        };
+
+        // Import Ghost Code from Input
+        document.getElementById('btn-import-ghost').onclick = () => {
+            const code = document.getElementById('input-ghost-code').value.trim();
+            if (!code) {
+                showToast('ゴーストコードを入力してください');
+                return;
+            }
+            try {
+                const ghostData = JSON.parse(atob(code));
+                const targetLevel = LEVELS.find(l => l.id === ghostData.levelId) || LEVELS[0];
+                game.loadLevel(targetLevel, code);
+                document.getElementById('menu-modal').classList.add('hidden');
+                document.getElementById('btn-close-menu').classList.remove('hidden');
+                showToast(`友達のゴーストと対戦開始！ (${targetLevel.name})`);
+            } catch (e) {
+                showToast('無効なゴーストコードです');
+            }
+        };
+
+        // MAIN GAME ANIMATION LOOP
+        function mainLoop() {
+            if (game) {
+                game.update();
+                game.render();
+            }
+            requestAnimationFrame(mainLoop);
+        }
+
+        // WINDOW ONLOAD INITIALIZATION
+        window.onload = async function() {
+            // Initialize IndexedDB
+            await dbManager.init();
+
+            // Preload Image Assets
+            await assetManager.loadAllAssets();
+
+            // Instantiate Game Engine
+            game = new PBGame();
+
+            // Initialize Dynamic UI Components
+            initUI();
+
+            // Load Level 1
+            game.loadLevel(LEVELS[0]);
+
+            // Start Main Loop
+            mainLoop();
+        };
+    </script>
+</body>
+</html>
