@@ -1,0 +1,1634 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PBhook - Polandball Hook Action & PeerJS Multi</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Matter.js Physics Engine -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+    <!-- PeerJS for 10-Player Online Multiplayer -->
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Canvas Confetti for Win Effect -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&display=swap');
+        body {
+            font-family: 'Outfit', sans-serif;
+            touch-action: manipulation;
+            user-select: none;
+            overflow: hidden;
+            background-color: #0f172a;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        .glass-card {
+            background: rgba(30, 41, 59, 0.88);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        @keyframes floatLogo {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-8px) rotate(1deg); }
+        }
+        .animate-float-logo {
+            animation: floatLogo 3.5s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body class="text-slate-100 h-screen w-screen relative select-none">
+
+    <!-- Title Screen Overlay -->
+    <div id="title-screen" class="absolute inset-0 z-40 flex flex-col items-center justify-between p-6 bg-slate-950 overflow-hidden">
+        <!-- Animated German Cityscape Canvas Background -->
+        <canvas id="title-bg-canvas" class="absolute inset-0 w-full h-full pointer-events-none z-0"></canvas>
+        <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-slate-950/20 z-0 pointer-events-none"></div>
+
+        <!-- Top Header Info -->
+        <div class="relative z-10 w-full max-w-md flex justify-between items-center text-xs font-bold text-amber-300/80 uppercase tracking-widest pt-2">
+            <span><i class="fa-solid fa-earth-europe mr-1"></i> PBhook Action Online</span>
+            <span class="bg-amber-500/20 px-2.5 py-1 rounded-full border border-amber-500/30">v2.1 BugFixed</span>
+        </div>
+
+        <!-- Center Content: Logo & Menu Buttons -->
+        <div class="relative z-10 w-full max-w-sm flex flex-col items-center my-auto py-2">
+            <!-- Game Title Logo Image -->
+            <div class="mb-5 animate-float-logo max-w-[260px] sm:max-w-[320px]">
+                <img src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbpark/refs/heads/main/games/pbhook1/title.png" 
+                     alt="PBhook Title Logo" 
+                     class="w-full h-auto drop-shadow-[0_10px_20px_rgba(0,0,0,0.8)] filter brightness-105"
+                     onerror="this.onerror=null; this.src='https://placehold.co/400x160/1e293b/f59e0b?text=PBhook';">
+            </div>
+
+            <!-- Menu Buttons Grid -->
+            <div class="w-full space-y-2.5">
+                <!-- 1. Quick Play -->
+                <button id="btn-title-quick-play" class="w-full py-3.5 px-5 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 active:scale-98 text-slate-950 font-black text-base shadow-xl border border-amber-300/50 flex items-center justify-center gap-3 transition-all duration-200">
+                    <i class="fa-solid fa-play text-lg"></i>
+                    <span>とりあえずプレイ</span>
+                </button>
+
+                <!-- 2. PeerJS 10-Player Online Match -->
+                <button id="btn-title-peer-multi" class="w-full py-3.5 px-5 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 active:scale-98 text-white font-black text-sm shadow-xl border border-indigo-400/50 flex items-center justify-center gap-3 transition-all duration-200">
+                    <i class="fa-solid fa-users-rays text-lg text-amber-300"></i>
+                    <span>PeerJS 最大10人オンライン対戦！</span>
+                </button>
+
+                <!-- 3. Mario Long World & AI World Grid -->
+                <div class="grid grid-cols-2 gap-2">
+                    <button id="btn-title-long-world" class="py-3 px-3 rounded-2xl glass-card hover:bg-rose-950/60 active:scale-98 text-rose-300 font-extrabold text-xs border border-rose-500/40 shadow-lg flex items-center justify-center gap-1.5 transition-all">
+                        <i class="fa-solid fa-route text-rose-400"></i>
+                        <span>ロングワールド</span>
+                    </button>
+                    <button id="btn-title-ai-world" class="py-3 px-3 rounded-2xl glass-card hover:bg-emerald-950/60 active:scale-98 text-emerald-300 font-extrabold text-xs border border-emerald-500/40 shadow-lg flex items-center justify-center gap-1.5 transition-all">
+                        <i class="fa-solid fa-wand-magic-sparkles text-emerald-400"></i>
+                        <span>AI World (自動生成)</span>
+                    </button>
+                </div>
+
+                <!-- 4. Select Stage & Character Select -->
+                <div class="grid grid-cols-2 gap-2">
+                    <button id="btn-title-stage-select" class="py-3 px-3 rounded-2xl glass-card hover:bg-slate-800/90 active:scale-98 text-white font-extrabold text-xs border border-slate-700 shadow-lg flex items-center justify-center gap-2 transition-all">
+                        <i class="fa-solid fa-map-location-dot text-amber-400"></i>
+                        <span>ステージ選択</span>
+                    </button>
+                    <button id="btn-title-char-select" class="py-3 px-3 rounded-2xl glass-card hover:bg-slate-800/90 active:scale-98 text-white font-extrabold text-xs border border-slate-700 shadow-lg flex items-center justify-center gap-2 transition-all">
+                        <i class="fa-solid fa-face-smile text-amber-400"></i>
+                        <span>キャラ選択</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="relative z-10 text-[11px] font-semibold text-slate-400 text-center pb-1">
+            © Polandball Park - PeerJS 10 Players Action
+        </div>
+    </div>
+
+    <!-- Main Game Canvas Container -->
+    <div id="game-container" class="absolute inset-0 z-0">
+        <canvas id="game-canvas"></canvas>
+    </div>
+
+    <!-- UI Overlay Header -->
+    <div id="ui-header" class="absolute top-4 left-4 right-4 z-10 flex justify-between items-center pointer-events-none">
+        <div class="flex items-center gap-3">
+            <button id="btn-menu" class="pointer-events-auto bg-slate-800/80 hover:bg-slate-700 text-white p-3 rounded-2xl border border-slate-700 shadow-lg transition active:scale-95">
+                <i class="fa-solid fa-bars text-xl"></i>
+            </button>
+            <div class="glass-card px-4 py-2 rounded-2xl flex items-center gap-4">
+                <div>
+                    <div class="text-[10px] text-slate-400 font-bold tracking-wider uppercase">Level / Mode</div>
+                    <div id="ui-level-name" class="text-base sm:text-lg font-extrabold text-amber-400">STAGE 1</div>
+                </div>
+                <div class="h-8 w-px bg-slate-700"></div>
+                <div>
+                    <div class="text-[10px] text-slate-400 font-bold tracking-wider uppercase">Time</div>
+                    <div id="ui-timer" class="text-base sm:text-lg font-mono font-bold text-sky-400">00:00.00</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <!-- PeerJS Room Multi Indicator -->
+            <div id="ui-multi-badge" class="hidden glass-card px-3 py-1.5 rounded-xl flex items-center gap-2 border-indigo-500/50 text-indigo-300 text-xs font-bold animate-pulse">
+                <i class="fa-solid fa-users text-amber-400"></i> <span id="ui-multi-count">1 / 10 Players</span>
+            </div>
+            <button id="btn-restart" class="pointer-events-auto bg-amber-500 hover:bg-amber-400 text-slate-900 p-3 rounded-2xl font-bold shadow-lg transition active:scale-95 flex items-center justify-center">
+                <i class="fa-solid fa-rotate-right text-xl"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Controls Helper Overlay -->
+    <div id="controls-hint" class="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 pointer-events-none text-center">
+        <div class="glass-card px-6 py-2.5 rounded-full text-xs sm:text-sm font-semibold text-slate-300 shadow-2xl flex items-center gap-3 animate-bounce">
+            <i class="fa-solid fa-hand-pointer text-amber-400"></i>
+            <span>画面長押し / スペースキーでフック発射！</span>
+        </div>
+    </div>
+
+    <!-- Main Title / Level Selection Modal -->
+    <div id="menu-modal" class="absolute inset-0 z-20 glass-card bg-slate-950/90 flex items-center justify-center p-4 transition-all duration-300">
+        <div class="max-w-2xl w-full max-h-[92vh] flex flex-col glass-card rounded-3xl p-5 sm:p-7 border border-slate-700 shadow-2xl overflow-hidden">
+            <!-- Header -->
+            <div class="flex justify-between items-center mb-5">
+                <div class="flex items-center gap-3">
+                    <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-amber-500 to-rose-500 flex items-center justify-center text-slate-950 text-xl font-black shadow-lg">
+                        PB
+                    </div>
+                    <div>
+                        <h1 class="text-xl sm:text-2xl font-black tracking-tight text-white">PBhook Online</h1>
+                        <p class="text-xs text-slate-400">Polandball PeerJS Multi & Swing Action</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button id="btn-return-title" class="text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-xl border border-slate-700 transition">
+                        <i class="fa-solid fa-house mr-1"></i> タイトル
+                    </button>
+                    <button id="btn-close-menu" class="hidden text-slate-400 hover:text-white text-2xl p-2">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tab Navigation -->
+            <div class="flex bg-slate-800/60 p-1 rounded-2xl mb-5 text-xs sm:text-sm font-bold">
+                <button id="tab-btn-peer" class="flex-1 py-2 rounded-xl transition bg-indigo-600 text-white shadow">Peer対戦</button>
+                <button id="tab-btn-char" class="flex-1 py-2 rounded-xl transition text-slate-400 hover:text-white">キャラ</button>
+                <button id="tab-btn-level" class="flex-1 py-2 rounded-xl transition text-slate-400 hover:text-white">ステージ(40)</button>
+                <button id="tab-btn-special" class="flex-1 py-2 rounded-xl transition text-slate-400 hover:text-white">特別モード</button>
+            </div>
+
+            <!-- Scrollable Content -->
+            <div id="modal-body" class="flex-1 overflow-y-auto custom-scrollbar pr-1 space-y-5">
+                
+                <!-- Tab: PeerJS Online Match Lobby -->
+                <div id="tab-content-peer" class="space-y-4">
+                    <div class="glass-card p-4 rounded-2xl border border-indigo-500/40 bg-indigo-950/30">
+                        <h3 class="text-base font-bold text-indigo-300 mb-1 flex items-center gap-2">
+                            <i class="fa-solid fa-users-rays text-amber-400"></i> PeerJS 最大10人リアルタイムマッチ
+                        </h3>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            同じルームIDに入った全員が**全く同じステージ**でリアルタイムに対戦！他プレイヤーのボールが画面内をダイナミックに駆け抜けます。
+                        </p>
+                    </div>
+
+                    <!-- Peer Status & Player Name Setting -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div class="space-y-1">
+                            <label class="block text-xs font-bold text-slate-400">プレイヤー名</label>
+                            <input id="input-player-name" type="text" value="PlayerBall" maxlength="12" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-white focus:outline-none focus:border-amber-500">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="block text-xs font-bold text-slate-400">自分のPeer ID status</label>
+                            <div id="peer-my-id" class="w-full bg-slate-900/80 border border-slate-800 rounded-xl px-3 py-2 text-xs font-mono text-amber-400 truncate">
+                                接続中...
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Room Actions -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                        <!-- Host Room -->
+                        <div class="glass-card p-4 rounded-2xl border border-slate-700 space-y-3">
+                            <h4 class="text-xs font-black text-amber-400 uppercase tracking-wider">ルームを作成（ホスト）</h4>
+                            <button id="btn-create-room" class="w-full py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white font-bold rounded-xl text-xs transition shadow-lg flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-plus-circle"></i> 新規ルーム作成 (10人枠)
+                            </button>
+                            <div id="room-code-display" class="hidden text-center bg-slate-900 p-2.5 rounded-xl border border-indigo-500/40">
+                                <span class="text-[10px] text-slate-400 font-bold block">ROOM CODE (友達に共有):</span>
+                                <span id="text-room-code" class="text-lg font-mono font-black text-amber-400 tracking-wider">------</span>
+                            </div>
+                        </div>
+
+                        <!-- Join Room -->
+                        <div class="glass-card p-4 rounded-2xl border border-slate-700 space-y-3">
+                            <h4 class="text-xs font-black text-amber-400 uppercase tracking-wider">ルームに参加（ゲスト）</h4>
+                            <input id="input-room-code" type="text" placeholder="6桁のルームコードを入力" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-indigo-500 uppercase">
+                            <button id="btn-join-room" class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold rounded-xl text-xs transition flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-right-to-bracket"></i> ルームに参加
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Joined Players List -->
+                    <div class="space-y-2">
+                        <div class="flex justify-between items-center">
+                            <h4 class="text-xs font-bold text-slate-400 uppercase">参加中プレイヤーリスト (<span id="room-player-count">1</span>/10)</h4>
+                            <button id="btn-leave-room" class="hidden text-[10px] font-bold text-rose-400 hover:underline">ルーム退出</button>
+                        </div>
+                        <div id="peer-player-list" class="space-y-1.5 max-h-36 overflow-y-auto custom-scrollbar">
+                            <!-- Dynamic Connected Player List -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: Character Selector -->
+                <div id="tab-content-char" class="hidden space-y-4">
+                    <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Polandball キャラクター選択</h2>
+                    <div id="country-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-2.5"></div>
+                    <div class="glass-card p-4 rounded-2xl border border-slate-700/50 flex flex-col items-center">
+                        <span class="text-xs font-bold text-slate-400 mb-2">選択中のボール表情</span>
+                        <div class="flex items-center gap-4 my-1">
+                            <canvas id="preview-canvas" width="80" height="80" class="rounded-full shadow-lg bg-slate-800"></canvas>
+                            <div id="expression-selector" class="grid grid-cols-3 gap-1.5"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: 40 Distinct Stage Selector -->
+                <div id="tab-content-level" class="hidden space-y-4">
+                    <div id="world-tabs" class="flex gap-1.5 overflow-x-auto pb-1 text-xs font-bold custom-scrollbar">
+                        <button data-world="1" class="world-tab-btn px-3 py-1.5 rounded-xl bg-amber-500 text-slate-950 transition">WORLD 1 (1-10)</button>
+                        <button data-world="2" class="world-tab-btn px-3 py-1.5 rounded-xl bg-slate-800 text-slate-300 transition">WORLD 2 (11-20)</button>
+                        <button data-world="3" class="world-tab-btn px-3 py-1.5 rounded-xl bg-slate-800 text-slate-300 transition">WORLD 3 (21-30)</button>
+                        <button data-world="4" class="world-tab-btn px-3 py-1.5 rounded-xl bg-slate-800 text-slate-300 transition">WORLD 4 (31-40)</button>
+                    </div>
+                    <div id="level-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-2.5"></div>
+                </div>
+
+                <!-- Tab: Special Modes (Mario Long World & AI World) -->
+                <div id="tab-content-special" class="hidden space-y-4">
+                    <!-- Mario Long World -->
+                    <div class="glass-card p-4 rounded-2xl border border-rose-500/40 bg-rose-950/20 flex justify-between items-center">
+                        <div>
+                            <span class="text-xs font-bold text-rose-400 uppercase tracking-wide">超ロング長距離コース</span>
+                            <h3 class="text-base font-black text-white mt-0.5">MARIO STYLE LONG WORLD</h3>
+                            <p class="text-[11px] text-slate-300 mt-1">全長12,000px以上のマリオ風大冒険コース！</p>
+                        </div>
+                        <button id="btn-start-long-world" class="px-4 py-2.5 bg-rose-600 hover:bg-rose-500 text-white text-xs font-black rounded-xl shadow-lg transition">
+                            プレイ
+                        </button>
+                    </div>
+
+                    <!-- AI Procedural World -->
+                    <div class="glass-card p-4 rounded-2xl border border-emerald-500/40 bg-emerald-950/20 flex justify-between items-center">
+                        <div>
+                            <span class="text-xs font-bold text-emerald-400 uppercase tracking-wide">JS プロシージャル生成</span>
+                            <h3 class="text-base font-black text-white mt-0.5">AI AUTO WORLD</h3>
+                            <p class="text-[11px] text-slate-300 mt-1">ボタンを押す度に完全ランダムで新しいステージを自動生成！</p>
+                        </div>
+                        <button id="btn-start-ai-world" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black rounded-xl shadow-lg transition">
+                            新ステージ生成
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Start Game Button -->
+            <div class="mt-4 pt-3 border-t border-slate-800 flex gap-3">
+                <button id="btn-start-game" class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 text-slate-950 font-black text-base shadow-xl transition active:scale-98">
+                    ゲームスタート !
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Level Clear Result Modal -->
+    <div id="clear-modal" class="hidden absolute inset-0 z-30 glass-card bg-slate-950/85 flex items-center justify-center p-4">
+        <div class="max-w-md w-full glass-card rounded-3xl p-6 border border-amber-500/30 text-center shadow-2xl animate-scaleIn">
+            <div class="w-16 h-16 mx-auto mb-3 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center text-3xl">
+                <i class="fa-solid fa-trophy"></i>
+            </div>
+            <h2 class="text-2xl font-black text-white mb-1">STAGE CLEAR!</h2>
+            <p id="clear-level-title" class="text-xs font-bold text-amber-400 mb-5">STAGE 1</p>
+
+            <div class="bg-slate-900/80 rounded-2xl p-4 border border-slate-800 space-y-2 mb-5">
+                <div class="flex justify-between items-center text-xs">
+                    <span class="text-slate-400">クリアタイム</span>
+                    <span id="clear-time" class="text-xl font-mono font-bold text-sky-400">00:00.00</span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2.5">
+                <button id="btn-next-level" class="col-span-2 py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-sm transition">
+                    次のステージへ <i class="fa-solid fa-arrow-right ml-1"></i>
+                </button>
+                <button id="btn-clear-retry" class="py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl text-xs border border-slate-700 transition">
+                    リトライ
+                </button>
+                <button id="btn-clear-menu" class="py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl text-xs border border-slate-700 transition">
+                    メニュー
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="hidden absolute top-20 left-1/2 -translate-x-1/2 z-50 glass-card bg-slate-900/95 border border-amber-500/50 text-amber-300 text-xs font-bold px-4 py-2 rounded-full shadow-2xl transition-all">
+        <span id="toast-message">Message</span>
+    </div>
+
+    <script>
+        /* ==========================================================================
+           1. CONSTANTS & DEFINITIONS
+           ========================================================================== */
+        const BASE_IMAGE_URL = 'https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/';
+
+        const COUNTRIES = [
+            { id: 'germany', name: 'ドイツ' },
+            { id: 'japan', name: '日本' },
+            { id: 'china', name: '中国' },
+            { id: 'italy', name: 'イタリア' },
+            { id: 'sierraleone', name: 'シエラレオネ' },
+            { id: 'russia', name: 'ロシア' },
+            { id: 'france', name: 'フランス' },
+            { id: 'poland', name: 'ポーランド' },
+            { id: 'england472x600', name: 'イギリス' },
+            { id: 'usa', name: 'アメリカ' },
+            { id: 'korea', name: '韓国' },
+            { id: 'austria', name: 'オーストリア' }
+        ];
+
+        const EXPRESSIONS = [
+            'normal', 'happy', 'anger', 'dissatisfaction',
+            'itome', 'lol', 'plot', 'smile', 'surprise'
+        ];
+
+        /* ==========================================================================
+           2. ASSET MANAGER
+           ========================================================================== */
+        class AssetManager {
+            constructor() {
+                this.textures = {};
+            }
+
+            async loadAllAssets() {
+                const loadPromises = [];
+
+                COUNTRIES.forEach(country => {
+                    EXPRESSIONS.forEach(expr => {
+                        const key = `${country.id}_${expr}`;
+                        const url = `${BASE_IMAGE_URL}${country.id}/${expr}.png`;
+
+                        const p = new Promise((resolve) => {
+                            const img = new Image();
+                            img.crossOrigin = 'Anonymous';
+                            img.src = url;
+
+                            img.onload = () => {
+                                if (country.id === 'england472x600') {
+                                    const cropCanvas = document.createElement('canvas');
+                                    cropCanvas.width = 472;
+                                    cropCanvas.height = 472;
+                                    const ctx = cropCanvas.getContext('2d');
+                                    ctx.drawImage(img, 0, 0, 472, 472, 0, 0, 472, 472);
+                                    this.textures[key] = cropCanvas;
+                                } else {
+                                    this.textures[key] = img;
+                                }
+                                resolve();
+                            };
+
+                            img.onerror = () => {
+                                const fallbackCanvas = document.createElement('canvas');
+                                fallbackCanvas.width = 120;
+                                fallbackCanvas.height = 120;
+                                const ctx = fallbackCanvas.getContext('2d');
+                                ctx.fillStyle = '#f43f5e';
+                                ctx.beginPath();
+                                ctx.arc(60, 60, 55, 0, Math.PI * 2);
+                                ctx.fill();
+                                ctx.fillStyle = '#ffffff';
+                                ctx.font = 'bold 16px sans-serif';
+                                ctx.textAlign = 'center';
+                                ctx.textBaseline = 'middle';
+                                ctx.fillText(country.name, 60, 60);
+                                this.textures[key] = fallbackCanvas;
+                                resolve();
+                            };
+                        });
+                        loadPromises.push(p);
+                    });
+                });
+
+                await Promise.all(loadPromises);
+            }
+
+            getTexture(countryId, expression = 'normal') {
+                return this.textures[`${countryId}_${expression}`] || this.textures[`${countryId}_normal`];
+            }
+        }
+
+        const assetManager = new AssetManager();
+
+        /* ==========================================================================
+           3. PEERJS MULTIPLAYER ENGINE (UP TO 10 PLAYERS)
+           ========================================================================== */
+        class PeerMultiplayer {
+            constructor(gameInstance) {
+                this.game = gameInstance;
+                this.peer = null;
+                this.myId = null;
+                this.roomCode = null;
+                this.isHost = false;
+                this.connections = {}; // { peerId: DataConnection }
+                this.remotePlayers = {}; // { peerId: { x, y, angle, country, expr, name } }
+                this.playerName = 'PlayerBall';
+            }
+
+            init() {
+                this.peer = new Peer();
+
+                this.peer.on('open', (id) => {
+                    this.myId = id;
+                    document.getElementById('peer-my-id').innerText = id;
+                    this.updatePlayerListUI();
+                });
+
+                this.peer.on('connection', (conn) => {
+                    if (this.isHost) {
+                        if (Object.keys(this.connections).length >= 9) {
+                            conn.send({ type: 'error', message: 'Room full (max 10)' });
+                            conn.close();
+                            return;
+                        }
+                        this.handleHostNewConnection(conn);
+                    }
+                });
+
+                this.peer.on('error', (err) => {
+                    showToast('Peerエラー: ' + err.type);
+                });
+            }
+
+            createRoom() {
+                this.roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+                this.isHost = true;
+                
+                document.getElementById('room-code-display').classList.remove('hidden');
+                document.getElementById('text-room-code').innerText = this.roomCode;
+                document.getElementById('btn-leave-room').classList.remove('hidden');
+                
+                showToast(`ルーム作成完了: CODE [${this.roomCode}]`);
+                this.updatePlayerListUI();
+            }
+
+            joinRoom(targetRoomCode) {
+                if (!targetRoomCode) return;
+                const cleanCode = targetRoomCode.trim().toUpperCase();
+                
+                const hostPeerId = `pbhook-room-${cleanCode}`;
+                const conn = this.peer.connect(hostPeerId);
+                
+                conn.on('open', () => {
+                    this.roomCode = cleanCode;
+                    this.isHost = false;
+                    this.connections['host'] = conn;
+                    
+                    conn.send({
+                        type: 'join',
+                        name: this.playerName,
+                        country: this.game.selectedCountry.id
+                    });
+
+                    document.getElementById('btn-leave-room').classList.remove('hidden');
+                    showToast('ルームに参加しました！');
+                });
+
+                conn.on('data', (data) => this.handleClientData(data));
+                conn.on('close', () => {
+                    showToast('ホストから切断されました');
+                    this.leaveRoom();
+                });
+            }
+
+            handleHostNewConnection(conn) {
+                conn.on('open', () => {
+                    conn.on('data', (data) => {
+                        if (data.type === 'join') {
+                            this.connections[conn.peer] = conn;
+                            this.remotePlayers[conn.peer] = {
+                                name: data.name || 'Guest',
+                                country: data.country || 'poland',
+                                x: 100, y: 300, angle: 0, expr: 'normal'
+                            };
+
+                            conn.send({
+                                type: 'sync_stage',
+                                levelId: this.game.currentLevel.id,
+                                isSpecialMode: this.game.currentLevel.isSpecial || false
+                            });
+
+                            this.broadcastPlayerList();
+                        } else if (data.type === 'state') {
+                            if (this.remotePlayers[conn.peer]) {
+                                Object.assign(this.remotePlayers[conn.peer], data.state);
+                            }
+                            this.broadcastStateExcept(conn.peer, conn.peer, data.state);
+                        }
+                    });
+                });
+
+                conn.on('close', () => {
+                    delete this.connections[conn.peer];
+                    delete this.remotePlayers[conn.peer];
+                    this.broadcastPlayerList();
+                });
+            }
+
+            handleClientData(data) {
+                if (data.type === 'sync_stage') {
+                    const targetLvl = LEVELS.find(l => l.id === data.levelId) || LEVELS[0];
+                    this.game.loadLevel(targetLvl);
+                    showToast(`ホストとステージ同期: ${targetLvl.name}`);
+                } else if (data.type === 'player_list') {
+                    this.remotePlayers = data.players;
+                    this.updatePlayerListUI();
+                } else if (data.type === 'remote_state') {
+                    if (data.peerId !== this.myId) {
+                        this.remotePlayers[data.peerId] = data.state;
+                    }
+                }
+            }
+
+            broadcastStateExcept(senderId, targetPeerId, state) {
+                Object.keys(this.connections).forEach(id => {
+                    if (id !== senderId) {
+                        this.connections[id].send({
+                            type: 'remote_state',
+                            peerId: targetPeerId,
+                            state: state
+                        });
+                    }
+                });
+            }
+
+            broadcastPlayerList() {
+                const list = { ...this.remotePlayers };
+                list[this.myId] = {
+                    name: this.playerName,
+                    country: this.game.selectedCountry.id,
+                    x: this.game.player ? this.game.player.position.x : 100,
+                    y: this.game.player ? this.game.player.position.y : 300
+                };
+
+                Object.values(this.connections).forEach(conn => {
+                    conn.send({ type: 'player_list', players: list });
+                });
+                this.updatePlayerListUI();
+            }
+
+            sendMyState() {
+                if (!this.game.player) return;
+                const state = {
+                    x: Math.round(this.game.player.position.x),
+                    y: Math.round(this.game.player.position.y),
+                    angle: Math.round(this.game.player.angle * 100) / 100,
+                    expr: this.game.currentExpression,
+                    name: this.playerName,
+                    country: this.game.selectedCountry.id
+                };
+
+                if (this.isHost) {
+                    this.broadcastStateExcept(null, this.myId, state);
+                } else if (this.connections['host']) {
+                    this.connections['host'].send({ type: 'state', state: state });
+                }
+            }
+
+            updatePlayerListUI() {
+                const container = document.getElementById('peer-player-list');
+                if (!container) return;
+                container.innerHTML = '';
+
+                const allPlayers = [
+                    { id: 'me', name: this.playerName + ' (自分)', country: this.game.selectedCountry.id, isMe: true },
+                    ...Object.entries(this.remotePlayers).map(([id, p]) => ({ id, name: p.name, country: p.country }))
+                ];
+
+                document.getElementById('room-player-count').innerText = allPlayers.length;
+                document.getElementById('ui-multi-count').innerText = `${allPlayers.length} / 10 Players`;
+                document.getElementById('ui-multi-badge').classList.toggle('hidden', allPlayers.length <= 1);
+
+                allPlayers.forEach(p => {
+                    const div = document.createElement('div');
+                    div.className = 'glass-card p-2 rounded-xl border border-slate-800 flex justify-between items-center text-xs';
+                    div.innerHTML = `
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full ${p.isMe ? 'bg-emerald-400' : 'bg-indigo-400'}"></span>
+                            <span class="font-bold text-white">${p.name}</span>
+                        </div>
+                        <span class="text-[10px] text-amber-400 font-bold uppercase">${p.country}</span>
+                    `;
+                    container.appendChild(div);
+                });
+            }
+
+            leaveRoom() {
+                Object.values(this.connections).forEach(c => c.close());
+                this.connections = {};
+                this.remotePlayers = {};
+                this.isHost = false;
+                this.roomCode = null;
+
+                document.getElementById('room-code-display').classList.add('hidden');
+                document.getElementById('btn-leave-room').classList.add('hidden');
+                document.getElementById('ui-multi-badge').classList.add('hidden');
+                this.updatePlayerListUI();
+                showToast('ルームを退出しました');
+            }
+        }
+
+        /* ==========================================================================
+           4. DYNAMIC 40 DISTINCT STAGES + MARIO LONG WORLD + AI WORLD
+           ========================================================================== */
+        function buildDistinct40Levels() {
+            const levelTitles = [
+                // World 1 (Basic & Swing Mastery)
+                "1. 始まりのフック", "2. バウンス・ステップ", "3. 二連ハイフック", "4. クラシック・ウォール", "5. ディープバウンサー",
+                "6. スカイラダー", "7. テンプルトンネル", "8. タイトブリッジ", "9. スピードウェイ", "10. W1 BOSS - 巨大渓谷超え",
+                // World 2 (Precision & Traps)
+                "11. S字スネークコース", "12. ピンポイントドロップ", "13. ライジングタワー", "14. クランクシャフト", "15. トリプルジャンパー",
+                "16. スカイハイウェイ", "17. ニードルトンネル", "18. ブースターキャニオン", "19. トラップフォール", "20. W2 BOSS - 連続スイング試練",
+                // World 3 (High Dynamic Acrobatics)
+                "21. ディープキャニオン", "22. 連動跳躍エリア", "23. アクロバットブリッジ", "24. スカイサーカス", "25. 自由落下キャッチ",
+                "26. メガロケットランチャー", "27. ラビリンスウォール", "28. スプリントダッシュ", "29. インフィニティスイング", "30. W3 BOSS - 空中決戦",
+                // World 4 (Extreme Skill & Master)
+                "31. アッパーディメンション", "32. 針の穴通し", "33. カオススイング", "34. 重力加速エリア", "35. 超絶ピンポイント",
+                "36. スカイキャッスル", "37. デスジャンプキャニオン", "38. アルティメットスプリント", "39. 神々の試練", "40. FINAL STAGE - PBHOOK MASTER"
+            ];
+
+            const levels = [];
+
+            for (let i = 1; i <= 40; i++) {
+                const world = Math.ceil(i / 10);
+                const stageLength = 1400 + i * 180;
+
+                const start = { x: 120, y: 320 };
+                const goal = { x: stageLength, y: 320 + (i % 2 === 0 ? -40 : 40) };
+
+                const hooks = [];
+                const bouncers = [];
+                const obstacles = [];
+                const floors = [
+                    { x: 120, y: 460, width: 300, height: 35 },
+                    { x: stageLength, y: goal.y + 140, width: 320, height: 35 }
+                ];
+
+                let currentX = 380;
+                let step = 0;
+
+                while (currentX < stageLength - 250) {
+                    step++;
+                    const hookY = 120 + Math.sin(step * 0.8 + i) * 80 - (i % 3 === 0 ? 30 : 0);
+                    hooks.push({ x: currentX, y: hookY });
+
+                    if ((i + step) % 3 === 0) {
+                        bouncers.push({
+                            x: currentX + 90,
+                            y: 530 - (step % 3) * 30,
+                            width: Math.max(90, 160 - i * 1.5),
+                            height: 25,
+                            bounce: Math.min(18, 12 + i * 0.15) // Bounce strength calibrated
+                        });
+                    }
+
+                    if (i >= 3 && step % 4 === 2) {
+                        obstacles.push({
+                            x: currentX + 180,
+                            y: 280 + Math.cos(step) * 40,
+                            width: 35 + (i % 4) * 8,
+                            height: Math.min(380, 200 + (i % 5) * 30)
+                        });
+                    }
+
+                    currentX += 280 + (Math.sin(step + i) * 50);
+                }
+
+                levels.push({
+                    id: i,
+                    world: world,
+                    name: levelTitles[i - 1],
+                    start: start,
+                    goal: goal,
+                    hooks: hooks,
+                    bouncers: bouncers,
+                    obstacles: obstacles,
+                    floors: floors
+                });
+            }
+
+            return levels;
+        }
+
+        // Mario Style Long World Generator
+        function buildMarioLongWorld() {
+            const length = 13500;
+            const start = { x: 150, y: 320 };
+            const goal = { x: length, y: 320 };
+
+            const hooks = [];
+            const bouncers = [];
+            const obstacles = [];
+            const floors = [
+                { x: 150, y: 460, width: 400, height: 40 },
+                { x: length, y: 460, width: 400, height: 40 }
+            ];
+
+            let x = 450;
+            let count = 0;
+
+            while (x < length - 400) {
+                count++;
+                hooks.push({ x: x, y: 130 + (count % 3) * 35 });
+
+                if (count % 2 === 0) {
+                    bouncers.push({
+                        x: x + 150,
+                        y: 520,
+                        width: 140,
+                        height: 30,
+                        bounce: 15
+                    });
+                }
+
+                if (count % 5 === 0) {
+                    obstacles.push({
+                        x: x + 250,
+                        y: 300,
+                        width: 45,
+                        height: 320
+                    });
+                }
+
+                x += 320;
+            }
+
+            return {
+                id: 999,
+                world: 5,
+                name: "⭐ MARIO STYLE LONG WORLD",
+                start: start,
+                goal: goal,
+                hooks: hooks,
+                bouncers: bouncers,
+                obstacles: obstacles,
+                floors: floors,
+                isSpecial: true
+            };
+        }
+
+        // JS AI Procedural Generator
+        function generateAIWorld() {
+            const seed = Date.now();
+            const length = 4000 + Math.floor(Math.random() * 3000);
+            const start = { x: 120, y: 320 };
+            const goal = { x: length, y: 300 };
+
+            const hooks = [];
+            const bouncers = [];
+            const obstacles = [];
+            const floors = [
+                { x: 120, y: 460, width: 300, height: 35 },
+                { x: length, y: 440, width: 300, height: 35 }
+            ];
+
+            let x = 400;
+            while (x < length - 300) {
+                const hookY = 100 + Math.floor(Math.random() * 160);
+                hooks.push({ x: x, y: hookY });
+
+                if (Math.random() > 0.4) {
+                    bouncers.push({
+                        x: x + 120 + Math.random() * 60,
+                        y: 500 + Math.random() * 40,
+                        width: 100 + Math.random() * 60,
+                        height: 25,
+                        bounce: 12 + Math.random() * 6
+                    });
+                }
+
+                if (Math.random() > 0.5) {
+                    obstacles.push({
+                        x: x + 200,
+                        y: 280,
+                        width: 30 + Math.random() * 20,
+                        height: 180 + Math.random() * 180
+                    });
+                }
+
+                x += 240 + Math.random() * 120;
+            }
+
+            return {
+                id: 888,
+                world: 6,
+                name: `🤖 AI WORLD (SEED: ${seed.toString().slice(-4)})`,
+                start: start,
+                goal: goal,
+                hooks: hooks,
+                bouncers: bouncers,
+                obstacles: obstacles,
+                floors: floors,
+                isSpecial: true
+            };
+        }
+
+        const LEVELS = buildDistinct40Levels();
+        const MARIO_LONG_WORLD = buildMarioLongWorld();
+
+        /* ==========================================================================
+           5. MAIN GAME ENGINE
+           ========================================================================== */
+        class PBGame {
+            constructor() {
+                this.canvas = document.getElementById('game-canvas');
+                this.ctx = this.canvas.getContext('2d');
+
+                this.Engine = Matter.Engine;
+                this.World = Matter.World;
+                this.Bodies = Matter.Bodies;
+                this.Constraint = Matter.Constraint;
+                this.Vector = Matter.Vector;
+                this.Body = Matter.Body;
+
+                this.engine = this.Engine.create({
+                    gravity: { x: 0, y: 1.2 }
+                });
+
+                this.player = null;
+                this.rope = null;
+                this.activeHook = null;
+                this.currentLevel = LEVELS[0];
+                this.selectedCountry = COUNTRIES[7]; // Poland
+                this.currentExpression = 'normal';
+
+                this.isHooking = false;
+                this.isPlaying = false;
+                this.isCleared = false;
+                this.startTime = 0;
+                this.elapsedTime = 0;
+                this.lastBounceTime = 0; // Cooldown for bouncers
+
+                this.camera = { x: 0, y: 0 };
+                this.peerMulti = new PeerMultiplayer(this);
+
+                this.resize();
+                this.bindPhysicsEvents();
+                this.bindEvents();
+            }
+
+            resize() {
+                this.width = window.innerWidth;
+                this.height = window.innerHeight;
+                this.canvas.width = this.width;
+                this.canvas.height = this.height;
+            }
+
+            bindPhysicsEvents() {
+                // Single Global Collision Listener for Bouncers
+                Matter.Events.on(this.engine, 'collisionStart', (event) => {
+                    const now = Date.now();
+                    if (now - this.lastBounceTime < 100) return; // Prevent double bounce in short window
+
+                    event.pairs.forEach(pair => {
+                        const { bodyA, bodyB } = pair;
+                        const bouncer = bodyA.label === 'bouncer' ? bodyA : (bodyB.label === 'bouncer' ? bodyB : null);
+                        if (bouncer && (bodyA === this.player || bodyB === this.player)) {
+                            this.lastBounceTime = now;
+
+                            // Calculate calibrated bounce velocity
+                            const force = bouncer.bounceForce || 15;
+                            const currentVel = this.player.velocity;
+
+                            // Cap max bounce speed to prevent catapulting into orbit
+                            const newVx = Math.min(Math.max(currentVel.x * 1.05 + 2, -12), 16);
+                            const newVy = -Math.min(force, 18);
+
+                            this.Body.setVelocity(this.player, { x: newVx, y: newVy });
+                            this.currentExpression = 'surprise';
+                        }
+                    });
+                });
+            }
+
+            bindEvents() {
+                window.addEventListener('resize', () => this.resize());
+
+                const startHook = () => {
+                    if (!this.isPlaying || this.isCleared) return;
+                    this.attachHook();
+                };
+
+                const endHook = () => {
+                    if (!this.isPlaying) return;
+                    this.detachHook();
+                };
+
+                window.addEventListener('mousedown', startHook);
+                window.addEventListener('mouseup', endHook);
+                window.addEventListener('touchstart', () => { startHook(); }, { passive: true });
+                window.addEventListener('touchend', endHook);
+
+                window.addEventListener('keydown', (e) => {
+                    if (e.code === 'Space' && !e.repeat) startHook();
+                    if (e.code === 'KeyR') this.restartLevel();
+                });
+                window.addEventListener('keyup', (e) => {
+                    if (e.code === 'Space') endHook();
+                });
+            }
+
+            restartLevel() {
+                if (this.currentLevel) {
+                    this.loadLevel(this.currentLevel);
+                }
+            }
+
+            loadLevel(level) {
+                this.currentLevel = level;
+                this.World.clear(this.engine.world);
+
+                // Player
+                const radius = 26;
+                this.player = this.Bodies.circle(level.start.x, level.start.y, radius, {
+                    density: 0.003,
+                    friction: 0.05,
+                    frictionAir: 0.002,
+                    restitution: 0.5,
+                    label: 'player'
+                });
+                this.World.add(this.engine.world, this.player);
+
+                // Floors
+                (level.floors || []).forEach(f => {
+                    const floor = this.Bodies.rectangle(f.x, f.y, f.width, f.height, {
+                        isStatic: true
+                    });
+                    this.World.add(this.engine.world, floor);
+                });
+
+                // Obstacles
+                (level.obstacles || []).forEach(o => {
+                    const obs = this.Bodies.rectangle(o.x, o.y, o.width, o.height, {
+                        isStatic: true
+                    });
+                    this.World.add(this.engine.world, obs);
+                });
+
+                // Bouncers
+                (level.bouncers || []).forEach(b => {
+                    const bouncer = this.Bodies.rectangle(b.x, b.y, b.width, b.height, {
+                        isStatic: true,
+                        label: 'bouncer',
+                        bounceForce: b.bounce || 15
+                    });
+                    this.World.add(this.engine.world, bouncer);
+                });
+
+                this.detachHook();
+                this.isCleared = false;
+                this.isPlaying = true;
+                this.startTime = Date.now();
+                this.elapsedTime = 0;
+
+                document.getElementById('ui-level-name').innerText = level.name;
+            }
+
+            findClosestHook() {
+                if (!this.currentLevel.hooks.length) return null;
+                const pos = this.player.position;
+
+                let closest = null;
+                let minDst = Infinity;
+
+                for (const hook of this.currentLevel.hooks) {
+                    const dx = hook.x - pos.x;
+                    const dy = hook.y - pos.y;
+                    const dst = Math.sqrt(dx * dx + dy * dy);
+
+                    if (dst < 650 && hook.x > pos.x - 150) {
+                        if (dst < minDst) {
+                            minDst = dst;
+                            closest = hook;
+                        }
+                    }
+                }
+                return closest;
+            }
+
+            attachHook() {
+                if (this.rope) return;
+                const targetHook = this.findClosestHook();
+                if (!targetHook) return;
+
+                this.activeHook = targetHook;
+                const pos = this.player.position;
+                const dist = Math.hypot(targetHook.x - pos.x, targetHook.y - pos.y);
+
+                this.rope = this.Constraint.create({
+                    bodyA: this.player,
+                    pointB: { x: targetHook.x, y: targetHook.y },
+                    length: dist * 0.85,
+                    stiffness: 0.9,
+                    damping: 0.02
+                });
+
+                this.World.add(this.engine.world, this.rope);
+                this.isHooking = true;
+                this.currentExpression = 'plot';
+
+                this.Body.applyForce(this.player, this.player.position, { x: 0.008, y: -0.005 });
+            }
+
+            detachHook() {
+                if (this.rope) {
+                    this.World.remove(this.engine.world, this.rope);
+                    this.rope = null;
+                    this.activeHook = null;
+                    this.isHooking = false;
+
+                    if (this.player) {
+                        const vel = this.player.velocity;
+                        // Controlled speed release
+                        this.Body.setVelocity(this.player, {
+                            x: Math.min(vel.x * 1.1, 20),
+                            y: Math.max(vel.y * 1.05 - 1.2, -22)
+                        });
+                    }
+                }
+            }
+
+            updateExpressions() {
+                if (!this.player) return;
+                const vel = this.player.velocity;
+                const speed = Math.hypot(vel.x, vel.y);
+
+                if (this.isHooking) {
+                    this.currentExpression = speed > 18 ? 'anger' : 'plot';
+                } else if (speed > 22) {
+                    this.currentExpression = 'lol';
+                } else if (speed > 14) {
+                    this.currentExpression = 'happy';
+                } else if (vel.y > 10) {
+                    this.currentExpression = 'surprise';
+                } else if (speed < 2) {
+                    this.currentExpression = 'itome';
+                } else {
+                    this.currentExpression = 'normal';
+                }
+            }
+
+            update() {
+                if (!this.isPlaying || this.isCleared) return;
+
+                this.Engine.update(this.engine, 1000 / 60);
+
+                this.elapsedTime = (Date.now() - this.startTime) / 1000;
+                document.getElementById('ui-timer').innerText = this.formatTime(this.elapsedTime);
+
+                this.updateExpressions();
+
+                // Send PeerJS Position Updates
+                this.peerMulti.sendMyState();
+
+                // Camera Follow
+                const targetCamX = this.player.position.x - this.width * 0.35;
+                const targetCamY = this.player.position.y - this.height * 0.55;
+                this.camera.x += (targetCamX - this.camera.x) * 0.1;
+                this.camera.y += (targetCamY - this.camera.y) * 0.1;
+
+                // Goal check
+                const goal = this.currentLevel.goal;
+                const pPos = this.player.position;
+                if (Math.hypot(goal.x - pPos.x, goal.y - pPos.y) < 70) {
+                    this.handleLevelClear();
+                }
+
+                // Fall restart
+                if (pPos.y > 1200 || pPos.x < -400) {
+                    this.restartLevel();
+                }
+            }
+
+            handleLevelClear() {
+                this.isCleared = true;
+                this.isPlaying = false;
+                this.detachHook();
+
+                confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
+
+                document.getElementById('clear-level-title').innerText = this.currentLevel.name;
+                document.getElementById('clear-time').innerText = this.formatTime(this.elapsedTime);
+                document.getElementById('clear-modal').classList.remove('hidden');
+            }
+
+            formatTime(seconds) {
+                const mins = Math.floor(seconds / 60);
+                const secs = Math.floor(seconds % 60);
+                const ms = Math.floor((seconds % 1) * 100);
+                return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}.${String(ms).padStart(2, '0')}`;
+            }
+
+            render() {
+                this.ctx.clearRect(0, 0, this.width, this.height);
+
+                this.ctx.save();
+                this.ctx.translate(-this.camera.x, -this.camera.y);
+
+                this.renderBackground();
+
+                if (this.currentLevel) {
+                    // Floors
+                    (this.currentLevel.floors || []).forEach(f => {
+                        this.ctx.fillStyle = '#1e293b';
+                        this.ctx.strokeStyle = '#475569';
+                        this.ctx.lineWidth = 3;
+                        this.ctx.beginPath();
+                        this.ctx.roundRect(f.x - f.width / 2, f.y - f.height / 2, f.width, f.height, 12);
+                        this.ctx.fill();
+                        this.ctx.stroke();
+                    });
+
+                    // Obstacles
+                    (this.currentLevel.obstacles || []).forEach(o => {
+                        this.ctx.fillStyle = '#334155';
+                        this.ctx.strokeStyle = '#64748b';
+                        this.ctx.lineWidth = 2;
+                        this.ctx.beginPath();
+                        this.ctx.roundRect(o.x - o.width / 2, o.y - o.height / 2, o.width, o.height, 8);
+                        this.ctx.fill();
+                        this.ctx.stroke();
+                    });
+
+                    // Bouncers
+                    (this.currentLevel.bouncers || []).forEach(b => {
+                        this.ctx.fillStyle = '#f59e0b';
+                        this.ctx.shadowColor = '#f59e0b';
+                        this.ctx.shadowBlur = 15;
+                        this.ctx.beginPath();
+                        this.ctx.roundRect(b.x - b.width / 2, b.y - b.height / 2, b.width, b.height, 10);
+                        this.ctx.fill();
+                        this.ctx.shadowBlur = 0;
+                    });
+
+                    // Goal Zone
+                    const goal = this.currentLevel.goal;
+                    const pulse = Math.sin(Date.now() * 0.005) * 8;
+                    this.ctx.fillStyle = 'rgba(16, 185, 129, 0.2)';
+                    this.ctx.strokeStyle = '#10b981';
+                    this.ctx.lineWidth = 4;
+                    this.ctx.beginPath();
+                    this.ctx.arc(goal.x, goal.y, 45 + pulse, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    this.ctx.stroke();
+
+                    this.ctx.fillStyle = '#10b981';
+                    this.ctx.font = '900 24px "Font Awesome 6 Free"';
+                    this.ctx.textAlign = 'center';
+                    this.ctx.textBaseline = 'middle';
+                    this.ctx.fillText('\uf024', goal.x, goal.y);
+
+                    // Hooks
+                    const closestHook = this.findClosestHook();
+                    this.currentLevel.hooks.forEach(h => {
+                        const isTarget = closestHook && closestHook.x === h.x && closestHook.y === h.y;
+
+                        if (isTarget && !this.isHooking) {
+                            this.ctx.strokeStyle = 'rgba(245, 158, 11, 0.8)';
+                            this.ctx.lineWidth = 3;
+                            this.ctx.beginPath();
+                            this.ctx.arc(h.x, h.y, 22, 0, Math.PI * 2);
+                            this.ctx.stroke();
+                        }
+
+                        this.ctx.fillStyle = isTarget ? '#f59e0b' : '#64748b';
+                        this.ctx.beginPath();
+                        this.ctx.arc(h.x, h.y, 9, 0, Math.PI * 2);
+                        this.ctx.fill();
+                        this.ctx.lineWidth = 2;
+                        this.ctx.strokeStyle = '#ffffff';
+                        this.ctx.stroke();
+                    });
+
+                    // Rope
+                    if (this.isHooking && this.activeHook && this.player) {
+                        const p = this.player.position;
+                        this.ctx.strokeStyle = '#f59e0b';
+                        this.ctx.lineWidth = 4;
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(this.activeHook.x, this.activeHook.y);
+                        this.ctx.lineTo(p.x, p.y);
+                        this.ctx.stroke();
+                    }
+
+                    // Render PeerJS Remote Players
+                    Object.entries(this.peerMulti.remotePlayers).forEach(([id, p]) => {
+                        if (p.x && p.y) {
+                            this.ctx.save();
+                            this.ctx.translate(p.x, p.y);
+                            this.ctx.rotate(p.angle || 0);
+
+                            const rTex = assetManager.getTexture(p.country || 'germany', p.expr || 'normal');
+                            if (rTex) {
+                                this.ctx.drawImage(rTex, -26, -26, 52, 52);
+                            }
+
+                            this.ctx.rotate(-(p.angle || 0));
+                            this.ctx.fillStyle = '#6366f1';
+                            this.ctx.strokeStyle = '#ffffff';
+                            this.ctx.lineWidth = 2;
+                            this.ctx.font = 'bold 11px Outfit, sans-serif';
+                            this.ctx.textAlign = 'center';
+                            this.ctx.fillText(p.name || 'Player', 0, -34);
+                            this.ctx.restore();
+                        }
+                    });
+
+                    // Player Polandball
+                    if (this.player) {
+                        const p = this.player.position;
+                        this.ctx.save();
+                        this.ctx.translate(p.x, p.y);
+                        this.ctx.rotate(this.player.angle);
+
+                        const tex = assetManager.getTexture(this.selectedCountry.id, this.currentExpression);
+                        if (tex) {
+                            this.ctx.drawImage(tex, -26, -26, 52, 52);
+                        }
+
+                        this.ctx.rotate(-this.player.angle);
+                        this.ctx.fillStyle = '#f59e0b';
+                        this.ctx.font = 'bold 12px Outfit, sans-serif';
+                        this.ctx.textAlign = 'center';
+                        this.ctx.fillText(this.peerMulti.playerName, 0, -34);
+
+                        this.ctx.restore();
+                    }
+                }
+
+                this.ctx.restore();
+            }
+
+            renderBackground() {
+                this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+                this.ctx.lineWidth = 1;
+                const gridSize = 100;
+
+                const startX = Math.floor(this.camera.x / gridSize) * gridSize;
+                const endX = startX + this.width + gridSize;
+                const startY = Math.floor(this.camera.y / gridSize) * gridSize;
+                const endY = startY + this.height + gridSize;
+
+                for (let x = startX; x < endX; x += gridSize) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(x, startY);
+                    this.ctx.lineTo(x, endY);
+                    this.ctx.stroke();
+                }
+                for (let y = startY; y < endY; y += gridSize) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(startX, y);
+                    this.ctx.lineTo(endX, y);
+                    this.ctx.stroke();
+                }
+            }
+        }
+
+        /* ==========================================================================
+           6. GLOBAL UI & EVENT HANDLERS
+           ========================================================================== */
+        let game = null;
+        let currentSelectedWorld = 1;
+
+        function initTitleBackground() {
+            const canvas = document.getElementById('title-bg-canvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+
+            function resizeCanvas() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+
+            let time = 0;
+
+            function drawCityscape() {
+                time += 0.008;
+                const w = canvas.width;
+                const h = canvas.height;
+
+                ctx.clearRect(0, 0, w, h);
+
+                const skyGrad = ctx.createLinearGradient(0, 0, 0, h);
+                skyGrad.addColorStop(0, '#020617');
+                skyGrad.addColorStop(0.5, '#0f172a');
+                skyGrad.addColorStop(1, '#311042');
+                ctx.fillStyle = skyGrad;
+                ctx.fillRect(0, 0, w, h);
+
+                const groundY = h * 0.82;
+                ctx.fillStyle = '#0f172a';
+                ctx.fillRect(0, groundY, w, h - groundY);
+
+                requestAnimationFrame(drawCityscape);
+            }
+
+            drawCityscape();
+        }
+
+        function bindTitleEvents() {
+            const titleScreen = document.getElementById('title-screen');
+            const menuModal = document.getElementById('menu-modal');
+
+            function hideTitleScreen() {
+                titleScreen.classList.add('hidden');
+            }
+
+            function showTitleScreen() {
+                titleScreen.classList.remove('hidden');
+                menuModal.classList.add('hidden');
+            }
+
+            document.getElementById('btn-title-quick-play').onclick = () => {
+                hideTitleScreen();
+                if (game) game.loadLevel(LEVELS[0]);
+            };
+
+            document.getElementById('btn-title-peer-multi').onclick = () => {
+                hideTitleScreen();
+                menuModal.classList.remove('hidden');
+                document.getElementById('btn-close-menu').classList.remove('hidden');
+                switchTab('peer');
+            };
+
+            document.getElementById('btn-title-long-world').onclick = () => {
+                hideTitleScreen();
+                game.loadLevel(MARIO_LONG_WORLD);
+                showToast('ロングマリオワールドスタート！');
+            };
+
+            document.getElementById('btn-title-ai-world').onclick = () => {
+                hideTitleScreen();
+                const aiLvl = generateAIWorld();
+                game.loadLevel(aiLvl);
+                showToast('AI World 自動生成完了！');
+            };
+
+            document.getElementById('btn-title-stage-select').onclick = () => {
+                hideTitleScreen();
+                menuModal.classList.remove('hidden');
+                document.getElementById('btn-close-menu').classList.remove('hidden');
+                switchTab('level');
+            };
+
+            document.getElementById('btn-title-char-select').onclick = () => {
+                hideTitleScreen();
+                menuModal.classList.remove('hidden');
+                document.getElementById('btn-close-menu').classList.remove('hidden');
+                switchTab('char');
+            };
+
+            document.getElementById('btn-return-title').onclick = () => showTitleScreen();
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-message').innerText = message;
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 3000);
+        }
+
+        function initUI() {
+            // Country Grid
+            const countryGrid = document.getElementById('country-grid');
+            countryGrid.innerHTML = '';
+
+            COUNTRIES.forEach(country => {
+                const btn = document.createElement('button');
+                btn.className = `p-2.5 rounded-2xl glass-card border flex flex-col items-center gap-1.5 transition hover:scale-105 active:scale-95 ${game.selectedCountry.id === country.id ? 'border-amber-500 bg-amber-500/10' : 'border-slate-800'}`;
+                
+                const miniCanvas = document.createElement('canvas');
+                miniCanvas.width = 44;
+                miniCanvas.height = 44;
+                const ctx = miniCanvas.getContext('2d');
+                const tex = assetManager.getTexture(country.id, 'normal');
+                if (tex) ctx.drawImage(tex, 0, 0, 44, 44);
+
+                btn.appendChild(miniCanvas);
+                const label = document.createElement('span');
+                label.className = 'text-[11px] font-bold text-slate-200';
+                label.innerText = country.name;
+                btn.appendChild(label);
+
+                btn.onclick = () => {
+                    game.selectedCountry = country;
+                    initUI();
+                    updatePreviewCanvas('normal');
+                };
+                countryGrid.appendChild(btn);
+            });
+
+            // Expression Selector
+            const exprSelector = document.getElementById('expression-selector');
+            exprSelector.innerHTML = '';
+            EXPRESSIONS.forEach(expr => {
+                const btn = document.createElement('button');
+                btn.className = 'px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded-lg text-[10px] font-bold text-slate-300 border border-slate-700';
+                btn.innerText = expr;
+                btn.onclick = () => updatePreviewCanvas(expr);
+                exprSelector.appendChild(btn);
+            });
+
+            // World Tabs
+            const worldTabBtns = document.querySelectorAll('.world-tab-btn');
+            worldTabBtns.forEach(btn => {
+                btn.onclick = (e) => {
+                    currentSelectedWorld = parseInt(e.target.getAttribute('data-world'));
+                    worldTabBtns.forEach(b => {
+                        if (parseInt(b.getAttribute('data-world')) === currentSelectedWorld) {
+                            b.className = 'world-tab-btn px-3 py-1.5 rounded-xl bg-amber-500 text-slate-950 font-bold transition';
+                        } else {
+                            b.className = 'world-tab-btn px-3 py-1.5 rounded-xl bg-slate-800 text-slate-300 transition';
+                        }
+                    });
+                    renderLevelGrid();
+                };
+            });
+
+            renderLevelGrid();
+            updatePreviewCanvas('normal');
+        }
+
+        function renderLevelGrid() {
+            const levelGrid = document.getElementById('level-grid');
+            levelGrid.innerHTML = '';
+
+            const worldLevels = LEVELS.filter(lvl => lvl.world === currentSelectedWorld);
+
+            worldLevels.forEach(lvl => {
+                const btn = document.createElement('button');
+                const isBoss = lvl.id % 10 === 0;
+                btn.className = `p-3 rounded-2xl glass-card border ${isBoss ? 'border-rose-500/50 bg-rose-950/20' : 'border-slate-800'} hover:border-amber-500 text-left transition active:scale-95 flex flex-col justify-between`;
+                btn.innerHTML = `
+                    <div>
+                        <div class="text-[10px] font-bold ${isBoss ? 'text-rose-400' : 'text-amber-400'}">STAGE ${lvl.id}</div>
+                        <div class="text-xs font-extrabold text-white mt-0.5 line-clamp-1">${lvl.name}</div>
+                    </div>
+                    <div class="text-[9px] font-bold text-slate-400 mt-2 flex items-center gap-1">
+                        <i class="fa-solid fa-flag-checkered"></i> プレイ
+                    </div>
+                `;
+                btn.onclick = () => {
+                    game.loadLevel(lvl);
+                    document.getElementById('menu-modal').classList.add('hidden');
+                    document.getElementById('btn-close-menu').classList.remove('hidden');
+                };
+                levelGrid.appendChild(btn);
+            });
+        }
+
+        function updatePreviewCanvas(expr) {
+            const canvas = document.getElementById('preview-canvas');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, 80, 80);
+            const tex = assetManager.getTexture(game.selectedCountry.id, expr);
+            if (tex) ctx.drawImage(tex, 0, 0, 80, 80);
+        }
+
+        function switchTab(tab) {
+            ['peer', 'char', 'level', 'special'].forEach(t => {
+                const btn = document.getElementById(`tab-btn-${t}`);
+                const content = document.getElementById(`tab-content-${t}`);
+                if (t === tab) {
+                    btn.className = 'flex-1 py-2 rounded-xl transition bg-indigo-600 text-white shadow font-bold';
+                    content.classList.remove('hidden');
+                } else {
+                    btn.className = 'flex-1 py-2 rounded-xl transition text-slate-400 hover:text-white font-bold';
+                    content.classList.add('hidden');
+                }
+            });
+        }
+
+        // PeerJS UI Handlers
+        document.getElementById('input-player-name').onchange = (e) => {
+            game.peerMulti.playerName = e.target.value.trim() || 'PlayerBall';
+            game.peerMulti.updatePlayerListUI();
+        };
+
+        document.getElementById('btn-create-room').onclick = () => {
+            game.peerMulti.createRoom();
+        };
+
+        document.getElementById('btn-join-room').onclick = () => {
+            const code = document.getElementById('input-room-code').value;
+            game.peerMulti.joinRoom(code);
+        };
+
+        document.getElementById('btn-leave-room').onclick = () => {
+            game.peerMulti.leaveRoom();
+        };
+
+        // Special Mode Buttons
+        document.getElementById('btn-start-long-world').onclick = () => {
+            game.loadLevel(MARIO_LONG_WORLD);
+            document.getElementById('menu-modal').classList.add('hidden');
+            document.getElementById('btn-close-menu').classList.remove('hidden');
+            showToast('超ロングマリオワールドスタート！');
+        };
+
+        document.getElementById('btn-start-ai-world').onclick = () => {
+            const aiLvl = generateAIWorld();
+            game.loadLevel(aiLvl);
+            document.getElementById('menu-modal').classList.add('hidden');
+            document.getElementById('btn-close-menu').classList.remove('hidden');
+            showToast('新しいAI Worldを生成しました！');
+        };
+
+        // Tab Navigation
+        document.getElementById('tab-btn-peer').onclick = () => switchTab('peer');
+        document.getElementById('tab-btn-char').onclick = () => switchTab('char');
+        document.getElementById('tab-btn-level').onclick = () => switchTab('level');
+        document.getElementById('tab-btn-special').onclick = () => switchTab('special');
+
+        // Modal Header Buttons
+        document.getElementById('btn-menu').onclick = () => document.getElementById('menu-modal').classList.remove('hidden');
+        document.getElementById('btn-close-menu').onclick = () => document.getElementById('menu-modal').classList.add('hidden');
+        document.getElementById('btn-restart').onclick = () => game.restartLevel();
+
+        document.getElementById('btn-start-game').onclick = () => {
+            document.getElementById('menu-modal').classList.add('hidden');
+            document.getElementById('btn-close-menu').classList.remove('hidden');
+            if (!game.isPlaying) game.loadLevel(game.currentLevel);
+        };
+
+        // Clear Modal Handlers
+        document.getElementById('btn-next-level').onclick = () => {
+            document.getElementById('clear-modal').classList.add('hidden');
+            const nextIdx = (LEVELS.findIndex(l => l.id === game.currentLevel.id) + 1) % LEVELS.length;
+            game.loadLevel(LEVELS[nextIdx]);
+        };
+        document.getElementById('btn-clear-retry').onclick = () => {
+            document.getElementById('clear-modal').classList.add('hidden');
+            game.restartLevel();
+        };
+        document.getElementById('btn-clear-menu').onclick = () => {
+            document.getElementById('clear-modal').classList.add('hidden');
+            document.getElementById('menu-modal').classList.remove('hidden');
+        };
+
+        // Main Animation Loop
+        function mainLoop() {
+            if (game) {
+                game.update();
+                game.render();
+            }
+            requestAnimationFrame(mainLoop);
+        }
+
+        // Window Onload Event
+        window.onload = async function() {
+            await assetManager.loadAllAssets();
+
+            game = new PBGame();
+            game.peerMulti.init();
+
+            initUI();
+            bindTitleEvents();
+            initTitleBackground();
+
+            game.loadLevel(LEVELS[0]);
+            mainLoop();
+        };
+    </script>
+</body>
+</html>
