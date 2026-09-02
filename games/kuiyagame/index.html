@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>クイヤの9嫌いパニック！ - 9を避けて1〜8を集めよう</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            font-family: 'M PLUS Rounded 1c', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+        body {
+            background: linear-gradient(135deg, #a8e063 0%, #56ab2f 100%);
+            overflow: hidden;
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+        }
+        .btn-bounce {
+            transition: transform 0.1s ease, box-shadow 0.1s ease;
+        }
+        .btn-bounce:active {
+            transform: scale(0.95);
+        }
+        canvas {
+            display: block;
+            border-radius: 1rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col items-center justify-center p-2 md:p-4 text-slate-800">
+
+    <div class="relative w-full max-w-4xl h-full max-h-[90vh] flex flex-col items-center justify-between">
+        
+        <!-- ヘッダー情報バー -->
+        <div class="w-full glass-panel rounded-2xl p-3 px-6 flex justify-between items-center shadow-lg z-10 mb-2">
+            <div class="flex items-center space-x-2">
+                <span class="text-2xl">🦫</span>
+                <h1 class="font-black text-xl md:text-2xl text-amber-800 tracking-wide">クイヤの9嫌いパニック！</h1>
+            </div>
+            <div class="flex items-center space-x-4 font-bold text-sm md:text-base">
+                <div class="bg-amber-100 text-amber-900 px-3 py-1 rounded-full border border-amber-300">
+                    SCORE: <span id="ui-score" class="text-lg font-extrabold text-amber-600">0</span>
+                </div>
+                <div class="bg-amber-100 text-amber-900 px-3 py-1 rounded-full border border-amber-300 hidden sm:block">
+                    BEST: <span id="ui-best" class="text-lg font-extrabold text-amber-600">0</span>
+                </div>
+                <button id="btn-sound" class="p-2 bg-amber-200 hover:bg-amber-300 rounded-full transition text-lg" title="音切替">
+                    🔊
+                </button>
+            </div>
+        </div>
+
+        <!-- ゲームキャンバス領域 -->
+        <div class="relative w-full flex-1 flex items-center justify-center overflow-hidden">
+            <canvas id="gameCanvas" class="w-full h-full object-contain bg-sky-200"></canvas>
+
+            <!-- スタート/タイトル画面オーバーレイ -->
+            <div id="screen-start" class="absolute inset-0 glass-panel rounded-2xl flex flex-col items-center justify-center p-6 text-center z-20">
+                <div class="w-28 h-28 mb-3 bg-amber-100 rounded-full flex items-center justify-center border-4 border-amber-400 shadow-inner">
+                    <span class="text-6xl animate-bounce">🦫</span>
+                </div>
+                <h2 class="text-3xl md:text-4xl font-black text-amber-900 mb-2">クイヤの9嫌いパニック！</h2>
+                <p class="text-slate-600 font-bold max-w-md text-sm md:text-base mb-4">
+                    ビーバーに似た謎の生き物「クイヤ」は<br>
+                    <span class="text-red-600 font-black text-lg">数字の「9」が大嫌い！</span><br>
+                    1〜8を集めて高得点を狙おう。9に触れると即ゲームオーバー！
+                </p>
+                <div class="bg-amber-50 p-3 rounded-xl border border-amber-200 mb-6 text-xs md:text-sm text-left max-w-xs space-y-1">
+                    <div class="flex items-center font-bold text-amber-800">
+                        <span class="text-lg mr-2">🟢</span> 1〜8の数字：触れると得点！
+                    </div>
+                    <div class="flex items-center font-bold text-red-600">
+                        <span class="text-lg mr-2">❌</span> 9の数字：触れるとアウト！（パワー中は粉砕！）
+                    </div>
+                    <div class="flex items-center font-bold text-amber-600">
+                        <span class="text-lg mr-2">🌰</span> どんぐり：一定時間「9」が「8」に変化！
+                    </div>
+                    <div class="flex items-center font-bold text-orange-600">
+                        <span class="text-lg mr-2">🏋️</span> HRower：睡眠30minが「9」を粉砕！
+                    </div>
+                </div>
+                <button id="btn-start" class="btn-bounce bg-amber-500 hover:bg-amber-600 text-white font-black text-xl px-10 py-4 rounded-full shadow-lg border-b-4 border-amber-700 cursor-pointer">
+                    ゲームスタート！
+                </button>
+                <p class="text-xs text-slate-400 mt-4">※ クイヤは実在しない架空の生き物です。千葉にいます。</p>
+            </div>
+
+            <!-- ゲームオーバー画面オーバーレイ -->
+            <div id="screen-gameover" class="absolute inset-0 glass-panel rounded-2xl flex flex-col items-center justify-center p-6 text-center z-20 hidden">
+                <div class="text-6xl mb-2 animate-pulse">💥🦫💢</div>
+                <h2 class="text-3xl md:text-4xl font-black text-red-600 mb-2">クイヤ「9は嫌いクイヤーー！！」</h2>
+                <p class="text-slate-600 font-bold mb-4">数字の「9」に触れてしまった！</p>
+                
+                <div class="bg-white/80 p-4 rounded-2xl border-2 border-amber-200 shadow-inner w-full max-w-xs mb-6">
+                    <div class="text-sm font-bold text-slate-500">FINAL SCORE</div>
+                    <div id="final-score" class="text-4xl font-black text-amber-600 my-1">0</div>
+                    <div class="text-xs font-bold text-amber-800 mt-2">
+                        ハイスコア: <span id="final-best">0</span>
+                    </div>
+                </div>
+
+                <div class="flex gap-4">
+                    <button id="btn-retry" class="btn-bounce bg-amber-500 hover:bg-amber-600 text-white font-black text-lg px-8 py-3 rounded-full shadow-lg border-b-4 border-amber-700 cursor-pointer">
+                        もう一度挑戦！
+                    </button>
+                    <button id="btn-share" class="btn-bounce bg-sky-500 hover:bg-sky-600 text-white font-black text-lg px-6 py-3 rounded-full shadow-lg border-b-4 border-sky-700 cursor-pointer">
+                        結果をシェア
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- タッチ操作コントロール（スマホ用） -->
+        <div class="w-full mt-2 flex justify-between items-center gap-2 md:hidden">
+            <button id="btn-left" class="btn-bounce flex-1 py-4 bg-amber-500 active:bg-amber-600 text-white font-black text-2xl rounded-xl shadow-md border-b-4 border-amber-700 select-none">
+                ◀ 左
+            </button>
+            <button id="btn-jump" class="btn-bounce flex-1 py-4 bg-emerald-500 active:bg-emerald-600 text-white font-black text-xl rounded-xl shadow-md border-b-4 border-emerald-700 select-none">
+                ジャンプ ⤴
+            </button>
+            <button id="btn-right" class="btn-bounce flex-1 py-4 bg-amber-500 active:bg-amber-600 text-white font-black text-2xl rounded-xl shadow-md border-b-4 border-amber-700 select-none">
+                右 ▶
+            </button>
+        </div>
+        <div class="hidden md:block text-xs font-bold text-white/90 my-1">
+            操作方法: 【← / A】左移動 | 【→ / D】右移動 | 【Space / ↑ / W】ジャンプ
+        </div>
+    </div>
+
+    <script>
+        /* WEB AUDIO API SE / SOUND SYNTHESIZER */
+        class SoundSystem {
+            constructor() {
+                this.ctx = null;
+                this.enabled = true;
+            }
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            }
+            playPowerUpSound() {
+                if (!this.enabled || !this.ctx) return;
+                const now = this.ctx.currentTime;
+                [300, 400, 500, 700, 900].forEach((f, i) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(f, now + i * 0.06);
+                    gain.gain.setValueAtTime(0.25, now + i * 0.06);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.06 + 0.12);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now + i * 0.06);
+                    osc.stop(now + i * 0.06 + 0.12);
+                });
+            }
+            playGetSound(val) {
+                if (!this.enabled || !this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                const freq = 400 + val * 60;
+                osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(freq * 1.5, this.ctx.currentTime + 0.1);
+                gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.1);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.1);
+            }
+            playFeverSound() {
+                if (!this.enabled || !this.ctx) return;
+                const now = this.ctx.currentTime;
+                [523, 659, 783, 1046].forEach((f, i) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.frequency.setValueAtTime(f, now + i * 0.08);
+                    gain.gain.setValueAtTime(0.2, now + i * 0.08);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.08 + 0.15);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now + i * 0.08);
+                    osc.stop(now + i * 0.08 + 0.15);
+                });
+            }
+            playGameOverSound() {
+                if (!this.enabled || !this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(300, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(80, this.ctx.currentTime + 0.5);
+                gain.gain.setValueAtTime(0.4, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.5);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.5);
+            }
+            playJumpSound() {
+                if (!this.enabled || !this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(250, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(600, this.ctx.currentTime + 0.12);
+                gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.12);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.12);
+            }
+        }
+
+        const audio = new SoundSystem();
+
+        /* GAME ENGINE & STATE */
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let gameState = 'START'; // 'START', 'PLAYING', 'GAMEOVER'
+        let score = 0;
+        let highScore = parseInt(localStorage.getItem('kuiya_highscore') || '0');
+        let feverTimer = 0;
+        let comboCount = 0;
+        let comboTimer = 0;
+
+        // 解像度自動補正
+        function resizeCanvas() {
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // キー入力の状態
+        const keys = { left: false, right: false, jump: false };
+
+        window.addEventListener('keydown', (e) => {
+            audio.init();
+            if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = true;
+            if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = true;
+            if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W' || e.key === ' ') {
+                if (!keys.jump && player.grounded) {
+                    player.vy = -player.jumpPower;
+                    audio.playJumpSound();
+                }
+                keys.jump = true;
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = false;
+            if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = false;
+            if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W' || e.key === ' ') keys.jump = false;
+        });
+
+        // タッチUI
+        const bindBtn = (id, keyName) => {
+            const el = document.getElementById(id);
+            const start = (e) => {
+                e.preventDefault();
+                audio.init();
+                if (keyName === 'jump') {
+                    if (player.grounded) {
+                        player.vy = -player.jumpPower;
+                        audio.playJumpSound();
+                    }
+                }
+                keys[keyName] = true;
+            };
+            const end = (e) => {
+                e.preventDefault();
+                keys[keyName] = false;
+            };
+            el.addEventListener('touchstart', start);
+            el.addEventListener('touchend', end);
+            el.addEventListener('mousedown', start);
+            el.addEventListener('mouseup', end);
+        };
+        bindBtn('btn-left', 'left');
+        bindBtn('btn-right', 'right');
+        bindBtn('btn-jump', 'jump');
+
+        /* クイヤ（プレイヤー）オブジェクト */
+        const player = {
+            x: 0,
+            y: 0,
+            width: 60,
+            height: 55,
+            vx: 0,
+            vy: 0,
+            speed: 7,
+            jumpPower: 14,
+            gravity: 0.65,
+            grounded: false,
+            facingRight: true,
+            walkFrame: 0,
+            nearNine: false,
+            powerTimer: 0,
+            reset() {
+                this.x = canvas.width / 2 - this.width / 2;
+                this.y = canvas.height - 100;
+                this.vx = 0;
+                this.vy = 0;
+                this.grounded = true;
+                this.powerTimer = 0;
+            },
+            update() {
+                // パワーアップ状態のタイマーとステータス変化
+                if (this.powerTimer > 0) {
+                    this.powerTimer--;
+                    this.speed = 10.5;
+                    this.jumpPower = 16.5;
+                } else {
+                    this.speed = 7;
+                    this.jumpPower = 14;
+                }
+
+                // 移動処理
+                if (keys.left) {
+                    this.vx = -this.speed;
+                    this.facingRight = false;
+                } else if (keys.right) {
+                    this.vx = this.speed;
+                    this.facingRight = true;
+                } else {
+                    this.vx *= 0.7;
+                }
+
+                this.x += this.vx;
+
+                // 画面端の壁
+                if (this.x < 10) this.x = 10;
+                if (this.x > canvas.width - this.width - 10) this.x = canvas.width - this.width - 10;
+
+                // 重力 & ジャンプ
+                this.vy += this.gravity;
+                this.y += this.vy;
+
+                const groundY = canvas.height - 80 - this.height;
+                if (this.y >= groundY) {
+                    this.y = groundY;
+                    this.vy = 0;
+                    this.grounded = true;
+                } else {
+                    this.grounded = false;
+                }
+
+                if (Math.abs(this.vx) > 0.5) {
+                    this.walkFrame += 0.2;
+                }
+            },
+            draw() {
+                ctx.save();
+                ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
+
+                if (!this.facingRight) {
+                    ctx.scale(-1, 1);
+                }
+
+                const bounce = Math.sin(this.walkFrame) * 4;
+
+                // 🏋️ パワーアップ（オーラ演出）
+                if (this.powerTimer > 0) {
+                    ctx.save();
+                    ctx.fillStyle = 'rgba(249, 115, 22, 0.35)';
+                    ctx.beginPath();
+                    ctx.arc(0, bounce, 38, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = '#f97316';
+                    ctx.lineWidth = 4;
+                    ctx.stroke();
+                    ctx.restore();
+                }
+
+                // 🦫 クイヤ（ビーバー絵文字メイン）
+                ctx.font = '54px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('🦫', 0, bounce);
+
+                // 状態表示アイコン
+                if (this.powerTimer > 0) {
+                    ctx.font = '26px sans-serif';
+                    ctx.fillText('🏋️', 20, -28 + bounce);
+                } else if (this.nearNine) {
+                    ctx.font = '22px sans-serif';
+                    ctx.fillText('💧', -20, -25 + bounce);
+                }
+
+                ctx.restore();
+            }
+        };
+
+        /* 落下アイテム（数字＆どんぐり＆HRower） */
+        let items = [];
+        let particles = [];
+        let spawnTimer = 0;
+
+        class Item {
+            constructor() {
+                this.radius = 22;
+                this.x = Math.random() * (canvas.width - this.radius * 4) + this.radius * 2;
+                this.y = -this.radius * 2;
+                this.speed = Math.random() * 2 + 2.5 + (score / 300);
+                
+                const rand = Math.random();
+                if (rand < 0.05) {
+                    this.type = 'ACORN';
+                    this.value = '⭐';
+                } else if (rand < 0.10) {
+                    this.type = 'HROWER';
+                    this.value = '🏋️';
+                } else if (rand < 0.32 && feverTimer <= 0) {
+                    this.type = 'NUMBER';
+                    this.value = 9;
+                } else {
+                    this.type = 'NUMBER';
+                    this.value = Math.floor(Math.random() * 8) + 1;
+                }
+                this.rotation = 0;
+                this.vRot = (Math.random() - 0.5) * 0.05;
+            }
+            update() {
+                if (feverTimer > 0 && this.value === 9) {
+                    this.value = 8;
+                }
+
+                this.y += this.speed;
+                this.rotation += this.vRot;
+            }
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.rotation);
+
+                if (this.type === 'ACORN') {
+                    ctx.fillStyle = '#fbbf24';
+                    ctx.beginPath();
+                    ctx.arc(0, 0, this.radius + 2, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.lineWidth = 3;
+                    ctx.strokeStyle = '#d97706';
+                    ctx.stroke();
+
+                    ctx.font = '24px "M PLUS Rounded 1c"';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('🌰', 0, 2);
+                } else if (this.type === 'HROWER') {
+                    // 🏋️ HRower（パワーアイテム）
+                    ctx.fillStyle = '#f97316';
+                    ctx.beginPath();
+                    ctx.arc(0, 0, this.radius + 2, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.lineWidth = 3;
+                    ctx.strokeStyle = '#c2410c';
+                    ctx.stroke();
+
+                    ctx.font = '24px "M PLUS Rounded 1c"';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('🏋️', 0, 2);
+                } else {
+                    const isNine = (this.value === 9);
+                    
+                    const grad = ctx.createRadialGradient(-5, -5, 2, 0, 0, this.radius);
+                    if (isNine) {
+                        grad.addColorStop(0, '#fca5a5');
+                        grad.addColorStop(1, '#dc2626');
+                    } else {
+                        grad.addColorStop(0, '#ffffff');
+                        grad.addColorStop(1, '#38bdf8');
+                    }
+
+                    ctx.fillStyle = grad;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.lineWidth = 3;
+                    ctx.strokeStyle = isNine ? '#991b1b' : '#0284c7';
+                    ctx.stroke();
+
+                    ctx.fillStyle = isNine ? '#ffffff' : '#0f172a';
+                    ctx.font = `900 ${isNine ? '26px' : '24px'} "M PLUS Rounded 1c"`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(this.value, 0, 2);
+
+                    if (isNine) {
+                        ctx.strokeStyle = 'rgba(239, 68, 68, 0.5)';
+                        ctx.lineWidth = 6;
+                        ctx.beginPath();
+                        ctx.arc(0, 0, this.radius + 4, 0, Math.PI * 2);
+                        ctx.stroke();
+                    }
+                }
+
+                ctx.restore();
+            }
+        }
+
+        /* 弾けるパーティクルエフェクト */
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.vx = (Math.random() - 0.5) * 8;
+                this.vy = (Math.random() - 0.5) * 8 - 2;
+                this.radius = Math.random() * 6 + 3;
+                this.color = color;
+                this.alpha = 1;
+            }
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.alpha -= 0.03;
+            }
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, this.alpha);
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        function createParticles(x, y, color, count = 12) {
+            for (let i = 0; i < count; i++) {
+                particles.push(new Particle(x, y, color));
+            }
+        }
+
+        /* 背景とステージ描画 */
+        function drawBackground() {
+            // 空と地面
+            const skyGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            if (feverTimer > 0) {
+                // フィーバー中は黄金の夕暮れ空
+                skyGrad.addColorStop(0, '#fef08a');
+                skyGrad.addColorStop(1, '#f97316');
+            } else {
+                skyGrad.addColorStop(0, '#bae6fd');
+                skyGrad.addColorStop(1, '#e0f2fe');
+            }
+            ctx.fillStyle = skyGrad;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 遠くの山・木々
+            ctx.fillStyle = '#86efac';
+            ctx.beginPath();
+            ctx.arc(canvas.width * 0.2, canvas.height - 40, 180, Math.PI, 0);
+            ctx.arc(canvas.width * 0.7, canvas.height - 40, 220, Math.PI, 0);
+            ctx.fill();
+
+            // 地面 (川辺の土と芝生)
+            ctx.fillStyle = '#4ade80';
+            ctx.fillRect(0, canvas.height - 80, canvas.width, 80);
+            ctx.fillStyle = '#15803d';
+            ctx.fillRect(0, canvas.height - 80, canvas.width, 8);
+
+            // 水辺の波・装飾
+            ctx.fillStyle = '#0284c7';
+            ctx.fillRect(0, canvas.height - 20, canvas.width, 20);
+        }
+
+        /* ゲームメインループ */
+        function gameLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawBackground();
+
+            if (gameState === 'PLAYING') {
+                // フィーバータイマーカウント
+                if (feverTimer > 0) {
+                    feverTimer--;
+                }
+
+                // アイテムのスポーン
+                spawnTimer++;
+                const spawnInterval = Math.max(25, 55 - Math.floor(score / 200));
+                if (spawnTimer >= spawnInterval) {
+                    items.push(new Item());
+                    spawnTimer = 0;
+                }
+
+                // プレイヤーの更新
+                player.update();
+
+                // 9がクイヤの近くにいるかチェック（恐怖顔にするため）
+                player.nearNine = false;
+
+                // アイテム処理
+                for (let i = items.length - 1; i >= 0; i--) {
+                    const item = items[i];
+                    item.update();
+                    item.draw();
+
+                    // 9接近検知
+                    if (item.value === 9) {
+                        const dist = Math.hypot(item.x - (player.x + player.width / 2), item.y - (player.y + player.height / 2));
+                        if (dist < 150) player.nearNine = true;
+                    }
+
+                    // 衝突判定
+                    const pCenterX = player.x + player.width / 2;
+                    const pCenterY = player.y + player.height / 2;
+                    const dist = Math.hypot(item.x - pCenterX, item.y - pCenterY);
+
+                    if (dist < item.radius + player.width / 2.5) {
+                        if (item.type === 'ACORN') {
+                            // フィーバーゲット！
+                            feverTimer = 300;
+                            score += 100;
+                            audio.playFeverSound();
+                            createParticles(item.x, item.y, '#fbbf24', 20);
+                        } else if (item.type === 'HROWER') {
+                            // 🏋️ HRower 筋肉パワーアップ！
+                            player.powerTimer = 360; // 約6秒間
+                            score += 150;
+                            audio.playPowerUpSound();
+                            createParticles(item.x, item.y, '#f97316', 25);
+                        } else if (item.value === 9) {
+                            if (player.powerTimer > 0) {
+                                // 🏋️ パワーアップ中は9を無効化して撃破！
+                                score += 200;
+                                audio.playGetSound(9);
+                                createParticles(item.x, item.y, '#ea580c', 25);
+                            } else {
+                                // 💥 9に触れてゲームオーバー！
+                                audio.playGameOverSound();
+                                createParticles(item.x, item.y, '#ef4444', 30);
+                                triggerGameOver();
+                                break;
+                            }
+                        } else {
+                            // 1〜8を取得！
+                            const points = item.value * 10;
+                            score += points;
+                            comboCount++;
+                            comboTimer = 60;
+                            audio.playGetSound(item.value);
+                            createParticles(item.x, item.y, '#38bdf8', 12);
+                        }
+                        items.splice(i, 1);
+                        continue;
+                    }
+
+                    // 地面に到達したアイテム消去
+                    if (item.y > canvas.height - 70) {
+                        items.splice(i, 1);
+                    }
+                }
+
+                // パーティクル処理
+                for (let i = particles.length - 1; i >= 0; i--) {
+                    const p = particles[i];
+                    p.update();
+                    p.draw();
+                    if (p.alpha <= 0) particles.splice(i, 1);
+                }
+
+                player.draw();
+
+                // UIスコア表示更新
+                document.getElementById('ui-score').innerText = score;
+
+                // フィーバー＆パワーアップ演出テロップ
+                if (feverTimer > 0) {
+                    ctx.fillStyle = '#d97706';
+                    ctx.font = '900 20px "M PLUS Rounded 1c"';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('⭐ クイヤフィーバー中！ (全9→8) ⭐', canvas.width / 2, 40);
+                }
+                if (player.powerTimer > 0) {
+                    ctx.fillStyle = '#ea580c';
+                    ctx.font = '900 20px "M PLUS Rounded 1c"';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('🏋️ 超パワーアップ！9を撃破＆スピードUP！ 🏋️', canvas.width / 2, feverTimer > 0 ? 68 : 40);
+                }
+            } else if (gameState === 'START') {
+                player.x = canvas.width / 2 - player.width / 2;
+                player.y = canvas.height - 80 - player.height;
+                player.draw();
+            } else if (gameState === 'GAMEOVER') {
+                player.draw();
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        /* ゲーム状態コントロール */
+        function startGame() {
+            gameState = 'PLAYING';
+            score = 0;
+            items = [];
+            particles = [];
+            feverTimer = 0;
+            player.reset();
+            document.getElementById('screen-start').classList.add('hidden');
+            document.getElementById('screen-gameover').classList.add('hidden');
+            document.getElementById('ui-best').innerText = highScore;
+        }
+
+        function triggerGameOver() {
+            gameState = 'GAMEOVER';
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('kuiya_highscore', highScore.toString());
+            }
+            document.getElementById('final-score').innerText = score;
+            document.getElementById('final-best').innerText = highScore;
+            document.getElementById('screen-gameover').classList.remove('hidden');
+        }
+
+        // ボタンイベント群
+        document.getElementById('btn-start').addEventListener('click', () => {
+            audio.init();
+            startGame();
+        });
+        document.getElementById('btn-retry').addEventListener('click', () => {
+            audio.init();
+            startGame();
+        });
+
+        // サウンド切替
+        const btnSound = document.getElementById('btn-sound');
+        btnSound.addEventListener('click', () => {
+            audio.enabled = !audio.enabled;
+            btnSound.innerText = audio.enabled ? '🔊' : '🔇';
+        });
+
+        // X(Twitter) シェア
+        document.getElementById('btn-share').addEventListener('click', () => {
+            const text = `🦫『クイヤの9嫌いパニック！』で【${score}点】獲得！\n1〜8は集めて9は避けた！クイヤは9が嫌いクイヤーー！\n`;
+            const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
+            window.open(url, '_blank');
+        });
+
+        // 初期設定
+        document.getElementById('ui-best').innerText = highScore;
+        requestAnimationFrame(gameLoop);
+    </script>
+</body>
+</html>
