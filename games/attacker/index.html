@@ -1,0 +1,1210 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Country's Bounce - ポーランドボール</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap');
+    
+    * {
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+      font-family: 'Fredoka', cursive, sans-serif;
+    }
+
+    body {
+      background-color: #0f172a;
+      overflow: hidden;
+    }
+
+    .game-container {
+      background: linear-gradient(180deg, #38bdf8 0%, #0284c7 100%);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+    }
+
+    .bg-pattern {
+      background-image: radial-gradient(rgba(255, 255, 255, 0.18) 2px, transparent 2px);
+      background-size: 24px 24px;
+    }
+
+    .glass-panel {
+      background: rgba(255, 255, 255, 0.18);
+      backdrop-filter: blur(8px);
+      border: 2px solid rgba(255, 255, 255, 0.35);
+    }
+
+    .btn-3d {
+      transition: all 0.1s ease;
+      box-shadow: 0 5px 0 rgba(0,0,0,0.3);
+    }
+    .btn-3d:active {
+      transform: translateY(3px);
+      box-shadow: 0 2px 0 rgba(0,0,0,0.3);
+    }
+
+    ::-webkit-scrollbar {
+      display: none;
+    }
+  </style>
+</head>
+<body class="h-screen w-screen flex items-center justify-center p-0 md:p-3">
+
+  <!-- Main Game Frame -->
+  <div class="relative w-full h-full max-w-md max-h-[920px] game-container md:rounded-3xl flex flex-col overflow-hidden border-4 border-sky-300/40">
+    
+    <!-- Header HUD -->
+    <div class="relative z-20 flex justify-between items-center px-4 pt-3 pb-1">
+      <button id="settingsBtn" class="w-10 h-10 bg-white/20 hover:bg-white/30 rounded-2xl flex items-center justify-center text-white text-lg glass-panel btn-3d">
+        <i class="fa-solid fa-gear"></i>
+      </button>
+
+      <div class="flex flex-col items-center">
+        <div id="levelDisplay" class="text-white text-base font-extrabold tracking-wider bg-black/40 px-4 py-0.5 rounded-full border border-white/20 shadow">
+          LEVEL 1
+        </div>
+        <div class="flex items-center gap-1 text-amber-300 text-xs font-bold mt-0.5">
+          <i class="fa-solid fa-coins"></i>
+          <span id="coinsDisplay">0</span>
+        </div>
+      </div>
+
+      <div class="flex flex-col items-end">
+        <div id="scoreDisplay" class="text-3xl font-black text-amber-300 drop-shadow-[0_2px_4px_rgba(0,0,0,0.7)]">
+          0
+        </div>
+        <div id="comboDisplay" class="text-yellow-200 text-xs font-black tracking-widest opacity-0 transition-opacity duration-300">
+          <span id="comboCount">0</span> COMBO!
+        </div>
+      </div>
+    </div>
+
+    <!-- Game Stage Area -->
+    <div class="relative flex-1 mx-2 my-1 bg-pattern rounded-3xl border-[8px] border-sky-600 shadow-inner overflow-hidden flex flex-col justify-between">
+      
+      <!-- Canvas -->
+      <canvas id="gameCanvas" class="absolute inset-0 w-full h-full cursor-crosshair z-10"></canvas>
+
+      <!-- Bottom Controls & Key Indicators -->
+      <div class="absolute bottom-2 inset-x-2 z-20 flex justify-between items-center px-2 pointer-events-none">
+        
+        <button id="speedBtn" class="pointer-events-auto bg-sky-500/80 hover:bg-sky-400 text-white font-black px-3 py-1.5 rounded-2xl glass-panel btn-3d flex items-center gap-1 text-xs border border-white/40 shadow">
+          <i class="fa-solid fa-forward"></i>
+          <span id="speedLabel">1x</span>
+        </button>
+
+        <button id="shopBtn" class="pointer-events-auto bg-amber-500/90 hover:bg-amber-400 text-white font-bold px-3 py-1.5 rounded-2xl glass-panel btn-3d flex items-center gap-1 text-xs border border-amber-200 shadow">
+          <i class="fa-solid fa-store text-sm"></i>
+          <span>UPGRADE</span>
+        </button>
+
+        <div class="flex items-center gap-1 bg-black/40 px-2.5 py-1 rounded-2xl border border-white/20 glass-panel">
+          <div id="keyIcons" class="flex gap-1 text-amber-400 text-xs">
+            <i class="fa-solid fa-key opacity-30"></i>
+            <i class="fa-solid fa-key opacity-30"></i>
+            <i class="fa-solid fa-key opacity-30"></i>
+          </div>
+          <i class="fa-solid fa-box-archive text-amber-300 text-base ml-1"></i>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Bottom Ball Ammo Bar & Instructions -->
+    <div class="h-10 px-4 py-1 flex justify-between items-center text-xs font-bold text-sky-100">
+      <span class="flex items-center gap-1 text-amber-200">
+        <i class="fa-solid fa-bowling-ball"></i>
+        残りボール: <b id="remainingBallsText" class="text-white text-sm">10</b>
+      </span>
+      <span id="aimGuideText" class="text-sky-200 animate-pulse">
+        <i class="fa-solid fa-hand-pointer mr-1"></i>ドラッグして狙う
+      </span>
+    </div>
+
+    <!-- SHOP MODAL -->
+    <div id="shopModal" class="hidden absolute inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-4">
+      <div class="bg-gradient-to-b from-sky-500 to-blue-800 w-full max-w-sm rounded-3xl p-5 border-4 border-white/40 text-white shadow-2xl relative">
+        <button id="closeShopBtn" class="absolute top-3 right-3 w-8 h-8 bg-red-500 rounded-full flex items-center justify-center text-white font-bold text-lg border border-white/50">
+          ×
+        </button>
+        <h2 class="text-2xl font-black text-center text-amber-300 mb-1">UPGRADES</h2>
+        <p class="text-xs text-center text-sky-100 mb-4">強化して高難易度レベルを攻略しよう！</p>
+
+        <div class="space-y-3">
+          <div class="bg-black/30 p-3 rounded-2xl border border-white/20 flex justify-between items-center">
+            <div>
+              <div class="font-extrabold text-sm">初期ボールパワー</div>
+              <div id="valueLevelText" class="text-xs text-amber-200">Start: 2</div>
+            </div>
+            <button id="upgradeValueBtn" class="bg-amber-400 hover:bg-amber-300 text-slate-900 font-extrabold px-3 py-2 rounded-xl text-xs btn-3d flex items-center gap-1">
+              <i class="fa-solid fa-coins"></i>
+              <span id="valueCost">250</span>
+            </button>
+          </div>
+
+          <div class="bg-black/30 p-3 rounded-2xl border border-white/20 flex justify-between items-center">
+            <div>
+              <div class="font-extrabold text-sm">初期持ち玉数</div>
+              <div id="ammoLevelText" class="text-xs text-amber-200">ボール数: +0</div>
+            </div>
+            <button id="upgradeAmmoBtn" class="bg-amber-400 hover:bg-amber-300 text-slate-900 font-extrabold px-3 py-2 rounded-xl text-xs btn-3d flex items-center gap-1">
+              <i class="fa-solid fa-coins"></i>
+              <span id="ammoCost">150</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="mt-5 text-center">
+          <button id="resetDataBtn" class="text-xs text-red-200 underline hover:text-white">
+            セーブデータをリセット
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- LEVEL COMPLETE MODAL -->
+    <div id="levelModal" class="hidden absolute inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-4">
+      <div class="bg-gradient-to-b from-emerald-500 to-green-800 w-full max-w-sm rounded-3xl p-6 border-4 border-white/40 text-white shadow-2xl text-center">
+        <i class="fa-solid fa-trophy text-5xl text-amber-300 mb-2 drop-shadow"></i>
+        <h2 id="modalTitle" class="text-3xl font-black text-amber-300 mb-1">STAGE CLEARED!</h2>
+        <p id="modalDesc" class="text-sm mb-4">すべての障害物を破壊しました！</p>
+        
+        <div class="bg-black/30 rounded-2xl p-3 mb-4 text-sm font-bold flex justify-around">
+          <div>Score: <span id="modalScore" class="text-amber-300">0</span></div>
+          <div>Coins: <span id="modalCoins" class="text-amber-300">+50</span></div>
+        </div>
+
+        <button id="nextLevelBtn" class="w-full bg-amber-400 hover:bg-amber-300 text-slate-900 font-black py-3 rounded-2xl text-lg btn-3d shadow-lg border-2 border-white">
+          次のレベルへ <i class="fa-solid fa-arrow-right ml-1"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- GAME OVER MODAL -->
+    <div id="gameOverModal" class="hidden absolute inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+      <div class="bg-gradient-to-b from-rose-600 to-red-900 w-full max-w-sm rounded-3xl p-6 border-4 border-white/40 text-white shadow-2xl text-center">
+        <i class="fa-solid fa-heart-crack text-5xl text-rose-300 mb-2 drop-shadow"></i>
+        <h2 class="text-3xl font-black text-white mb-1">GAME OVER</h2>
+        <p class="text-xs text-rose-100 mb-4">ボールが尽きました！レベル1に戻ります。</p>
+
+        <button id="retryBtn" class="w-full bg-amber-400 hover:bg-amber-300 text-slate-900 font-black py-3 rounded-2xl text-lg btn-3d shadow-lg border-2 border-white">
+          レベル1からリトライ <i class="fa-solid fa-rotate-right ml-1"></i>
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Audio and Physics Engine Logic -->
+  <script>
+    class SoundEngine {
+      constructor() {
+        this.ctx = null;
+      }
+      init() {
+        if (!this.ctx) {
+          this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+      }
+      playPop(freq = 400) {
+        if (!this.ctx) return;
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(freq * 1.8, this.ctx.currentTime + 0.08);
+          gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.08);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + 0.08);
+        } catch (e) {}
+      }
+      playBounce() {
+        if (!this.ctx) return;
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(180, this.ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(90, this.ctx.currentTime + 0.05);
+          gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.05);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + 0.05);
+        } catch (e) {}
+      }
+      playScore() {
+        if (!this.ctx) return;
+        try {
+          const notes = [523.25, 659.25, 783.99, 1046.50];
+          notes.forEach((freq, idx) => {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, this.ctx.currentTime + idx * 0.05);
+            gain.gain.setValueAtTime(0.12, this.ctx.currentTime + idx * 0.05);
+            gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + idx * 0.05 + 0.1);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(this.ctx.currentTime + idx * 0.05);
+            osc.stop(this.ctx.currentTime + idx * 0.05 + 0.1);
+          });
+        } catch (e) {}
+      }
+    }
+
+    const sound = new SoundEngine();
+
+    // Polandball Assets Definitions
+    const COUNTRIES = [
+      'germany', 'japan', 'china', 'italy', 'sierraleone', 
+      'russia', 'france', 'poland', 'england472x600', 'usa', 
+      'korea', 'austria'
+    ];
+
+    const EXPRESSIONS = [
+      'normal.png', 'happy.png', 'smile.png', 'surprise.png', 
+      'anger.png', 'dissatisfaction.png', 'itome.png', 'lol.png', 'plot.png'
+    ];
+
+    const BASE_URL = 'https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/';
+
+    const COUNTRY_COLORS = {
+      germany: '#facc15', japan: '#ffffff', china: '#ef4444', italy: '#22c55e',
+      sierraleone: '#10b981', russia: '#3b82f6', france: '#6366f1', poland: '#f43f5e',
+      england472x600: '#e11d48', usa: '#2563eb', korea: '#f87171', austria: '#dc2626'
+    };
+
+    const imageCache = {};
+
+    function preloadImages() {
+      COUNTRIES.forEach(country => {
+        EXPRESSIONS.forEach(expr => {
+          const key = `${country}_${expr}`;
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.src = `${BASE_URL}${country}/${expr}`;
+          img.onload = () => { imageCache[key] = img; };
+        });
+      });
+    }
+
+    preloadImages();
+
+    // Save Data Storage
+    const SAVE_KEY = 'CB_POLANDBALL_SAVE_V2';
+
+    let gameData = {
+      level: 1,
+      coins: 0,
+      score: 0,
+      highScore: 0,
+      startValueLevel: 0,
+      ammoBonusLevel: 0,
+      keys: 0
+    };
+
+    function loadSavedData() {
+      try {
+        const raw = localStorage.getItem(SAVE_KEY);
+        if (raw) {
+          gameData = { ...gameData, ...JSON.parse(raw) };
+        }
+      } catch (e) {}
+    }
+
+    function saveGameData() {
+      try {
+        localStorage.setItem(SAVE_KEY, JSON.stringify(gameData));
+      } catch (e) {}
+    }
+
+    loadSavedData();
+
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let gameSpeed = 1;
+    let combo = 0;
+    let comboTimer = null;
+    
+    // Physics & Game Arrays
+    let balls = [];
+    let queuedBalls = []; // Left pipe queue
+    let particles = [];
+    let obstacles = [];
+    let scoringTrays = [];
+
+    // Aiming state
+    let isAiming = false;
+    let aimAngle = Math.PI / 2; // Straight down initially
+    let touchX = 0;
+    let touchY = 0;
+    let remainingBalls = 8;
+
+    const LEFT_PIPE_WIDTH = 48;
+
+    function getBallRadius() {
+      return 17; // Fixed ball size
+    }
+
+    function getStartingBallValue() {
+      return Math.pow(2, gameData.startValueLevel + 1); // 2, 4, 8...
+    }
+
+    function getMaxAmmo() {
+      return 8 + gameData.ammoBonusLevel * 2; // Harder ammo limit
+    }
+
+    function resizeCanvas() {
+      const rect = canvas.parentElement.getBoundingClientRect();
+      canvas.width = rect.width;
+      canvas.height = rect.height;
+      setupLevelLayout();
+    }
+
+    function setupLevelLayout() {
+      obstacles = [];
+      scoringTrays = [];
+      balls = [];
+      queuedBalls = [];
+
+      remainingBalls = getMaxAmmo();
+      updateHUD();
+
+      // Initialize Left Queue Balls
+      for (let i = 0; i < 5; i++) {
+        queuedBalls.push(createQueuedBallItem());
+      }
+      checkAndMergeQueue();
+
+      const w = canvas.width;
+      const h = canvas.height;
+      const playWidth = w - LEFT_PIPE_WIDTH;
+
+      // Bottom score pockets / trays
+      const trayCount = 4;
+      const trayWidth = (playWidth - 12) / trayCount;
+      const trayY = h - 42;
+
+      const baseScores = [10, 20, 30, 40];
+      for (let i = 0; i < trayCount; i++) {
+        scoringTrays.push({
+          x: LEFT_PIPE_WIDTH + 6 + i * trayWidth,
+          y: trayY,
+          w: trayWidth - 4,
+          h: 34,
+          score: baseScores[i] * Math.ceil(gameData.level / 2),
+          bounceAnim: 0
+        });
+      }
+
+      // Harder Obstacle HP and Placement Generation
+      const level = gameData.level;
+      const rows = Math.min(3 + Math.floor(level / 1.5), 7);
+      const baseHP = 18 * level; // Increased HP
+
+      for (let r = 0; r < rows; r++) {
+        const count = 4 + (r % 2); 
+        const spacing = playWidth / (count + 1);
+        for (let c = 0; c < count; c++) {
+          const cx = LEFT_PIPE_WIDTH + spacing * (c + 1);
+          const cy = h * 0.25 + r * 42;
+          const size = 20 + (level % 2) * 2;
+          const hp = Math.floor(baseHP * (1.0 + Math.random() * 0.6));
+
+          // Faster moving obstacles starting from level 1
+          let moveSpeed = 0;
+          if (r % 2 === 1) {
+            moveSpeed = (0.8 + level * 0.3) * (Math.random() < 0.5 ? 1 : -1);
+          }
+
+          obstacles.push({
+            type: 'triangle',
+            x: cx,
+            y: cy,
+            origX: cx,
+            size: size,
+            hp: hp,
+            maxHp: hp,
+            color: '#ec4899',
+            hitFlash: 0,
+            moveSpeed: moveSpeed,
+            moveRange: 40
+          });
+        }
+      }
+
+      // Dynamic Bumper Circles with higher HP
+      const circleCount = Math.min(level + 3, 10);
+      for (let p = 0; p < circleCount; p++) {
+        const hp = level * 14;
+        obstacles.push({
+          type: 'circle',
+          x: LEFT_PIPE_WIDTH + 30 + Math.random() * (playWidth - 60),
+          y: h * 0.16 + Math.random() * (h * 0.18),
+          radius: 13,
+          hp: hp,
+          maxHp: hp,
+          color: '#a855f7',
+          hitFlash: 0,
+          moveSpeed: (Math.random() < 0.5 ? 1 : -1) * (1.0 + level * 0.2),
+          moveRange: 45,
+          origX: 0
+        });
+        obstacles[obstacles.length - 1].origX = obstacles[obstacles.length - 1].x;
+      }
+    }
+
+    function createQueuedBallItem() {
+      return {
+        value: getStartingBallValue(),
+        country: COUNTRIES[Math.floor(Math.random() * COUNTRIES.length)],
+        yAnim: 0
+      };
+    }
+
+    // Merge identical adjacent balls in left queue
+    function checkAndMergeQueue() {
+      let merged = false;
+      for (let i = queuedBalls.length - 1; i > 0; i--) {
+        if (queuedBalls[i].value === queuedBalls[i - 1].value) {
+          queuedBalls[i - 1].value *= 2;
+          queuedBalls.splice(i, 1);
+          merged = true;
+          sound.playPop(550);
+          createCubeDebris(LEFT_PIPE_WIDTH / 2, canvas.height * 0.5, '#38bdf8', 6);
+          break;
+        }
+      }
+      if (merged) {
+        checkAndMergeQueue(); // Recurse if chain reaction
+      }
+    }
+
+    class Ball {
+      constructor(x, y, value, country, vx, vy) {
+        this.x = x;
+        this.y = y;
+        this.vx = vx;
+        this.vy = vy;
+        this.value = value;
+        this.radius = getBallRadius();
+        this.country = country;
+        this.expression = 'normal.png';
+        this.exprTimer = 0;
+      }
+
+      setExpression(expr, duration = 30) {
+        this.expression = expr;
+        this.exprTimer = duration;
+      }
+
+      update() {
+        if (this.exprTimer > 0) {
+          this.exprTimer--;
+          if (this.exprTimer <= 0) this.expression = 'normal.png';
+        }
+
+        this.x += this.vx * gameSpeed;
+        this.y += this.vy * gameSpeed;
+        this.vy += 0.22 * gameSpeed; // Gravity
+
+        // Left Pipe Boundary Wall
+        const minX = LEFT_PIPE_WIDTH + this.radius + 2;
+        const maxX = canvas.width - 8 - this.radius;
+
+        if (this.x < minX) {
+          this.x = minX;
+          this.vx = Math.abs(this.vx) * 0.85;
+          sound.playBounce();
+        } else if (this.x > maxX) {
+          this.x = maxX;
+          this.vx = -Math.abs(this.vx) * 0.85;
+          sound.playBounce();
+        }
+      }
+
+      draw() {
+        ctx.save();
+
+        // Shadow
+        ctx.beginPath();
+        ctx.arc(this.x + 2, this.y + 3, this.radius, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(0,0,0,0.2)';
+        ctx.fill();
+
+        // Outer Color Base
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fillStyle = COUNTRY_COLORS[this.country] || '#38bdf8';
+        ctx.fill();
+
+        // Polandball Avatar
+        const imgKey = `${this.country}_${this.expression}`;
+        const img = imageCache[imgKey] || imageCache[`${this.country}_normal.png`];
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius - 1, 0, Math.PI * 2);
+        ctx.clip();
+
+        if (img && img.complete && img.naturalWidth > 0) {
+          if (this.country === 'england472x600') {
+            // UK Cropping Special Logic (Top 472px)
+            const srcH = Math.min(472, img.naturalHeight);
+            ctx.drawImage(
+              img, 
+              0, 0, img.naturalWidth, srcH, 
+              this.x - this.radius, this.y - this.radius, 
+              this.radius * 2, this.radius * 2
+            );
+          } else {
+            ctx.drawImage(
+              img, 
+              this.x - this.radius, this.y - this.radius, 
+              this.radius * 2, this.radius * 2
+            );
+          }
+        }
+        ctx.restore();
+
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = '#ffffff';
+        ctx.stroke();
+
+        // NUMBER OVERLAY OVER POLANDBALL FACE
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, Math.max(9, this.radius * 0.52), 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
+        ctx.fill();
+        ctx.strokeStyle = '#0284c7';
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+
+        ctx.fillStyle = '#0f172a';
+        ctx.font = `900 ${Math.max(9, Math.floor(this.radius * 0.62))}px Fredoka`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(this.value, this.x, this.y + 1);
+
+        ctx.restore();
+      }
+    }
+
+    function createCubeDebris(x, y, color, count = 8) {
+      for (let i = 0; i < count; i++) {
+        particles.push({
+          x: x,
+          y: y,
+          size: Math.random() * 7 + 3,
+          vx: (Math.random() - 0.5) * 5,
+          vy: (Math.random() - 0.5) * 5 - 2,
+          rot: Math.random() * Math.PI,
+          vRot: (Math.random() - 0.5) * 0.2,
+          color: color,
+          life: 1.0
+        });
+      }
+    }
+
+    function updateParticles() {
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx * gameSpeed;
+        p.y += p.vy * gameSpeed;
+        p.vy += 0.18;
+        p.rot += p.vRot;
+        p.life -= 0.035 * gameSpeed;
+
+        if (p.life <= 0) {
+          particles.splice(i, 1);
+          continue;
+        }
+
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rot);
+        ctx.globalAlpha = Math.max(0, p.life);
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+        ctx.restore();
+      }
+    }
+
+    function handleCollisions() {
+      // 1. Ball vs Obstacles
+      for (let b of balls) {
+        for (let i = obstacles.length - 1; i >= 0; i--) {
+          const obs = obstacles[i];
+          
+          if (obs.type === 'triangle') {
+            const dx = b.x - obs.x;
+            const dy = b.y - obs.y;
+            const dist = Math.hypot(dx, dy);
+
+            if (dist < b.radius + obs.size) {
+              b.vy = -Math.abs(b.vy) * 0.85;
+              b.vx += (Math.random() - 0.5) * 3;
+              b.setExpression('surprise.png');
+
+              obs.hp -= b.value;
+              obs.hitFlash = 4;
+              sound.playBounce();
+
+              if (obs.hp <= 0) {
+                createCubeDebris(obs.x, obs.y, obs.color, 10);
+                gameData.score += obs.maxHp * 10;
+                addCoins(Math.ceil(obs.maxHp / 2));
+                obstacles.splice(i, 1);
+                addCombo();
+                sound.playPop(600);
+              }
+            }
+          } else if (obs.type === 'circle') {
+            const dx = b.x - obs.x;
+            const dy = b.y - obs.y;
+            const dist = Math.hypot(dx, dy);
+
+            if (dist < b.radius + obs.radius) {
+              const angle = Math.atan2(dy, dx);
+              b.vx = Math.cos(angle) * 5;
+              b.vy = Math.sin(angle) * 5;
+              b.setExpression('anger.png');
+
+              obs.hp -= b.value;
+              obs.hitFlash = 4;
+              sound.playBounce();
+
+              if (obs.hp <= 0) {
+                createCubeDebris(obs.x, obs.y, obs.color, 8);
+                gameData.score += obs.maxHp * 10;
+                obstacles.splice(i, 1);
+                addCombo();
+              }
+            }
+          }
+        }
+      }
+
+      // 2. Ball vs Ball Merging
+      for (let i = 0; i < balls.length; i++) {
+        for (let j = i + 1; j < balls.length; j++) {
+          const b1 = balls[i];
+          const b2 = balls[j];
+
+          const dx = b2.x - b1.x;
+          const dy = b2.y - b1.y;
+          const dist = Math.hypot(dx, dy);
+
+          if (dist < b1.radius + b2.radius) {
+            const overlap = (b1.radius + b2.radius) - dist;
+            const nx = dx / (dist || 1);
+            const ny = dy / (dist || 1);
+
+            b1.x -= nx * overlap * 0.5;
+            b1.y -= ny * overlap * 0.5;
+            b2.x += nx * overlap * 0.5;
+            b2.y += ny * overlap * 0.5;
+
+            if (b1.value === b2.value) {
+              b1.value *= 2;
+              b1.radius = getBallRadius();
+              b1.setExpression('happy.png', 40);
+              
+              createCubeDebris(b1.x, b1.y, '#f59e0b', 8);
+              sound.playPop(300 + b1.value * 4);
+
+              gameData.score += b1.value * 2;
+              addCombo();
+
+              balls.splice(j, 1);
+              j--;
+            }
+          }
+        }
+      }
+
+      // 3. Scoring Trays Landing
+      for (let i = balls.length - 1; i >= 0; i--) {
+        const b = balls[i];
+        for (let t of scoringTrays) {
+          if (b.y + b.radius >= t.y && b.x >= t.x && b.x <= t.x + t.w) {
+            const earned = b.value * t.score;
+            gameData.score += earned;
+            addCoins(Math.ceil(earned / 10));
+
+            t.bounceAnim = 8;
+            sound.playScore();
+
+            createCubeDebris(b.x, t.y, '#38bdf8', 8);
+            balls.splice(i, 1);
+
+            if (Math.random() < 0.15 && gameData.keys < 3) {
+              gameData.keys++;
+              updateHUD();
+            }
+            break;
+          }
+        }
+      }
+
+      // Cleanup fallen balls
+      for (let i = balls.length - 1; i >= 0; i--) {
+        if (balls[i].y > canvas.height + 50) {
+          balls.splice(i, 1);
+        }
+      }
+
+      // Win Condition
+      if (obstacles.length === 0) {
+        onLevelComplete();
+      } else if (remainingBalls <= 0 && balls.length === 0) {
+        // Game Over Condition - Reset Level to 1
+        setTimeout(() => {
+          if (obstacles.length > 0 && balls.length === 0 && remainingBalls <= 0) {
+            gameData.level = 1; // Reset level back to 1
+            updateHUD();
+            document.getElementById('gameOverModal').classList.remove('hidden');
+          }
+        }, 1200);
+      }
+    }
+
+    function addCombo() {
+      combo++;
+      const comboDisp = document.getElementById('comboDisplay');
+      document.getElementById('comboCount').innerText = combo;
+      comboDisp.classList.remove('opacity-0');
+
+      if (comboTimer) clearTimeout(comboTimer);
+      comboTimer = setTimeout(() => {
+        combo = 0;
+        comboDisp.classList.add('opacity-0');
+      }, 2000);
+    }
+
+    function addCoins(amount) {
+      gameData.coins += amount;
+      updateHUD();
+    }
+
+    function updateHUD() {
+      document.getElementById('scoreDisplay').innerText = gameData.score;
+      document.getElementById('coinsDisplay').innerText = gameData.coins;
+      document.getElementById('levelDisplay').innerText = `LEVEL ${gameData.level}`;
+      document.getElementById('remainingBallsText').innerText = remainingBalls;
+
+      const keyIcons = document.getElementById('keyIcons').children;
+      for (let i = 0; i < 3; i++) {
+        if (i < gameData.keys) {
+          keyIcons[i].classList.remove('opacity-30');
+          keyIcons[i].classList.add('text-amber-300');
+        } else {
+          keyIcons[i].classList.add('opacity-30');
+        }
+      }
+
+      saveGameData();
+    }
+
+    // DRAW LEFT PIPE & QUEUED BALLS
+    function drawLeftPipe() {
+      const h = canvas.height;
+
+      // Pipe background
+      ctx.fillStyle = 'rgba(2, 132, 199, 0.45)';
+      ctx.fillRect(0, 0, LEFT_PIPE_WIDTH, h);
+
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(LEFT_PIPE_WIDTH, 0);
+      ctx.lineTo(LEFT_PIPE_WIDTH, h);
+      ctx.stroke();
+
+      // Render Queued Balls inside Left Pipe
+      const ballRadius = 15;
+      const startY = h - 60;
+
+      queuedBalls.forEach((item, idx) => {
+        const py = startY - idx * 36;
+        if (py < 40) return;
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(LEFT_PIPE_WIDTH / 2, py, ballRadius, 0, Math.PI * 2);
+        ctx.fillStyle = COUNTRY_COLORS[item.country] || '#38bdf8';
+        ctx.fill();
+
+        // Polandball image
+        const imgKey = `${item.country}_normal.png`;
+        const img = imageCache[imgKey];
+        if (img && img.complete) {
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(LEFT_PIPE_WIDTH / 2, py, ballRadius - 1, 0, Math.PI * 2);
+          ctx.clip();
+
+          if (item.country === 'england472x600') {
+            const srcH = Math.min(472, img.naturalHeight);
+            ctx.drawImage(img, 0, 0, img.naturalWidth, srcH, LEFT_PIPE_WIDTH / 2 - ballRadius, py - ballRadius, ballRadius * 2, ballRadius * 2);
+          } else {
+            ctx.drawImage(img, LEFT_PIPE_WIDTH / 2 - ballRadius, py - ballRadius, ballRadius * 2, ballRadius * 2);
+          }
+          ctx.restore();
+        }
+
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        // Badge Number Overlay
+        ctx.beginPath();
+        ctx.arc(LEFT_PIPE_WIDTH / 2, py, 8, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.fill();
+
+        ctx.fillStyle = '#0f172a';
+        ctx.font = '900 9px Fredoka';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(item.value, LEFT_PIPE_WIDTH / 2, py + 0.5);
+
+        ctx.restore();
+      });
+    }
+
+    function drawCannonAndAim() {
+      const cannonX = LEFT_PIPE_WIDTH + (canvas.width - LEFT_PIPE_WIDTH) / 2;
+      const cannonY = 22;
+
+      ctx.save();
+
+      // Golden Hoop
+      ctx.translate(cannonX, cannonY);
+      ctx.fillStyle = '#f59e0b';
+      ctx.beginPath();
+      ctx.arc(0, 0, 20, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#fbbf24';
+      ctx.beginPath();
+      ctx.arc(0, 0, 14, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#0f172a';
+      ctx.beginPath();
+      ctx.arc(0, 0, 9, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
+
+      // DRAW AIM GUIDELINE IF DRAGGING
+      if (isAiming && remainingBalls > 0) {
+        ctx.save();
+        ctx.strokeStyle = '#fef08a';
+        ctx.lineWidth = 3;
+        ctx.setLineDash([6, 6]);
+
+        let currX = cannonX;
+        let currY = cannonY;
+        let vx = Math.cos(aimAngle) * 12;
+        let vy = Math.sin(aimAngle) * 12;
+
+        ctx.beginPath();
+        ctx.moveTo(currX, currY);
+
+        // Raycast line prediction with wall bounce
+        for (let step = 0; step < 28; step++) {
+          currX += vx;
+          currY += vy;
+
+          if (currX < LEFT_PIPE_WIDTH + 15 || currX > canvas.width - 15) {
+            vx = -vx; // Bounce reflection
+          }
+
+          ctx.lineTo(currX, currY);
+        }
+        ctx.stroke();
+
+        // Target Reticle
+        ctx.fillStyle = '#fef08a';
+        ctx.beginPath();
+        ctx.arc(currX, currY, 6, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+      }
+    }
+
+    function drawObstacles() {
+      for (let obs of obstacles) {
+        // Dynamic Moving Obstacle Logic
+        if (obs.moveSpeed !== 0) {
+          obs.x += obs.moveSpeed * gameSpeed;
+          if (Math.abs(obs.x - obs.origX) > obs.moveRange) {
+            obs.moveSpeed = -obs.moveSpeed;
+          }
+        }
+
+        ctx.save();
+        ctx.translate(obs.x, obs.y);
+
+        if (obs.hitFlash > 0) {
+          obs.hitFlash--;
+          ctx.fillStyle = '#ffffff';
+        } else {
+          ctx.fillStyle = obs.color;
+        }
+
+        if (obs.type === 'triangle') {
+          const s = obs.size;
+          ctx.beginPath();
+          ctx.moveTo(0, -s);
+          ctx.lineTo(s * 0.9, s * 0.85);
+          ctx.lineTo(-s * 0.9, s * 0.85);
+          ctx.closePath();
+          ctx.fill();
+
+          ctx.lineWidth = 2.5;
+          ctx.strokeStyle = '#ffffff';
+          ctx.stroke();
+
+          ctx.fillStyle = '#ffffff';
+          ctx.font = '900 15px Fredoka';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(obs.hp, 0, s * 0.1);
+        } else if (obs.type === 'circle') {
+          ctx.beginPath();
+          ctx.arc(0, 0, obs.radius, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+
+          ctx.fillStyle = '#ffffff';
+          ctx.font = '900 12px Fredoka';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(obs.hp, 0, 0);
+        }
+
+        ctx.restore();
+      }
+    }
+
+    function drawScoringTrays() {
+      for (let t of scoringTrays) {
+        ctx.save();
+        let offsetY = 0;
+        if (t.bounceAnim > 0) {
+          t.bounceAnim--;
+          offsetY = 3;
+        }
+
+        ctx.fillStyle = '#c084fc';
+        ctx.beginPath();
+        ctx.roundRect(t.x, t.y + offsetY, t.w, t.h, [16]);
+        ctx.fill();
+
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '900 16px Fredoka';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(t.score, t.x + t.w / 2, t.y + t.h / 2 + offsetY);
+
+        ctx.restore();
+      }
+    }
+
+    function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      drawLeftPipe();
+      drawCannonAndAim();
+      drawObstacles();
+      drawScoringTrays();
+
+      balls.forEach(b => {
+        b.update();
+        b.draw();
+      });
+
+      handleCollisions();
+      updateParticles();
+
+      requestAnimationFrame(animate);
+    }
+
+    // Touch & Aim Controls
+    function handleAimStart(e) {
+      sound.init();
+      if (remainingBalls <= 0) return;
+
+      isAiming = true;
+      updateAimAngle(e);
+    }
+
+    function handleAimMove(e) {
+      if (!isAiming) return;
+      updateAimAngle(e);
+    }
+
+    function updateAimAngle(e) {
+      const rect = canvas.getBoundingClientRect();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+      touchX = clientX - rect.left;
+      touchY = clientY - rect.top;
+
+      const cannonX = LEFT_PIPE_WIDTH + (canvas.width - LEFT_PIPE_WIDTH) / 2;
+      const cannonY = 22;
+
+      aimAngle = Math.atan2(touchY - cannonY, touchX - cannonX);
+
+      // Restrict aim angle (prevent shooting straight up)
+      if (aimAngle < 0.2) aimAngle = 0.2;
+      if (aimAngle > Math.PI - 0.2) aimAngle = Math.PI - 0.2;
+    }
+
+    function handleAimEnd() {
+      if (!isAiming || remainingBalls <= 0) return;
+      isAiming = false;
+
+      // Pop ball from Left Pipe
+      const currentBallData = queuedBalls.shift() || createQueuedBallItem();
+      queuedBalls.push(createQueuedBallItem());
+      checkAndMergeQueue();
+
+      remainingBalls--;
+      updateHUD();
+
+      const cannonX = LEFT_PIPE_WIDTH + (canvas.width - LEFT_PIPE_WIDTH) / 2;
+      const cannonY = 25;
+      const speed = 7.5;
+
+      const vx = Math.cos(aimAngle) * speed;
+      const vy = Math.sin(aimAngle) * speed;
+
+      const ball = new Ball(cannonX, cannonY, currentBallData.value, currentBallData.country, vx, vy);
+      balls.push(ball);
+
+      sound.playPop(480);
+    }
+
+    canvas.addEventListener('mousedown', handleAimStart);
+    canvas.addEventListener('mousemove', handleAimMove);
+    window.addEventListener('mouseup', handleAimEnd);
+
+    canvas.addEventListener('touchstart', (e) => { handleAimStart(e); e.preventDefault(); });
+    canvas.addEventListener('touchmove', (e) => { handleAimMove(e); e.preventDefault(); });
+    window.addEventListener('touchend', handleAimEnd);
+
+    // Speed toggle
+    document.getElementById('speedBtn').addEventListener('click', () => {
+      if (gameSpeed === 1) gameSpeed = 1.8;
+      else if (gameSpeed === 1.8) gameSpeed = 2.6;
+      else gameSpeed = 1;
+
+      document.getElementById('speedLabel').innerText = gameSpeed === 1 ? '1x' : (gameSpeed === 1.8 ? '2x' : '3x');
+    });
+
+    // Shop UI
+    const shopModal = document.getElementById('shopModal');
+    document.getElementById('shopBtn').addEventListener('click', () => {
+      updateShopUI();
+      shopModal.classList.remove('hidden');
+    });
+
+    document.getElementById('closeShopBtn').addEventListener('click', () => {
+      shopModal.classList.add('hidden');
+    });
+
+    function updateShopUI() {
+      const valCost = 250 * Math.pow(2, gameData.startValueLevel);
+      const ammoCost = 150 * Math.pow(2, gameData.ammoBonusLevel);
+
+      document.getElementById('valueLevelText').innerText = `Start: ${getStartingBallValue()}`;
+      document.getElementById('valueCost').innerText = valCost;
+
+      document.getElementById('ammoLevelText').innerText = `ボール数: +${gameData.ammoBonusLevel * 2}`;
+      document.getElementById('ammoCost').innerText = ammoCost;
+    }
+
+    document.getElementById('upgradeValueBtn').addEventListener('click', () => {
+      const cost = 250 * Math.pow(2, gameData.startValueLevel);
+      if (gameData.coins >= cost) {
+        gameData.coins -= cost;
+        gameData.startValueLevel++;
+        updateHUD();
+        updateShopUI();
+      }
+    });
+
+    document.getElementById('upgradeAmmoBtn').addEventListener('click', () => {
+      const cost = 150 * Math.pow(2, gameData.ammoBonusLevel);
+      if (gameData.coins >= cost) {
+        gameData.coins -= cost;
+        gameData.ammoBonusLevel++;
+        remainingBalls = getMaxAmmo();
+        updateHUD();
+        updateShopUI();
+      }
+    });
+
+    document.getElementById('resetDataBtn').addEventListener('click', () => {
+      if (confirm('全セーブデータをリセットしますか？')) {
+        localStorage.removeItem(SAVE_KEY);
+        location.reload();
+      }
+    });
+
+    // Level Complete
+    const levelModal = document.getElementById('levelModal');
+    function onLevelComplete() {
+      const bonus = gameData.level * 60;
+      addCoins(bonus);
+
+      document.getElementById('modalScore').innerText = gameData.score;
+      document.getElementById('modalCoins').innerText = `+${bonus}`;
+      levelModal.classList.remove('hidden');
+    }
+
+    document.getElementById('nextLevelBtn').addEventListener('click', () => {
+      gameData.level++;
+      updateHUD();
+      levelModal.classList.add('hidden');
+      setupLevelLayout();
+    });
+
+    document.getElementById('retryBtn').addEventListener('click', () => {
+      document.getElementById('gameOverModal').classList.add('hidden');
+      setupLevelLayout();
+    });
+
+    window.onload = () => {
+      window.addEventListener('resize', resizeCanvas);
+      resizeCanvas();
+      updateHUD();
+      animate();
+    };
+  </script>
+</body>
+</html>
