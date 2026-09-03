@@ -1,0 +1,1569 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+    <title>画像編集するダス2</title>
+
+    <!-- Google Fonts & Material Symbols -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+
+    <style>
+        /* デフォルトテーマ（PTZ.jsonのデフォルト値と連動） */
+        :root {
+            --accent-primary: #3381FF;
+            --accent-active: #1A5FCC;
+            
+            /* PTZ 規格初期値 */
+            --ptz-theme-name: "Xiaomi HyperOS Style";
+            --ptz-card-radius: 24px;
+            --ptz-slider-height: 16px;
+            --ptz-toggle-width: 54px;
+            --ptz-toggle-height: 30px;
+            --ptz-toggle-knob-radius: 50%;
+            --ptz-toggle-knob-width: 22px;
+            --ptz-blur-intensity: 0px;
+
+            /* Light Mode ベースカラー */
+            --bg-base: #F7F7F7;
+            --glass-bg: #FFFFFF;
+            --text-main: #000000;
+            --text-sub: #666666;
+            --bg-secondary: #EEEEEE;
+            --nav-bg: #FFFFFF;
+            --nav-icon-active: #000000;
+            
+            --m3-easing: cubic-bezier(0.32, 0.72, 0, 1);
+            --transition-smooth: 0.35s var(--m3-easing);
+            --card-padding: 24px;
+        }
+
+        /* ダークモード */
+        .dark-mode {
+            --bg-base: #121212;
+            --glass-bg: #1E1E1E;
+            --text-main: #FFFFFF;
+            --text-sub: #A1A1A6;
+            --bg-secondary: #2C2C2E;
+            --nav-bg: #1E1E1E;
+            --nav-icon-active: #FFFFFF;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', 'Noto Sans JP', sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            transition: background-color var(--transition-smooth), color var(--transition-smooth);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* アプリ全体のコンテナ */
+        #app-viewport {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        /* ヘッダー（中央タイトル、境界線・シャドウなし） */
+        header {
+            height: 64px;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--glass-bg);
+            transition: background-color var(--transition-smooth);
+            position: relative;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+        .logo {
+            font-weight: 700;
+            font-size: 18px;
+            letter-spacing: -0.5px;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .theme-toggle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: none;
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background var(--transition-smooth), transform 0.2s;
+        }
+        .theme-toggle:active {
+            transform: scale(0.9);
+        }
+
+        /* メインコンテンツ（スクロール可能） */
+        main {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 16px 20px 90px;
+            max-width: 800px;
+            width: 100%;
+            margin: 0 auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* フラットソリッドカード（枠線なし、影なし。PTZ角丸対応） */
+        .glass-card {
+            background: var(--glass-bg);
+            border-radius: var(--ptz-card-radius);
+            padding: var(--card-padding);
+            margin-bottom: 20px;
+            box-shadow: none !important;
+            border: none !important;
+            transition: background-color var(--transition-smooth), border-radius var(--transition-smooth);
+        }
+
+        h2 { 
+            font-size: 18px; 
+            margin-top: 0; 
+            margin-bottom: 12px;
+            font-weight: 700; 
+            letter-spacing: -0.3px;
+        }
+        p {
+            font-size: 13.5px;
+            line-height: 1.5;
+            margin-top: 0;
+            margin-bottom: 16px;
+            color: var(--text-sub);
+        }
+
+        /* 1. リストコンポーネント */
+        .custom-list {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            margin-bottom: 16px;
+        }
+        .list-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 4px;
+            border-bottom: 1px solid var(--bg-secondary);
+        }
+        .list-item:last-child {
+            border-bottom: none;
+        }
+        .list-item-title {
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .list-item-desc {
+            font-size: 12px;
+            color: var(--text-sub);
+        }
+
+        /* 2. 太いブルースライダー */
+        .slider-wrapper {
+            margin: 16px 0;
+        }
+        .slider-label-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        .thick-slider-container {
+            position: relative;
+            width: 100%;
+            height: var(--ptz-slider-height);
+            background: var(--bg-secondary);
+            border-radius: calc(var(--ptz-slider-height) / 2);
+            overflow: hidden;
+            cursor: pointer;
+            transition: height var(--transition-smooth);
+        }
+        .thick-slider-fill {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 50%;
+            background: var(--accent-primary);
+            transition: background-color var(--transition-smooth), width 0.1s ease-out;
+        }
+        .thick-slider-input {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+            margin: 0;
+        }
+
+        /* 3. トグルスイッチ */
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 4px;
+        }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: var(--ptz-toggle-width);
+            height: var(--ptz-toggle-height);
+            transition: width var(--transition-smooth), height var(--transition-smooth);
+        }
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--bg-secondary);
+            transition: var(--transition-smooth);
+            border-radius: calc(var(--ptz-toggle-height) / 2);
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: var(--ptz-toggle-knob-width);
+            width: var(--ptz-toggle-knob-width);
+            left: 4px;
+            bottom: calc((var(--ptz-toggle-height) - var(--ptz-toggle-knob-width)) / 2);
+            background: white;
+            transition: var(--transition-smooth);
+            border-radius: var(--ptz-toggle-knob-radius);
+        }
+        input:checked + .slider {
+            background: var(--accent-primary);
+        }
+        input:checked + .slider:before {
+            transform: translateX(calc(var(--ptz-toggle-width) - var(--ptz-toggle-knob-width) - 8px));
+        }
+
+        /* 4. アクションボタン */
+        .ai-btn {
+            border: none;
+            outline: none;
+            padding: 12px 20px;
+            border-radius: 14px;
+            font-weight: 600;
+            font-size: 14px;
+            color: white;
+            cursor: pointer;
+            background: var(--accent-primary);
+            transition: transform 0.2s, background-color var(--transition-smooth);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            justify-content: center;
+        }
+        .ai-btn:hover {
+            transform: scale(1.02);
+        }
+        .ai-btn:active {
+            background: var(--accent-active);
+            transform: scale(0.96);
+        }
+        .ai-btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-main);
+        }
+        .ai-btn-danger {
+            background: #FF3B30;
+            color: white;
+        }
+
+        /* インプットテキスト */
+        .glass-input-wrapper {
+            margin-bottom: 14px;
+        }
+        .glass-input {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: none;
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            font-size: 14px;
+            font-family: inherit;
+            box-sizing: border-box;
+            transition: background var(--transition-smooth);
+        }
+        .glass-input:focus {
+            outline: 2px solid var(--accent-primary);
+        }
+
+        /* キャンバス用スタイル */
+        .canvas-container-wrapper {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 12px;
+            position: relative;
+        }
+        .editor-canvas {
+            max-width: 100%;
+            max-height: 52vh;
+            object-fit: contain;
+            border-radius: 16px;
+            background-color: #000000;
+            cursor: crosshair;
+            touch-action: none;
+        }
+        .canvas-overlay-info {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            background: rgba(0, 0, 0, 0.6);
+            color: #FFFFFF;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            backdrop-filter: blur(8px);
+            pointer-events: none;
+        }
+
+        /* キャラクターグリッドセレクター (白カード直置き) */
+        .character-selector-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(68px, 1fr));
+            gap: 10px;
+            max-height: 220px;
+            overflow-y: auto;
+            padding: 4px 0;
+        }
+        .character-thumb-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            padding: 8px 4px;
+            border-radius: 14px;
+            transition: transform 0.2s, background-color 0.2s;
+            user-select: none;
+        }
+        .character-thumb-item:active {
+            transform: scale(0.92);
+        }
+        .character-thumb-item.selected {
+            outline: 2px solid var(--accent-primary);
+            background-color: var(--bg-secondary);
+        }
+        .character-thumb-img-box {
+            width: 52px;
+            height: 52px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+        }
+        .character-thumb-img-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        /* UK用トリミングスタイル (472x600 から上部472x472切り出し) */
+        .character-thumb-img-box img.uk-crop {
+            object-fit: cover;
+            object-position: top;
+            height: 127%;
+        }
+        .character-thumb-name {
+            font-size: 10px;
+            font-weight: 600;
+            margin-top: 4px;
+            text-align: center;
+            color: var(--text-main);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 100%;
+        }
+
+        /* フィルターチップス */
+        .filter-chip-row {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            padding: 6px 2px 12px 2px;
+            -webkit-overflow-scrolling: touch;
+        }
+        .filter-chip {
+            flex: 0 0 auto;
+            padding: 10px 16px;
+            border-radius: 16px;
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s var(--m3-easing);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+        .filter-chip.active {
+            background: var(--accent-primary);
+            color: #FFFFFF;
+        }
+
+        /* 下付き固定ナビゲーションバー */
+        .bottom-nav-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 72px;
+            background: var(--nav-bg);
+            border-top: 1px solid var(--bg-secondary);
+            z-index: 500;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding-bottom: env(safe-area-inset-bottom);
+            transition: background-color var(--transition-smooth), border-color var(--transition-smooth);
+        }
+        .nav-item {
+            flex: 1;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-sub);
+            transition: color 0.25s var(--m3-easing);
+            position: relative;
+            gap: 4px;
+        }
+        .nav-item span.material-symbols-outlined {
+            font-size: 24px;
+            font-variation-settings: 'FILL' 0, 'wght' 400;
+            transition: font-variation-settings 0.2s, color 0.2s;
+        }
+        .nav-label {
+            font-size: 10px;
+            font-weight: 600;
+        }
+        .nav-item.active {
+            color: var(--nav-icon-active);
+        }
+        .nav-item.active span.material-symbols-outlined {
+            font-variation-settings: 'FILL' 1, 'wght' 700;
+        }
+
+        /* ビュー切り替え */
+        .view {
+            display: none;
+        }
+        .view.active {
+            display: block;
+            animation: viewIn 0.3s var(--m3-easing);
+        }
+        @keyframes viewIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* プリセットボタンリスト */
+        .preset-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .preset-btn {
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            border: none;
+            padding: 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            transition: background 0.2s, transform 0.1s;
+        }
+        .preset-btn:active {
+            transform: scale(0.97);
+        }
+        .preset-btn.active {
+            background: var(--accent-primary);
+            color: #FFFFFF;
+        }
+
+        /* インタラクション: Jelly/Squishy */
+        @keyframes squishy {
+            0% { transform: scale(1, 1); }
+            30% { transform: scale(1.06, 0.94); }
+            50% { transform: scale(0.97, 1.03); }
+            70% { transform: scale(1.01, 0.99); }
+            100% { transform: scale(1, 1); }
+        }
+        .squish-active {
+            animation: squishy 0.35s var(--m3-easing);
+        }
+
+        /* トースト通知 */
+        .toast {
+            position: fixed;
+            bottom: 84px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--text-main);
+            color: var(--glass-bg);
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s var(--m3-easing);
+            z-index: 2000;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+        }
+        .toast.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* ダイアログ */
+        .dialog-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000; display: flex; align-items: center; justify-content: center;
+            opacity: 0; visibility: hidden; transition: all 0.3s var(--m3-easing);
+        }
+        .dialog-overlay.active { opacity: 1; visibility: visible; }
+        .glass-dialog {
+            background: var(--glass-bg);
+            border-radius: var(--ptz-card-radius);
+            padding: 24px; max-width: 380px; width: 90%; text-align: center;
+            transform: scale(0.9) translateY(20px); transition: all 0.4s var(--m3-easing);
+        }
+        .dialog-overlay.active .glass-dialog { transform: scale(1) translateY(0); }
+
+        .badge {
+            background: var(--accent-primary);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 700;
+            display: inline-block;
+        }
+
+        /* 非表示のファイルインプット */
+        #image-upload-input {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app-viewport">
+        <!-- ヘッダー -->
+        <header>
+            <div class="logo">
+                <span class="material-symbols-outlined" style="color: var(--accent-primary);">auto_awesome</span>
+                画像編集するダス2
+            </div>
+            <div class="header-actions">
+                <button class="ai-btn ai-btn-secondary" style="padding: 8px 12px; font-size: 12px;" onclick="triggerImageUpload()">
+                    <span class="material-symbols-outlined" style="font-size: 18px;">add_photo_alternate</span>
+                    開く
+                </button>
+                <button class="theme-toggle" id="theme-btn" title="テーマ切り替え">
+                    <span class="material-symbols-outlined">light_mode</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- メインコンテンツ -->
+        <main>
+            <!-- 1. メイン編集＆キャンバスビュー -->
+            <section id="view-home" class="view active">
+                <div class="glass-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <div>
+                            <span class="badge" id="current-theme-badge">Xiaomi HyperOS</span>
+                            <span style="font-size: 11px; color: var(--text-sub); margin-left: 6px;" id="canvas-dim-label">1080 x 1080 px</span>
+                        </div>
+                        <button class="ai-btn ai-btn-secondary" style="padding: 6px 12px; font-size: 12px;" onclick="resetCanvasAll()">
+                            <span class="material-symbols-outlined" style="font-size: 16px;">restart_alt</span>
+                            リセット
+                        </button>
+                    </div>
+
+                    <!-- キャンバスエリア -->
+                    <div class="canvas-container-wrapper">
+                        <canvas id="main-canvas" class="editor-canvas" width="1080" height="1080"></canvas>
+                        <div class="canvas-overlay-info" id="canvas-info-tag">画像未読み込み (デフォルトキャンバス)</div>
+                    </div>
+
+                    <input type="file" id="image-upload-input" accept="image/*" onchange="handleImageFileSelect(event)">
+
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px;">
+                        <button class="ai-btn" style="flex: 1;" onclick="triggerImageUpload()">
+                            <span class="material-symbols-outlined">upload</span>
+                            写真を読み込む
+                        </button>
+                        <button class="ai-btn ai-btn-secondary" style="flex: 1;" onclick="switchView('view-export')">
+                            <span class="material-symbols-outlined">download</span>
+                            保存画面へ
+                        </button>
+                    </div>
+                </div>
+
+                <!-- クイックスタンプ・レイヤー情報 (白カード直置き) -->
+                <div class="glass-card">
+                    <h2>配置中のキャラスタンプ (<span id="stamp-count-label">0</span>)</h2>
+                    <p>キャンバス上のキャラスタンプを選択・操作・削除できます。</p>
+                    
+                    <div id="stamp-list-container" class="custom-list">
+                        <div class="list-item" style="color: var(--text-sub); font-size: 13px;">
+                            キャラスタンプが配置されていません。「キャラ追加」タブから選択してください。
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2. 画像調整＆フィルタービュー -->
+            <section id="view-adjust" class="view">
+                <div class="glass-card">
+                    <h2>基本画像調整</h2>
+                    <p>Xiaomi風の滑らかなリアルタイム画像プロセッシングです。</p>
+
+                    <!-- 明るさ -->
+                    <div class="slider-wrapper">
+                        <div class="slider-label-row">
+                            <span>明るさ (Brightness)</span>
+                            <span id="val-brightness">100%</span>
+                        </div>
+                        <div class="thick-slider-container">
+                            <div class="thick-slider-fill" id="slider-brightness-fill" style="width: 50%;"></div>
+                            <input type="range" class="thick-slider-input" min="0" max="200" value="100" oninput="updateAdj('brightness', this.value, '%')">
+                        </div>
+                    </div>
+
+                    <!-- コントラスト -->
+                    <div class="slider-wrapper">
+                        <div class="slider-label-row">
+                            <span>コントラスト (Contrast)</span>
+                            <span id="val-contrast">100%</span>
+                        </div>
+                        <div class="thick-slider-container">
+                            <div class="thick-slider-fill" id="slider-contrast-fill" style="width: 50%;"></div>
+                            <input type="range" class="thick-slider-input" min="0" max="200" value="100" oninput="updateAdj('contrast', this.value, '%')">
+                        </div>
+                    </div>
+
+                    <!-- 彩度 -->
+                    <div class="slider-wrapper">
+                        <div class="slider-label-row">
+                            <span>彩度 (Saturate)</span>
+                            <span id="val-saturate">100%</span>
+                        </div>
+                        <div class="thick-slider-container">
+                            <div class="thick-slider-fill" id="slider-saturate-fill" style="width: 50%;"></div>
+                            <input type="range" class="thick-slider-input" min="0" max="200" value="100" oninput="updateAdj('saturate', this.value, '%')">
+                        </div>
+                    </div>
+
+                    <!-- ぼかし -->
+                    <div class="slider-wrapper">
+                        <div class="slider-label-row">
+                            <span>ぼかし (Blur)</span>
+                            <span id="val-blur">0px</span>
+                        </div>
+                        <div class="thick-slider-container">
+                            <div class="thick-slider-fill" id="slider-blur-fill" style="width: 0%;"></div>
+                            <input type="range" class="thick-slider-input" min="0" max="20" value="0" oninput="updateAdj('blur', this.value, 'px')">
+                        </div>
+                    </div>
+
+                    <!-- 回転・反転 -->
+                    <div style="display: flex; gap: 8px; margin-top: 16px;">
+                        <button class="ai-btn ai-btn-secondary" style="flex: 1;" onclick="rotateImage(-90)">
+                            <span class="material-symbols-outlined">rotate_left</span>
+                            左回転
+                        </button>
+                        <button class="ai-btn ai-btn-secondary" style="flex: 1;" onclick="rotateImage(90)">
+                            <span class="material-symbols-outlined">rotate_right</span>
+                            右回転
+                        </button>
+                        <button class="ai-btn ai-btn-secondary" style="flex: 1;" onclick="toggleFlipHorizontal()">
+                            <span class="material-symbols-outlined">flip</span>
+                            左右反転
+                        </button>
+                    </div>
+                </div>
+
+                <div class="glass-card">
+                    <h2>エフェクトフィルター</h2>
+                    <p>タップで画像全体にプロ品質のカラーフィルターを適用します。</p>
+                    <div class="filter-chip-row">
+                        <div class="filter-chip active" onclick="setPresetFilter('none', this)">
+                            <span class="material-symbols-outlined">auto_fix_normal</span>
+                            ノーマル
+                        </div>
+                        <div class="filter-chip" onclick="setPresetFilter('mono', this)">
+                            <span class="material-symbols-outlined">filter_b_and_w</span>
+                            モノクロ
+                        </div>
+                        <div class="filter-chip" onclick="setPresetFilter('sepia', this)">
+                            <span class="material-symbols-outlined">camera_roll</span>
+                            セピア
+                        </div>
+                        <div class="filter-chip" onclick="setPresetFilter('vintage', this)">
+                            <span class="material-symbols-outlined">style</span>
+                            ビンテージ
+                        </div>
+                        <div class="filter-chip" onclick="setPresetFilter('warm', this)">
+                            <span class="material-symbols-outlined">wb_sunny</span>
+                            ウォーム
+                        </div>
+                        <div class="filter-chip" onclick="setPresetFilter('cool', this)">
+                            <span class="material-symbols-outlined">ac_unit</span>
+                            クール
+                        </div>
+                        <div class="filter-chip" onclick="setPresetFilter('invert', this)">
+                            <span class="material-symbols-outlined">invert_colors</span>
+                            ネガ反転
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. キャラスタンプビュー -->
+            <section id="view-character" class="view">
+                <div class="glass-card">
+                    <h2>キャラスタンプ追加</h2>
+                    <p>国と表情を選んでキャンバスにキャラクターを追加できます（UKは仕様に合わせて上部切り抜き適用済み）。</p>
+
+                    <!-- 国選択 -->
+                    <div style="margin-bottom: 12px;">
+                        <div style="font-weight: 700; font-size: 13px; margin-bottom: 8px;">1. 国を選択:</div>
+                        <div class="preset-grid" id="country-grid">
+                            <!-- JSで動的生成 -->
+                        </div>
+                    </div>
+
+                    <!-- 表情選択 -->
+                    <div style="margin-bottom: 16px;">
+                        <div style="font-weight: 700; font-size: 13px; margin-bottom: 8px;">2. 表情を選択:</div>
+                        <div class="preset-grid" id="emotion-grid">
+                            <!-- JSで動的生成 -->
+                        </div>
+                    </div>
+
+                    <!-- プレビューと追加ボタン -->
+                    <div style="display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--bg-secondary); padding-top: 16px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div class="character-thumb-img-box" style="width: 60px; height: 60px; background: var(--bg-secondary); border-radius: 12px;">
+                                <img id="stamp-preview-img" src="" alt="preview" style="display: none;">
+                            </div>
+                            <div>
+                                <div style="font-weight: 700; font-size: 14px;" id="selected-char-name">japan / happy.png</div>
+                                <div style="font-size: 12px; color: var(--text-sub);">選択中スタンプ</div>
+                            </div>
+                        </div>
+                        <button class="ai-btn" onclick="addSelectedCharacterStamp()">
+                            <span class="material-symbols-outlined">add_circle</span>
+                            スタンプ追加
+                        </button>
+                    </div>
+                </div>
+
+                <!-- スタンプ一覧（カード直置き） -->
+                <div class="glass-card">
+                    <h2>全対応キャラクター一覧</h2>
+                    <p>対応国：12ヶ国 / 表情：10種類</p>
+                    <div class="character-selector-grid" id="all-character-gallery">
+                        <!-- JSで動的追加 -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- 4. テキスト＆ドロー筆描画ビュー -->
+            <section id="view-draw" class="view">
+                <div class="glass-card">
+                    <h2>テキスト文字入れ</h2>
+                    <p>画像の上にカスタムテキストメッセージを追加します。</p>
+                    
+                    <div class="glass-input-wrapper">
+                        <input type="text" class="glass-input" id="text-input-field" placeholder="テキストを入力してください...">
+                    </div>
+
+                    <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+                        <input type="color" id="text-color-picker" value="#3381FF" style="width: 44px; height: 44px; border: none; border-radius: 10px; cursor: pointer; background: transparent;">
+                        <button class="ai-btn" style="flex: 1;" onclick="addTextToCanvas()">
+                            <span class="material-symbols-outlined">title</span>
+                            テキスト追加
+                        </button>
+                    </div>
+                </div>
+
+                <div class="glass-card">
+                    <h2>手書きブラシ・ペン</h2>
+                    <p>キャンバス上に指やマウスで自由にペイント描画します。</p>
+
+                    <div class="toggle-row">
+                        <span>ブラシモード起動</span>
+                        <label class="switch">
+                            <input type="checkbox" id="brush-mode-toggle" onchange="toggleBrushMode(this.checked)">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="slider-wrapper">
+                        <div class="slider-label-row">
+                            <span>ブラシサイズ</span>
+                            <span id="val-brush-size">8px</span>
+                        </div>
+                        <div class="thick-slider-container">
+                            <div class="thick-slider-fill" id="slider-brush-fill" style="width: 25%;"></div>
+                            <input type="range" class="thick-slider-input" min="2" max="50" value="8" oninput="updateThickSlider('slider-brush-fill', 'val-brush-size', this.value, 'px'); brushSize = this.value;">
+                        </div>
+                    </div>
+
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 12px;">
+                        <span style="font-size: 13px; font-weight: 600;">ブラシ色選色</span>
+                        <input type="color" id="brush-color-picker" value="#FF3B30" style="width: 44px; height: 44px; border: none; border-radius: 10px; cursor: pointer; background: transparent;" onchange="brushColor = this.value;">
+                    </div>
+                </div>
+            </section>
+
+            <!-- 5. エクスポート＆保存ビュー -->
+            <section id="view-export" class="view">
+                <div class="glass-card">
+                    <h2>画像の書き出し・保存</h2>
+                    <p>完成した作品を高品質な画像ファイル（PNG / JPEG）としてローカルに保存します。</p>
+
+                    <div class="custom-list">
+                        <div class="list-item">
+                            <div>
+                                <div class="list-item-title">ファイルフォーマット</div>
+                                <div class="list-item-desc">透過保持(PNG) または 軽量(JPEG)</div>
+                            </div>
+                            <select class="glass-input" id="export-format-select" style="width: 110px; padding: 6px 10px;">
+                                <option value="image/png">PNG</option>
+                                <option value="image/jpeg">JPEG</option>
+                            </select>
+                        </div>
+
+                        <div class="list-item">
+                            <div>
+                                <div class="list-item-title">画像クオリティ (JPEG)</div>
+                                <div class="list-item-desc">保存時の圧縮率を調整します</div>
+                            </div>
+                            <div style="width: 120px;">
+                                <div class="thick-slider-container">
+                                    <div class="thick-slider-fill" id="slider-qual-fill" style="width: 90%;"></div>
+                                    <input type="range" class="thick-slider-input" id="export-quality-input" min="10" max="100" value="90" oninput="updateThickSlider('slider-qual-fill', '', this.value, '')">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 20px;">
+                        <button class="ai-btn" style="width: 100%; justify-content: center; padding: 14px;" onclick="downloadEditedImage()">
+                            <span class="material-symbols-outlined" style="font-size: 22px;">download</span>
+                            画像を保存（ダウンロード）
+                        </button>
+                    </div>
+                </div>
+
+                <div class="glass-card">
+                    <h2>アプリ情報</h2>
+                    <p>画像編集するダス2 v2.0 (XiaomiHyperOS Solid Design UI)</p>
+                    <div style="display: flex; flex-direction: column; gap: 8px; font-size: 13px;">
+                        <div style="display: flex; justify-content: space-between;">
+                            <span style="color: var(--text-sub);">UI Engine</span>
+                            <span style="font-weight: 700;">ShowMeUI PTZ Engine</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span style="color: var(--text-sub);">キャラ素材提供</span>
+                            <span style="font-weight: 700;">Polandballhub Operator</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- 下付き固定ナビゲーションバー -->
+        <div class="bottom-nav-container">
+            <div class="nav-item active" data-view="view-home" onclick="switchView('view-home')">
+                <span class="material-symbols-outlined">image</span>
+                <span class="nav-label">ホーム</span>
+            </div>
+            <div class="nav-item" data-view="view-adjust" onclick="switchView('view-adjust')">
+                <span class="material-symbols-outlined">tune</span>
+                <span class="nav-label">調整・効果</span>
+            </div>
+            <div class="nav-item" data-view="view-character" onclick="switchView('view-character')">
+                <span class="material-symbols-outlined">face</span>
+                <span class="nav-label">キャラ追加</span>
+            </div>
+            <div class="nav-item" data-view="view-draw" onclick="switchView('view-draw')">
+                <span class="material-symbols-outlined">draw</span>
+                <span class="nav-label">文字・筆</span>
+            </div>
+            <div class="nav-item" data-view="view-export" onclick="switchView('view-export')">
+                <span class="material-symbols-outlined">save</span>
+                <span class="nav-label">保存</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- トースト通知 -->
+    <div class="toast" id="toast-message">処理が完了しました</div>
+
+    <script>
+        /**
+         * 画像編集するダス2 - Core Logic Script
+         */
+
+        // 国名および表情一覧
+        const COUNTRIES = [
+            'germany', 'japan', 'china', 'italy', 'sierraleone', 
+            'russia', 'france', 'poland', 'england472x600', 'usa', 'korea', 'austria'
+        ];
+
+        const EMOTIONS = [
+            'anger.png', 'dissatisfaction.png', 'happy.png', 'itome.png', 
+            'lol.png', 'normal.png', 'plot.png', 'sample.png', 'smile.png', 'surprise.png'
+        ];
+
+        const BASE_CHAR_URL = 'https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/';
+
+        // アプリケーション状態
+        let selectedCountry = 'japan';
+        let selectedEmotion = 'happy.png';
+        
+        let canvas, ctx;
+        let baseImage = null; // ユーザーが読み込んだ背景画像
+        
+        // 画像パラメータ
+        let imgAdjustments = {
+            brightness: 100,
+            contrast: 100,
+            saturate: 100,
+            blur: 0,
+            rotation: 0,
+            flipH: false,
+            filterPreset: 'none'
+        };
+
+        // スタンプ・テキストレイヤー管理
+        let stampLayers = []; // { id, type: 'stamp'|'text', imgElement, x, y, size, rotation, country, emotion, text, color }
+        let selectedStampIndex = -1;
+
+        // 手書きブラシ用
+        let isBrushMode = false;
+        let isDrawing = false;
+        let brushSize = 8;
+        let brushColor = '#FF3B30';
+        let strokePaths = []; // 手書きパス情報 [{color, size, points:[{x,y}]}]
+        let currentPath = null;
+
+        // UIコントロール
+        const toast = document.getElementById('toast-message');
+
+        window.onload = () => {
+            canvas = document.getElementById('main-canvas');
+            ctx = canvas.getContext('2d');
+
+            // 初期の空キャンバス描画
+            drawCanvas();
+
+            // キャラクター選択グリッドの作成
+            initCharacterSelectorUI();
+
+            // イベントリスナーの登録
+            setupCanvasInteraction();
+
+            // 初期スライダー位置設定
+            updateThickSlider('slider-brightness-fill', 'val-brightness', 100, '%');
+            updateThickSlider('slider-contrast-fill', 'val-contrast', 100, '%');
+            updateThickSlider('slider-saturate-fill', 'val-saturate', 100, '%');
+            updateThickSlider('slider-blur-fill', 'val-blur', 0, 'px');
+            updateThickSlider('slider-brush-fill', 'val-brush-size', 8, 'px');
+            updateThickSlider('slider-qual-fill', '', 90, '');
+        };
+
+        function getCharImageUrl(country, emotion) {
+            return `${BASE_CHAR_URL}${country}/${emotion}`;
+        }
+
+        function initCharacterSelectorUI() {
+            const countryGrid = document.getElementById('country-grid');
+            const emotionGrid = document.getElementById('emotion-grid');
+            const gallery = document.getElementById('all-character-gallery');
+
+            // 国ボタン生成
+            countryGrid.innerHTML = '';
+            COUNTRIES.forEach(c => {
+                const btn = document.createElement('button');
+                btn.className = `preset-btn ${c === selectedCountry ? 'active' : ''}`;
+                btn.textContent = c === 'england472x600' ? 'UK (england)' : c;
+                btn.onclick = () => {
+                    document.querySelectorAll('#country-grid .preset-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    selectedCountry = c;
+                    updateStampPreview();
+                };
+                countryGrid.appendChild(btn);
+            });
+
+            // 表情ボタン生成
+            emotionGrid.innerHTML = '';
+            EMOTIONS.forEach(e => {
+                const name = e.replace('.png', '');
+                const btn = document.createElement('button');
+                btn.className = `preset-btn ${e === selectedEmotion ? 'active' : ''}`;
+                btn.textContent = name;
+                btn.onclick = () => {
+                    document.querySelectorAll('#emotion-grid .preset-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    selectedEmotion = e;
+                    updateStampPreview();
+                };
+                emotionGrid.appendChild(btn);
+            });
+
+            // ギャラリー作成（一部ピックアップ表示）
+            gallery.innerHTML = '';
+            COUNTRIES.forEach(c => {
+                const thumb = document.createElement('div');
+                thumb.className = 'character-thumb-item';
+                const url = getCharImageUrl(c, 'happy.png');
+                const isUK = (c === 'england472x600');
+
+                thumb.innerHTML = `
+                    <div class="character-thumb-img-box">
+                        <img src="${url}" class="${isUK ? 'uk-crop' : ''}" alt="${c}" onerror="this.src='https://placehold.co/100x100/3381FF/FFFFFF?text=${c}'">
+                    </div>
+                    <div class="character-thumb-name">${c === 'england472x600' ? 'UK' : c}</div>
+                `;
+                thumb.onclick = () => {
+                    selectedCountry = c;
+                    selectedEmotion = 'happy.png';
+                    addSelectedCharacterStamp();
+                };
+                gallery.appendChild(thumb);
+            });
+
+            updateStampPreview();
+        }
+
+        function updateStampPreview() {
+            const previewImg = document.getElementById('stamp-preview-img');
+            const charNameLabel = document.getElementById('selected-char-name');
+            const url = getCharImageUrl(selectedCountry, selectedEmotion);
+
+            previewImg.style.display = 'block';
+            previewImg.src = url;
+            if (selectedCountry === 'england472x600') {
+                previewImg.className = 'uk-crop';
+            } else {
+                previewImg.className = '';
+            }
+
+            charNameLabel.textContent = `${selectedCountry === 'england472x600' ? 'UK' : selectedCountry} / ${selectedEmotion}`;
+        }
+
+        function drawCanvas() {
+            if (!ctx) return;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 1. 背景またはメイン画像の描画
+            ctx.save();
+            if (baseImage) {
+                // 画像調整（明るさ・コントラスト等）の適用
+                ctx.filter = `brightness(${imgAdjustments.brightness}%) contrast(${imgAdjustments.contrast}%) saturate(${imgAdjustments.saturate}%) blur(${imgAdjustments.blur}px) ${getPresetFilterString()}`;
+                
+                // 変形（回転・反転）
+                ctx.translate(canvas.width / 2, canvas.height / 2);
+                ctx.rotate((imgAdjustments.rotation * Math.PI) / 180);
+                ctx.scale(imgAdjustments.flipH ? -1 : 1, 1);
+
+                // アスペクト比を維持して中央描画
+                const hRatio = canvas.width / baseImage.width;
+                const vRatio = canvas.height / baseImage.height;
+                const ratio = Math.min(hRatio, vRatio);
+                const centerShiftX = (canvas.width - baseImage.width * ratio) / 2;
+                const centerShiftY = (canvas.height - baseImage.height * ratio) / 2;
+
+                ctx.drawImage(baseImage, 0, 0, baseImage.width, baseImage.height,
+                             -canvas.width/2 + centerShiftX, -canvas.height/2 + centerShiftY,
+                             baseImage.width * ratio, baseImage.height * ratio);
+            } else {
+                // デフォルト背景
+                ctx.fillStyle = '#1A1A1E';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // 中央の案内文字
+                ctx.fillStyle = '#666666';
+                ctx.font = 'bold 36px "Plus Jakarta Sans", sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('「写真を読み込む」ボタンから画像を選択', canvas.width / 2, canvas.height / 2);
+            }
+            ctx.restore();
+
+            // 2. 手書きストローク描画
+            ctx.save();
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            strokePaths.forEach(path => {
+                if (path.points.length < 2) return;
+                ctx.strokeStyle = path.color;
+                ctx.lineWidth = path.size;
+                ctx.beginPath();
+                ctx.moveTo(path.points[0].x, path.points[0].y);
+                for (let i = 1; i < path.points.length; i++) {
+                    ctx.lineTo(path.points[i].x, path.points[i].y);
+                }
+                ctx.stroke();
+            });
+            ctx.restore();
+
+            // 3. キャラスタンプ＆テキスト描画
+            stampLayers.forEach((layer, index) => {
+                ctx.save();
+                ctx.translate(layer.x, layer.y);
+                ctx.rotate((layer.rotation * Math.PI) / 180);
+
+                if (layer.type === 'stamp') {
+                    const drawSize = layer.size || 200;
+                    
+                    // UK (england472x600) の処理: 縦600の上から472を切り抜いて472x472正方形として扱う
+                    if (layer.country === 'england472x600') {
+                        ctx.drawImage(
+                            layer.imgElement,
+                            0, 0, layer.imgElement.naturalWidth || 472, 472, // ソース (上部472px)
+                            -drawSize / 2, -drawSize / 2, drawSize, drawSize   // デスティネーション
+                        );
+                    } else {
+                        ctx.drawImage(
+                            layer.imgElement,
+                            -drawSize / 2, -drawSize / 2, drawSize, drawSize
+                        );
+                    }
+
+                    // 選択枠表示
+                    if (index === selectedStampIndex) {
+                        ctx.strokeStyle = '#3381FF';
+                        ctx.lineWidth = 4;
+                        ctx.strokeRect(-drawSize / 2 - 4, -drawSize / 2 - 4, drawSize + 8, drawSize + 8);
+                    }
+                } else if (layer.type === 'text') {
+                    ctx.font = `bold ${layer.size}px "Plus Jakarta Sans", sans-serif`;
+                    ctx.fillStyle = layer.color || '#3381FF';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(layer.text, 0, 0);
+
+                    // 選択枠
+                    if (index === selectedStampIndex) {
+                        const metrics = ctx.measureText(layer.text);
+                        const w = metrics.width + 20;
+                        const h = layer.size + 20;
+                        ctx.strokeStyle = '#3381FF';
+                        ctx.lineWidth = 3;
+                        ctx.strokeRect(-w/2, -h/2, w, h);
+                    }
+                }
+
+                ctx.restore();
+            });
+        }
+
+        function getPresetFilterString() {
+            switch(imgAdjustments.filterPreset) {
+                case 'mono': return 'grayscale(100%)';
+                case 'sepia': return 'sepia(100%)';
+                case 'vintage': return 'sepia(50%) hue-rotate(-30deg)';
+                case 'warm': return 'sepia(30%) saturate(140%)';
+                case 'cool': return 'hue-rotate(180deg) saturate(120%)';
+                case 'invert': return 'invert(100%)';
+                default: return '';
+            }
+        }
+
+        function setPresetFilter(preset, element) {
+            document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+            element.classList.add('active');
+            imgAdjustments.filterPreset = preset;
+            drawCanvas();
+            showToast(`フィルター: ${preset} を適用しました`);
+        }
+
+        function triggerImageUpload() {
+            document.getElementById('image-upload-input').click();
+        }
+
+        function handleImageFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    baseImage = img;
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    document.getElementById('canvas-dim-label').textContent = `${img.width} x ${img.height} px`;
+                    document.getElementById('canvas-info-tag').textContent = `画像ロード完了 (${file.name})`;
+                    drawCanvas();
+                    showToast('画像を読み込みました！');
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function addSelectedCharacterStamp() {
+            const url = getCharImageUrl(selectedCountry, selectedEmotion);
+            showToast('キャラクターをダウンロード・配置中...');
+
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = () => {
+                const newStamp = {
+                    id: Date.now(),
+                    type: 'stamp',
+                    imgElement: img,
+                    x: canvas.width / 2,
+                    y: canvas.height / 2,
+                    size: Math.min(canvas.width, canvas.height) * 0.35,
+                    rotation: 0,
+                    country: selectedCountry,
+                    emotion: selectedEmotion
+                };
+                stampLayers.push(newStamp);
+                selectedStampIndex = stampLayers.length - 1;
+                updateStampListUI();
+                drawCanvas();
+                showToast(`キャラ「${selectedCountry === 'england472x600' ? 'UK' : selectedCountry}」を配置しました`);
+            };
+            img.onerror = () => {
+                showToast('画像の読み込みに失敗しました');
+            };
+            img.src = url;
+        }
+
+        function updateStampListUI() {
+            const container = document.getElementById('stamp-list-container');
+            document.getElementById('stamp-count-label').textContent = stampLayers.length;
+
+            if (stampLayers.length === 0) {
+                container.innerHTML = `<div class="list-item" style="color: var(--text-sub); font-size: 13px;">キャラスタンプが配置されていません。</div>`;
+                return;
+            }
+
+            container.innerHTML = '';
+            stampLayers.forEach((item, index) => {
+                const row = document.createElement('div');
+                row.className = 'list-item';
+                
+                const title = item.type === 'stamp' 
+                    ? `キャラ: ${item.country === 'england472x600' ? 'UK' : item.country}` 
+                    : `テキスト: "${item.text}"`;
+
+                row.innerHTML = `
+                    <div>
+                        <div class="list-item-title">${title}</div>
+                        <div class="list-item-desc">サイズ: ${Math.round(item.size)}px</div>
+                    </div>
+                    <div style="display: flex; gap: 6px;">
+                        <button class="ai-btn ai-btn-secondary" style="padding: 4px 8px; font-size: 11px;" onclick="removeStamp(${index})">削除</button>
+                    </div>
+                `;
+                container.appendChild(row);
+            });
+        }
+
+        function removeStamp(index) {
+            stampLayers.splice(index, 1);
+            selectedStampIndex = -1;
+            updateStampListUI();
+            drawCanvas();
+            showToast('スタンプを削除しました');
+        }
+
+        function setupCanvasInteraction() {
+            let isDragging = false;
+            let startX, startY;
+
+            const getCanvasCoords = (e) => {
+                const rect = canvas.getBoundingClientRect();
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                return {
+                    x: (clientX - rect.left) * scaleX,
+                    y: (clientY - rect.top) * scaleY
+                };
+            };
+
+            const onStart = (e) => {
+                const coords = getCanvasCoords(e);
+                startX = coords.x;
+                startY = coords.y;
+
+                if (isBrushMode) {
+                    isDrawing = true;
+                    currentPath = {
+                        color: brushColor,
+                        size: brushSize * (canvas.width / 1000),
+                        points: [{ x: startX, y: startY }]
+                    };
+                    strokePaths.push(currentPath);
+                    return;
+                }
+
+                // スタンプのクリック判定 (後ろのスタンプから優先)
+                selectedStampIndex = -1;
+                for (let i = stampLayers.length - 1; i >= 0; i--) {
+                    const layer = stampLayers[i];
+                    const half = layer.size / 2;
+                    if (coords.x >= layer.x - half && coords.x <= layer.x + half &&
+                        coords.y >= layer.y - half && coords.y <= layer.y + half) {
+                        selectedStampIndex = i;
+                        isDragging = true;
+                        break;
+                    }
+                }
+                drawCanvas();
+            };
+
+            const onMove = (e) => {
+                const coords = getCanvasCoords(e);
+
+                if (isBrushMode && isDrawing && currentPath) {
+                    currentPath.points.push({ x: coords.x, y: coords.y });
+                    drawCanvas();
+                    return;
+                }
+
+                if (isDragging && selectedStampIndex >= 0) {
+                    const dx = coords.x - startX;
+                    const dy = coords.y - startY;
+                    stampLayers[selectedStampIndex].x += dx;
+                    stampLayers[selectedStampIndex].y += dy;
+                    startX = coords.x;
+                    startY = coords.y;
+                    drawCanvas();
+                }
+            };
+
+            const onEnd = () => {
+                isDragging = false;
+                isDrawing = false;
+                currentPath = null;
+            };
+
+            canvas.addEventListener('mousedown', onStart);
+            canvas.addEventListener('mousemove', onMove);
+            window.addEventListener('mouseup', onEnd);
+
+            canvas.addEventListener('touchstart', onStart, { passive: false });
+            canvas.addEventListener('touchmove', onMove, { passive: false });
+            window.addEventListener('touchend', onEnd);
+        }
+
+        function addTextToCanvas() {
+            const input = document.getElementById('text-input-field');
+            const val = input.value.trim();
+            if (!val) {
+                showToast('テキストを入力してください');
+                return;
+            }
+
+            const newText = {
+                id: Date.now(),
+                type: 'text',
+                text: val,
+                x: canvas.width / 2,
+                y: canvas.height / 2,
+                size: Math.min(canvas.width, canvas.height) * 0.08,
+                rotation: 0,
+                color: document.getElementById('text-color-picker').value
+            };
+
+            stampLayers.push(newText);
+            selectedStampIndex = stampLayers.length - 1;
+            input.value = '';
+            updateStampListUI();
+            drawCanvas();
+            showToast('テキストを追加しました');
+        }
+
+        function toggleBrushMode(enabled) {
+            isBrushMode = enabled;
+            canvas.style.cursor = enabled ? 'crosshair' : 'default';
+            showToast(enabled ? 'ブラシ描画モード: ON' : 'ブラシ描画モード: OFF');
+        }
+
+        function updateAdj(type, val, unit) {
+            imgAdjustments[type] = parseFloat(val);
+            const fillId = `slider-${type}-fill`;
+            const labelId = `val-${type}`;
+            updateThickSlider(fillId, labelId, val, unit);
+            drawCanvas();
+        }
+
+        function rotateImage(deg) {
+            imgAdjustments.rotation = (imgAdjustments.rotation + deg) % 360;
+            drawCanvas();
+        }
+
+        function toggleFlipHorizontal() {
+            imgAdjustments.flipH = !imgAdjustments.flipH;
+            drawCanvas();
+        }
+
+        function resetCanvasAll() {
+            imgAdjustments = { brightness: 100, contrast: 100, saturate: 100, blur: 0, rotation: 0, flipH: false, filterPreset: 'none' };
+            stampLayers = [];
+            strokePaths = [];
+            selectedStampIndex = -1;
+            updateStampListUI();
+            drawCanvas();
+            showToast('キャンバスをリセットしました');
+        }
+
+        function downloadEditedImage() {
+            // 一時的に選択枠を消して描画
+            const tempIndex = selectedStampIndex;
+            selectedStampIndex = -1;
+            drawCanvas();
+
+            const format = document.getElementById('export-format-select').value;
+            const quality = parseFloat(document.getElementById('export-quality-input').value) / 100;
+            const dataUrl = canvas.toDataURL(format, quality);
+
+            const downloadLink = document.createElement('a');
+            const ext = format === 'image/jpeg' ? 'jpg' : 'png';
+            downloadLink.download = `edited_das2_${Date.now()}.${ext}`;
+            downloadLink.href = dataUrl;
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            downloadLink.remove();
+
+            // 選択状態を復元
+            selectedStampIndex = tempIndex;
+            drawCanvas();
+
+            showToast('画像を保存・ダウンロードしました！');
+        }
+
+        function updateThickSlider(fillId, labelId, val, unit) {
+            const label = document.getElementById(labelId);
+            const fill = document.getElementById(fillId);
+            if (label) label.textContent = `${val}${unit}`;
+            
+            if (fill) {
+                const input = fill.nextElementSibling;
+                if (input) {
+                    const min = parseFloat(input.min) || 0;
+                    const max = parseFloat(input.max) || 100;
+                    const percent = ((val - min) / (max - min)) * 100;
+                    fill.style.width = `${percent}%`;
+                }
+            }
+        }
+
+        // ビュー切り替え機構
+        const navItems = document.querySelectorAll('.nav-item');
+        const views = document.querySelectorAll('.view');
+
+        function switchView(viewId) {
+            navItems.forEach(n => {
+                n.classList.remove('active');
+                if (n.getAttribute('data-view') === viewId) {
+                    n.classList.add('active');
+                }
+            });
+
+            views.forEach(v => {
+                v.classList.remove('active');
+                if (v.id === viewId) {
+                    v.classList.add('active');
+                }
+            });
+        }
+
+        // トースト表示
+        function showToast(msg) {
+            toast.textContent = msg;
+            toast.classList.add('active');
+            setTimeout(() => {
+                toast.classList.remove('active');
+            }, 2300);
+        }
+
+        // テーマ切替
+        const themeBtn = document.getElementById('theme-btn');
+        const themeIcon = themeBtn.querySelector('span');
+
+        function setTheme(isDark) {
+            document.body.classList.toggle('dark-mode', isDark);
+            themeIcon.textContent = isDark ? 'dark_mode' : 'light_mode';
+        }
+
+        themeBtn.addEventListener('click', () => {
+            setTheme(!document.body.classList.contains('dark-mode'));
+        });
+
+        // タッチ/クリックバウンド効果
+        document.addEventListener('mousedown', (e) => {
+            const target = e.target.closest('.glass-card, .ai-btn, .nav-item, .preset-btn');
+            if (target) {
+                target.classList.remove('squish-active');
+                void target.offsetWidth;
+                target.classList.add('squish-active');
+                setTimeout(() => target.classList.remove('squish-active'), 350);
+            }
+        });
+    </script>
+</body>
+</html>
