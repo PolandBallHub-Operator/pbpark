@@ -1,1 +1,1502 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" id="theme-color-meta" content="#f6f2f7">
+    <title>FilesPrint - 工作・デカール印刷スタジオ</title>
 
+    <!-- Google Sans Flex & Material Symbols Outlined -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wdth,wght,GRAD,ROND@6..144,87.5,1..1000,100,100&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+
+    <!-- PDF.js for rendering PDF files into canvas/printable images -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+    <!-- Import Map for Material Web Components & Material Color Utilities -->
+    <script type="importmap">
+    {
+        "imports": {
+            "@material/web/": "https://esm.run/@material/web/",
+            "@material/material-color-utilities": "https://esm.run/@material/material-color-utilities"
+        }
+    }
+    </script>
+
+    <style>
+        :root {
+            /* M3 Dynamic Tokens */
+            --md-sys-color-primary: #6750a4;
+            --md-sys-color-on-primary: #ffffff;
+            --md-sys-color-primary-container: #eaddff;
+            --md-sys-color-on-primary-container: #21005d;
+            --md-sys-color-secondary: #625b71;
+            --md-sys-color-on-secondary: #ffffff;
+            --md-sys-color-secondary-container: #e8def8;
+            --md-sys-color-on-secondary-container: #1d192b;
+            --md-sys-color-tertiary: #7d5260;
+            --md-sys-color-on-tertiary: #ffffff;
+            --md-sys-color-tertiary-container: #ffd8e4;
+            --md-sys-color-on-tertiary-container: #31111d;
+            --md-sys-color-error: #b3261e;
+            --md-sys-color-on-error: #ffffff;
+            --md-sys-color-error-container: #f9dedc;
+            --md-sys-color-on-error-container: #410e0b;
+            --md-sys-color-background: #f6f2f7;
+            --md-sys-color-on-background: #1c1b1f;
+            --md-sys-color-surface: #fffbfe;
+            --md-sys-color-on-surface: #1c1b1f;
+            --md-sys-color-surface-variant: #e7e0ec;
+            --md-sys-color-on-surface-variant: #49454f;
+            --md-sys-color-surface-container-lowest: #ffffff;
+            --md-sys-color-surface-container-low: #f7f2fa;
+            --md-sys-color-surface-container: #f3edf7;
+            --md-sys-color-surface-container-high: #ece6f0;
+            --md-sys-color-surface-container-highest: #e6e0e9;
+            --md-sys-color-outline: #79747e;
+            --md-sys-color-outline-variant: #c4c7c5;
+            --md-sys-color-inverse-surface: #313033;
+            --md-sys-color-inverse-on-surface: #f4f0f4;
+            --md-sys-color-inverse-primary: #d0bcff;
+
+            /* Expressive Google Sans Flex Font Settings */
+            --md-ref-typeface-brand: 'Google Sans Flex', sans-serif;
+            --md-ref-typeface-plain: 'Google Sans Flex', sans-serif;
+
+            /* Motion Duration */
+            --transition-duration: 0.35s;
+            --m3-easing-standard: cubic-bezier(0.2, 0, 0, 1);
+            --m3-easing-emphasized: cubic-bezier(0.3, 0, 0, 1);
+
+            /* MWC Component Design Token Mappings */
+            --md-elevated-button-container-color: var(--md-sys-color-surface-container-low);
+            --md-elevated-button-label-text-color: var(--md-sys-color-primary);
+            
+            --md-filled-text-field-container-color: var(--md-sys-color-surface-container-highest);
+            --md-filled-text-field-input-text-color: var(--md-sys-color-on-surface);
+            --md-filled-text-field-label-text-color: var(--md-sys-color-on-surface-variant);
+            --md-filled-text-field-active-indicator-color: var(--md-sys-color-primary);
+
+            --md-outlined-text-field-outline-color: var(--md-sys-color-outline);
+            --md-outlined-text-field-focus-outline-color: var(--md-sys-color-primary);
+            --md-outlined-text-field-input-text-color: var(--md-sys-color-on-surface);
+
+            /* Switch Off / On colors */
+            --md-switch-unselected-track-color: var(--md-sys-color-surface-container-highest);
+            --md-switch-unselected-handle-color: var(--md-sys-color-outline);
+            --md-switch-unselected-icon-color: var(--md-sys-color-surface-container-highest);
+            --md-switch-selected-track-color: var(--md-sys-color-primary);
+            --md-switch-selected-handle-color: var(--md-sys-color-on-primary);
+            --md-switch-selected-icon-color: var(--md-sys-color-primary-container);
+
+            /* Slider tracks */
+            --md-slider-active-track-color: var(--md-sys-color-primary);
+            --md-slider-inactive-track-color: var(--md-sys-color-surface-container-highest);
+            --md-slider-handle-color: var(--md-sys-color-primary);
+
+            /* Menus, Selects & Dialogs */
+            --md-menu-container-color: var(--md-sys-color-surface-container-high);
+            --md-dialog-container-color: var(--md-sys-color-surface-container-high);
+            --md-filled-select-container-color: var(--md-sys-color-surface-container-highest);
+            --md-outlined-select-outline-color: var(--md-sys-color-outline);
+            --md-select-option-container-color: var(--md-sys-color-surface-container-high);
+        }
+
+        *, *::before, *::after {
+            font-family: "Google Sans Flex", sans-serif;
+            font-optical-sizing: auto;
+            font-style: normal;
+            font-variation-settings:
+                "slnt" 0,
+                "wdth" 87.5,
+                "GRAD" 100,
+                "ROND" 100;
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--md-sys-color-surface-container-low);
+            color: var(--md-sys-color-on-background);
+            transition: background-color var(--transition-duration), color var(--transition-duration);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body.dark-mode {
+            background-color: var(--md-sys-color-background);
+        }
+
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            height: 64px;
+            padding: 0 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background-color: transparent;
+            border-bottom: none;
+            box-shadow: none;
+        }
+
+        .top-bar-title-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .app-logo-img {
+            width: 32px;
+            height: 32px;
+            object-fit: contain;
+            border-radius: 8px;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+            color: var(--md-sys-color-on-background);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Circular M3 Back Button Style */
+        .m3-circle-back-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: var(--md-sys-color-secondary-container);
+            color: var(--md-sys-color-on-secondary-container);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border: none;
+            outline: none;
+            transition: background-color 0.2s var(--m3-easing-standard), transform 0.2s var(--m3-easing-standard);
+        }
+
+        .m3-circle-back-btn:hover { opacity: 0.9; }
+        .m3-circle-back-btn:active { transform: scale(0.92); }
+        .m3-circle-back-btn.hidden { display: none !important; }
+
+        .floating-nav-container {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            width: auto;
+            max-width: 95vw;
+        }
+
+        .custom-nav {
+            display: flex;
+            align-items: center;
+            background-color: var(--md-sys-color-surface);
+            padding: 8px;
+            border-radius: 36px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+            border: none;
+            transition: all 0.4s var(--m3-easing-emphasized);
+        }
+
+        body.dark-mode .custom-nav {
+            background-color: var(--md-sys-color-surface-container-high);
+        }
+
+        .nav-item {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-width: 72px;
+            height: 48px;
+            cursor: pointer;
+            border-radius: 24px;
+            transition: all 0.2s var(--m3-easing-standard);
+        }
+
+        .nav-icon-container {
+            width: 52px;
+            height: 32px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 20px;
+            transition: background-color 0.3s var(--m3-easing-standard);
+        }
+
+        .nav-item .material-symbols-outlined {
+            font-size: 24px;
+            font-variation-settings: 'FILL' 0, 'wght' 400;
+            color: var(--md-sys-color-on-surface-variant);
+        }
+
+        .nav-item.active .nav-icon-container {
+            background-color: var(--md-sys-color-secondary-container);
+        }
+
+        .nav-item.active .material-symbols-outlined {
+            font-variation-settings: 'FILL' 1;
+            color: var(--md-sys-color-on-secondary-container);
+        }
+
+        @media (min-width: 900px) {
+            .floating-nav-container {
+                left: 24px;
+                bottom: auto;
+                top: 50%;
+                transform: translateY(-50%);
+            }
+            .custom-nav {
+                flex-direction: column;
+                border-radius: 32px;
+                padding: 12px 8px;
+            }
+            .nav-item { margin: 4px 0; }
+            body { margin-left: 100px; }
+        }
+
+        main {
+            flex: 1;
+            padding: 16px 16px 120px 16px;
+            max-width: 1100px;
+            margin: 0 auto;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .view-section {
+            display: none;
+            animation: m3-expressive-in 0.35s var(--m3-easing-emphasized) forwards;
+        }
+        .view-section.active { display: block; }
+
+        @keyframes m3-expressive-in {
+            from { opacity: 0; transform: scale(0.97) translateY(8px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        /* Solid Expressive Cards */
+        .solid-card {
+            background-color: var(--md-sys-color-surface);
+            border-radius: 28px;
+            padding: 24px;
+            margin-bottom: 20px;
+            border: none !important;
+            box-shadow: none !important;
+            transition: background-color 0.3s var(--m3-easing-standard);
+        }
+
+        body.dark-mode .solid-card {
+            background-color: var(--md-sys-color-surface-container);
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: var(--md-sys-color-primary);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .sub-activity-card {
+            background-color: var(--md-sys-color-surface-container-high);
+            border-radius: 24px;
+            padding: 20px;
+            margin-top: 16px;
+        }
+
+        md-filled-button, md-elevated-button, md-outlined-button, md-filled-tonal-button, md-text-button {
+            --md-filled-button-container-shape: 20px;
+            margin: 4px;
+            font-weight: 600;
+        }
+
+        md-outlined-text-field, md-filled-text-field, md-filled-select, md-outlined-select {
+            width: 100%;
+            margin-bottom: 16px;
+        }
+
+        md-slider { width: 100%; }
+
+        .badge-craft {
+            background-color: var(--md-sys-color-tertiary-container);
+            color: var(--md-sys-color-on-tertiary-container);
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Printable Paper Viewport Container */
+        .paper-viewport {
+            background-color: var(--md-sys-color-surface-container-highest);
+            border-radius: 24px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            overflow: auto;
+            position: relative;
+            min-height: 540px;
+        }
+
+        /* Paper Base Element - Dynamic Size Sheet */
+        .printable-paper {
+            background-color: #ffffff;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+            color: #000000;
+            position: relative;
+            box-sizing: border-box;
+            padding: 0;
+            margin: 0 auto;
+            transform-origin: top center;
+            transition: width 0.3s ease, min-height 0.3s ease, transform 0.3s ease;
+            overflow: hidden;
+            border: 1px solid #dcdcdc;
+            /* Default A4 Dimensions */
+            width: 210mm;
+            min-height: 297mm;
+        }
+
+        .paper-scaled {
+            transform: scale(0.6);
+            margin-bottom: -110mm;
+        }
+
+        @media (max-width: 600px) {
+            .paper-scaled {
+                transform: scale(0.38);
+                margin-bottom: -180mm;
+            }
+        }
+
+        /* Grid Overlay on Paper for Crafting & Decals */
+        .paper-grid {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                linear-gradient(to right, rgba(0, 100, 255, 0.1) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(0, 100, 255, 0.1) 1px, transparent 1px);
+            background-size: 10mm 10mm;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .paper-content-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 2;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Studio Interactive Draggable Items Placed inside Paper */
+        .studio-item-wrapper {
+            position: absolute;
+            cursor: grab;
+            border: 2px dashed transparent;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+            display: inline-block;
+            touch-action: none !important; /* Disables page scroll interference */
+            user-select: none !important;
+            -webkit-user-select: none !important;
+            box-sizing: border-box;
+            will-change: left, top;
+        }
+
+        .studio-item-wrapper:hover {
+            border-color: var(--md-sys-color-outline-variant);
+        }
+
+        .studio-item-wrapper.selected {
+            border-color: var(--md-sys-color-primary);
+            box-shadow: 0 0 0 2px rgba(103, 80, 164, 0.4);
+            z-index: 10;
+        }
+
+        .studio-item-wrapper.dragging {
+            cursor: grabbing !important;
+            opacity: 0.88;
+            z-index: 100 !important;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+            border-style: solid;
+            transition: none !important; /* Ensures instantaneous pointer movement */
+        }
+
+        .studio-item-wrapper img {
+            width: 100%;
+            height: 100%;
+            display: block;
+            object-fit: contain;
+            pointer-events: none !important;
+            user-select: none !important;
+            -webkit-user-drag: none !important;
+        }
+
+        /* Item Coordinates Badge Overlay */
+        .item-coord-badge {
+            position: absolute;
+            top: -20px;
+            left: 0;
+            background-color: var(--md-sys-color-primary);
+            color: var(--md-sys-color-on-primary);
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 6px;
+            white-space: nowrap;
+            pointer-events: none;
+            display: none;
+        }
+
+        .studio-item-wrapper.selected .item-coord-badge,
+        .studio-item-wrapper.dragging .item-coord-badge {
+            display: block;
+        }
+
+        /* Desktop UI Layout Enhancements */
+        body.pro-desktop-mode main {
+            max-width: 1400px;
+        }
+
+        body.pro-desktop-mode .studio-layout-grid {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 20px;
+            align-items: start;
+        }
+
+        .file-drop-zone {
+            border: 2px dashed var(--md-sys-color-outline);
+            border-radius: 20px;
+            padding: 32px 16px;
+            text-align: center;
+            background-color: var(--md-sys-color-surface-container-low);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .file-drop-zone:hover {
+            border-color: var(--md-sys-color-primary);
+            background-color: var(--md-sys-color-surface-container);
+        }
+
+        /* System Print Styles Rules */
+        @media print {
+            @page {
+                margin: 0;
+            }
+            header, .floating-nav-container, .no-print, md-fab {
+                display: none !important;
+            }
+            body {
+                background: white !important;
+                color: black !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+            main {
+                max-width: none !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            .paper-viewport {
+                background: none !important;
+                padding: 0 !important;
+                overflow: visible !important;
+            }
+            .printable-paper {
+                transform: none !important;
+                box-shadow: none !important;
+                border: none !important;
+                margin: 0 !important;
+                page-break-after: always;
+            }
+            .paper-grid {
+                display: none !important;
+            }
+            .studio-item-wrapper {
+                border: none !important;
+                box-shadow: none !important;
+            }
+            .item-coord-badge {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="top-bar-title-container">
+            <button id="top-bar-back-btn" class="m3-circle-back-btn hidden" onclick="window.goBack()" aria-label="戻る">
+                <span class="material-symbols-outlined">chevron_left</span>
+            </button>
+            <md-icon-button id="top-bar-icon-main">
+                <img src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbpark/refs/heads/main/tools/print/file.png" class="app-logo-img" alt="FilesPrint Logo" onerror="this.src='https://placehold.co/64x64/6750a4/ffffff?text=FP'">
+            </md-icon-button>
+            <h1 id="top-bar-title">FilesPrint</h1>
+        </div>
+        <div style="display:flex; align-items:center; position:relative;">
+            <input type="color" id="source-color-picker" value="#6750a4" style="width:0; height:0; visibility:hidden; position:absolute;">
+            <md-icon-button onclick="document.getElementById('source-color-picker').click()" title="テーマ色選択">
+                <span class="material-symbols-outlined">palette</span>
+            </md-icon-button>
+            <md-icon-button onclick="window.toggleDarkMode()" title="ダークモード切り替え">
+                <span class="material-symbols-outlined" id="theme-icon">dark_mode</span>
+            </md-icon-button>
+            
+            <md-icon-button id="overflow-menu-anchor" onclick="document.getElementById('overflow-menu').open = !document.getElementById('overflow-menu').open">
+                <span class="material-symbols-outlined">more_vert</span>
+            </md-icon-button>
+
+            <md-menu id="overflow-menu" anchor="overflow-menu-anchor">
+                <md-menu-item onclick="window.updateTheme('#6750a4')">
+                    <div slot="headline">クラフトパープル</div>
+                </md-menu-item>
+                <md-menu-item onclick="window.updateTheme('#006a6a')">
+                    <div slot="headline">工作ティール</div>
+                </md-menu-item>
+                <md-menu-item onclick="window.updateTheme('#b02f00')">
+                    <div slot="headline">プラモオレンジ</div>
+                </md-menu-item>
+                <md-menu-item onclick="window.openDemoDialog()">
+                    <div slot="headline">アプリについて</div>
+                </md-menu-item>
+            </md-menu>
+        </div>
+    </header>
+
+    <main id="main-content">
+        <!-- HOME VIEW -->
+        <section id="view-home" class="view-section active">
+            <div class="solid-card">
+                <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+                    <div>
+                        <div class="badge-craft" style="margin-bottom:8px;">
+                            <span class="material-symbols-outlined" style="font-size:16px;">precision_manufacturing</span>
+                            図工部に大人気！おかげさまで3000アクセス突破！
+                        </div>
+                        <div class="section-title" style="margin-bottom:4px;">
+                            FilesPrint - 実寸高精度レイアウト＆印刷
+                        </div>
+                        <p style="margin:0; opacity: 0.85; font-size:14px;">
+                            画像・PDF・HTML 用紙上にミリ単位で自由にドラッグ配置＆高精細印刷！
+                        </p>
+                    </div>
+                    <md-filled-button onclick="window.triggerPrint()">
+                        <md-icon slot="icon"><span class="material-symbols-outlined">print</span></md-icon>
+                        システム印刷実行
+                    </md-filled-button>
+                </div>
+            </div>
+
+            <!-- Paper Size Selection Bar -->
+            <div class="solid-card" style="padding:16px 24px;">
+                <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
+                    <div style="flex:1; min-width:200px;">
+                        <md-filled-select id="paper-size-select-home" label="印刷用紙サイズを選択" onchange="window.changePaperSize(this.value)">
+                            <md-select-option value="A4" selected><div slot="headline">A4 (210 x 297 mm)</div></md-select-option>
+                            <md-select-option value="A3"><div slot="headline">A3 (297 x 420 mm)</div></md-select-option>
+                            <md-select-option value="A5"><div slot="headline">A5 (148 x 210 mm)</div></md-select-option>
+                            <md-select-option value="B4"><div slot="headline">B4 (257 x 364 mm)</div></md-select-option>
+                            <md-select-option value="B5"><div slot="headline">B5 (182 x 257 mm)</div></md-select-option>
+                            <md-select-option value="L_PHOTO"><div slot="headline">L判 写真 (89 x 127 mm)</div></md-select-option>
+                            <md-select-option value="HAGAKI"><div slot="headline">ハガキ (100 x 148 mm)</div></md-select-option>
+                        </md-filled-select>
+                    </div>
+                    <div style="font-size:13px; opacity:0.8; display:flex; align-items:center; gap:6px;">
+                        <span class="material-symbols-outlined" style="font-size:18px;">aspect_ratio</span>
+                        現在の設定: <span id="paper-dim-label" style="font-weight:700;">210 x 297 mm</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Drag and Drop & File Upload Area -->
+            <div class="solid-card">
+                <div class="section-title">
+                    <span class="material-symbols-outlined">upload_file</span>
+                    印刷ファイルの追加 (画像 / PDF / HTML)
+                </div>
+                
+                <div class="file-drop-zone" id="quick-file-dropzone" onclick="document.getElementById('quick-file-input').click()">
+                    <span class="material-symbols-outlined" style="font-size: 48px; color: var(--md-sys-color-primary);">cloud_upload</span>
+                    <h3 style="margin: 8px 0 4px 0;">ファイルをドラッグ＆ドロップ</h3>
+                    <p style="margin:0; font-size:13px; opacity:0.7;">またはクリックして選択 (PNG, JPG, WEBP, PDF, HTML)</p>
+                    <input type="file" id="quick-file-input" style="display:none;" accept="image/*,.pdf,.html,.htm" onchange="window.handleQuickFileSelect(event)">
+                </div>
+            </div>
+
+            <!-- Paper Live Preview Container -->
+            <div class="solid-card">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap;">
+                    <div class="section-title" style="margin-bottom:0;">
+                        <span class="material-symbols-outlined">description</span>
+                        リアルタイム印刷プレビュー
+                    </div>
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <md-filter-chip label="ガイド格子表示" id="grid-toggle-chip" selected onclick="window.togglePaperGrid()"></md-filter-chip>
+                        <md-text-button onclick="window.clearPaper()">クリア</md-text-button>
+                    </div>
+                </div>
+
+                <div class="paper-viewport">
+                    <div class="printable-paper paper-scaled" id="home-paper-sheet">
+                        <div class="paper-grid" id="home-paper-grid"></div>
+                        <div class="paper-content-layer" id="home-paper-content">
+                            <div id="default-paper-placeholder" style="text-align:center; padding-top: 60mm;">
+                                <img src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbpark/refs/heads/main/tools/print/file.png" style="width:70px; opacity:0.8; margin-bottom:12px;" alt="Logo">
+                                <h2 style="margin:0; color:#444;" id="paper-title-placeholder">FilesPrint 用紙</h2>
+                                <p style="color:#777; font-size:14px; margin-top:8px;">ファイルを追加すると、ここに選択サイズの前面に配置されます</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- STUDIO VIEW -->
+        <section id="view-studio" class="view-section">
+            <div class="solid-card">
+                <div class="section-title">
+                    <span class="material-symbols-outlined">content_cut</span>
+                    印刷スタジオ - デカール・自由ドラッグ移動＆レイアウト
+                </div>
+                <p style="margin-top:0; opacity:0.85; line-height:1.5;">
+                    プラモのデカールや工作パーツを用紙上でドラッグして自由に移動・配置！ミリ単位の精密数値指定や一括整列で高画質印刷できます。
+                </p>
+            </div>
+
+            <div class="studio-layout-grid">
+                <!-- Studio Control Panel -->
+                <div class="solid-card">
+                    <div class="section-title" style="font-size:16px;">
+                        <span class="material-symbols-outlined">straighten</span>
+                        寸法＆位置精密インスペクター
+                    </div>
+
+                    <md-filled-select id="paper-size-select-studio" label="用紙サイズ" onchange="window.changePaperSize(this.value)">
+                        <md-select-option value="A4" selected><div slot="headline">A4 (210 x 297 mm)</div></md-select-option>
+                        <md-select-option value="A3"><div slot="headline">A3 (297 x 420 mm)</div></md-select-option>
+                        <md-select-option value="A5"><div slot="headline">A5 (148 x 210 mm)</div></md-select-option>
+                        <md-select-option value="B4"><div slot="headline">B4 (257 x 364 mm)</div></md-select-option>
+                        <md-select-option value="B5"><div slot="headline">B5 (182 x 257 mm)</div></md-select-option>
+                        <md-select-option value="L_PHOTO"><div slot="headline">L判 (89 x 127 mm)</div></md-select-option>
+                        <md-select-option value="HAGAKI"><div slot="headline">ハガキ (100 x 148 mm)</div></md-select-option>
+                    </md-filled-select>
+
+                    <md-filled-button style="width:100%; margin:0 0 12px 0;" onclick="document.getElementById('studio-file-input').click()">
+                        <md-icon slot="icon"><span class="material-symbols-outlined">add_photo_alternate</span></md-icon>
+                        画像を追加する
+                    </md-filled-button>
+                    <input type="file" id="studio-file-input" style="display:none;" accept="image/*" multiple onchange="window.handleStudioFilesAdd(event)">
+
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; background:var(--md-sys-color-surface-container-high); padding:10px 16px; border-radius:16px;">
+                        <span style="font-size:13px; font-weight:600;">5mmグリッド吸着 (スナップ)</span>
+                        <md-switch id="snap-grid-switch" onchange="window.toggleSnapGrid(event)"></md-switch>
+                    </div>
+
+                    <div id="selected-item-controls" style="background-color: var(--md-sys-color-surface-container-high); padding:16px; border-radius:20px; margin-bottom:16px;">
+                        <span style="font-size:12px; font-weight:700; color:var(--md-sys-color-primary); display:block; margin-bottom:12px;">選択中の要素プロパティ (mm)</span>
+                        
+                        <!-- Dimension Inputs -->
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
+                            <md-outlined-text-field id="item-width-mm" label="横幅 W (mm)" type="number" value="50" oninput="window.updateSelectedItemSize()"></md-outlined-text-field>
+                            <md-outlined-text-field id="item-height-mm" label="縦幅 H (mm)" type="number" value="30" oninput="window.updateSelectedItemSize()"></md-outlined-text-field>
+                        </div>
+
+                        <!-- Position Inputs -->
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                            <md-outlined-text-field id="item-x-mm" label="X位置 (mm)" type="number" value="10" oninput="window.updateSelectedItemPosition()"></md-outlined-text-field>
+                            <md-outlined-text-field id="item-y-mm" label="Y位置 (mm)" type="number" value="10" oninput="window.updateSelectedItemPosition()"></md-outlined-text-field>
+                        </div>
+
+                        <div style="margin-top:10px;">
+                            <span style="font-size:12px; opacity:0.8;">クイックプリセット:</span>
+                            <div style="display:flex; gap:4px; flex-wrap:wrap; margin-top:4px;">
+                                <md-assist-chip label="縦 30mm" onclick="window.applyPresetSize(null, 30)"></md-assist-chip>
+                                <md-assist-chip label="縦 5mm (ミニデカール)" onclick="window.applyPresetSize(null, 5)"></md-assist-chip>
+                                <md-assist-chip label="横 100mm" onclick="window.applyPresetSize(100, null)"></md-assist-chip>
+                            </div>
+                        </div>
+
+                        <div style="margin-top:16px; display:flex; gap:8px;">
+                            <md-outlined-button style="flex:1;" onclick="window.duplicateSelectedItem()">
+                                <md-icon slot="icon"><span class="material-symbols-outlined">content_copy</span></md-icon>
+                                複製
+                            </md-outlined-button>
+                            <md-outlined-button style="flex:1;" onclick="window.deleteSelectedItem()">
+                                <md-icon slot="icon"><span class="material-symbols-outlined">delete</span></md-icon>
+                                削除
+                            </md-outlined-button>
+                        </div>
+                    </div>
+
+                    <div style="display:flex; flex-direction:column; gap:8px;">
+                        <md-filled-tonal-button onclick="window.autoFillGrid()">
+                            <md-icon slot="icon"><span class="material-symbols-outlined">grid_view</span></md-icon>
+                            用紙全体にグリッド敷き詰め
+                        </md-filled-tonal-button>
+
+                        <md-filled-button onclick="window.triggerPrint()">
+                            <md-icon slot="icon"><span class="material-symbols-outlined">print</span></md-icon>
+                            スタジオ印刷実行
+                        </md-filled-button>
+                    </div>
+                </div>
+
+                <!-- Studio Paper View -->
+                <div class="solid-card" style="padding:16px;">
+                    <div class="paper-viewport" style="min-height:580px;">
+                        <div class="printable-paper paper-scaled" id="studio-paper-sheet">
+                            <div class="paper-grid"></div>
+                            <div class="paper-content-layer" id="studio-paper-content">
+                                <!-- Studio Draggable Items Rendered Here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- PRO VIEW -->
+        <section id="view-pro" class="view-section">
+            <div class="solid-card">
+                <div class="section-title">
+                    <span class="material-symbols-outlined">workspace_premium</span>
+                    Proモード & デスクトップUI設定
+                </div>
+                <p style="margin-top:0; line-height: 1.6; opacity:0.88;">
+                    PC作業に最適な拡張サイドインスペクター表示に切り替えます。
+                </p>
+
+                <div style="background-color: var(--md-sys-color-surface-container-high); padding:20px; border-radius:24px; margin:16px 0;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px;">
+                        <div>
+                            <div style="font-size:18px; font-weight:700;">Desktop 向け Pro UI</div>
+                            <div style="font-size:13px; opacity:0.75;">大画面PC・工作作業に最適な2カラム表示</div>
+                        </div>
+                        <md-switch id="pro-mode-switch" icons onchange="window.toggleProDesktopMode(event)"></md-switch>
+                    </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:16px; margin-top:20px;">
+                    <div style="background:var(--md-sys-color-surface-container-low); padding:16px; border-radius:20px;">
+                        <span class="material-symbols-outlined" style="color:var(--md-sys-color-primary); font-size:32px;">high_quality</span>
+                        <h4 style="margin:8px 0 4px 0;">高画質印刷エンジン</h4>
+                        <p style="margin:0; font-size:12px; opacity:0.75;">極小デカール文字も滲まず精密プリント</p>
+                    </div>
+                    <div style="background:var(--md-sys-color-surface-container-low); padding:16px; border-radius:20px;">
+                        <span class="material-symbols-outlined" style="color:var(--md-sys-color-primary); font-size:32px;">touch_app</span>
+                        <h4 style="margin:8px 0 4px 0;">ポインター追従レスポンス</h4>
+                        <p style="margin:0; font-size:12px; opacity:0.75;">タッチ・マウス・ペンで滑らかなミリ単位移動</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SUB ACTIVITY VIEW -->
+        <section id="view-sub-activity" class="view-section">
+            <div class="solid-card">
+                <div class="section-title" id="sub-activity-title-text">詳細情報</div>
+                <p style="line-height: 1.6; opacity: 0.9;">
+                    FilesPrintは、図工や模型制作、ペーパークラフト、デカール作製のための高精度印刷コンパニオンです。
+                </p>
+
+                <div class="sub-activity-card">
+                    <h3 style="margin-top:0; color: var(--md-sys-color-primary);">機能概要</h3>
+                    <p style="margin-bottom:0; line-height: 1.8; font-size:14px;">
+                        ・<strong>対応ファイル:</strong> PNG, JPG, JPEG, WEBP, GIF, SVG, HTML, PDF<br>
+                        ・<strong>対応用紙サイズ:</strong> A3, A4, A5, B4, B5, L判写真, ハガキ<br>
+                        ・<strong>移動エンジン:</strong> ポインターキャプチャによる絶対座標計算・ミリメートル即時反映<br>
+                        ・<strong>スナップ機能:</strong> 5mm単位の整列吸着機能付き
+                    </p>
+                </div>
+
+                <div style="margin-top:20px; display:flex; justify-content: flex-end;">
+                    <md-filled-button onclick="window.goBack()">
+                        <md-icon slot="icon"><span class="material-symbols-outlined">arrow_back</span></md-icon>
+                        戻る
+                    </md-filled-button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- M3 Dialog Component -->
+    <md-dialog id="demo-dialog">
+        <div slot="headline">FilesPrint について</div>
+        <form slot="content" id="form-id" method="dialog">
+            「工作・デカール好きの人へ！」<br>
+            FilesPrintは、高精度なサイズ合わせと複数画像のミリ単位ドラッグ移動がスムーズに行えるアプリです！
+        </form>
+        <div slot="actions">
+            <md-filled-button form="form-id" value="ok">閉じる</md-filled-button>
+        </div>
+    </md-dialog>
+
+    <!-- Floating Navigation Bar -->
+    <div class="floating-nav-container">
+        <nav class="custom-nav">
+            <div class="nav-item active" id="nav-home" onclick="window.switchTab('home')" title="メイン印刷">
+                <div class="nav-icon-container">
+                    <span class="material-symbols-outlined">print</span>
+                </div>
+            </div>
+            <div class="nav-item" id="nav-studio" onclick="window.switchTab('studio')" title="印刷スタジオ">
+                <div class="nav-icon-container">
+                    <span class="material-symbols-outlined">square_foot</span>
+                </div>
+            </div>
+            <div class="nav-item" id="nav-pro" onclick="window.switchTab('pro')" title="Pro設定">
+                <div class="nav-icon-container">
+                    <span class="material-symbols-outlined">tune</span>
+                </div>
+            </div>
+        </nav>
+    </div>
+
+    <script type="module">
+        import '@material/web/all.js';
+        import { 
+            argbFromHex, 
+            themeFromSourceColor, 
+            hexFromArgb
+        } from "@material/material-color-utilities";
+
+        // Setup PDF.js Worker
+        if (window.pdfjsLib) {
+            window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
+
+        let isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        let currentSourceColor = '#6750a4';
+        let navigationStack = ['home'];
+
+        // Paper Preset Sizes (width x height in mm)
+        const PAPER_SIZES = {
+            'A3': { w: 297, h: 420 },
+            'A4': { w: 210, h: 297 },
+            'A5': { w: 148, h: 210 },
+            'B4': { w: 257, h: 364 },
+            'B5': { w: 182, h: 257 },
+            'L_PHOTO': { w: 89, h: 127 },
+            'HAGAKI': { w: 100, h: 148 }
+        };
+        let currentPaperKey = 'A4';
+
+        // Studio State Engine
+        let studioItems = [];
+        let selectedStudioItemId = null;
+        window.snapToGridEnabled = false;
+
+        window.updateTheme = function(hexColor) {
+            currentSourceColor = hexColor;
+
+            const argb = argbFromHex(hexColor);
+            const theme = themeFromSourceColor(argb);
+            const scheme = isDarkMode ? theme.schemes.dark : theme.schemes.light;
+            const palettes = theme.palettes;
+
+            const root = document.documentElement;
+            
+            const tokens = {
+                'primary': scheme.primary,
+                'on-primary': scheme.onPrimary,
+                'primary-container': scheme.primaryContainer,
+                'on-primary-container': scheme.onPrimaryContainer,
+                'secondary': scheme.secondary,
+                'on-secondary': scheme.onSecondary,
+                'secondary-container': scheme.secondaryContainer,
+                'on-secondary-container': scheme.onSecondaryContainer,
+                'tertiary': scheme.tertiary,
+                'on-tertiary': scheme.onTertiary,
+                'tertiary-container': scheme.tertiaryContainer,
+                'on-tertiary-container': scheme.onTertiaryContainer,
+                'error': scheme.error,
+                'on-error': scheme.onError,
+                'error-container': scheme.errorContainer,
+                'on-error-container': scheme.onErrorContainer,
+                'background': scheme.background,
+                'on-background': scheme.onBackground,
+                'surface': scheme.surface,
+                'on-surface': scheme.onSurface,
+                'surface-variant': scheme.surfaceVariant,
+                'on-surface-variant': scheme.onSurfaceVariant,
+                'outline': scheme.outline,
+                'outline-variant': scheme.outlineVariant,
+                'inverse-surface': scheme.inverseSurface,
+                'inverse-on-surface': scheme.inverseOnSurface,
+                'inverse-primary': scheme.inversePrimary,
+            };
+
+            for (const [key, value] of Object.entries(tokens)) {
+                const hex = hexFromArgb(value);
+                root.style.setProperty(`--md-sys-color-${key}`, hex);
+            }
+
+            const n = palettes.neutral;
+            const bgHex = hexFromArgb(n.tone(isDarkMode ? 10 : 96));
+            root.style.setProperty('--md-sys-color-surface-container-lowest', hexFromArgb(n.tone(isDarkMode ? 4 : 100)));
+            root.style.setProperty('--md-sys-color-surface-container-low', bgHex);
+            root.style.setProperty('--md-sys-color-surface-container', hexFromArgb(n.tone(isDarkMode ? 12 : 94)));
+            root.style.setProperty('--md-sys-color-surface-container-high', hexFromArgb(n.tone(isDarkMode ? 17 : 92)));
+            root.style.setProperty('--md-sys-color-surface-container-highest', hexFromArgb(n.tone(isDarkMode ? 22 : 90)));
+
+            const metaTheme = document.getElementById('theme-color-meta');
+            if (metaTheme) {
+                metaTheme.setAttribute('content', bgHex);
+            }
+
+            const picker = document.getElementById('source-color-picker');
+            if(picker) picker.value = hexColor;
+        };
+
+        window.toggleDarkMode = function() {
+            isDarkMode = !isDarkMode;
+            document.body.classList.toggle('dark-mode', isDarkMode);
+            
+            const icon = document.getElementById('theme-icon');
+            if(icon) icon.textContent = isDarkMode ? 'light_mode' : 'dark_mode';
+            
+            window.updateTheme(currentSourceColor);
+        };
+
+        function updateTopBarState() {
+            const backBtn = document.getElementById('top-bar-back-btn');
+            const mainIcon = document.getElementById('top-bar-icon-main');
+            const titleEl = document.getElementById('top-bar-title');
+
+            if (navigationStack.length > 1) {
+                backBtn.classList.remove('hidden');
+                mainIcon.style.display = 'none';
+            } else {
+                backBtn.classList.add('hidden');
+                mainIcon.style.display = 'inline-flex';
+                titleEl.textContent = "FilesPrint";
+            }
+        }
+
+        window.switchTab = function(tabId, pushStack = true) {
+            if (pushStack) {
+                navigationStack = [tabId];
+            }
+
+            document.querySelectorAll('.view-section').forEach(el => {
+                el.classList.remove('active');
+            });
+            const targetView = document.getElementById('view-' + tabId);
+            if(targetView) targetView.classList.add('active');
+
+            document.querySelectorAll('.nav-item').forEach(el => {
+                el.classList.remove('active');
+            });
+            const targetNav = document.getElementById('nav-' + tabId);
+            if(targetNav) targetNav.classList.add('active');
+            
+            updateTopBarState();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+
+        window.openSubActivity = function(title) {
+            const subTitleEl = document.getElementById('sub-activity-title-text');
+            const topBarTitleEl = document.getElementById('top-bar-title');
+            if (subTitleEl) subTitleEl.textContent = title;
+            if (topBarTitleEl) topBarTitleEl.textContent = title;
+
+            navigationStack.push('sub-activity');
+
+            document.querySelectorAll('.view-section').forEach(el => {
+                el.classList.remove('active');
+            });
+            const subView = document.getElementById('view-sub-activity');
+            if (subView) subView.classList.add('active');
+
+            updateTopBarState();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+
+        window.goBack = function() {
+            if (navigationStack.length > 1) {
+                navigationStack.pop();
+                const previousView = navigationStack[navigationStack.length - 1];
+                
+                if (previousView === 'sub-activity') {
+                    document.getElementById('view-sub-activity').classList.add('active');
+                } else {
+                    window.switchTab(previousView, false);
+                }
+            }
+        };
+
+        window.openDemoDialog = function() {
+            const dialog = document.getElementById('demo-dialog');
+            if (dialog) dialog.show();
+        };
+
+        window.changePaperSize = function(sizeKey) {
+            if (!PAPER_SIZES[sizeKey]) return;
+            currentPaperKey = sizeKey;
+            const size = PAPER_SIZES[sizeKey];
+
+            const homeSelect = document.getElementById('paper-size-select-home');
+            const studioSelect = document.getElementById('paper-size-select-studio');
+            if (homeSelect) homeSelect.value = sizeKey;
+            if (studioSelect) studioSelect.value = sizeKey;
+
+            const labelEl = document.getElementById('paper-dim-label');
+            if (labelEl) labelEl.textContent = `${size.w} x ${size.h} mm`;
+
+            const titlePlaceholder = document.getElementById('paper-title-placeholder');
+            if (titlePlaceholder) titlePlaceholder.textContent = `FilesPrint ${sizeKey} 用紙`;
+
+            const sheets = [document.getElementById('home-paper-sheet'), document.getElementById('studio-paper-sheet')];
+            sheets.forEach(sheet => {
+                if (sheet) {
+                    sheet.style.width = size.w + 'mm';
+                    sheet.style.minHeight = size.h + 'mm';
+                }
+            });
+
+            // Re-render studio items to ensure bounds remain valid
+            renderStudioItems();
+        };
+
+        window.handleQuickFileSelect = function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            processFileAndAddToPaper(file, 'home-paper-content');
+        };
+
+        const dropZone = document.getElementById('quick-file-dropzone');
+        if (dropZone) {
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }, false);
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                if (files && files.length > 0) {
+                    processFileAndAddToPaper(files[0], 'home-paper-content');
+                }
+            });
+        }
+
+        function processFileAndAddToPaper(file, targetContainerId) {
+            const container = document.getElementById(targetContainerId);
+            const placeholder = document.getElementById('default-paper-placeholder');
+            if (placeholder) placeholder.style.display = 'none';
+
+            const fileType = file.type;
+
+            if (fileType.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    // Auto transfer uploaded image to studio items for drag capability
+                    addStudioItem(e.target.result);
+                    window.switchTab('studio');
+                };
+                reader.readAsDataURL(file);
+            } else if (fileType === 'application/pdf') {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const typedarray = new Uint8Array(e.target.result);
+                    window.pdfjsLib.getDocument(typedarray).promise.then(function(pdf) {
+                        pdf.getPage(1).then(function(page) {
+                            const viewport = page.getViewport({ scale: 1.5 });
+                            const canvas = document.createElement('canvas');
+                            const context = canvas.getContext('2d');
+                            canvas.height = viewport.height;
+                            canvas.width = viewport.width;
+                            canvas.style.maxWidth = '100%';
+                            canvas.style.display = 'block';
+                            canvas.style.margin = '0 auto';
+
+                            page.render({
+                                canvasContext: context,
+                                viewport: viewport
+                            }).promise.then(function() {
+                                container.appendChild(canvas);
+                            });
+                        });
+                    });
+                };
+                reader.readAsArrayBuffer(file);
+            } else if (fileType.includes('html')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const iframe = document.createElement('iframe');
+                    iframe.style.width = '100%';
+                    iframe.style.height = '250mm';
+                    iframe.style.border = 'none';
+                    container.appendChild(iframe);
+                    iframe.contentWindow.document.open();
+                    iframe.contentWindow.document.write(e.target.result);
+                    iframe.contentWindow.document.close();
+                };
+                reader.readAsText(file);
+            }
+        }
+
+        window.handleStudioFilesAdd = function(event) {
+            const files = event.target.files;
+            if (!files || files.length === 0) return;
+
+            Array.from(files).forEach(file => {
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        addStudioItem(e.target.result);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        };
+
+        function addStudioItem(srcUrl, widthMm = 50, heightMm = 30) {
+            const id = 'item-' + Date.now() + '-' + Math.floor(Math.random()*1000);
+            const newItem = {
+                id: id,
+                src: srcUrl,
+                widthMm: widthMm,
+                heightMm: heightMm,
+                xMm: 10 + (studioItems.length * 8) % 120,
+                yMm: 10 + (studioItems.length * 8) % 150
+            };
+
+            studioItems.push(newItem);
+            renderStudioItems();
+            selectStudioItem(id, false); // Select without DOM wipe
+        }
+
+        /* Selecting studio item without wiping DOM during drag start */
+        function selectStudioItem(id, shouldRebuildDom = false) {
+            selectedStudioItemId = id;
+
+            const container = document.getElementById('studio-paper-content');
+            if (container) {
+                const wrappers = container.querySelectorAll('.studio-item-wrapper');
+                wrappers.forEach(w => {
+                    if (w.dataset.itemId === id) {
+                        w.classList.add('selected');
+                    } else {
+                        w.classList.remove('selected');
+                    }
+                });
+            }
+
+            const item = studioItems.find(i => i.id === id);
+            const wInput = document.getElementById('item-width-mm');
+            const hInput = document.getElementById('item-height-mm');
+            const xInput = document.getElementById('item-x-mm');
+            const yInput = document.getElementById('item-y-mm');
+
+            if (item) {
+                if (wInput) wInput.value = Math.round(item.widthMm * 10) / 10;
+                if (hInput) hInput.value = Math.round(item.heightMm * 10) / 10;
+                if (xInput) xInput.value = Math.round(item.xMm * 10) / 10;
+                if (yInput) yInput.value = Math.round(item.yMm * 10) / 10;
+            }
+
+            if (shouldRebuildDom) {
+                renderStudioItems();
+            }
+        }
+
+        function renderStudioItems() {
+            const container = document.getElementById('studio-paper-content');
+            if(!container) return;
+            container.innerHTML = '';
+
+            studioItems.forEach(item => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'studio-item-wrapper' + (item.id === selectedStudioItemId ? ' selected' : '');
+                wrapper.dataset.itemId = item.id;
+                wrapper.style.width = item.widthMm + 'mm';
+                wrapper.style.height = item.heightMm + 'mm';
+                wrapper.style.left = item.xMm + 'mm';
+                wrapper.style.top = item.yMm + 'mm';
+
+                // Realtime Coordinates Badge
+                const coordBadge = document.createElement('div');
+                coordBadge.className = 'item-coord-badge';
+                coordBadge.textContent = `${Math.round(item.xMm)}, ${Math.round(item.yMm)} mm`;
+                wrapper.appendChild(coordBadge);
+
+                const img = document.createElement('img');
+                img.src = item.src;
+                img.draggable = false;
+                wrapper.appendChild(img);
+
+                // High Precision Pointer Event Drag Engine
+                wrapper.addEventListener('pointerdown', (e) => {
+                    if (e.button !== undefined && e.button !== 0) return; // Primary touch/click only
+                    
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    // Select item visually without clearing DOM innerHTML
+                    selectStudioItem(item.id, false);
+
+                    // Capture pointer to ensure smooth drag even outside bounds
+                    try {
+                        wrapper.setPointerCapture(e.pointerId);
+                    } catch(err) {}
+
+                    wrapper.classList.add('dragging');
+
+                    const startX = e.clientX;
+                    const startY = e.clientY;
+                    const startLeft = item.xMm;
+                    const startTop = item.yMm;
+
+                    const paperSheet = document.getElementById('studio-paper-sheet');
+
+                    const onPointerMove = (moveEv) => {
+                        if (moveEv.pointerId !== e.pointerId) return;
+
+                        const deltaXPx = moveEv.clientX - startX;
+                        const deltaYPx = moveEv.clientY - startY;
+
+                        // Calculate exact mm per pixel in scaled paper coordinate space
+                        const paperRect = paperSheet ? paperSheet.getBoundingClientRect() : null;
+                        const paperWidthPx = (paperRect && paperRect.width > 0) ? paperRect.width : 300;
+                        const currentPaperMm = PAPER_SIZES[currentPaperKey].w;
+                        const mmPerPx = currentPaperMm / paperWidthPx;
+
+                        let newXMm = startLeft + deltaXPx * mmPerPx;
+                        let newYMm = startTop + deltaYPx * mmPerPx;
+
+                        // Grid snap if enabled
+                        if (window.snapToGridEnabled) {
+                            newXMm = Math.round(newXMm / 5) * 5;
+                            newYMm = Math.round(newYMm / 5) * 5;
+                        }
+
+                        // Clamp inside printable sheet bounds
+                        const maxXMm = Math.max(0, PAPER_SIZES[currentPaperKey].w - item.widthMm);
+                        const maxYMm = Math.max(0, PAPER_SIZES[currentPaperKey].h - item.heightMm);
+
+                        item.xMm = Math.max(0, Math.min(maxXMm, newXMm));
+                        item.yMm = Math.max(0, Math.min(maxYMm, newYMm));
+
+                        wrapper.style.left = item.xMm + 'mm';
+                        wrapper.style.top = item.yMm + 'mm';
+
+                        // Update badge & input controls in real-time
+                        coordBadge.textContent = `${Math.round(item.xMm)}, ${Math.round(item.yMm)} mm`;
+                        
+                        const xInput = document.getElementById('item-x-mm');
+                        const yInput = document.getElementById('item-y-mm');
+                        if (xInput && yInput) {
+                            xInput.value = Math.round(item.xMm * 10) / 10;
+                            yInput.value = Math.round(item.yMm * 10) / 10;
+                        }
+                    };
+
+                    const onPointerUp = (upEv) => {
+                        if (upEv.pointerId !== e.pointerId) return;
+
+                        try {
+                            if (wrapper.hasPointerCapture(upEv.pointerId)) {
+                                wrapper.releasePointerCapture(upEv.pointerId);
+                            }
+                        } catch(err) {}
+
+                        wrapper.classList.remove('dragging');
+                        wrapper.removeEventListener('pointermove', onPointerMove);
+                        wrapper.removeEventListener('pointerup', onPointerUp);
+                        wrapper.removeEventListener('pointercancel', onPointerUp);
+                    };
+
+                    wrapper.addEventListener('pointermove', onPointerMove);
+                    wrapper.addEventListener('pointerup', onPointerUp);
+                    wrapper.addEventListener('pointercancel', onPointerUp);
+                });
+
+                container.appendChild(wrapper);
+            });
+        }
+
+        window.updateSelectedItemSize = function() {
+            if (!selectedStudioItemId) return;
+            const item = studioItems.find(i => i.id === selectedStudioItemId);
+            if (!item) return;
+
+            const wVal = parseFloat(document.getElementById('item-width-mm').value) || 10;
+            const hVal = parseFloat(document.getElementById('item-height-mm').value) || 10;
+
+            item.widthMm = wVal;
+            item.heightMm = hVal;
+
+            const wrapper = document.querySelector(`.studio-item-wrapper[data-item-id="${item.id}"]`);
+            if (wrapper) {
+                wrapper.style.width = item.widthMm + 'mm';
+                wrapper.style.height = item.heightMm + 'mm';
+            }
+        };
+
+        window.updateSelectedItemPosition = function() {
+            if (!selectedStudioItemId) return;
+            const item = studioItems.find(i => i.id === selectedStudioItemId);
+            if (!item) return;
+
+            const xVal = parseFloat(document.getElementById('item-x-mm').value) || 0;
+            const yVal = parseFloat(document.getElementById('item-y-mm').value) || 0;
+
+            item.xMm = xVal;
+            item.yMm = yVal;
+
+            const wrapper = document.querySelector(`.studio-item-wrapper[data-item-id="${item.id}"]`);
+            if (wrapper) {
+                wrapper.style.left = item.xMm + 'mm';
+                wrapper.style.top = item.yMm + 'mm';
+                const badge = wrapper.querySelector('.item-coord-badge');
+                if (badge) badge.textContent = `${Math.round(item.xMm)}, ${Math.round(item.yMm)} mm`;
+            }
+        };
+
+        window.applyPresetSize = function(wMm, hMm) {
+            if (!selectedStudioItemId) return;
+            const item = studioItems.find(i => i.id === selectedStudioItemId);
+            if (!item) return;
+
+            if (wMm !== null) item.widthMm = wMm;
+            if (hMm !== null) item.heightMm = hMm;
+
+            selectStudioItem(selectedStudioItemId, false);
+            window.updateSelectedItemSize();
+        };
+
+        window.duplicateSelectedItem = function() {
+            if (!selectedStudioItemId) return;
+            const item = studioItems.find(i => i.id === selectedStudioItemId);
+            if (item) {
+                addStudioItem(item.src, item.widthMm, item.heightMm);
+            }
+        };
+
+        window.deleteSelectedItem = function() {
+            if (!selectedStudioItemId) return;
+            studioItems = studioItems.filter(i => i.id !== selectedStudioItemId);
+            selectedStudioItemId = null;
+            renderStudioItems();
+        };
+
+        window.toggleSnapGrid = function(event) {
+            window.snapToGridEnabled = event.target.selected;
+        };
+
+        window.autoFillGrid = function() {
+            if (studioItems.length === 0) return;
+            const sourceItem = studioItems.find(i => i.id === selectedStudioItemId) || studioItems[0];
+            
+            const itemW = sourceItem.widthMm + 2;
+            const itemH = sourceItem.heightMm + 2;
+
+            const paperDim = PAPER_SIZES[currentPaperKey];
+            const paperW = paperDim.w - 20;
+            const paperH = paperDim.h - 20;
+
+            const cols = Math.floor(paperW / itemW);
+            const rows = Math.floor(paperH / itemH);
+
+            studioItems = [];
+
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    studioItems.push({
+                        id: 'item-grid-' + r + '-' + c,
+                        src: sourceItem.src,
+                        widthMm: sourceItem.widthMm,
+                        heightMm: sourceItem.heightMm,
+                        xMm: 10 + c * itemW,
+                        yMm: 10 + r * itemH
+                    });
+                }
+            }
+            renderStudioItems();
+        };
+
+        window.triggerPrint = function() {
+            window.print();
+        };
+
+        window.clearPaper = function() {
+            const homeContent = document.getElementById('home-paper-content');
+            if (homeContent) {
+                homeContent.innerHTML = `
+                    <div id="default-paper-placeholder" style="text-align:center; padding-top: 60mm;">
+                        <img src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbpark/refs/heads/main/tools/print/file.png" style="width:70px; opacity:0.8; margin-bottom:12px;" alt="Logo">
+                        <h2 style="margin:0; color:#444;" id="paper-title-placeholder">FilesPrint ${currentPaperKey} 用紙</h2>
+                        <p style="color:#777; font-size:14px; margin-top:8px;">ファイルを追加すると、ここに選択サイズの前面に配置されます</p>
+                    </div>
+                `;
+            }
+            studioItems = [];
+            selectedStudioItemId = null;
+            renderStudioItems();
+        };
+
+        window.togglePaperGrid = function() {
+            const grid = document.getElementById('home-paper-grid');
+            if (grid) {
+                grid.style.display = grid.style.display === 'none' ? 'block' : 'none';
+            }
+        };
+
+        window.toggleProDesktopMode = function(event) {
+            const isChecked = event.target.selected;
+            document.body.classList.toggle('pro-desktop-mode', isChecked);
+        };
+
+        document.getElementById('source-color-picker').addEventListener('input', (e) => {
+            window.updateTheme(e.target.value);
+        });
+
+        window.addEventListener('DOMContentLoaded', () => {
+            if(isDarkMode) {
+                document.body.classList.add('dark-mode');
+            }
+            window.updateTheme(currentSourceColor);
+            updateTopBarState();
+            window.changePaperSize('A4');
+        });
+    </script>
+</body>
+</html>
