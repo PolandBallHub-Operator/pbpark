@@ -1,0 +1,1393 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+    <title>Polandball Historys</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&family=Noto+Sans+JP:wght@400;500;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+
+    <style>
+        /* M3 (Monet) ダイナミックカラー標準変数セット */
+        :root {
+            /* M3 Core Dynamic Tokens (初期値: Hyperos Blue #3381FF) */
+            --md-sys-color-primary: #3381FF;
+            --md-sys-color-on-primary: #FFFFFF;
+            --md-sys-color-primary-container: #DCE3FF;
+            --md-sys-color-on-primary-container: #001945;
+            
+            --md-sys-color-secondary: #575E71;
+            --md-sys-color-on-secondary: #FFFFFF;
+            --md-sys-color-secondary-container: #DCB8FF;
+            --md-sys-color-on-secondary-container: #141B2C;
+            
+            --md-sys-color-tertiary: #715573;
+            --md-sys-color-on-tertiary: #FFFFFF;
+            --md-sys-color-tertiary-container: #FBD7FC;
+            --md-sys-color-on-tertiary-container: #29132D;
+
+            --md-sys-color-background: #F8F9FF;
+            --md-sys-color-on-background: #191C20;
+            
+            --md-sys-color-surface: #F8F9FF;
+            --md-sys-color-on-surface: #191C20;
+            --md-sys-color-surface-variant: #E1E2EC;
+            --md-sys-color-on-surface-variant: #44474F;
+            --md-sys-color-outline: #757780;
+
+            /* UIコンポーネント用エイリアス */
+            --accent-primary: var(--md-sys-color-primary);
+            --accent-active: var(--md-sys-color-primary-container);
+            
+            --bg-base: var(--md-sys-color-surface-variant);
+            --glass-bg: var(--md-sys-color-background);
+            --text-main: var(--md-sys-color-on-surface);
+            --text-sub: var(--md-sys-color-on-surface-variant);
+            --bg-secondary: var(--md-sys-color-surface-variant);
+            --nav-bg: var(--md-sys-color-surface);
+            --nav-icon-active: var(--md-sys-color-primary);
+            
+            --m3-easing: cubic-bezier(0.32, 0.72, 0, 1);
+            --transition-smooth: 0.35s var(--m3-easing);
+            --card-padding: 20px;
+            --card-radius: 24px;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', 'Noto Sans JP', sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            transition: background-color var(--transition-smooth), color var(--transition-smooth);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* アプリ全体のコンテナ（フルスクリーンWebアプリ仕様） */
+        #app-viewport {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow: hidden;
+        }
+
+        /* ヘッダー */
+        header {
+            height: 64px;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-base);
+            transition: background-color var(--transition-smooth);
+            position: relative;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+        .logo {
+            font-weight: 700;
+            font-size: 18px;
+            letter-spacing: -0.5px;
+            color: var(--text-main);
+            text-align: center;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .logo img {
+            width: 30px;
+            height: 30px;
+            object-fit: contain;
+        }
+        .logo-badge {
+            font-size: 10px;
+            background: var(--md-sys-color-primary-container);
+            color: var(--md-sys-color-on-primary-container);
+            padding: 2px 8px;
+            border-radius: 8px;
+            font-weight: 700;
+        }
+        .theme-toggle {
+            position: absolute;
+            right: 24px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: none;
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background var(--transition-smooth), transform 0.2s;
+        }
+        .theme-toggle:active {
+            transform: scale(0.92);
+        }
+
+        /* メインスクロールエリア */
+        main {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 12px 20px 100px;
+            max-width: 720px;
+            width: 100%;
+            margin: 0 auto;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior-y: none;
+            will-change: transform;
+        }
+
+        /* Elastic Overscroll 伸縮ラッパー */
+        #overscroll-wrapper {
+            transform-origin: center top;
+            transition: transform 0s linear;
+        }
+        #overscroll-wrapper.spring-back {
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        /* フラットソリッドカード（枠線なし・影なし・入れ子カード完全排除） */
+        .glass-card {
+            background: var(--glass-bg);
+            border-radius: var(--card-radius);
+            padding: var(--card-padding);
+            margin-bottom: 20px;
+            box-shadow: none !important;
+            border: none !important;
+            transition: background-color var(--transition-smooth), border-radius var(--transition-smooth);
+        }
+
+        h2 { 
+            font-size: 18px; 
+            margin-top: 0; 
+            margin-bottom: 12px;
+            font-weight: 700; 
+            letter-spacing: -0.3px;
+            color: var(--text-main);
+        }
+        p {
+            font-size: 13.5px;
+            line-height: 1.55;
+            margin-top: 0;
+            margin-bottom: 16px;
+            color: var(--text-sub);
+        }
+
+        /* リストコンポーネント */
+        .custom-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 16px;
+        }
+        .list-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 4px;
+            border-bottom: none !important;
+        }
+        .list-item-title {
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--text-main);
+        }
+        .list-item-desc {
+            font-size: 12px;
+            color: var(--text-sub);
+            margin-top: 2px;
+        }
+
+        /* トグルスイッチ */
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 4px;
+            border-bottom: none !important;
+            color: var(--text-main);
+        }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 52px;
+            height: 30px;
+        }
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--bg-base);
+            transition: var(--transition-smooth);
+            border-radius: 15px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 4px;
+            bottom: 4px;
+            background: var(--text-sub);
+            transition: var(--transition-smooth);
+            border-radius: 50%;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+        }
+        input:checked + .slider {
+            background: var(--accent-primary);
+        }
+        input:checked + .slider:before {
+            transform: translateX(22px);
+            background: var(--md-sys-color-on-primary);
+        }
+
+        /* アクションボタン */
+        .ai-btn {
+            border: none;
+            outline: none;
+            padding: 10px 18px;
+            border-radius: 14px;
+            font-weight: 600;
+            font-size: 13px;
+            color: var(--md-sys-color-on-primary);
+            cursor: pointer;
+            background: var(--accent-primary);
+            transition: opacity 0.2s, background-color var(--transition-smooth), color var(--transition-smooth);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            justify-content: center;
+        }
+        .ai-btn:active {
+            opacity: 0.85;
+        }
+        .ai-btn-secondary {
+            background: var(--md-sys-color-secondary-container);
+            color: var(--md-sys-color-on-secondary-container);
+        }
+
+        /* インプットテキスト */
+        .glass-input-wrapper {
+            margin-bottom: 14px;
+        }
+        .glass-input {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: none;
+            background: var(--bg-base);
+            color: var(--text-main);
+            font-size: 14px;
+            font-family: inherit;
+            box-sizing: border-box;
+            transition: background var(--transition-smooth);
+        }
+        .glass-input:focus {
+            outline: 2px solid var(--accent-primary);
+        }
+
+        /* ナビゲーション */
+        .bottom-nav-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 72px;
+            background: var(--nav-bg);
+            border-top: 1px solid rgba(0,0,0,0.05);
+            z-index: 500;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding-bottom: env(safe-area-inset-bottom);
+            transition: background-color var(--transition-smooth);
+        }
+        .nav-item {
+            flex: 1;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-sub);
+            transition: color 0.25s var(--m3-easing);
+            position: relative;
+            gap: 4px;
+        }
+        .nav-item span.material-symbols-outlined {
+            font-size: 24px;
+            font-variation-settings: 'FILL' 0, 'wght' 400;
+            transition: font-variation-settings 0.2s, color 0.2s;
+        }
+        .nav-label {
+            font-size: 10px;
+            font-weight: 600;
+        }
+        .nav-item.active {
+            color: var(--nav-icon-active);
+        }
+        .nav-item.active span.material-symbols-outlined {
+            font-variation-settings: 'FILL' 1, 'wght' 700;
+        }
+
+        /* ビュー切り替え */
+        .view {
+            display: none;
+        }
+        .view.active {
+            display: block;
+            animation: viewIn 0.3s var(--m3-easing);
+        }
+        @keyframes viewIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 84px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--md-sys-color-on-surface);
+            color: var(--md-sys-color-surface);
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s var(--m3-easing);
+            z-index: 2000;
+        }
+        .toast.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .color-picker-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 12px 0;
+        }
+        .native-color-picker {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            background: none;
+            padding: 0;
+        }
+        .native-color-picker::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+        .native-color-picker::-webkit-color-swatch {
+            border: 2px solid var(--md-sys-color-outline);
+            border-radius: 50%;
+        }
+
+        /* ------------------ アプリ独自スタイリング ------------------ */
+        .genre-select {
+            width: 100%;
+            padding: 10px 14px;
+            border-radius: 12px;
+            border: none;
+            background: var(--bg-base);
+            color: var(--text-main);
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 14px;
+            outline: none;
+        }
+
+        /* 記事カード */
+        .article-card {
+            background: var(--glass-bg);
+            border-radius: var(--card-radius);
+            padding: var(--card-padding);
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .article-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+        }
+        .article-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-main);
+            margin: 0;
+            line-height: 1.3;
+        }
+        .article-thumbnail {
+            width: 100%;
+            max-height: 220px;
+            object-fit: cover;
+            border-radius: 16px;
+            background: var(--bg-base);
+            display: block;
+        }
+        .article-snippet {
+            font-size: 13.5px;
+            color: var(--text-sub);
+            line-height: 1.55;
+            margin: 0;
+            display: -webkit-box;
+            -webkit-line-clamp: 4;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .article-card-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 4px;
+        }
+        .bookmark-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-sub);
+            cursor: pointer;
+            padding: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: color 0.2s, background 0.2s;
+        }
+        .bookmark-btn.active {
+            color: var(--accent-primary);
+        }
+        .bookmark-btn:active {
+            background: var(--bg-base);
+        }
+
+        /* 記事詳細ビュー Modal/Screen */
+        #view-article {
+            display: none;
+        }
+        #view-article.active {
+            display: block;
+            animation: viewIn 0.3s var(--m3-easing);
+        }
+        .article-full-content {
+            font-size: 14px;
+            line-height: 1.7;
+            color: var(--text-main);
+        }
+        .article-full-content img {
+            max-width: 100% !important;
+            height: auto !important;
+            border-radius: 16px;
+            margin: 12px 0;
+            display: block;
+        }
+        .article-full-content a {
+            color: var(--accent-primary);
+            text-decoration: underline;
+            cursor: pointer;
+        }
+        .article-full-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 12px 0;
+            font-size: 12px;
+            overflow-x: auto;
+            display: block;
+        }
+        .article-full-content th, .article-full-content td {
+            padding: 8px;
+            border: 1px solid var(--md-sys-color-outline);
+        }
+
+        /* キャラクター選択ラジオボタンのスタイル */
+        .char-option-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .char-card {
+            background: var(--bg-base);
+            border-radius: 16px;
+            padding: 12px 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: background 0.2s, outline 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+        .char-card.selected {
+            outline: 2px solid var(--accent-primary);
+        }
+        .char-card img {
+            width: 44px;
+            height: 44px;
+            object-fit: contain;
+        }
+        .char-label {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        /* ローディング・空表示 */
+        .loading-box {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-sub);
+            font-size: 14px;
+        }
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid var(--bg-base);
+            border-top: 3px solid var(--accent-primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 12px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app-viewport">
+        <!-- ヘッダー -->
+        <header>
+            <div class="logo">
+                <img id="header-pb-img" src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/poland/lol.png" alt="Polandball" onerror="this.src='https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/poland/lol.png'">
+                <span>Polandball Historys</span>
+            </div>
+            <button class="theme-toggle" id="theme-btn" title="テーマ切り替え">
+                <span class="material-symbols-outlined">light_mode</span>
+            </button>
+        </header>
+
+        <!-- メインコンテンツ -->
+        <main id="main-scroll-area">
+            <div id="overscroll-wrapper">
+
+                <!-- 1. ホームタブ -->
+                <section id="view-home" class="view active">
+                    <!-- 検索とジャンルフィルター -->
+                    <div class="glass-card">
+                        <h2>歴史記事を検索</h2>
+                        <div class="glass-input-wrapper" style="margin-bottom: 10px;">
+                            <input type="text" id="search-input" class="glass-input" placeholder="記事名やキーワードを入力..." onkeypress="if(event.key==='Enter') performSearch()">
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="ai-btn" onclick="performSearch()" style="flex: 1;">
+                                <span class="material-symbols-outlined">search</span>
+                                検索
+                            </button>
+                            <button class="ai-btn ai-btn-secondary" onclick="loadRandomArticles()">
+                                <span class="material-symbols-outlined">refresh</span>
+                                再読み込み
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="glass-card" style="padding-bottom: 8px;">
+                        <h2>ジャンルで絞り込み</h2>
+                        <select id="genre-select" class="genre-select" onchange="onGenreChange(this.value)">
+                            <option value="all">すべて（ランダム20件）</option>
+                            <option value="Category:世界史">世界史</option>
+                            <option value="Category:日本の歴史">日本の歴史</option>
+                            <option value="Category:戦争">戦争・合戦</option>
+                            <option value="Category:歴史上の人物">歴史上の人物</option>
+                            <option value="Category:古代史">古代文明・古代史</option>
+                            <option value="Category:ヨーロッパの歴史">ヨーロッパ史</option>
+                        </select>
+                    </div>
+
+                    <!-- 記事カードリストコンテナ -->
+                    <div id="home-articles-container">
+                        <div class="loading-box">
+                            <div class="spinner"></div>
+                            ランダム記事を取得中...
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 2. ブックマークタブ -->
+                <section id="view-bookmarks" class="view">
+                    <div class="glass-card">
+                        <h2>保存したブックマーク</h2>
+                        <p>お気に入りに登録した記事の一覧です。</p>
+                    </div>
+
+                    <div id="bookmarks-container">
+                        <!-- ブックマークカード群 -->
+                    </div>
+                </section>
+
+                <!-- 3. 設定タブ -->
+                <section id="view-settings" class="view">
+                    <div class="glass-card">
+                        <h2>色選択 (M3 Monet)</h2>
+                        <p>シードカラー（基準色）を変更してアプリ全体のデザインカラーをカスタマイズします。設定はIndexedDBに自動保存されます。</p>
+
+                        <div class="color-picker-row">
+                            <input type="color" id="seed-color-input" class="native-color-picker" value="#3381FF" onchange="onColorPicked(this.value)">
+                            <div>
+                                <div style="font-weight: 700; font-size: 14px;" id="seed-hex-label">#3381FF</div>
+                                <div style="font-size: 12px; color: var(--text-sub);">カラーパレットの基準色</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass-card">
+                        <h2>ポーランドボール キャラクター</h2>
+                        <p>ヘッダーに表示されるポーランドボールの表情を選択します。</p>
+
+                        <div class="char-option-grid">
+                            <div class="char-card selected" id="char-btn-lol" onclick="selectCharacter('lol')">
+                                <img src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/poland/lol.png" alt="lol">
+                                <span class="char-label">lol</span>
+                            </div>
+                            <div class="char-card" id="char-btn-normal" onclick="selectCharacter('normal')">
+                                <img src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/poland/lol.png" alt="normal" id="char-img-normal">
+                                <span class="char-label">normal</span>
+                            </div>
+                            <div class="char-card" id="char-btn-smile" onclick="selectCharacter('smile')">
+                                <img src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/poland/lol.png" alt="smile" id="char-img-smile">
+                                <span class="char-label">smile</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass-card">
+                        <h2>テーマモード</h2>
+                        <div class="toggle-row">
+                            <span>ダークモード</span>
+                            <label class="switch">
+                                <input type="checkbox" id="darkmode-toggle" onchange="toggleDarkTheme(this.checked)">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 4. 記事詳細表示ビュー -->
+                <section id="view-article" class="view">
+                    <div style="margin-bottom: 12px;">
+                        <button class="ai-btn ai-btn-secondary" onclick="closeArticleView()">
+                            <span class="material-symbols-outlined">arrow_back</span>
+                            一覧へ戻る
+                        </button>
+                    </div>
+
+                    <div class="glass-card" id="article-detail-card">
+                        <div class="loading-box">
+                            <div class="spinner"></div>
+                            記事全文と画像を読み込み中...
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+        </main>
+
+        <!-- 下付き固定ナビゲーションバー（ホーム, ブックマーク, 設定） -->
+        <div class="bottom-nav-container">
+            <div class="nav-item active" data-view="view-home" onclick="switchView('view-home')">
+                <span class="material-symbols-outlined">home</span>
+                <span class="nav-label">ホーム</span>
+            </div>
+            <div class="nav-item" data-view="view-bookmarks" onclick="switchView('view-bookmarks')">
+                <span class="material-symbols-outlined">bookmark</span>
+                <span class="nav-label">ブックマーク</span>
+            </div>
+            <div class="nav-item" data-view="view-settings" onclick="switchView('view-settings')">
+                <span class="material-symbols-outlined">settings</span>
+                <span class="nav-label">設定</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- トースト通知 -->
+    <div class="toast" id="toast-message">メッセージ</div>
+
+    <!-- Material Color Utilities (Monet Engine Integration) -->
+    <script type="module">
+        import { 
+            argbFromHex, 
+            hexFromArgb, 
+            themeFromSourceColor 
+        } from 'https://esm.run/@material/material-color-utilities';
+
+        // グローバルにMonet計算関数をアタッチ
+        window.M3Monet = {
+            argbFromHex,
+            hexFromArgb,
+            themeFromSourceColor
+        };
+
+        if (window.onMonetReady) {
+            window.onMonetReady();
+        }
+    </script>
+
+    <script>
+        /**
+         * Polandball Historys Core Logic
+         */
+
+        // キャラクター画像定義
+        const CHAR_MAP = {
+            lol: "https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/poland/lol.png",
+            normal: "https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/poland/lol.png", // フォールバック対応
+            smile: "https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/poland/lol.png"
+        };
+
+        let currentSeedColor = "#3381FF";
+        let isDarkMode = false;
+        let currentThemeObj = null;
+        let selectedCharacter = 'lol';
+        let db = null;
+        let currentActiveView = 'view-home';
+        let lastHomeView = 'view-home';
+
+        const toast = document.getElementById('toast-message');
+        const themeBtn = document.getElementById('theme-btn');
+        const themeIcon = themeBtn.querySelector('span');
+
+        // IndexedDB の初期化
+        function initIDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open('PBHistorysDB', 1);
+                request.onupgradeneeded = (e) => {
+                    const database = e.target.result;
+                    if (!database.objectStoreNames.contains('settings')) {
+                        database.createObjectStore('settings', { keyPath: 'key' });
+                    }
+                    if (!database.objectStoreNames.contains('bookmarks')) {
+                        database.createObjectStore('bookmarks', { keyPath: 'pageid' });
+                    }
+                };
+                request.onsuccess = (e) => {
+                    db = e.target.result;
+                    resolve(db);
+                };
+                request.onerror = (e) => {
+                    console.error('IndexedDB Error', e);
+                    resolve(null);
+                };
+            });
+        }
+
+        // iDB 設定の保存
+        async function saveSetting(key, value) {
+            if (!db) return;
+            const tx = db.transaction('settings', 'readwrite');
+            const store = tx.objectStore('settings');
+            store.put({ key: key, value: value });
+        }
+
+        // iDB 設定の取得
+        async function getSetting(key) {
+            if (!db) return null;
+            return new Promise((resolve) => {
+                const tx = db.transaction('settings', 'readonly');
+                const store = tx.objectStore('settings');
+                const req = store.get(key);
+                req.onsuccess = () => resolve(req.result ? req.result.value : null);
+                req.onerror = () => resolve(null);
+            });
+        }
+
+        // iDB ブックマーク一覧取得
+        async function getBookmarks() {
+            if (!db) return [];
+            return new Promise((resolve) => {
+                const tx = db.transaction('bookmarks', 'readonly');
+                const store = tx.objectStore('bookmarks');
+                const req = store.getAll();
+                req.onsuccess = () => resolve(req.result || []);
+                req.onerror = () => resolve([]);
+            });
+        }
+
+        // iDB ブックマーク追加/削除
+        async function toggleBookmarkInDB(article) {
+            if (!db) return false;
+            const bookmarks = await getBookmarks();
+            const exists = bookmarks.some(b => b.pageid == article.pageid);
+
+            const tx = db.transaction('bookmarks', 'readwrite');
+            const store = tx.objectStore('bookmarks');
+
+            if (exists) {
+                store.delete(article.pageid);
+                showToast('ブックマークから削除しました');
+                return false;
+            } else {
+                store.put(article);
+                showToast('ブックマークに保存しました');
+                return true;
+            }
+        }
+
+        // Monet テーマ計算＆適用
+        function updateMonetTheme(hexColor) {
+            currentSeedColor = hexColor;
+
+            const seedInput = document.getElementById('seed-color-input');
+            const seedLabel = document.getElementById('seed-hex-label');
+            if (seedInput) seedInput.value = hexColor;
+            if (seedLabel) seedLabel.textContent = hexColor.toUpperCase();
+
+            if (window.M3Monet) {
+                try {
+                    const argb = window.M3Monet.argbFromHex(hexColor);
+                    currentThemeObj = window.M3Monet.themeFromSourceColor(argb);
+                    applyM3Scheme(currentThemeObj);
+                } catch (e) {
+                    console.error("Monet Calculation Error:", e);
+                    fallbackApplyTheme(hexColor);
+                }
+            } else {
+                fallbackApplyTheme(hexColor);
+            }
+        }
+
+        function applyM3Scheme(theme) {
+            const scheme = isDarkMode ? theme.schemes.dark : theme.schemes.light;
+            const root = document.documentElement;
+
+            const hex = (argb) => window.M3Monet.hexFromArgb(argb);
+
+            const colors = {
+                primary: hex(scheme.primary),
+                onPrimary: hex(scheme.onPrimary),
+                primaryContainer: hex(scheme.primaryContainer),
+                onPrimaryContainer: hex(scheme.onPrimaryContainer),
+                secondary: hex(scheme.secondary),
+                onSecondary: hex(scheme.onSecondary),
+                secondaryContainer: hex(scheme.secondaryContainer),
+                onSecondaryContainer: hex(scheme.onSecondaryContainer),
+                tertiary: hex(scheme.tertiary),
+                onTertiary: hex(scheme.onTertiary),
+                tertiaryContainer: hex(scheme.tertiaryContainer),
+                onTertiaryContainer: hex(scheme.onTertiaryContainer),
+                background: hex(scheme.background),
+                onBackground: hex(scheme.onBackground),
+                surface: hex(scheme.surface),
+                onSurface: hex(scheme.onSurface),
+                surfaceVariant: hex(scheme.surfaceVariant),
+                onSurfaceVariant: hex(scheme.onSurfaceVariant),
+                outline: hex(scheme.outline)
+            };
+
+            root.style.setProperty('--md-sys-color-primary', colors.primary);
+            root.style.setProperty('--md-sys-color-on-primary', colors.onPrimary);
+            root.style.setProperty('--md-sys-color-primary-container', colors.primaryContainer);
+            root.style.setProperty('--md-sys-color-on-primary-container', colors.onPrimaryContainer);
+
+            root.style.setProperty('--md-sys-color-secondary', colors.secondary);
+            root.style.setProperty('--md-sys-color-on-secondary', colors.onSecondary);
+            root.style.setProperty('--md-sys-color-secondary-container', colors.secondaryContainer);
+            root.style.setProperty('--md-sys-color-on-secondary-container', colors.onSecondaryContainer);
+
+            root.style.setProperty('--md-sys-color-tertiary', colors.tertiary);
+            root.style.setProperty('--md-sys-color-on-tertiary', colors.onTertiary);
+            root.style.setProperty('--md-sys-color-tertiary-container', colors.tertiaryContainer);
+            root.style.setProperty('--md-sys-color-on-tertiary-container', colors.onTertiaryContainer);
+
+            root.style.setProperty('--md-sys-color-background', colors.background);
+            root.style.setProperty('--md-sys-color-on-background', colors.onBackground);
+
+            root.style.setProperty('--md-sys-color-surface', colors.surface);
+            root.style.setProperty('--md-sys-color-on-surface', colors.onSurface);
+            root.style.setProperty('--md-sys-color-surface-variant', colors.surfaceVariant);
+            root.style.setProperty('--md-sys-color-on-surface-variant', colors.onSurfaceVariant);
+            root.style.setProperty('--md-sys-color-outline', colors.outline);
+
+            root.style.setProperty('--bg-base', isDarkMode ? colors.background : colors.surfaceVariant);
+            root.style.setProperty('--glass-bg', isDarkMode ? colors.surfaceVariant : colors.background);
+        }
+
+        function fallbackApplyTheme(hex) {
+            const root = document.documentElement;
+            root.style.setProperty('--md-sys-color-primary', hex);
+            root.style.setProperty('--md-sys-color-background', isDarkMode ? '#121212' : '#F8F9FF');
+            root.style.setProperty('--md-sys-color-surface-variant', isDarkMode ? '#2C2C2E' : '#E1E2EC');
+            root.style.setProperty('--md-sys-color-on-surface', isDarkMode ? '#FFFFFF' : '#191C20');
+
+            root.style.setProperty('--bg-base', isDarkMode ? 'var(--md-sys-color-background)' : 'var(--md-sys-color-surface-variant)');
+            root.style.setProperty('--glass-bg', isDarkMode ? 'var(--md-sys-color-surface-variant)' : 'var(--md-sys-color-background)');
+        }
+
+        function onColorPicked(hex) {
+            updateMonetTheme(hex);
+            saveSetting('m3_color', hex);
+        }
+
+        function toggleDarkTheme(isDark) {
+            isDarkMode = isDark;
+            themeIcon.textContent = isDark ? 'dark_mode' : 'light_mode';
+            
+            const dmToggle = document.getElementById('darkmode-toggle');
+            if (dmToggle) dmToggle.checked = isDark;
+
+            saveSetting('dark_mode', isDark);
+
+            if (currentThemeObj) {
+                applyM3Scheme(currentThemeObj);
+            } else {
+                updateMonetTheme(currentSeedColor);
+            }
+        }
+
+        themeBtn.addEventListener('click', () => {
+            toggleDarkTheme(!isDarkMode);
+        });
+
+        // キャラクター変更
+        function selectCharacter(charKey) {
+            selectedCharacter = charKey;
+            document.querySelectorAll('.char-card').forEach(c => c.classList.remove('selected'));
+            const btn = document.getElementById(`char-btn-${charKey}`);
+            if (btn) btn.classList.add('selected');
+
+            const headerImg = document.getElementById('header-pb-img');
+            if (headerImg) {
+                headerImg.src = CHAR_MAP[charKey] || CHAR_MAP.lol;
+            }
+
+            saveSetting('character', charKey);
+        }
+
+        // ------------------ Wikipedia API データ取得部 ------------------
+
+        // ランダム記事20個の取得（Wikipedia Random API）
+        async function loadRandomArticles() {
+            const container = document.getElementById('home-articles-container');
+            container.innerHTML = `
+                <div class="loading-box">
+                    <div class="spinner"></div>
+                    Wikipediaからランダム歴史記事を取得中...
+                </div>
+            `;
+
+            try {
+                // grnlimit=20 でランダム記事20件を取得
+                const url = `https://ja.wikipedia.org/w/api.php?action=query&format=json&origin=*&generator=random&grnnamespace=0&grnlimit=20&prop=pageimages|extracts&pithumbsize=600&exintro=1&explaintext=1`;
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data.query && data.query.pages) {
+                    const pages = Object.values(data.query.pages);
+                    renderArticleCards(container, pages);
+                } else {
+                    container.innerHTML = `<div class="glass-card"><p>記事を取得できませんでした。再度お試しください。</p></div>`;
+                }
+            } catch (err) {
+                console.error(err);
+                container.innerHTML = `<div class="glass-card"><p>ネットワークエラーが発生しました。</p></div>`;
+            }
+        }
+
+        // ジャンル選択変更ハンドラ
+        async function onGenreChange(genreVal) {
+            if (genreVal === 'all') {
+                loadRandomArticles();
+                return;
+            }
+
+            const container = document.getElementById('home-articles-container');
+            container.innerHTML = `
+                <div class="loading-box">
+                    <div class="spinner"></div>
+                    ジャンル「${genreVal.replace('Category:', '')}」の記事を取得中...
+                </div>
+            `;
+
+            try {
+                const url = `https://ja.wikipedia.org/w/api.php?action=query&format=json&origin=*&generator=categorymembers&gcmtitle=${encodeURIComponent(genreVal)}&gcmlimit=20&gcmtype=page&prop=pageimages|extracts&pithumbsize=600&exintro=1&explaintext=1`;
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data.query && data.query.pages) {
+                    const pages = Object.values(data.query.pages);
+                    renderArticleCards(container, pages);
+                } else {
+                    container.innerHTML = `<div class="glass-card"><p>該当する記事が見つかりませんでした。</p></div>`;
+                }
+            } catch (err) {
+                console.error(err);
+                container.innerHTML = `<div class="glass-card"><p>取得エラーが発生しました。</p></div>`;
+            }
+        }
+
+        // 検索実行
+        async function performSearch() {
+            const query = document.getElementById('search-input').value.trim();
+            if (!query) return;
+
+            const container = document.getElementById('home-articles-container');
+            container.innerHTML = `
+                <div class="loading-box">
+                    <div class="spinner"></div>
+                    「${query}」を検索中...
+                </div>
+            `;
+
+            try {
+                const searchUrl = `https://ja.wikipedia.org/w/api.php?action=query&format=json&origin=*&list=search&srsearch=${encodeURIComponent(query)}&srlimit=20`;
+                const sRes = await fetch(searchUrl);
+                const sData = await sRes.json();
+
+                if (sData.query && sData.query.search && sData.query.search.length > 0) {
+                    const pageIds = sData.query.search.map(item => item.pageid).join('|');
+                    const detailUrl = `https://ja.wikipedia.org/w/api.php?action=query&format=json&origin=*&pageids=${pageIds}&prop=pageimages|extracts&pithumbsize=600&exintro=1&explaintext=1`;
+                    const dRes = await fetch(detailUrl);
+                    const dData = await dRes.json();
+
+                    if (dData.query && dData.query.pages) {
+                        const pages = Object.values(dData.query.pages);
+                        renderArticleCards(container, pages);
+                    }
+                } else {
+                    container.innerHTML = `<div class="glass-card"><p>「${query}」に一致する記事は見つかりませんでした。</p></div>`;
+                }
+            } catch (err) {
+                console.error(err);
+                container.innerHTML = `<div class="glass-card"><p>検索エラーが発生しました。</p></div>`;
+            }
+        }
+
+        // 記事カード一覧の描画
+        async function renderArticleCards(targetElement, pages) {
+            const bookmarks = await getBookmarks();
+            const bookmarkIds = new Set(bookmarks.map(b => b.pageid));
+
+            targetElement.innerHTML = '';
+
+            if (!pages || pages.length === 0) {
+                targetElement.innerHTML = `<div class="glass-card"><p>記事がありません。</p></div>`;
+                return;
+            }
+
+            pages.forEach(page => {
+                const card = document.createElement('div');
+                card.className = 'article-card';
+
+                const title = page.title || '無題の記事';
+                const snippet = page.extract || '（概要はありません）';
+                const imgUrl = page.thumbnail ? page.thumbnail.source : '';
+                const isBookmarked = bookmarkIds.has(page.pageid);
+
+                // カードには写真も併記（画像があれば表示）。アイコン等は除外。
+                card.innerHTML = `
+                    <div class="article-card-header">
+                        <h3 class="article-title">${escapeHtml(title)}</h3>
+                        <button class="bookmark-btn ${isBookmarked ? 'active' : ''}" data-pageid="${page.pageid}" onclick="onBookmarkClick(event, ${page.pageid}, '${escapeHtml(title)}', '${imgUrl ? escapeHtml(imgUrl) : ''}', '${escapeHtml(snippet.substring(0, 150))}')">
+                            <span class="material-symbols-outlined">${isBookmarked ? 'bookmark' : 'bookmark_border'}</span>
+                        </button>
+                    </div>
+                    ${imgUrl ? `<img class="article-thumbnail" src="${imgUrl}" alt="${escapeHtml(title)}" loading="lazy">` : ''}
+                    <p class="article-snippet">${escapeHtml(snippet)}</p>
+                    <div class="article-card-actions">
+                        <button class="ai-btn" onclick="openArticleDetail('${escapeHtml(title)}', ${page.pageid})">
+                            <span class="material-symbols-outlined">menu_book</span>
+                            記事をすべて読む
+                        </button>
+                    </div>
+                `;
+
+                targetElement.appendChild(card);
+            });
+        }
+
+        // ブックマークボタン押下処理
+        async function onBookmarkClick(event, pageid, title, imgUrl, snippet) {
+            event.stopPropagation();
+            const article = { pageid, title, thumbnail: imgUrl ? { source: imgUrl } : null, extract: snippet };
+            const isSaved = await toggleBookmarkInDB(article);
+
+            const btn = event.currentTarget;
+            if (isSaved) {
+                btn.classList.add('active');
+                btn.querySelector('.material-symbols-outlined').textContent = 'bookmark';
+            } else {
+                btn.classList.remove('active');
+                btn.querySelector('.material-symbols-outlined').textContent = 'bookmark_border';
+            }
+
+            if (currentActiveView === 'view-bookmarks') {
+                renderBookmarksView();
+            }
+        }
+
+        // 記事詳細ビューを開く（Parse API で本文・全画像・内部リンクを取得）
+        async function openArticleDetail(title, pageid) {
+            lastHomeView = currentActiveView;
+            switchView('view-article', false);
+
+            const card = document.getElementById('article-detail-card');
+            card.innerHTML = `
+                <div class="loading-box">
+                    <div class="spinner"></div>
+                    「${escapeHtml(title)}」の本文と画像を読み込み中...
+                </div>
+            `;
+
+            try {
+                // Wikipedia API action=parse で全文HTMLを取得
+                const parseUrl = `https://ja.wikipedia.org/w/api.php?action=parse&format=json&origin=*&page=${encodeURIComponent(title)}&prop=text|images|displaytitle&disableeditsection=1&mobileformat=1`;
+                const response = await fetch(parseUrl);
+                const data = await response.json();
+
+                if (data.parse && data.parse.text) {
+                    let htmlContent = data.parse.text['*'];
+
+                    // DOMParserでHTMLを変換・整形
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(htmlContent, 'text/html');
+
+                    // 不要な元素の除去（編集ボタン・ナビボックスなど）
+                    doc.querySelectorAll('.mw-editsection, .navbox, .mw-empty-elt, .noprint, .ambox').forEach(el => el.remove());
+
+                    // 画像リンク・URL補正 (//upload.wikimedia.org -> https://upload.wikimedia.org)
+                    doc.querySelectorAll('img').forEach(img => {
+                        let src = img.getAttribute('src');
+                        if (src) {
+                            if (src.startsWith('//')) {
+                                img.setAttribute('src', 'https:' + src);
+                            } else if (src.startsWith('/')) {
+                                img.setAttribute('src', 'https://ja.wikipedia.org' + src);
+                            }
+                            img.removeAttribute('srcset');
+                        }
+                    });
+
+                    // 内部リンク <a href="/wiki/..." > をアプリ内記事読み込み関数へ差し替え
+                    doc.querySelectorAll('a').forEach(a => {
+                        const href = a.getAttribute('href');
+                        if (href && href.startsWith('/wiki/')) {
+                            const linkedTitle = decodeURIComponent(href.replace('/wiki/', '')).replace(/_/g, ' ');
+                            // Wikipedia外部に飛ばさずアプリ内で遷移
+                            a.removeAttribute('href');
+                            a.setAttribute('onclick', `openArticleDetail('${escapeHtml(linkedTitle)}')`);
+                            a.style.cursor = 'pointer';
+                        } else if (href && href.startsWith('#')) {
+                            // ページ内目次リンク
+                        } else {
+                            a.removeAttribute('target');
+                            a.removeAttribute('href');
+                        }
+                    });
+
+                    card.innerHTML = `
+                        <h1 class="article-title" style="font-size: 22px; margin-bottom: 16px;">${escapeHtml(data.parse.title || title)}</h1>
+                        <div class="article-full-content">
+                            ${doc.body.innerHTML}
+                        </div>
+                    `;
+                } else {
+                    card.innerHTML = `<p>記事の読み込みに失敗しました。</p>`;
+                }
+            } catch (err) {
+                console.error(err);
+                card.innerHTML = `<p>エラーが発生しました。</p>`;
+            }
+        }
+
+        function closeArticleView() {
+            switchView(lastHomeView, true);
+        }
+
+        // ブックマーク一覧の更新
+        async function renderBookmarksView() {
+            const container = document.getElementById('bookmarks-container');
+            const bookmarks = await getBookmarks();
+
+            if (bookmarks.length === 0) {
+                container.innerHTML = `
+                    <div class="glass-card">
+                        <p style="margin: 0; text-align: center;">ブックマークされた記事はまだありません。</p>
+                    </div>
+                `;
+                return;
+            }
+
+            renderArticleCards(container, bookmarks);
+        }
+
+        // HTMLエスケープヘルパー
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        // ビュー切り替え関数
+        const navItems = document.querySelectorAll('.nav-item');
+        const views = document.querySelectorAll('.view');
+
+        function switchView(viewId, updateNav = true) {
+            currentActiveView = viewId;
+
+            if (updateNav) {
+                navItems.forEach(n => {
+                    n.classList.remove('active');
+                    if (n.getAttribute('data-view') === viewId) {
+                        n.classList.add('active');
+                    }
+                });
+            }
+
+            views.forEach(v => {
+                v.classList.remove('active');
+                if (v.id === viewId) {
+                    v.classList.add('active');
+                }
+            });
+
+            if (viewId === 'view-bookmarks') {
+                renderBookmarksView();
+            }
+        }
+
+        function showToast(msg) {
+            toast.textContent = msg;
+            toast.classList.add('active');
+            setTimeout(() => {
+                toast.classList.remove('active');
+            }, 2200);
+        }
+
+        /**
+         * 滑らかなオーバースクロール（弾性ラバーバンド）物理アニメーション
+         */
+        const scrollArea = document.getElementById('main-scroll-area');
+        const overscrollWrapper = document.getElementById('overscroll-wrapper');
+
+        let startY = 0;
+        let currentPull = 0;
+        let isPulling = false;
+
+        scrollArea.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 1) {
+                startY = e.touches[0].clientY;
+                overscrollWrapper.classList.remove('spring-back');
+            }
+        }, { passive: true });
+
+        scrollArea.addEventListener('touchmove', (e) => {
+            if (e.touches.length !== 1) return;
+            const currentY = e.touches[0].clientY;
+            const deltaY = currentY - startY;
+
+            const isAtTop = scrollArea.scrollTop <= 0;
+            const isAtBottom = Math.abs(scrollArea.scrollHeight - scrollArea.clientHeight - scrollArea.scrollTop) < 2;
+
+            if ((isAtTop && deltaY > 0) || (isAtBottom && deltaY < 0)) {
+                currentPull = deltaY * 0.38;
+                overscrollWrapper.style.transform = `translateY(${currentPull}px) scaleY(${1 + Math.abs(currentPull) * 0.0003})`;
+                isPulling = true;
+            }
+        }, { passive: true });
+
+        scrollArea.addEventListener('touchend', () => {
+            if (isPulling) {
+                overscrollWrapper.classList.add('spring-back');
+                overscrollWrapper.style.transform = 'translateY(0px) scaleY(1)';
+                currentPull = 0;
+                isPulling = false;
+            }
+        });
+
+        let wheelTimer = null;
+        let wheelDeltaSum = 0;
+
+        scrollArea.addEventListener('wheel', (e) => {
+            const isAtTop = scrollArea.scrollTop <= 0;
+            const isAtBottom = Math.abs(scrollArea.scrollHeight - scrollArea.clientHeight - scrollArea.scrollTop) < 2;
+
+            if ((isAtTop && e.deltaY < 0) || (isAtBottom && e.deltaY > 0)) {
+                wheelDeltaSum -= e.deltaY * 0.25;
+                wheelDeltaSum = Math.max(-60, Math.min(60, wheelDeltaSum));
+
+                overscrollWrapper.classList.remove('spring-back');
+                overscrollWrapper.style.transform = `translateY(${wheelDeltaSum}px)`;
+
+                clearTimeout(wheelTimer);
+                wheelTimer = setTimeout(() => {
+                    overscrollWrapper.classList.add('spring-back');
+                    overscrollWrapper.style.transform = 'translateY(0px)';
+                    wheelDeltaSum = 0;
+                }, 120);
+            }
+        }, { passive: true });
+
+        // 初期化処理
+        window.onload = async () => {
+            await initIDB();
+
+            // iDBから設定を復元
+            const savedColor = await getSetting('m3_color');
+            if (savedColor) {
+                currentSeedColor = savedColor;
+            }
+
+            const savedDarkMode = await getSetting('dark_mode');
+            if (savedDarkMode !== null) {
+                isDarkMode = savedDarkMode;
+            } else {
+                isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            }
+
+            const savedChar = await getSetting('character');
+            if (savedChar) {
+                selectCharacter(savedChar);
+            } else {
+                selectCharacter('lol');
+            }
+
+            toggleDarkTheme(isDarkMode);
+
+            // 初期ランダム記事取得
+            loadRandomArticles();
+        };
+
+        window.onMonetReady = () => {
+            updateMonetTheme(currentSeedColor);
+        };
+    </script>
+</body>
+</html>
