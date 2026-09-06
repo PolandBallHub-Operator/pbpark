@@ -1,0 +1,1511 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+    <title>ポーランのミニメモ - Poland Ball Notes</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&family=Noto+Sans+JP:wght@400;500;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+
+    <style>
+        /* M3 (Monet) ダイナミックカラー標準変数セット */
+        :root {
+            /* M3 Core Dynamic Tokens (初期値: Hyperos Blue #3381FF) */
+            --md-sys-color-primary: #3381FF;
+            --md-sys-color-on-primary: #FFFFFF;
+            --md-sys-color-primary-container: #DCE3FF;
+            --md-sys-color-on-primary-container: #001945;
+            
+            --md-sys-color-secondary: #575E71;
+            --md-sys-color-on-secondary: #FFFFFF;
+            --md-sys-color-secondary-container: #DCB8FF;
+            --md-sys-color-on-secondary-container: #141B2C;
+            
+            --md-sys-color-tertiary: #715573;
+            --md-sys-color-on-tertiary: #FFFFFF;
+            --md-sys-color-tertiary-container: #FBD7FC;
+            --md-sys-color-on-tertiary-container: #29132D;
+
+            --md-sys-color-background: #F8F9FF;
+            --md-sys-color-on-background: #191C20;
+            
+            --md-sys-color-surface: #F8F9FF;
+            --md-sys-color-on-surface: #191C20;
+            --md-sys-color-surface-variant: #E1E2EC;
+            --md-sys-color-on-surface-variant: #44474F;
+            --md-sys-color-outline: #757780;
+
+            /* UIコンポーネント用エイリアス */
+            --accent-primary: var(--md-sys-color-primary);
+            --accent-active: var(--md-sys-color-primary-container);
+            
+            --bg-base: var(--md-sys-color-surface-variant);
+            --glass-bg: var(--md-sys-color-background);
+            --text-main: var(--md-sys-color-on-surface);
+            --text-sub: var(--md-sys-color-on-surface-variant);
+            --bg-secondary: var(--md-sys-color-surface-variant);
+            --nav-bg: var(--md-sys-color-surface);
+            --nav-icon-active: var(--md-sys-color-primary);
+            
+            --m3-easing: cubic-bezier(0.32, 0.72, 0, 1);
+            --transition-smooth: 0.35s var(--m3-easing);
+            --card-padding: 20px;
+            --card-radius: 24px;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', 'Noto Sans JP', sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            transition: background-color var(--transition-smooth), color var(--transition-smooth);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* アプリ全体のコンテナ（フルスクリーンWebアプリ仕様） */
+        #app-viewport {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow: hidden;
+        }
+
+        /* ヘッダー */
+        header {
+            height: 64px;
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--bg-base);
+            transition: background-color var(--transition-smooth);
+            position: relative;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+        .logo {
+            font-weight: 700;
+            font-size: 18px;
+            letter-spacing: -0.5px;
+            color: var(--text-main);
+            text-align: left;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .logo img {
+            width: 32px;
+            height: 32px;
+            object-fit: contain;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+        }
+        .logo-badge {
+            font-size: 10px;
+            background: var(--md-sys-color-primary-container);
+            color: var(--md-sys-color-on-primary-container);
+            padding: 2px 8px;
+            border-radius: 8px;
+            font-weight: 700;
+        }
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .icon-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: none;
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background var(--transition-smooth), transform 0.2s;
+        }
+        .icon-btn:active {
+            transform: scale(0.92);
+        }
+
+        /* メインスクロールエリア */
+        main {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 12px 16px 100px;
+            max-width: 720px;
+            width: 100%;
+            margin: 0 auto;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior-y: none;
+            will-change: transform;
+        }
+
+        /* Elastic Overscroll 伸縮ラッパー */
+        #overscroll-wrapper {
+            transform-origin: center top;
+            transition: transform 0s linear;
+        }
+        #overscroll-wrapper.spring-back {
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        /* フラットソリッドカード（枠線なし・影なし・入れ子カード完全排除） */
+        .glass-card {
+            background: var(--glass-bg);
+            border-radius: var(--card-radius);
+            padding: var(--card-padding);
+            margin-bottom: 16px;
+            box-shadow: none !important;
+            border: none !important;
+            transition: background-color var(--transition-smooth), border-radius var(--transition-smooth);
+        }
+
+        h2 { 
+            font-size: 18px; 
+            margin-top: 0; 
+            margin-bottom: 12px;
+            font-weight: 700; 
+            letter-spacing: -0.3px;
+            color: var(--text-main);
+        }
+        p {
+            font-size: 13.5px;
+            line-height: 1.55;
+            margin-top: 0;
+            margin-bottom: 12px;
+            color: var(--text-sub);
+        }
+
+        /* ------------------ UIコンポーネント設計 ------------------ */
+
+        /* リストコンポーネント */
+        .custom-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .list-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 8px;
+            border-bottom: none !important;
+            cursor: pointer;
+            border-radius: 16px;
+            transition: background-color 0.2s;
+        }
+        .list-item:active {
+            background-color: var(--bg-base);
+        }
+        .list-item-title {
+            font-weight: 600;
+            font-size: 15px;
+            color: var(--text-main);
+            margin-bottom: 2px;
+            word-break: break-word;
+        }
+        .list-item-desc {
+            font-size: 12.5px;
+            color: var(--text-sub);
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            word-break: break-word;
+        }
+
+        /* スライダー */
+        .slider-wrapper {
+            margin: 16px 0;
+        }
+        .slider-label-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-main);
+        }
+        .thick-slider-container {
+            position: relative;
+            width: 100%;
+            height: 24px;
+            background: var(--bg-base);
+            border-radius: 12px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: background var(--transition-smooth);
+            display: flex;
+            align-items: center;
+        }
+        .thick-slider-fill {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 50%;
+            background: var(--accent-primary);
+            transition: background-color var(--transition-smooth), width 0.05s ease-out;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 3px;
+        }
+        .thick-slider-knob {
+            width: 18px;
+            height: 18px;
+            background: var(--md-sys-color-on-primary);
+            border-radius: 50%;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+            flex-shrink: 0;
+        }
+        .thick-slider-input {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+            margin: 0;
+            z-index: 5;
+        }
+
+        /* トグルスイッチ */
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 4px;
+            border-bottom: none !important;
+            color: var(--text-main);
+        }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 52px;
+            height: 30px;
+        }
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--bg-base);
+            transition: var(--transition-smooth);
+            border-radius: 15px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 4px;
+            bottom: 4px;
+            background: var(--text-sub);
+            transition: var(--transition-smooth);
+            border-radius: 50%;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+        }
+        input:checked + .slider {
+            background: var(--accent-primary);
+        }
+        input:checked + .slider:before {
+            transform: translateX(22px);
+            background: var(--md-sys-color-on-primary);
+        }
+
+        /* アクションボタン */
+        .ai-btn {
+            border: none;
+            outline: none;
+            padding: 12px 20px;
+            border-radius: 14px;
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--md-sys-color-on-primary);
+            cursor: pointer;
+            background: var(--accent-primary);
+            transition: opacity 0.2s, background-color var(--transition-smooth), color var(--transition-smooth);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            justify-content: center;
+        }
+        .ai-btn:active {
+            opacity: 0.85;
+        }
+        .ai-btn-secondary {
+            background: var(--md-sys-color-secondary-container);
+            color: var(--md-sys-color-on-secondary-container);
+        }
+
+        /* インプットテキスト & テキストエリア */
+        .glass-input-wrapper {
+            margin-bottom: 12px;
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        .glass-input {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 14px;
+            border: none;
+            background: var(--bg-base);
+            color: var(--text-main);
+            font-size: 14px;
+            font-family: inherit;
+            box-sizing: border-box;
+            transition: background var(--transition-smooth);
+        }
+        .glass-input:focus {
+            outline: 2px solid var(--accent-primary);
+        }
+        textarea.glass-input {
+            min-height: 220px;
+            resize: vertical;
+            line-height: 1.6;
+        }
+
+        /* ------------------ ナビゲーション ------------------ */
+        .bottom-nav-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 72px;
+            background: var(--nav-bg);
+            border-top: 1px solid rgba(0,0,0,0.05);
+            z-index: 500;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding-bottom: env(safe-area-inset-bottom);
+            transition: background-color var(--transition-smooth);
+        }
+        .nav-item {
+            flex: 1;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-sub);
+            transition: color 0.25s var(--m3-easing);
+            position: relative;
+            gap: 4px;
+        }
+        .nav-item span.material-symbols-outlined {
+            font-size: 24px;
+            font-variation-settings: 'FILL' 0, 'wght' 400;
+            transition: font-variation-settings 0.2s, color 0.2s;
+        }
+        .nav-label {
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .nav-item.active {
+            color: var(--nav-icon-active);
+        }
+        .nav-item.active span.material-symbols-outlined {
+            font-variation-settings: 'FILL' 1, 'wght' 700;
+        }
+
+        /* ビュー切り替え */
+        .view {
+            display: none;
+        }
+        .view.active {
+            display: block;
+            animation: viewIn 0.3s var(--m3-easing);
+        }
+        @keyframes viewIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* M3 Monet トナルパレット表示グリッド */
+        .palette-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 10px;
+            margin-top: 12px;
+        }
+        .palette-chip {
+            padding: 12px;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 70px;
+            font-size: 11px;
+            font-weight: 700;
+            transition: background 0.3s;
+        }
+
+        /* プリセット選択ボタン */
+        .preset-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .preset-btn {
+            background: var(--bg-base);
+            color: var(--text-main);
+            border: none;
+            padding: 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.2s, opacity 0.1s;
+        }
+        .preset-btn:active {
+            opacity: 0.8;
+        }
+        .preset-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        /* トースト & ダイアログ */
+        .toast {
+            position: fixed;
+            bottom: 84px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--md-sys-color-on-surface);
+            color: var(--md-sys-color-surface);
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s var(--m3-easing);
+            z-index: 2000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .toast.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .dialog-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.45);
+            backdrop-filter: blur(4px);
+            z-index: 1000; display: flex; align-items: center; justify-content: center;
+            opacity: 0; visibility: hidden; transition: all 0.3s var(--m3-easing);
+        }
+        .dialog-overlay.active { opacity: 1; visibility: visible; }
+        .glass-dialog {
+            background: var(--glass-bg);
+            border-radius: var(--card-radius);
+            padding: 24px; max-width: 420px; width: 90%; text-align: left;
+            transform: scale(0.9) translateY(20px); transition: all 0.4s var(--m3-easing);
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+        .dialog-overlay.active .glass-dialog { transform: scale(1) translateY(0); }
+
+        .badge {
+            background: var(--accent-primary);
+            color: var(--md-sys-color-on-primary);
+            padding: 3px 10px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 700;
+            display: inline-block;
+        }
+
+        .color-picker-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 12px 0;
+        }
+        .native-color-picker {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            background: none;
+            padding: 0;
+        }
+        .native-color-picker::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+        .native-color-picker::-webkit-color-swatch {
+            border: 2px solid var(--md-sys-color-outline);
+            border-radius: 50%;
+        }
+
+        /* アプリ固有の拡張スタイル（Xiaomi/MIUI Noteスタイルの要素） */
+        .search-container {
+            position: relative;
+            margin-bottom: 16px;
+        }
+        .search-container .material-symbols-outlined {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-sub);
+            font-size: 20px;
+        }
+        .search-input {
+            padding-left: 44px !important;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+        .empty-state img {
+            width: 80px;
+            height: 80px;
+            opacity: 0.85;
+        }
+        .empty-state div {
+            color: var(--text-sub);
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .note-meta-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 11px;
+            color: var(--text-sub);
+            margin-top: 6px;
+        }
+
+        .item-actions {
+            display: flex;
+            gap: 4px;
+        }
+        .action-icon-btn {
+            border: none;
+            background: transparent;
+            color: var(--text-sub);
+            cursor: pointer;
+            padding: 6px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s, color 0.2s;
+        }
+        .action-icon-btn:hover, .action-icon-btn:active {
+            background: var(--bg-base);
+            color: var(--text-main);
+        }
+
+        .pin-badge {
+            color: var(--accent-primary);
+            font-size: 16px;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app-viewport">
+        <!-- ヘッダー -->
+        <header>
+            <div class="logo">
+                <img src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/poland/lol.png" alt="Poland Ball">
+                <span>ポーランのミニメモ</span>
+            </div>
+            <div class="header-actions">
+                <button class="icon-btn" onclick="openSettingsDialog()" title="設定">
+                    <span class="material-symbols-outlined">settings</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- メインコンテンツ -->
+        <main id="main-scroll-area">
+            <div id="overscroll-wrapper">
+                
+                <!-- 1. メモ一覧ビュー (ホーム) -->
+                <section id="view-notes" class="view active">
+                    <div class="glass-card">
+                        <!-- 検索バー -->
+                        <div class="search-container">
+                            <span class="material-symbols-outlined">search</span>
+                            <input type="text" id="search-input" class="glass-input search-input" placeholder="メモや日記を検索..." oninput="handleSearch()">
+                        </div>
+
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                            <h2>メモ一覧 <span id="note-count-badge" class="badge">0件</span></h2>
+                            <button class="ai-btn" style="padding: 6px 14px; font-size: 13px;" onclick="createNewNote()">
+                                <span class="material-symbols-outlined" style="font-size: 18px;">add</span>
+                                新規作成
+                            </button>
+                        </div>
+
+                        <!-- メモリスト -->
+                        <div id="notes-list" class="custom-list">
+                            <!-- IndexedDBから動的に流し込み -->
+                        </div>
+
+                        <!-- メモがない時の空表示 -->
+                        <div id="empty-notes-view" class="empty-state" style="display: none;">
+                            <img src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/poland/lol.png" alt="Poland Empty">
+                            <div>まだメモがないんよ。<br>右上のボタンから日記やメモを書いてほしいんよ</div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 2. メモ編集ビュー -->
+                <section id="view-editor" class="view">
+                    <div class="glass-card">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                            <button class="ai-btn ai-btn-secondary" style="padding: 6px 12px; font-size: 13px;" onclick="switchView('view-notes')">
+                                <span class="material-symbols-outlined" style="font-size: 18px;">arrow_back</span>
+                                戻る
+                            </button>
+                            <div class="item-actions">
+                                <button class="action-icon-btn" id="btn-toggle-pin" onclick="toggleCurrentPin()" title="固定/固定解除">
+                                    <span class="material-symbols-outlined" id="pin-icon">push_pin</span>
+                                </button>
+                                <button class="action-icon-btn" onclick="shareCurrentNote()" title="共有">
+                                    <span class="material-symbols-outlined">share</span>
+                                </button>
+                                <button class="action-icon-btn" onclick="deleteCurrentNote()" title="削除">
+                                    <span class="material-symbols-outlined" style="color: #ef4444;">delete</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="glass-input-wrapper">
+                            <input type="text" id="editor-title" class="glass-input" placeholder="タイトルを入力..." style="font-size: 16px; font-weight: 700;">
+                        </div>
+
+                        <div class="glass-input-wrapper">
+                            <textarea id="editor-content" class="glass-input" placeholder="ここに日記やメモを書きましょう..."></textarea>
+                        </div>
+
+                        <div class="note-meta-info" id="editor-meta">
+                            <span>作成: --/--/--</span>
+                            <span>文字数: 0</span>
+                        </div>
+
+                        <div style="margin-top: 18px; display: flex; gap: 10px;">
+                            <button class="ai-btn" style="flex: 1;" onclick="saveCurrentNote()">
+                                <span class="material-symbols-outlined">save</span>
+                                保存する
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 3. M3 Monet カラーテーマカスタマイズビュー -->
+                <section id="view-monet" class="view">
+                    <div class="glass-card">
+                        <h2>Monet Dynamic Color Engine</h2>
+                        <p>シードカラー（基準色）を変更すると、Material 3 アルゴリズムによりアプリ全体のダイナミックカラーが再計算・保存されます。</p>
+
+                        <!-- カラーピッカー -->
+                        <div class="color-picker-row">
+                            <input type="color" id="seed-color-input" class="native-color-picker" value="#3381FF" onchange="updateMonetTheme(this.value, true)">
+                            <div>
+                                <div style="font-weight: 700; font-size: 14px;" id="seed-hex-label">#3381FF</div>
+                                <div style="font-size: 12px; color: var(--text-sub);">シードカラーを選択または変更</div>
+                            </div>
+                        </div>
+
+                        <!-- プリセットカラー -->
+                        <div style="margin-top: 14px;">
+                            <span style="font-size: 13px; font-weight: 600;">プリセット・シード</span>
+                            <div class="preset-grid">
+                                <button class="preset-btn" onclick="updateMonetTheme('#3381FF', true)">
+                                    <div class="preset-dot" style="background: #3381FF;"></div> Hyperos Blue
+                                </button>
+                                <button class="preset-btn" onclick="updateMonetTheme('#10B981', true)">
+                                    <div class="preset-dot" style="background: #10B981;"></div> Mint Emerald
+                                </button>
+                                <button class="preset-btn" onclick="updateMonetTheme('#8B5CF6', true)">
+                                    <div class="preset-dot" style="background: #8B5CF6;"></div> Radiant Violet
+                                </button>
+                                <button class="preset-btn" onclick="updateMonetTheme('#F59E0B', true)">
+                                    <div class="preset-dot" style="background: #F59E0B;"></div> Amber Glow
+                                </button>
+                                <button class="preset-btn" onclick="updateMonetTheme('#EC4899', true)">
+                                    <div class="preset-dot" style="background: #EC4899;"></div> Rose Monet
+                                </button>
+                                <button class="preset-btn" onclick="updateMonetTheme('#64748B', true)">
+                                    <div class="preset-dot" style="background: #64748B;"></div> Slate Neutral
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- M3 Dynamic Schemes パレット確認 -->
+                    <div class="glass-card">
+                        <h2>生成された M3 ロール</h2>
+                        <p>現在のテーマで適用されている主要な Material 3 カラーロールです。</p>
+
+                        <div class="palette-grid">
+                            <div class="palette-chip" style="background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary);">
+                                <span>Primary</span>
+                                <span id="hex-primary">-</span>
+                            </div>
+                            <div class="palette-chip" style="background: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container);">
+                                <span>Primary Container</span>
+                                <span id="hex-primary-container">-</span>
+                            </div>
+                            <div class="palette-chip" style="background: var(--md-sys-color-secondary); color: var(--md-sys-color-on-secondary);">
+                                <span>Secondary</span>
+                                <span id="hex-secondary">-</span>
+                            </div>
+                            <div class="palette-chip" style="background: var(--md-sys-color-tertiary); color: var(--md-sys-color-on-tertiary);">
+                                <span>Tertiary</span>
+                                <span id="hex-tertiary">-</span>
+                            </div>
+                            <div class="palette-chip" style="background: var(--md-sys-color-surface-variant); color: var(--md-sys-color-on-surface-variant);">
+                                <span>Surface Variant</span>
+                                <span id="hex-surface-variant">-</span>
+                            </div>
+                            <div class="palette-chip" style="background: var(--md-sys-color-background); color: var(--md-sys-color-on-background); border: 1px solid var(--md-sys-color-outline);">
+                                <span>Background</span>
+                                <span id="hex-background">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+
+        <!-- 下付き固定ナビゲーションバー -->
+        <div class="bottom-nav-container">
+            <div class="nav-item active" data-view="view-notes" onclick="switchView('view-notes')">
+                <span class="material-symbols-outlined">edit_note</span>
+                <span class="nav-label">メモ一覧</span>
+            </div>
+            <div class="nav-item" data-view="view-editor" onclick="createNewNote()">
+                <span class="material-symbols-outlined">add_circle</span>
+                <span class="nav-label">新規作成</span>
+            </div>
+            <div class="nav-item" data-view="view-monet" onclick="switchView('view-monet')">
+                <span class="material-symbols-outlined">palette</span>
+                <span class="nav-label">Monet設定</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ダイアログ（設定モーダル） -->
+    <div class="dialog-overlay" id="settings-dialog">
+        <div class="glass-dialog">
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                <img src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/poland/lol.png" alt="Poland Logo" style="width: 36px; height: 36px;">
+                <div>
+                    <h2 style="margin: 0; font-size: 17px;">アプリ設定</h2>
+                    <span style="font-size: 11px; color: var(--text-sub);">ポーランのミニメモ v1.0</span>
+                </div>
+            </div>
+
+            <p style="margin-bottom: 16px;">テーマモードの変更やデータのバックアップ・クリアをIndexedDBと同期して行えます。</p>
+
+            <div class="toggle-row" style="padding: 8px 0;">
+                <span style="font-size: 14px; font-weight: 600;">ダークテーマ</span>
+                <label class="switch">
+                    <input type="checkbox" id="darkmode-toggle" onchange="toggleDarkTheme(this.checked)">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <div style="margin-top: 16px; display: flex; flex-direction: column; gap: 8px;">
+                <button class="ai-btn ai-btn-secondary" style="width: 100%; justify-content: flex-start;" onclick="exportNotesJSON()">
+                    <span class="material-symbols-outlined">download</span>
+                    メモデータをエクスポート (JSON)
+                </button>
+                <button class="ai-btn ai-btn-secondary" style="width: 100%; justify-content: flex-start; color: #ef4444;" onclick="confirmClearAllData()">
+                    <span class="material-symbols-outlined" style="color: #ef4444;">delete_forever</span>
+                    すべてのメモを削除
+                </button>
+            </div>
+
+            <div style="margin-top: 20px;">
+                <button class="ai-btn" style="width: 100%; justify-content: center;" onclick="closeSettingsDialog()">閉じる</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- トースト通知 -->
+    <div class="toast" id="toast-message">操作を完了しました</div>
+
+    <!-- Material Color Utilities (Monet Engine Integration) -->
+    <script type="module">
+        import { 
+            argbFromHex, 
+            hexFromArgb, 
+            themeFromSourceColor 
+        } from 'https://esm.run/@material/material-color-utilities';
+
+        // グローバルにMonet計算関数をアタッチ
+        window.M3Monet = {
+            argbFromHex,
+            hexFromArgb,
+            themeFromSourceColor
+        };
+
+        // IndexedDB及び初期値からのテーマ初期化
+        if (window.initAppStorage) {
+            window.initAppStorage();
+        }
+    </script>
+
+    <script>
+        /**
+         * ポーランのミニメモ - App Storage & Logic (IndexedDB Engine)
+         */
+        const DB_NAME = 'PolandNotesDB';
+        const DB_VERSION = 1;
+        let db = null;
+
+        let currentSeedColor = "#3381FF";
+        let isDarkMode = false;
+        let currentThemeObj = null;
+
+        let allNotes = [];
+        let currentEditingNoteId = null;
+
+        const toast = document.getElementById('toast-message');
+
+        /* --- IndexedDB データベース処理 --- */
+        function openDatabase() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+                request.onupgradeneeded = (e) => {
+                    const database = e.target.result;
+                    if (!database.objectStoreNames.contains('notes')) {
+                        const noteStore = database.createObjectStore('notes', { keyPath: 'id', autoIncrement: true });
+                        noteStore.createIndex('updatedAt', 'updatedAt', { unique: false });
+                    }
+                    if (!database.objectStoreNames.contains('settings')) {
+                        database.createObjectStore('settings', { keyPath: 'key' });
+                    }
+                };
+
+                request.onsuccess = (e) => {
+                    db = e.target.result;
+                    resolve(db);
+                };
+
+                request.onerror = (e) => {
+                    console.error("IndexedDB Open Error:", e);
+                    reject(e);
+                };
+            });
+        }
+
+        /* 設定の読み書き (IndexedDB) */
+        function getSettingFromDB(key) {
+            return new Promise((resolve) => {
+                if (!db) return resolve(null);
+                const tx = db.transaction('settings', 'readonly');
+                const store = tx.objectStore('settings');
+                const req = store.get(key);
+                req.onsuccess = () => resolve(req.result ? req.result.value : null);
+                req.onerror = () => resolve(null);
+            });
+        }
+
+        function saveSettingToDB(key, value) {
+            return new Promise((resolve) => {
+                if (!db) return resolve();
+                const tx = db.transaction('settings', 'readwrite');
+                const store = tx.objectStore('settings');
+                store.put({ key, value });
+                tx.oncomplete = () => resolve();
+            });
+        }
+
+        /* メモのCRUD (IndexedDB) */
+        function loadAllNotesFromDB() {
+            return new Promise((resolve) => {
+                if (!db) return resolve([]);
+                const tx = db.transaction('notes', 'readonly');
+                const store = tx.objectStore('notes');
+                const req = store.getAll();
+                req.onsuccess = () => {
+                    let notes = req.result || [];
+                    // ピン留め優先、次に更新日時降順
+                    notes.sort((a, b) => {
+                        if (a.isPinned !== b.isPinned) return b.isPinned ? 1 : -1;
+                        return new Date(b.updatedAt) - new Date(a.updatedAt);
+                    });
+                    resolve(notes);
+                };
+                req.onerror = () => resolve([]);
+            });
+        }
+
+        function saveNoteToDB(note) {
+            return new Promise((resolve) => {
+                if (!db) return resolve(null);
+                const tx = db.transaction('notes', 'readwrite');
+                const store = tx.objectStore('notes');
+                const req = store.put(note);
+                req.onsuccess = () => resolve(req.result);
+            });
+        }
+
+        function deleteNoteFromDB(id) {
+            return new Promise((resolve) => {
+                if (!db) return resolve();
+                const tx = db.transaction('notes', 'readwrite');
+                const store = tx.objectStore('notes');
+                store.delete(id);
+                tx.oncomplete = () => resolve();
+            });
+        }
+
+        function clearAllNotesFromDB() {
+            return new Promise((resolve) => {
+                if (!db) return resolve();
+                const tx = db.transaction('notes', 'readwrite');
+                const store = tx.objectStore('notes');
+                store.clear();
+                tx.oncomplete = () => resolve();
+            });
+        }
+
+        /* アプリストレージ＆初期データ読み込み */
+        window.initAppStorage = async function() {
+            try {
+                await openDatabase();
+
+                // IndexedDBから設定（Monetカラー、ダークモード）をロード
+                const savedSeed = await getSettingFromDB('m3_seed_color');
+                const savedDark = await getSettingFromDB('is_dark_mode');
+
+                if (savedSeed) currentSeedColor = savedSeed;
+                if (savedDark !== null) isDarkMode = savedDark;
+
+                const dmToggle = document.getElementById('darkmode-toggle');
+                if (dmToggle) dmToggle.checked = isDarkMode;
+
+                // Monetテーマ適用
+                updateMonetTheme(currentSeedColor, false);
+
+                // メモデータロード
+                await refreshNotesList();
+            } catch (err) {
+                console.error("Storage Init Failed:", err);
+            }
+        };
+
+        /* メモ一覧表示更新 */
+        async function refreshNotesList() {
+            allNotes = await loadAllNotesFromDB();
+            renderNotesList(allNotes);
+        }
+
+        function renderNotesList(notes) {
+            const container = document.getElementById('notes-list');
+            const emptyView = document.getElementById('empty-notes-view');
+            const countBadge = document.getElementById('note-count-badge');
+
+            if (!container) return;
+            container.innerHTML = '';
+
+            countBadge.textContent = `${notes.length}件`;
+
+            if (notes.length === 0) {
+                emptyView.style.display = 'flex';
+                return;
+            } else {
+                emptyView.style.display = 'none';
+            }
+
+            notes.forEach(note => {
+                const item = document.createElement('div');
+                item.className = 'list-item';
+                item.onclick = () => openNoteEditor(note.id);
+
+                const titleText = note.title.trim() ? note.title : '無題のメモ';
+                const bodyText = note.content.trim() ? note.content : '（本文なし）';
+                const dateStr = formatDate(note.updatedAt);
+
+                item.innerHTML = `
+                    <div style="flex: 1; min-width: 0; padding-right: 10px;">
+                        <div class="list-item-title">
+                            ${note.isPinned ? '<span class="material-symbols-outlined pin-badge">push_pin</span> ' : ''}
+                            ${escapeHtml(titleText)}
+                        </div>
+                        <div class="list-item-desc">${escapeHtml(bodyText)}</div>
+                        <div class="note-meta-info">
+                            <span>${dateStr}</span>
+                        </div>
+                    </div>
+                    <div class="item-actions" onclick="event.stopPropagation()">
+                        <button class="action-icon-btn" onclick="shareNoteById(${note.id})" title="共有">
+                            <span class="material-symbols-outlined" style="font-size: 18px;">share</span>
+                        </button>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        /* 検索処理 */
+        function handleSearch() {
+            const query = document.getElementById('search-input').value.toLowerCase().trim();
+            if (!query) {
+                renderNotesList(allNotes);
+                return;
+            }
+            const filtered = allNotes.filter(n => 
+                n.title.toLowerCase().includes(query) || 
+                n.content.toLowerCase().includes(query)
+            );
+            renderNotesList(filtered);
+        }
+
+        /* メモ編集 / 作成ロジック */
+        function createNewNote() {
+            currentEditingNoteId = null;
+            document.getElementById('editor-title').value = '';
+            document.getElementById('editor-content').value = '';
+            document.getElementById('editor-meta').innerHTML = `<span>新規作成</span> <span>文字数: 0</span>`;
+            
+            updatePinStateUI(false);
+            switchView('view-editor');
+        }
+
+        async function openNoteEditor(id) {
+            const note = allNotes.find(n => n.id === id);
+            if (!note) return;
+
+            currentEditingNoteId = id;
+            document.getElementById('editor-title').value = note.title || '';
+            document.getElementById('editor-content').value = note.content || '';
+            
+            const charCount = note.content.length;
+            document.getElementById('editor-meta').innerHTML = `<span>更新: ${formatDate(note.updatedAt)}</span> <span>文字数: ${charCount}</span>`;
+
+            updatePinStateUI(!!note.isPinned);
+            switchView('view-editor');
+        }
+
+        // 入力中のリアルタイム文字数カウント
+        document.getElementById('editor-content').addEventListener('input', (e) => {
+            const text = e.target.value;
+            const meta = document.getElementById('editor-meta');
+            const note = allNotes.find(n => n.id === currentEditingNoteId);
+            const dateStr = note ? formatDate(note.updatedAt) : '編集未保存';
+            meta.innerHTML = `<span>${dateStr}</span> <span>文字数: ${text.length}</span>`;
+        });
+
+        function updatePinStateUI(isPinned) {
+            const pinIcon = document.getElementById('pin-icon');
+            if (isPinned) {
+                pinIcon.style.color = 'var(--accent-primary)';
+                pinIcon.style.fontVariationSettings = "'FILL' 1";
+            } else {
+                pinIcon.style.color = 'var(--text-sub)';
+                pinIcon.style.fontVariationSettings = "'FILL' 0";
+            }
+        }
+
+        let isCurrentPinned = false;
+        function toggleCurrentPin() {
+            isCurrentPinned = !isCurrentPinned;
+            updatePinStateUI(isCurrentPinned);
+            showToast(isCurrentPinned ? 'メモをピン留めしました' : 'ピン留めを解除しました');
+        }
+
+        async function saveCurrentNote() {
+            const title = document.getElementById('editor-title').value;
+            const content = document.getElementById('editor-content').value;
+
+            if (!title.trim() && !content.trim()) {
+                showToast('タイトルまたは本文を入力してください');
+                return;
+            }
+
+            const now = new Date().toISOString();
+
+            let noteObj = {
+                title: title,
+                content: content,
+                updatedAt: now,
+                isPinned: isCurrentPinned
+            };
+
+            if (currentEditingNoteId) {
+                const existing = allNotes.find(n => n.id === currentEditingNoteId);
+                noteObj.id = currentEditingNoteId;
+                noteObj.createdAt = existing ? existing.createdAt : now;
+            } else {
+                noteObj.createdAt = now;
+            }
+
+            const savedId = await saveNoteToDB(noteObj);
+            if (savedId) currentEditingNoteId = savedId;
+
+            await refreshNotesList();
+            showToast('メモを保存しました');
+            switchView('view-notes');
+        }
+
+        async function deleteCurrentNote() {
+            if (!currentEditingNoteId) {
+                switchView('view-notes');
+                return;
+            }
+
+            await deleteNoteFromDB(currentEditingNoteId);
+            await refreshNotesList();
+            showToast('メモを削除しました');
+            switchView('view-notes');
+        }
+
+        /* 共有機能 (Web Share API または クリップボード) */
+        async function shareCurrentNote() {
+            const title = document.getElementById('editor-title').value;
+            const content = document.getElementById('editor-content').value;
+            executeShare(title, content);
+        }
+
+        async function shareNoteById(id) {
+            const note = allNotes.find(n => n.id === id);
+            if (!note) return;
+            executeShare(note.title, note.content);
+        }
+
+        function executeShare(title, content) {
+            const shareText = `${title ? title + '\n' : ''}${content}`;
+            
+            if (navigator.share) {
+                navigator.share({
+                    title: title || 'ポーランのミニメモ',
+                    text: shareText
+                }).catch(() => {});
+            } else {
+                // フォールバック: クリップボードへコピー
+                copyTextToClipboard(shareText);
+                showToast('メモ内容をクリップボードにコピーしました');
+            }
+        }
+
+        function copyTextToClipboard(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+        }
+
+        /* --- Monet Dynamic Theme Engine --- */
+
+        // Monet テーマ計算＆適用 (saveToDb フラグ付き)
+        async function updateMonetTheme(hexColor, saveToDb = false) {
+            currentSeedColor = hexColor;
+
+            // UIラベル更新
+            const seedInput = document.getElementById('seed-color-input');
+            const seedLabel = document.getElementById('seed-hex-label');
+            if (seedInput) seedInput.value = hexColor;
+            if (seedLabel) seedLabel.textContent = hexColor.toUpperCase();
+
+            if (saveToDb) {
+                await saveSettingToDB('m3_seed_color', hexColor);
+            }
+
+            if (window.M3Monet) {
+                try {
+                    const argb = window.M3Monet.argbFromHex(hexColor);
+                    currentThemeObj = window.M3Monet.themeFromSourceColor(argb);
+                    applyM3Scheme(currentThemeObj);
+                } catch (e) {
+                    console.error("Monet Calculation Error:", e);
+                    fallbackApplyTheme(hexColor);
+                }
+            } else {
+                fallbackApplyTheme(hexColor);
+            }
+        }
+
+        // M3 カラースキームを CSS 変数へ反映
+        function applyM3Scheme(theme) {
+            const scheme = isDarkMode ? theme.schemes.dark : theme.schemes.light;
+            const root = document.documentElement;
+
+            const hex = (argb) => window.M3Monet.hexFromArgb(argb);
+
+            const colors = {
+                primary: hex(scheme.primary),
+                onPrimary: hex(scheme.onPrimary),
+                primaryContainer: hex(scheme.primaryContainer),
+                onPrimaryContainer: hex(scheme.onPrimaryContainer),
+                secondary: hex(scheme.secondary),
+                onSecondary: hex(scheme.onSecondary),
+                secondaryContainer: hex(scheme.secondaryContainer),
+                onSecondaryContainer: hex(scheme.onSecondaryContainer),
+                tertiary: hex(scheme.tertiary),
+                onTertiary: hex(scheme.onTertiary),
+                tertiaryContainer: hex(scheme.tertiaryContainer),
+                onTertiaryContainer: hex(scheme.onTertiaryContainer),
+                background: hex(scheme.background),
+                onBackground: hex(scheme.onBackground),
+                surface: hex(scheme.surface),
+                onSurface: hex(scheme.onSurface),
+                surfaceVariant: hex(scheme.surfaceVariant),
+                onSurfaceVariant: hex(scheme.onSurfaceVariant),
+                outline: hex(scheme.outline)
+            };
+
+            root.style.setProperty('--md-sys-color-primary', colors.primary);
+            root.style.setProperty('--md-sys-color-on-primary', colors.onPrimary);
+            root.style.setProperty('--md-sys-color-primary-container', colors.primaryContainer);
+            root.style.setProperty('--md-sys-color-on-primary-container', colors.onPrimaryContainer);
+
+            root.style.setProperty('--md-sys-color-secondary', colors.secondary);
+            root.style.setProperty('--md-sys-color-on-secondary', colors.onSecondary);
+            root.style.setProperty('--md-sys-color-secondary-container', colors.secondaryContainer);
+            root.style.setProperty('--md-sys-color-on-secondary-container', colors.onSecondaryContainer);
+
+            root.style.setProperty('--md-sys-color-tertiary', colors.tertiary);
+            root.style.setProperty('--md-sys-color-on-tertiary', colors.onTertiary);
+            root.style.setProperty('--md-sys-color-tertiary-container', colors.tertiaryContainer);
+            root.style.setProperty('--md-sys-color-on-tertiary-container', colors.onTertiaryContainer);
+
+            root.style.setProperty('--md-sys-color-background', colors.background);
+            root.style.setProperty('--md-sys-color-on-background', colors.onBackground);
+
+            root.style.setProperty('--md-sys-color-surface', colors.surface);
+            root.style.setProperty('--md-sys-color-on-surface', colors.onSurface);
+            root.style.setProperty('--md-sys-color-surface-variant', colors.surfaceVariant);
+            root.style.setProperty('--md-sys-color-on-surface-variant', colors.onSurfaceVariant);
+            root.style.setProperty('--md-sys-color-outline', colors.outline);
+
+            root.style.setProperty('--bg-base', isDarkMode ? colors.background : colors.surfaceVariant);
+            root.style.setProperty('--glass-bg', isDarkMode ? colors.surfaceVariant : colors.background);
+
+            updateHexLabels(colors);
+        }
+
+        function fallbackApplyTheme(hex) {
+            const root = document.documentElement;
+            root.style.setProperty('--md-sys-color-primary', hex);
+            root.style.setProperty('--md-sys-color-background', isDarkMode ? '#121212' : '#F8F9FF');
+            root.style.setProperty('--md-sys-color-surface-variant', isDarkMode ? '#2C2C2E' : '#E1E2EC');
+            root.style.setProperty('--md-sys-color-on-surface', isDarkMode ? '#FFFFFF' : '#191C20');
+
+            root.style.setProperty('--bg-base', isDarkMode ? 'var(--md-sys-color-background)' : 'var(--md-sys-color-surface-variant)');
+            root.style.setProperty('--glass-bg', isDarkMode ? 'var(--md-sys-color-surface-variant)' : 'var(--md-sys-color-background)');
+        }
+
+        function updateHexLabels(c) {
+            const el = (id) => document.getElementById(id);
+            if (el('hex-primary')) el('hex-primary').textContent = c.primary;
+            if (el('hex-primary-container')) el('hex-primary-container').textContent = c.primaryContainer;
+            if (el('hex-secondary')) el('hex-secondary').textContent = c.secondary;
+            if (el('hex-tertiary')) el('hex-tertiary').textContent = c.tertiary;
+            if (el('hex-surface-variant')) el('hex-surface-variant').textContent = c.surfaceVariant;
+            if (el('hex-background')) el('hex-background').textContent = c.background;
+        }
+
+        /* ダークモード切替 */
+        async function toggleDarkTheme(isDark) {
+            isDarkMode = isDark;
+            await saveSettingToDB('is_dark_mode', isDarkMode);
+
+            const dmToggle = document.getElementById('darkmode-toggle');
+            if (dmToggle) dmToggle.checked = isDark;
+
+            if (currentThemeObj) {
+                applyM3Scheme(currentThemeObj);
+            } else {
+                updateMonetTheme(currentSeedColor, false);
+            }
+        }
+
+        /* --- 設定ダイアログ処理 --- */
+        function openSettingsDialog() {
+            document.getElementById('settings-dialog').classList.add('active');
+        }
+        function closeSettingsDialog() {
+            document.getElementById('settings-dialog').classList.remove('active');
+        }
+
+        async function confirmClearAllData() {
+            if (allNotes.length === 0) {
+                showToast('削除するメモがないんよ？');
+                return;
+            }
+            await clearAllNotesFromDB();
+            await refreshNotesList();
+            closeSettingsDialog();
+            showToast('すべてのメモを全消去したんよ。よろしくなんよ');
+        }
+
+        function exportNotesJSON() {
+            if (allNotes.length === 0) {
+                showToast('エクスポートするデータが見つからないんよ');
+                return;
+            }
+            const jsonStr = JSON.stringify(allNotes, null, 2);
+            const blob = new Blob([jsonStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `poland_notes_backup_${new Date().toISOString().slice(0,10)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('メモデータをエクスポートしたんよ');
+        }
+
+        /* ユーティリティ */
+        function formatDate(isoStr) {
+            if (!isoStr) return '';
+            const d = new Date(isoStr);
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            const hours = String(d.getHours()).padStart(2, '0');
+            const mins = String(d.getMinutes()).padStart(2, '0');
+            return `${year}/${month}/${day} ${hours}:${mins}`;
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+        }
+
+        /* ビュー切り替え */
+        const navItems = document.querySelectorAll('.nav-item');
+        const views = document.querySelectorAll('.view');
+
+        function switchView(viewId) {
+            navItems.forEach(n => {
+                n.classList.remove('active');
+                if (n.getAttribute('data-view') === viewId) {
+                    n.classList.add('active');
+                }
+            });
+
+            views.forEach(v => {
+                v.classList.remove('active');
+                if (v.id === viewId) {
+                    v.classList.add('active');
+                }
+            });
+        }
+
+        function showToast(msg) {
+            toast.textContent = msg;
+            toast.classList.add('active');
+            setTimeout(() => {
+                toast.classList.remove('active');
+            }, 2200);
+        }
+
+        /**
+         * 滑らかなオーバースクロール（弾性ラバーバンド）物理アニメーション
+         */
+        const scrollArea = document.getElementById('main-scroll-area');
+        const overscrollWrapper = document.getElementById('overscroll-wrapper');
+
+        let startY = 0;
+        let currentPull = 0;
+        let isPulling = false;
+
+        scrollArea.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 1) {
+                startY = e.touches[0].clientY;
+                overscrollWrapper.classList.remove('spring-back');
+            }
+        }, { passive: true });
+
+        scrollArea.addEventListener('touchmove', (e) => {
+            if (e.touches.length !== 1) return;
+            const currentY = e.touches[0].clientY;
+            const deltaY = currentY - startY;
+
+            const isAtTop = scrollArea.scrollTop <= 0;
+            const isAtBottom = Math.abs(scrollArea.scrollHeight - scrollArea.clientHeight - scrollArea.scrollTop) < 2;
+
+            if ((isAtTop && deltaY > 0) || (isAtBottom && deltaY < 0)) {
+                currentPull = deltaY * 0.38;
+                overscrollWrapper.style.transform = `translateY(${currentPull}px) scaleY(${1 + Math.abs(currentPull) * 0.0003})`;
+                isPulling = true;
+            }
+        }, { passive: true });
+
+        scrollArea.addEventListener('touchend', () => {
+            if (isPulling) {
+                overscrollWrapper.classList.add('spring-back');
+                overscrollWrapper.style.transform = 'translateY(0px) scaleY(1)';
+                currentPull = 0;
+                isPulling = false;
+            }
+        });
+
+        let wheelTimer = null;
+        let wheelDeltaSum = 0;
+
+        scrollArea.addEventListener('wheel', (e) => {
+            const isAtTop = scrollArea.scrollTop <= 0;
+            const isAtBottom = Math.abs(scrollArea.scrollHeight - scrollArea.clientHeight - scrollArea.scrollTop) < 2;
+
+            if ((isAtTop && e.deltaY < 0) || (isAtBottom && e.deltaY > 0)) {
+                wheelDeltaSum -= e.deltaY * 0.25;
+                wheelDeltaSum = Math.max(-60, Math.min(60, wheelDeltaSum));
+
+                overscrollWrapper.classList.remove('spring-back');
+                overscrollWrapper.style.transform = `translateY(${wheelDeltaSum}px)`;
+
+                clearTimeout(wheelTimer);
+                wheelTimer = setTimeout(() => {
+                    overscrollWrapper.classList.add('spring-back');
+                    overscrollWrapper.style.transform = 'translateY(0px)';
+                    wheelDeltaSum = 0;
+                }, 120);
+            }
+        }, { passive: true });
+    </script>
+</body>
+</html>
