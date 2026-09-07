@@ -1,1 +1,1511 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+    <title>音割れ・反響・音量 編集ツール</title>
 
+    <!-- App Icon / Favicon -->
+    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/PolandBallHub-Operator/pbpark/refs/heads/main/tools/otwr/otwr.png">
+    <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/PolandBallHub-Operator/pbpark/refs/heads/main/tools/otwr/otwr.png">
+
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&family=Noto+Sans+JP:wght@400;500;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+
+    <style>
+        /* M3 (Monet) ダイナミックカラー標準変数セット */
+        :root {
+            /* M3 Core Dynamic Tokens (初期値: Hyperos Blue #3381FF) */
+            --md-sys-color-primary: #3381FF;
+            --md-sys-color-on-primary: #FFFFFF;
+            --md-sys-color-primary-container: #DCE3FF;
+            --md-sys-color-on-primary-container: #001945;
+            
+            --md-sys-color-secondary: #575E71;
+            --md-sys-color-on-secondary: #FFFFFF;
+            --md-sys-color-secondary-container: #DCB8FF;
+            --md-sys-color-on-secondary-container: #141B2C;
+            
+            --md-sys-color-tertiary: #715573;
+            --md-sys-color-on-tertiary: #FFFFFF;
+            --md-sys-color-tertiary-container: #FBD7FC;
+            --md-sys-color-on-tertiary-container: #29132D;
+
+            --md-sys-color-background: #F8F9FF;
+            --md-sys-color-on-background: #191C20;
+            
+            --md-sys-color-surface: #F8F9FF;
+            --md-sys-color-on-surface: #191C20;
+            --md-sys-color-surface-variant: #E1E2EC;
+            --md-sys-color-on-surface-variant: #44474F;
+            --md-sys-color-outline: #757780;
+
+            /* UIコンポーネント用エイリアス */
+            --accent-primary: var(--md-sys-color-primary);
+            --accent-active: var(--md-sys-color-primary-container);
+            
+            --bg-base: var(--md-sys-color-surface-variant);
+            --glass-bg: var(--md-sys-color-background);
+            --text-main: var(--md-sys-color-on-surface);
+            --text-sub: var(--md-sys-color-on-surface-variant);
+            --bg-secondary: var(--md-sys-color-surface-variant);
+            --nav-bg: var(--md-sys-color-surface);
+            --nav-icon-active: var(--md-sys-color-primary);
+            
+            --m3-easing: cubic-bezier(0.32, 0.72, 0, 1);
+            --transition-smooth: 0.35s var(--m3-easing);
+            --card-padding: 24px;
+            --card-radius: 24px;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', 'Noto Sans JP', sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            transition: background-color var(--transition-smooth), color var(--transition-smooth);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* アプリ全体のコンテナ（フルスクリーンWebアプリ仕様） */
+        #app-viewport {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow: hidden;
+        }
+
+        /* ヘッダー */
+        header {
+            height: 64px;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-base);
+            transition: background-color var(--transition-smooth);
+            position: relative;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+        .logo {
+            font-weight: 700;
+            font-size: 18px;
+            letter-spacing: -0.5px;
+            color: var(--text-main);
+            text-align: center;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .app-header-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            object-fit: cover;
+        }
+        .theme-toggle {
+            position: absolute;
+            right: 24px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: none;
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background var(--transition-smooth), transform 0.2s;
+        }
+        .theme-toggle:active {
+            transform: scale(0.92);
+        }
+
+        /* メインスクロールエリア */
+        main {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 12px 20px 100px;
+            max-width: 720px;
+            width: 100%;
+            margin: 0 auto;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior-y: none;
+            will-change: transform;
+        }
+
+        /* Elastic Overscroll 伸縮ラッパー */
+        #overscroll-wrapper {
+            transform-origin: center top;
+            transition: transform 0s linear;
+        }
+        #overscroll-wrapper.spring-back {
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        /* フラットソリッドカード（枠線なし・影なし・入れ子カード完全排除） */
+        .glass-card {
+            background: var(--glass-bg);
+            border-radius: var(--card-radius);
+            padding: var(--card-padding);
+            margin-bottom: 20px;
+            box-shadow: none !important;
+            border: none !important;
+            transition: background-color var(--transition-smooth), border-radius var(--transition-smooth);
+        }
+
+        h2 { 
+            font-size: 18px; 
+            margin-top: 0; 
+            margin-bottom: 12px;
+            font-weight: 700; 
+            letter-spacing: -0.3px;
+            color: var(--text-main);
+        }
+        p {
+            font-size: 13.5px;
+            line-height: 1.55;
+            margin-top: 0;
+            margin-bottom: 16px;
+            color: var(--text-sub);
+        }
+
+        /* ------------------ UIコンポーネント設計 ------------------ */
+
+        /* リストコンポーネント（仕切り線なし） */
+        .custom-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 16px;
+        }
+        .list-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 4px;
+            border-bottom: none !important;
+        }
+        .list-item-title {
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--text-main);
+        }
+        .list-item-desc {
+            font-size: 12px;
+            color: var(--text-sub);
+            margin-top: 2px;
+        }
+
+        /* 太いスライダー */
+        .slider-wrapper {
+            margin: 16px 0;
+        }
+        .slider-label-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-main);
+        }
+        .thick-slider-container {
+            position: relative;
+            width: 100%;
+            height: 24px;
+            background: var(--bg-base);
+            border-radius: 12px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: background var(--transition-smooth);
+            display: flex;
+            align-items: center;
+        }
+        .thick-slider-fill {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 50%;
+            background: var(--accent-primary);
+            transition: background-color var(--transition-smooth), width 0.05s ease-out;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 3px;
+        }
+        .thick-slider-knob {
+            width: 18px;
+            height: 18px;
+            background: var(--md-sys-color-on-primary);
+            border-radius: 50%;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+            flex-shrink: 0;
+        }
+        .thick-slider-input {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+            margin: 0;
+            z-index: 5;
+        }
+
+        /* トグルスイッチ */
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 4px;
+            border-bottom: none !important;
+            color: var(--text-main);
+        }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 52px;
+            height: 30px;
+        }
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--bg-base);
+            transition: var(--transition-smooth);
+            border-radius: 15px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 4px;
+            bottom: 4px;
+            background: var(--text-sub);
+            transition: var(--transition-smooth);
+            border-radius: 50%;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+        }
+        input:checked + .slider {
+            background: var(--accent-primary);
+        }
+        input:checked + .slider:before {
+            transform: translateX(22px);
+            background: var(--md-sys-color-on-primary);
+        }
+
+        /* アクションボタン */
+        .ai-btn {
+            border: none;
+            outline: none;
+            padding: 12px 24px;
+            border-radius: 14px;
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--md-sys-color-on-primary);
+            cursor: pointer;
+            background: var(--accent-primary);
+            transition: opacity 0.2s, background-color var(--transition-smooth), color var(--transition-smooth);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            justify-content: center;
+        }
+        .ai-btn:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+        .ai-btn:active:not(:disabled) {
+            opacity: 0.85;
+        }
+        .ai-btn-secondary {
+            background: var(--md-sys-color-secondary-container);
+            color: var(--md-sys-color-on-secondary-container);
+        }
+
+        /* インプットテキスト */
+        .glass-input-wrapper {
+            margin-bottom: 14px;
+        }
+        .glass-input {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: none;
+            background: var(--bg-base);
+            color: var(--text-main);
+            font-size: 14px;
+            font-family: inherit;
+            box-sizing: border-box;
+            transition: background var(--transition-smooth);
+        }
+        .glass-input:focus {
+            outline: 2px solid var(--accent-primary);
+        }
+
+        /* ------------------ ナビゲーション ------------------ */
+        .bottom-nav-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 72px;
+            background: var(--nav-bg);
+            border-top: 1px solid rgba(0,0,0,0.05);
+            z-index: 500;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding-bottom: env(safe-area-inset-bottom);
+            transition: background-color var(--transition-smooth);
+        }
+        .nav-item {
+            flex: 1;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-sub);
+            transition: color 0.25s var(--m3-easing);
+            position: relative;
+            gap: 4px;
+        }
+        .nav-item span.material-symbols-outlined {
+            font-size: 24px;
+            font-variation-settings: 'FILL' 0, 'wght' 400;
+            transition: font-variation-settings 0.2s, color 0.2s;
+        }
+        .nav-label {
+            font-size: 10px;
+            font-weight: 600;
+        }
+        .nav-item.active {
+            color: var(--nav-icon-active);
+        }
+        .nav-item.active span.material-symbols-outlined {
+            font-variation-settings: 'FILL' 1, 'wght' 700;
+        }
+
+        /* ビュー切り替え */
+        .view {
+            display: none;
+        }
+        .view.active {
+            display: block;
+            animation: viewIn 0.3s var(--m3-easing);
+        }
+        @keyframes viewIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* プリセット選択ボタン */
+        .preset-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .preset-btn {
+            background: var(--bg-base);
+            color: var(--text-main);
+            border: none;
+            padding: 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.2s, opacity 0.1s;
+        }
+        .preset-btn:active {
+            opacity: 0.8;
+        }
+        .preset-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        /* ドロップゾーン */
+        .monet-dropzone {
+            border: 2px dashed var(--md-sys-color-outline);
+            border-radius: var(--card-radius);
+            padding: 24px;
+            text-align: center;
+            cursor: pointer;
+            background: rgba(0, 0, 0, 0.02);
+            transition: background 0.2s, border-color 0.2s;
+            margin-bottom: 16px;
+        }
+        .monet-dropzone:hover {
+            background: rgba(0, 0, 0, 0.04);
+            border-color: var(--accent-primary);
+        }
+
+        /* トースト & ダイアログ */
+        .toast {
+            position: fixed;
+            bottom: 84px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--md-sys-color-on-surface);
+            color: var(--md-sys-color-surface);
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s var(--m3-easing);
+            z-index: 2000;
+        }
+        .toast.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .dialog-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000; display: flex; align-items: center; justify-content: center;
+            opacity: 0; visibility: hidden; transition: all 0.3s var(--m3-easing);
+        }
+        .dialog-overlay.active { opacity: 1; visibility: visible; }
+        .glass-dialog {
+            background: var(--glass-bg);
+            border-radius: var(--card-radius);
+            padding: 24px; max-width: 380px; width: 90%; text-align: center;
+            transform: scale(0.9) translateY(20px); transition: all 0.4s var(--m3-easing);
+        }
+        .dialog-overlay.active .glass-dialog { transform: scale(1) translateY(0); }
+
+        .badge {
+            background: var(--accent-primary);
+            color: var(--md-sys-color-on-primary);
+            padding: 4px 12px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 700;
+            display: inline-block;
+        }
+
+        .color-picker-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 12px 0;
+        }
+        .native-color-picker {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            background: none;
+            padding: 0;
+        }
+        .native-color-picker::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+        .native-color-picker::-webkit-color-swatch {
+            border: 2px solid var(--md-sys-color-outline);
+            border-radius: 50%;
+        }
+
+        /* プログレスバー */
+        .progress-bar-bg {
+            width: 100%;
+            height: 12px;
+            background: var(--bg-base);
+            border-radius: 6px;
+            overflow: hidden;
+            margin: 16px 0;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            width: 0%;
+            background: var(--accent-primary);
+            transition: width 0.1s linear;
+        }
+
+        /* 波形ビジュアルエリア */
+        .waveform-canvas {
+            width: 100%;
+            height: 60px;
+            background: var(--bg-base);
+            border-radius: 12px;
+            margin-top: 10px;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app-viewport">
+        <!-- ヘッダー -->
+        <header>
+            <div class="logo">
+                <img src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbpark/refs/heads/main/tools/otwr/otwr.png" alt="Icon" class="app-header-icon" onerror="this.style.display='none'">
+                音エフェクター Studio
+            </div>
+            <button class="theme-toggle" id="theme-btn" title="テーマ切り替え">
+                <span class="material-symbols-outlined">light_mode</span>
+            </button>
+        </header>
+
+        <!-- メインコンテンツ -->
+        <main id="main-scroll-area">
+            <div id="overscroll-wrapper">
+                
+                <!-- 1. オーディオエディタビュー (メイン) -->
+                <section id="view-editor" class="view active">
+                    <!-- ファイル選択カード -->
+                    <div class="glass-card">
+                        <h2>音声ファイルの読み込み</h2>
+                        <p>MP3, WAV, M4A 形式のファイルをインポートして編集できます。</p>
+                        
+                        <div class="monet-dropzone" onclick="document.getElementById('audio-file-input').click()">
+                            <span class="material-symbols-outlined" style="font-size: 40px; color: var(--accent-primary); margin-bottom: 6px;">graphic_eq</span>
+                            <div style="font-weight: 700; font-size: 14px;" id="file-status-title">音源ファイルを選択またはドロップ</div>
+                            <div style="font-size: 12px; color: var(--text-sub); margin-top: 4px;" id="file-status-sub">対応フォーマット: .mp3, .wav, .m4a</div>
+                            <input type="file" id="audio-file-input" accept="audio/mp3,audio/wav,audio/m4a,audio/x-m4a,audio/*" style="display: none;" onchange="handleAudioFileSelect(event)">
+                        </div>
+
+                        <canvas id="waveform-canvas" class="waveform-canvas"></canvas>
+                    </div>
+
+                    <!-- エフェクトコントローラーカード -->
+                    <div class="glass-card">
+                        <h2>エフェクト設定 (無制限ブースト)</h2>
+                        <p>音割れ・地下反響・音量を自在に強化します。上限なく増幅が可能です。</p>
+
+                        <!-- 音割れ (Distortion / Clipping) -->
+                        <div class="slider-wrapper">
+                            <div class="slider-label-row">
+                                <span>音割れ (ハードクリッピング)</span>
+                                <span id="val-distortion">0</span>
+                            </div>
+                            <div class="thick-slider-container">
+                                <div class="thick-slider-fill" id="slider-distortion-fill" style="width: 0%;">
+                                    <div class="thick-slider-knob"></div>
+                                </div>
+                                <input type="range" class="thick-slider-input" min="0" max="100" value="0" oninput="updateDistortion(this.value)">
+                            </div>
+                        </div>
+
+                        <!-- 地下の反響 (Underground Reverb) -->
+                        <div class="slider-wrapper">
+                            <div class="slider-label-row">
+                                <span>地下の反響 (Deep Cave Reverb)</span>
+                                <span id="val-reverb">0%</span>
+                            </div>
+                            <div class="thick-slider-container">
+                                <div class="thick-slider-fill" id="slider-reverb-fill" style="width: 0%;">
+                                    <div class="thick-slider-knob"></div>
+                                </div>
+                                <input type="range" class="thick-slider-input" min="0" max="100" value="0" oninput="updateReverb(this.value)">
+                            </div>
+                        </div>
+
+                        <!-- 音量ブースト (Gain) -->
+                        <div class="slider-wrapper">
+                            <div class="slider-label-row">
+                                <span>音量 (ゲイン増幅)</span>
+                                <span id="val-volume">100%</span>
+                            </div>
+                            <div class="thick-slider-container">
+                                <div class="thick-slider-fill" id="slider-volume-fill" style="width: 10%;">
+                                    <div class="thick-slider-knob"></div>
+                                </div>
+                                <input type="range" class="thick-slider-input" min="0" max="1000" value="100" oninput="updateVolume(this.value)">
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+                            <button class="ai-btn" id="play-btn" onclick="togglePlay()" disabled>
+                                <span class="material-symbols-outlined" id="play-icon">play_arrow</span>
+                                プレビュー再生
+                            </button>
+                            <button class="ai-btn ai-btn-secondary" id="reset-btn" onclick="resetEffects()">
+                                <span class="material-symbols-outlined">restart_alt</span>
+                                リセット
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- エクスポートカード -->
+                    <div class="glass-card">
+                        <h2>編集済み音源のダウンロード</h2>
+                        <p>Web Audioのオフラインレンダリングを実行し、エフェクトが適用された高音質WAVファイルを生成します。</p>
+
+                        <button class="ai-btn" id="download-btn" style="width: 100%; justify-content: center; padding: 14px;" onclick="exportAndDownload()" disabled>
+                            <span class="material-symbols-outlined">download</span>
+                            処理して音声ファイルを保存 (WAV)
+                        </button>
+                    </div>
+                </section>
+
+                <!-- 2. Monetテーマ設定 & IndexedDB連携 -->
+                <section id="view-monet" class="view">
+                    <div class="glass-card">
+                        <h2>M3 Dynamic Monet カラー</h2>
+                        <p>選択したシードカラーは <strong>IndexedDB (iDB)</strong> に保存され、次回起動時にも維持されます。</p>
+
+                        <!-- カラーピッカー -->
+                        <div class="color-picker-row">
+                            <input type="color" id="seed-color-input" class="native-color-picker" value="#3381FF" onchange="updateMonetThemeAndSave(this.value)">
+                            <div>
+                                <div style="font-weight: 700; font-size: 14px;" id="seed-hex-label">#3381FF</div>
+                                <div style="font-size: 12px; color: var(--text-sub);">シードカラーを選択してiDBに記憶</div>
+                            </div>
+                        </div>
+
+                        <!-- プリセットカラー -->
+                        <div style="margin-top: 14px;">
+                            <span style="font-size: 13px; font-weight: 600;">プリセット・シード</span>
+                            <div class="preset-grid">
+                                <button class="preset-btn" onclick="updateMonetThemeAndSave('#3381FF')">
+                                    <div class="preset-dot" style="background: #3381FF;"></div> Hyperos Blue
+                                </button>
+                                <button class="preset-btn" onclick="updateMonetThemeAndSave('#10B981')">
+                                    <div class="preset-dot" style="background: #10B981;"></div> Emerald
+                                </button>
+                                <button class="preset-btn" onclick="updateMonetThemeAndSave('#8B5CF6')">
+                                    <div class="preset-dot" style="background: #8B5CF6;"></div> Violet
+                                </button>
+                                <button class="preset-btn" onclick="updateMonetThemeAndSave('#F59E0B')">
+                                    <div class="preset-dot" style="background: #F59E0B;"></div> Amber
+                                </button>
+                                <button class="preset-btn" onclick="updateMonetThemeAndSave('#EC4899')">
+                                    <div class="preset-dot" style="background: #EC4899;"></div> Rose
+                                </button>
+                                <button class="preset-btn" onclick="updateMonetThemeAndSave('#FF3333')">
+                                    <div class="preset-dot" style="background: #FF3333;"></div> Overdrive Red
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 3. アプリ情報 & アイコン確認 -->
+                <section id="view-about" class="view">
+                    <div class="glass-card" style="text-align: center;">
+                        <img src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbpark/refs/heads/main/tools/otwr/otwr.png" alt="App Icon" style="width: 80px; height: 80px; border-radius: 18px; margin-bottom: 12px; object-fit: cover;">
+                        <h2>音割れ・地下反響・音量 処理ツール</h2>
+                        <span class="badge" style="margin-bottom: 16px;">v1.0.0 Monet Studio</span>
+                        <p style="text-align: left;">
+                            本ツールはWeb Audio APIを活用し、音声ファイル（MP3 / WAV / M4A）に対して強力な「音割れ（ハードディストーション）」、「地下の深い反響（Deep Cave Reverb）」、「超高倍率の音量ブースト」を付与します。
+                        </p>
+                        <div class="custom-list" style="text-align: left;">
+                            <div class="list-item">
+                                <div>
+                                    <div class="list-item-title">音声レンダリング処理</div>
+                                    <div class="list-item-desc">視覚的プログレス付きオフライン処理</div>
+                                </div>
+                                <span class="material-symbols-outlined" style="color: var(--accent-primary);">check_circle</span>
+                            </div>
+                            <div class="list-item">
+                                <div>
+                                    <div class="list-item-title">カラー設定の記憶</div>
+                                    <div class="list-item-desc">IndexedDB 永続保存</div>
+                                </div>
+                                <span class="material-symbols-outlined" style="color: var(--accent-primary);">check_circle</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+        </main>
+
+        <!-- 下付き固定ナビゲーションバー -->
+        <div class="bottom-nav-container">
+            <div class="nav-item active" data-view="view-editor" onclick="switchView('view-editor')">
+                <span class="material-symbols-outlined">tune</span>
+                <span class="nav-label">エディター</span>
+            </div>
+            <div class="nav-item" data-view="view-monet" onclick="switchView('view-monet')">
+                <span class="material-symbols-outlined">palette</span>
+                <span class="nav-label">Monet設定</span>
+            </div>
+            <div class="nav-item" data-view="view-about" onclick="switchView('view-about')">
+                <span class="material-symbols-outlined">info</span>
+                <span class="nav-label">アプリ情報</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- エクスポート進捗確認モーダルダイアログ (バックグラウンド処理回避用の視覚化UI) -->
+    <div class="dialog-overlay" id="export-dialog">
+        <div class="glass-dialog">
+            <span class="material-symbols-outlined" style="font-size: 44px; color: var(--accent-primary);">hourglass_top</span>
+            <h2 style="margin-top: 12px;" id="export-dialog-title">音源を生成中...</h2>
+            <p id="export-dialog-sub" style="margin-bottom: 12px;">エフェクトを適用して高精度レンダリングを行なっています。少々お待ちください。</p>
+
+            <div class="progress-bar-bg">
+                <div class="progress-bar-fill" id="export-progress-fill"></div>
+            </div>
+            <div style="font-size: 13px; font-weight: 700; color: var(--text-main);" id="export-status-text">0%</div>
+        </div>
+    </div>
+
+    <!-- トースト通知 -->
+    <div class="toast" id="toast-message">処理が完了しました</div>
+
+    <!-- Material Color Utilities (Monet Engine) -->
+    <script type="module">
+        import { 
+            argbFromHex, 
+            hexFromArgb, 
+            themeFromSourceColor 
+        } from 'https://esm.run/@material/material-color-utilities';
+
+        window.M3Monet = {
+            argbFromHex,
+            hexFromArgb,
+            themeFromSourceColor
+        };
+
+        if (window.onMonetEngineReady) {
+            window.onMonetEngineReady();
+        }
+    </script>
+
+    <script>
+        /**
+         * STREAMING_CHUNK: IndexedDB (iDB) Persistent Storage Logic for Monet Color
+         */
+        const DB_NAME = 'MonetColorDB';
+        const DB_VERSION = 1;
+        const STORE_NAME = 'settings';
+        let dbInstance = null;
+
+        function initIndexedDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+                request.onupgradeneeded = (e) => {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains(STORE_NAME)) {
+                        db.createObjectStore(STORE_NAME);
+                    }
+                };
+                request.onsuccess = (e) => {
+                    dbInstance = e.target.result;
+                    resolve(dbInstance);
+                };
+                request.onerror = (e) => {
+                    console.error("IndexedDB Error:", e);
+                    resolve(null);
+                };
+            });
+        }
+
+        async function saveM3ColorToIDB(colorHex) {
+            if (!dbInstance) await initIndexedDB();
+            if (!dbInstance) return;
+            try {
+                const tx = dbInstance.transaction(STORE_NAME, 'readwrite');
+                const store = tx.objectStore(STORE_NAME);
+                store.put(colorHex, 'm3_color');
+            } catch (err) {
+                console.error("Failed to save m3_color to iDB:", err);
+            }
+        }
+
+        async function loadM3ColorFromIDB() {
+            if (!dbInstance) await initIndexedDB();
+            if (!dbInstance) return null;
+            return new Promise((resolve) => {
+                try {
+                    const tx = dbInstance.transaction(STORE_NAME, 'readonly');
+                    const store = tx.objectStore(STORE_NAME);
+                    const req = store.get('m3_color');
+                    req.onsuccess = () => resolve(req.result || null);
+                    req.onerror = () => resolve(null);
+                } catch (e) {
+                    resolve(null);
+                }
+            });
+        }
+
+        /**
+         * STREAMING_CHUNK: Monet Dynamic Theme Engine Core Logic
+         */
+        let currentSeedColor = "#3381FF";
+        let isDarkMode = false;
+        let currentThemeObj = null;
+
+        const toast = document.getElementById('toast-message');
+        const themeBtn = document.getElementById('theme-btn');
+        const themeIcon = themeBtn.querySelector('span');
+
+        function updateMonetTheme(hexColor) {
+            currentSeedColor = hexColor;
+
+            const seedInput = document.getElementById('seed-color-input');
+            const seedLabel = document.getElementById('seed-hex-label');
+            if (seedInput) seedInput.value = hexColor;
+            if (seedLabel) seedLabel.textContent = hexColor.toUpperCase();
+
+            if (window.M3Monet) {
+                try {
+                    const argb = window.M3Monet.argbFromHex(hexColor);
+                    currentThemeObj = window.M3Monet.themeFromSourceColor(argb);
+                    applyM3Scheme(currentThemeObj);
+                } catch (e) {
+                    fallbackApplyTheme(hexColor);
+                }
+            } else {
+                fallbackApplyTheme(hexColor);
+            }
+        }
+
+        async function updateMonetThemeAndSave(hexColor) {
+            updateMonetTheme(hexColor);
+            await saveM3ColorToIDB(hexColor);
+            showToast(`テーマカラーを保存: ${hexColor.toUpperCase()}`);
+        }
+
+        function applyM3Scheme(theme) {
+            const scheme = isDarkMode ? theme.schemes.dark : theme.schemes.light;
+            const root = document.documentElement;
+            const hex = (argb) => window.M3Monet.hexFromArgb(argb);
+
+            const colors = {
+                primary: hex(scheme.primary),
+                onPrimary: hex(scheme.onPrimary),
+                primaryContainer: hex(scheme.primaryContainer),
+                onPrimaryContainer: hex(scheme.onPrimaryContainer),
+                secondary: hex(scheme.secondary),
+                onSecondary: hex(scheme.onSecondary),
+                secondaryContainer: hex(scheme.secondaryContainer),
+                onSecondaryContainer: hex(scheme.onSecondaryContainer),
+                tertiary: hex(scheme.tertiary),
+                onTertiary: hex(scheme.onTertiary),
+                tertiaryContainer: hex(scheme.tertiaryContainer),
+                onTertiaryContainer: hex(scheme.onTertiaryContainer),
+                background: hex(scheme.background),
+                onBackground: hex(scheme.onBackground),
+                surface: hex(scheme.surface),
+                onSurface: hex(scheme.onSurface),
+                surfaceVariant: hex(scheme.surfaceVariant),
+                onSurfaceVariant: hex(scheme.onSurfaceVariant),
+                outline: hex(scheme.outline)
+            };
+
+            root.style.setProperty('--md-sys-color-primary', colors.primary);
+            root.style.setProperty('--md-sys-color-on-primary', colors.onPrimary);
+            root.style.setProperty('--md-sys-color-primary-container', colors.primaryContainer);
+            root.style.setProperty('--md-sys-color-on-primary-container', colors.onPrimaryContainer);
+
+            root.style.setProperty('--md-sys-color-secondary', colors.secondary);
+            root.style.setProperty('--md-sys-color-on-secondary', colors.onSecondary);
+            root.style.setProperty('--md-sys-color-secondary-container', colors.secondaryContainer);
+            root.style.setProperty('--md-sys-color-on-secondary-container', colors.onSecondaryContainer);
+
+            root.style.setProperty('--md-sys-color-tertiary', colors.tertiary);
+            root.style.setProperty('--md-sys-color-on-tertiary', colors.onTertiary);
+            root.style.setProperty('--md-sys-color-tertiary-container', colors.tertiaryContainer);
+            root.style.setProperty('--md-sys-color-on-tertiary-container', colors.onTertiaryContainer);
+
+            root.style.setProperty('--md-sys-color-background', colors.background);
+            root.style.setProperty('--md-sys-color-on-background', colors.onBackground);
+
+            root.style.setProperty('--md-sys-color-surface', colors.surface);
+            root.style.setProperty('--md-sys-color-on-surface', colors.onSurface);
+            root.style.setProperty('--md-sys-color-surface-variant', colors.surfaceVariant);
+            root.style.setProperty('--md-sys-color-on-surface-variant', colors.onSurfaceVariant);
+            root.style.setProperty('--md-sys-color-outline', colors.outline);
+
+            root.style.setProperty('--bg-base', isDarkMode ? colors.background : colors.surfaceVariant);
+            root.style.setProperty('--glass-bg', isDarkMode ? colors.surfaceVariant : colors.background);
+
+            drawWaveform();
+        }
+
+        function fallbackApplyTheme(hex) {
+            const root = document.documentElement;
+            root.style.setProperty('--md-sys-color-primary', hex);
+            root.style.setProperty('--md-sys-color-background', isDarkMode ? '#121212' : '#F8F9FF');
+            root.style.setProperty('--md-sys-color-surface-variant', isDarkMode ? '#2C2C2E' : '#E1E2EC');
+            root.style.setProperty('--md-sys-color-on-surface', isDarkMode ? '#FFFFFF' : '#191C20');
+
+            root.style.setProperty('--bg-base', isDarkMode ? 'var(--md-sys-color-background)' : 'var(--md-sys-color-surface-variant)');
+            root.style.setProperty('--glass-bg', isDarkMode ? 'var(--md-sys-color-surface-variant)' : 'var(--md-sys-color-background)');
+        }
+
+        function toggleDarkTheme(isDark) {
+            isDarkMode = isDark;
+            themeIcon.textContent = isDark ? 'dark_mode' : 'light_mode';
+            if (currentThemeObj) {
+                applyM3Scheme(currentThemeObj);
+            } else {
+                updateMonetTheme(currentSeedColor);
+            }
+        }
+
+        themeBtn.addEventListener('click', () => {
+            toggleDarkTheme(!isDarkMode);
+        });
+
+        /**
+         * STREAMING_CHUNK: Web Audio Engine for Realtime Preview & Effects Logic
+         */
+        let audioCtx = null;
+        let audioBuffer = null;
+        let currentSourceNode = null;
+        let isPlaying = false;
+        let loadedFileName = "edited_audio";
+
+        // DSP ノード参照 (リアルタイム用)
+        let distortionNode = null;
+        let reverbNode = null;
+        let reverbDryGain = null;
+        let reverbWetGain = null;
+        let volumeGainNode = null;
+
+        // エフェクトパラメータ値
+        let paramDistortion = 0; // 0 to 100
+        let paramReverb = 0;     // 0 to 100
+        let paramVolume = 100;   // 0 to 1000 (%)
+
+        function initAudioContext() {
+            if (!audioCtx) {
+                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioContextClass();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        // ハードクリッピング/ディストーションカーブの生成 (音割れ用)
+        function makeDistortionCurve(amount) {
+            if (amount <= 0) return null;
+            const k = amount * 12; // 強烈な過大入力と音割れをシミュレート
+            const n_samples = 44100;
+            const curve = new Float32Array(n_samples);
+            const deg = Math.PI / 180;
+            
+            for (let i = 0; i < n_samples; ++i) {
+                let x = (i * 2) / n_samples - 1;
+                // クリッピング強調
+                let y = ((3 + k) * x * 20 * deg) / (Math.PI + k * Math.abs(x));
+                // 上限のカット（クリップ）
+                curve[i] = Math.max(-0.98, Math.min(0.98, y));
+            }
+            return curve;
+        }
+
+        // 地下の反響（Impulse Response; IR）インパルス生成アルゴリズム
+        // 地下洞窟やコンクリート空間のような「長周期減衰」「高周波の減衰(ローパス)」「不規則な初期反射」を合成
+        function generateUndergroundReverbIR(targetCtx, duration = 4.5, decay = 3.5) {
+            const sampleRate = targetCtx.sampleRate;
+            const length = sampleRate * duration;
+            const impulse = targetCtx.createBuffer(2, length, sampleRate);
+            const left = impulse.getChannelData(0);
+            const right = impulse.getChannelData(1);
+
+            for (let i = 0; i < length; i++) {
+                const t = i / sampleRate;
+                // 低域が残る地下の残響特性（高音域を指数関数で急激にカット）
+                const envelope = Math.exp(-t * (10 / decay));
+                // 低音フィルタ効果を擬似再現
+                const lowFreqDamp = Math.cos(2 * Math.PI * 120 * t);
+                
+                // ノイズに地下反響のフィルタリングを乗算
+                const noiseL = (Math.random() * 2 - 1) * envelope * (0.6 + 0.4 * lowFreqDamp);
+                const noiseR = (Math.random() * 2 - 1) * envelope * (0.6 + 0.4 * lowFreqDamp);
+
+                // 初期反射のクラスタリング
+                if (t < 0.08) {
+                    left[i] = noiseL * 1.5;
+                    right[i] = noiseR * 1.5;
+                } else {
+                    left[i] = noiseL;
+                    right[i] = noiseR;
+                }
+            }
+            return impulse;
+        }
+
+        // オーディオファイル選択時処理
+        async function handleAudioFileSelect(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            loadedFileName = file.name.replace(/\.[^/.]+$/, "");
+            document.getElementById('file-status-title').textContent = file.name;
+            document.getElementById('file-status-sub').textContent = `${(file.size / (1024 * 1024)).toFixed(2)} MB - 読み込み完了`;
+
+            initAudioContext();
+            
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+                
+                document.getElementById('play-btn').disabled = false;
+                document.getElementById('download-btn').disabled = false;
+                
+                drawWaveform();
+                showToast("音声ファイルの読み込みに成功しました");
+            } catch (err) {
+                console.error("Audio Decode Error:", err);
+                showToast("音声ファイルの読み込みに失敗しました");
+            }
+        }
+
+        // 波形表示描画
+        function drawWaveform() {
+            const canvas = document.getElementById('waveform-canvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width = canvas.clientWidth;
+            const height = canvas.height = canvas.clientHeight;
+
+            ctx.clearRect(0, 0, width, height);
+
+            if (!audioBuffer) {
+                ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text-sub') || '#999';
+                ctx.font = '12px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('波形データなし', width / 2, height / 2 + 4);
+                return;
+            }
+
+            const rawData = audioBuffer.getChannelData(0);
+            const step = Math.ceil(rawData.length / width);
+            const amp = height / 2;
+
+            const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--accent-primary') || '#3381FF';
+            ctx.fillStyle = primaryColor;
+
+            for (let i = 0; i < width; i++) {
+                let min = 1.0;
+                let max = -1.0;
+                for (let j = 0; j < step; j++) {
+                    const datum = rawData[(i * step) + j];
+                    if (datum < min) min = datum;
+                    if (datum > max) max = datum;
+                }
+                const y1 = (1 + min) * amp;
+                const y2 = (1 + max) * amp;
+                ctx.fillRect(i, y1, 1, Math.max(1, y2 - y1));
+            }
+        }
+
+        function setupAudioNodes(ctxTarget, bufferSource) {
+            // 1. ディストーション (音割れ)
+            const distNode = ctxTarget.createWaveShaper();
+            const curve = makeDistortionCurve(paramDistortion);
+            if (curve) {
+                distNode.curve = curve;
+                distNode.oversample = '4x';
+            }
+
+            // 2. 地下の反響 (コンボリューション + パラレルゲイン)
+            const convNode = ctxTarget.createConvolver();
+            convNode.buffer = generateUndergroundReverbIR(ctxTarget);
+
+            const dryGain = ctxTarget.createGain();
+            const wetGain = ctxTarget.createGain();
+
+            const wetRatio = paramReverb / 100;
+            dryGain.gain.value = 1.0;
+            wetGain.gain.value = wetRatio * 2.5; // 地下の反響感を強調
+
+            // 3. 音量 (ゲイン増幅)
+            const volNode = ctxTarget.createGain();
+            volNode.gain.value = paramVolume / 100;
+
+            // 接続グラフ構築
+            // bufferSource -> distNode -> [dryGain, (convNode -> wetGain)] -> volNode -> destination
+            bufferSource.connect(distNode);
+
+            // Dry / Wet 並列分岐
+            distNode.connect(dryGain);
+            distNode.connect(convNode);
+            convNode.connect(wetGain);
+
+            dryGain.connect(volNode);
+            wetGain.connect(volNode);
+
+            return {
+                distNode,
+                convNode,
+                dryGain,
+                wetGain,
+                volNode
+            };
+        }
+
+        function togglePlay() {
+            if (!audioBuffer) return;
+            initAudioContext();
+
+            if (isPlaying) {
+                stopPlayback();
+            } else {
+                startPlayback();
+            }
+        }
+
+        function startPlayback() {
+            if (!audioBuffer) return;
+
+            currentSourceNode = audioCtx.createBufferSource();
+            currentSourceNode.buffer = audioBuffer;
+
+            const nodes = setupAudioNodes(audioCtx, currentSourceNode);
+            distortionNode = nodes.distNode;
+            reverbNode = nodes.convNode;
+            reverbDryGain = nodes.dryGain;
+            reverbWetGain = nodes.wetGain;
+            volumeGainNode = nodes.volNode;
+
+            volumeGainNode.connect(audioCtx.destination);
+
+            currentSourceNode.onended = () => {
+                isPlaying = false;
+                document.getElementById('play-icon').textContent = 'play_arrow';
+            };
+
+            currentSourceNode.start(0);
+            isPlaying = true;
+            document.getElementById('play-icon').textContent = 'pause';
+        }
+
+        function stopPlayback() {
+            if (currentSourceNode) {
+                try {
+                    currentSourceNode.stop();
+                } catch (e) {}
+                currentSourceNode = null;
+            }
+            isPlaying = false;
+            document.getElementById('play-icon').textContent = 'play_arrow';
+        }
+
+        function updateDistortion(val) {
+            paramDistortion = parseFloat(val);
+            document.getElementById('val-distortion').textContent = val;
+            updateThickSlider('slider-distortion-fill', 'val-distortion', val, '');
+
+            if (distortionNode && audioCtx) {
+                distortionNode.curve = makeDistortionCurve(paramDistortion);
+            }
+        }
+
+        function updateReverb(val) {
+            paramReverb = parseFloat(val);
+            document.getElementById('val-reverb').textContent = `${val}%`;
+            updateThickSlider('slider-reverb-fill', 'val-reverb', val, '%');
+
+            if (reverbWetGain && audioCtx) {
+                reverbWetGain.gain.setValueAtTime((paramReverb / 100) * 2.5, audioCtx.currentTime);
+            }
+        }
+
+        function updateVolume(val) {
+            paramVolume = parseFloat(val);
+            document.getElementById('val-volume').textContent = `${val}%`;
+            updateThickSlider('slider-volume-fill', 'val-volume', val, '%');
+
+            if (volumeGainNode && audioCtx) {
+                volumeGainNode.gain.setValueAtTime(paramVolume / 100, audioCtx.currentTime);
+            }
+        }
+
+        function resetEffects() {
+            updateDistortion(0);
+            updateReverb(0);
+            updateVolume(100);
+            showToast("エフェクト設定をリセットしました");
+        }
+
+        /**
+         * STREAMING_CHUNK: Visualized Offline Audio Context Rendering & Export to WAV
+         */
+        async function exportAndDownload() {
+            if (!audioBuffer) {
+                showToast("音声ファイルが読み込まれていません");
+                return;
+            }
+
+            if (isPlaying) {
+                stopPlayback();
+            }
+
+            // エクスポート用モーダル表示 (バックグラウンド処理回避)
+            const dialog = document.getElementById('export-dialog');
+            const progressFill = document.getElementById('export-progress-fill');
+            const statusText = document.getElementById('export-status-text');
+            
+            dialog.classList.add('active');
+            progressFill.style.width = '0%';
+            statusText.textContent = '0%';
+
+            // 反響の減衰分を追加考慮したコンテキスト長
+            const extraDuration = (paramReverb > 0) ? 4.5 : 0.5;
+            const totalDuration = audioBuffer.duration + extraDuration;
+            const sampleRate = audioBuffer.sampleRate;
+            const length = Math.ceil(totalDuration * sampleRate);
+
+            const offlineCtx = new (window.OfflineAudioContext || window.webkitOfflineAudioContext)(
+                audioBuffer.numberOfChannels,
+                length,
+                sampleRate
+            );
+
+            const offlineSource = offlineCtx.createBufferSource();
+            offlineSource.buffer = audioBuffer;
+
+            const nodes = setupAudioNodes(offlineCtx, offlineSource);
+            nodes.volNode.connect(offlineCtx.destination);
+
+            offlineSource.start(0);
+
+            // 進捗状況アニメーションタイマー
+            const startTime = Date.now();
+            const estimatedMs = (audioBuffer.duration * 1000) / 4; // レンダリング予想時間
+            
+            const progressInterval = setInterval(() => {
+                const elapsed = Date.now() - startTime;
+                let pct = Math.min(95, Math.floor((elapsed / estimatedMs) * 100));
+                progressFill.style.width = `${pct}%`;
+                statusText.textContent = `${pct}%`;
+            }, 100);
+
+            try {
+                const renderedBuffer = await offlineCtx.startRendering();
+                clearInterval(progressInterval);
+
+                progressFill.style.width = '100%';
+                statusText.textContent = '100% (エンコード完了)';
+
+                setTimeout(() => {
+                    const wavBlob = audioBufferToWavBlob(renderedBuffer);
+                    const url = URL.createObjectURL(wavBlob);
+                    
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `${loadedFileName}_boosted.wav`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+
+                    dialog.classList.remove('active');
+                    showToast("音源ファイルのダウンロードを開始しました");
+                }, 300);
+
+            } catch (err) {
+                clearInterval(progressInterval);
+                console.error("Rendering Error:", err);
+                dialog.classList.remove('active');
+                showToast("レンダリング中にエラーが発生しました");
+            }
+        }
+
+        // AudioBuffer を RIFF WAV Blob フォーマットへ変換
+        function audioBufferToWavBlob(buffer) {
+            const numChannels = buffer.numberOfChannels;
+            const sampleRate = buffer.sampleRate;
+            const format = 1; // PCM
+            const bitDepth = 16;
+            
+            const bytesPerSample = bitDepth / 8;
+            const blockAlign = numChannels * bytesPerSample;
+
+            const dataLength = buffer.length * blockAlign;
+            const bufferLength = 44 + dataLength;
+
+            const arrayBuffer = new ArrayBuffer(bufferLength);
+            const view = new DataView(arrayBuffer);
+
+            /* RIFF identifier */
+            writeString(view, 0, 'RIFF');
+            /* RIFF chunk length */
+            view.setUint32(4, 36 + dataLength, true);
+            /* RIFF type */
+            writeString(view, 8, 'WAVE');
+            /* format chunk identifier */
+            writeString(view, 12, 'fmt ');
+            /* format chunk length */
+            view.setUint32(16, 16, true);
+            /* sample format (raw) */
+            view.setUint16(20, format, true);
+            /* channel count */
+            view.setUint16(22, numChannels, true);
+            /* sample rate */
+            view.setUint32(24, sampleRate, true);
+            /* byte rate (sample rate * block align) */
+            view.setUint32(28, sampleRate * blockAlign, true);
+            /* block align */
+            view.setUint16(32, blockAlign, true);
+            /* bits per sample */
+            view.setUint16(34, bitDepth, true);
+            /* data chunk identifier */
+            writeString(view, 36, 'data');
+            /* data chunk length */
+            view.setUint32(40, dataLength, true);
+
+            // PCMサンプルのインターリーブ書き込み (16-bit)
+            const channels = [];
+            for (let i = 0; i < numChannels; i++) {
+                channels.push(buffer.getChannelData(i));
+            }
+
+            let offset = 44;
+            for (let i = 0; i < buffer.length; i++) {
+                for (let ch = 0; ch < numChannels; ch++) {
+                    let sample = channels[ch][i];
+                    // クラッピング保護（-1.0 〜 1.0 にクランプして16bit整数変換）
+                    sample = Math.max(-1, Math.min(1, sample));
+                    sample = (sample < 0 ? sample * 0x8000 : sample * 0x7FFF) | 0;
+                    view.setInt16(offset, sample, true);
+                    offset += 2;
+                }
+            }
+
+            return new Blob([arrayBuffer], { type: 'audio/wav' });
+        }
+
+        function writeString(view, offset, string) {
+            for (let i = 0; i < string.length; i++) {
+                view.setUint8(offset + i, string.charCodeAt(i));
+            }
+        }
+
+        /**
+         * STREAMING_CHUNK: General UI Handlers, View Switcher & Elastic Scroll
+         */
+        function updateThickSlider(fillId, labelId, val, unit) {
+            const label = document.getElementById(labelId);
+            const fill = document.getElementById(fillId);
+            if (label) label.textContent = `${val}${unit}`;
+            if (fill) {
+                const input = fill.parentElement.querySelector('input');
+                if (input) {
+                    const min = parseFloat(input.min) || 0;
+                    const max = parseFloat(input.max) || 100;
+                    const percent = ((val - min) / (max - min)) * 100;
+                    fill.style.width = `${percent}%`;
+                }
+            }
+        }
+
+        const navItems = document.querySelectorAll('.nav-item');
+        const views = document.querySelectorAll('.view');
+
+        function switchView(viewId) {
+            navItems.forEach(n => {
+                n.classList.remove('active');
+                if (n.getAttribute('data-view') === viewId) {
+                    n.classList.add('active');
+                }
+            });
+
+            views.forEach(v => {
+                v.classList.remove('active');
+                if (v.id === viewId) {
+                    v.classList.add('active');
+                }
+            });
+        }
+
+        function showToast(msg) {
+            toast.textContent = msg;
+            toast.classList.add('active');
+            setTimeout(() => {
+                toast.classList.remove('active');
+            }, 2500);
+        }
+
+        /* 弾性オーバースクロール物理アニメーション */
+        const scrollArea = document.getElementById('main-scroll-area');
+        const overscrollWrapper = document.getElementById('overscroll-wrapper');
+
+        let startY = 0;
+        let currentPull = 0;
+        let isPulling = false;
+
+        scrollArea.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 1) {
+                startY = e.touches[0].clientY;
+                overscrollWrapper.classList.remove('spring-back');
+            }
+        }, { passive: true });
+
+        scrollArea.addEventListener('touchmove', (e) => {
+            if (e.touches.length !== 1) return;
+            const currentY = e.touches[0].clientY;
+            const deltaY = currentY - startY;
+
+            const isAtTop = scrollArea.scrollTop <= 0;
+            const isAtBottom = Math.abs(scrollArea.scrollHeight - scrollArea.clientHeight - scrollArea.scrollTop) < 2;
+
+            if ((isAtTop && deltaY > 0) || (isAtBottom && deltaY < 0)) {
+                currentPull = deltaY * 0.38;
+                overscrollWrapper.style.transform = `translateY(${currentPull}px) scaleY(${1 + Math.abs(currentPull) * 0.0003})`;
+                isPulling = true;
+            }
+        }, { passive: true });
+
+        scrollArea.addEventListener('touchend', () => {
+            if (isPulling) {
+                overscrollWrapper.classList.add('spring-back');
+                overscrollWrapper.style.transform = 'translateY(0px) scaleY(1)';
+                currentPull = 0;
+                isPulling = false;
+            }
+        });
+
+        // Monet Engine 準備完了ハンドラ
+        window.onMonetEngineReady = async function() {
+            const savedColor = await loadM3ColorFromIDB();
+            if (savedColor) {
+                currentSeedColor = savedColor;
+            }
+            
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (prefersDark) {
+                toggleDarkTheme(true);
+            } else {
+                updateMonetTheme(currentSeedColor);
+            }
+        };
+
+        window.onload = () => {
+            drawWaveform();
+        };
+    </script>
+</body>
+</html>
