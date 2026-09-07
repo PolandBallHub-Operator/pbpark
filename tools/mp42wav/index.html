@@ -1,0 +1,1154 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+    <title>MP4 to WAV コンバーター</title>
+
+    <!-- App Icon / Favicon -->
+    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/newballs/germany/fronthaha.png">
+    <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/newballs/germany/fronthaha.png">
+
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&family=Noto+Sans+JP:wght@400;500;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+
+    <style>
+        :root {
+            /* M3 Core Dynamic Tokens (初期値: Hyperos Blue #3381FF) */
+            --md-sys-color-primary: #3381FF;
+            --md-sys-color-on-primary: #FFFFFF;
+            --md-sys-color-primary-container: #DCE3FF;
+            --md-sys-color-on-primary-container: #001945;
+            
+            --md-sys-color-secondary: #575E71;
+            --md-sys-color-on-secondary: #FFFFFF;
+            --md-sys-color-secondary-container: #DCB8FF;
+            --md-sys-color-on-secondary-container: #141B2C;
+            
+            --md-sys-color-tertiary: #715573;
+            --md-sys-color-on-tertiary: #FFFFFF;
+            --md-sys-color-tertiary-container: #FBD7FC;
+            --md-sys-color-on-tertiary-container: #29132D;
+
+            --md-sys-color-background: #F8F9FF;
+            --md-sys-color-on-background: #191C20;
+            
+            --md-sys-color-surface: #F8F9FF;
+            --md-sys-color-on-surface: #191C20;
+            --md-sys-color-surface-variant: #E1E2EC;
+            --md-sys-color-on-surface-variant: #44474F;
+            --md-sys-color-outline: #757780;
+
+            /* UIコンポーネント用エイリアス */
+            --accent-primary: var(--md-sys-color-primary);
+            --accent-active: var(--md-sys-color-primary-container);
+            
+            --bg-base: var(--md-sys-color-surface-variant);
+            --glass-bg: var(--md-sys-color-background);
+            --text-main: var(--md-sys-color-on-surface);
+            --text-sub: var(--md-sys-color-on-surface-variant);
+            --bg-secondary: var(--md-sys-color-surface-variant);
+            --nav-bg: var(--md-sys-color-surface);
+            --nav-icon-active: var(--md-sys-color-primary);
+            
+            --m3-easing: cubic-bezier(0.32, 0.72, 0, 1);
+            --transition-smooth: 0.35s var(--m3-easing);
+            --card-padding: 24px;
+            --card-radius: 24px;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', 'Noto Sans JP', sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            transition: background-color var(--transition-smooth), color var(--transition-smooth);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* アプリ全体のコンテナ */
+        #app-viewport {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow: hidden;
+        }
+
+        /* ヘッダー */
+        header {
+            height: 64px;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-base);
+            transition: background-color var(--transition-smooth);
+            position: relative;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+        .logo {
+            font-weight: 700;
+            font-size: 18px;
+            letter-spacing: -0.5px;
+            color: var(--text-main);
+            text-align: center;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .app-header-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 1px solid var(--md-sys-color-outline);
+        }
+        .theme-toggle {
+            position: absolute;
+            right: 24px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: none;
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background var(--transition-smooth), transform 0.2s;
+        }
+        .theme-toggle:active {
+            transform: scale(0.92);
+        }
+
+        /* メインスクロールエリア */
+        main {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 12px 20px 100px;
+            max-width: 720px;
+            width: 100%;
+            margin: 0 auto;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior-y: none;
+            will-change: transform;
+        }
+
+        /* Elastic Overscroll 伸縮ラッパー */
+        #overscroll-wrapper {
+            transform-origin: center top;
+            transition: transform 0s linear;
+        }
+        #overscroll-wrapper.spring-back {
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        /* フラットソリッドカード */
+        .glass-card {
+            background: var(--glass-bg);
+            border-radius: var(--card-radius);
+            padding: var(--card-padding);
+            margin-bottom: 20px;
+            box-shadow: none !important;
+            border: none !important;
+            transition: background-color var(--transition-smooth), border-radius var(--transition-smooth);
+        }
+
+        h2 { 
+            font-size: 18px; 
+            margin-top: 0; 
+            margin-bottom: 12px;
+            font-weight: 700; 
+            letter-spacing: -0.3px;
+            color: var(--text-main);
+        }
+        p {
+            font-size: 13.5px;
+            line-height: 1.55;
+            margin-top: 0;
+            margin-bottom: 16px;
+            color: var(--text-sub);
+        }
+
+        /* アクションボタン */
+        .ai-btn {
+            border: none;
+            outline: none;
+            padding: 12px 24px;
+            border-radius: 14px;
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--md-sys-color-on-primary);
+            cursor: pointer;
+            background: var(--accent-primary);
+            transition: opacity 0.2s, background-color var(--transition-smooth), color var(--transition-smooth);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            justify-content: center;
+        }
+        .ai-btn:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+        .ai-btn:active:not(:disabled) {
+            opacity: 0.85;
+        }
+        .ai-btn-secondary {
+            background: var(--md-sys-color-secondary-container);
+            color: var(--md-sys-color-on-secondary-container);
+        }
+
+        /* ドロップゾーン */
+        .monet-dropzone {
+            border: 2px dashed var(--md-sys-color-outline);
+            border-radius: var(--card-radius);
+            padding: 28px 20px;
+            text-align: center;
+            cursor: pointer;
+            background: rgba(0, 0, 0, 0.02);
+            transition: background 0.2s, border-color 0.2s;
+            margin-bottom: 16px;
+        }
+        .monet-dropzone:hover {
+            background: rgba(0, 0, 0, 0.04);
+            border-color: var(--accent-primary);
+        }
+
+        /* 情報テーブル */
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 12px;
+            margin: 16px 0;
+        }
+        .info-box {
+            background: var(--bg-base);
+            padding: 12px 14px;
+            border-radius: 14px;
+        }
+        .info-box-label {
+            font-size: 11px;
+            color: var(--text-sub);
+            font-weight: 600;
+        }
+        .info-box-val {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-top: 4px;
+            word-break: break-all;
+        }
+
+        /* ------------------ ナビゲーション ------------------ */
+        .bottom-nav-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 72px;
+            background: var(--nav-bg);
+            border-top: 1px solid rgba(0,0,0,0.05);
+            z-index: 500;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding-bottom: env(safe-area-inset-bottom);
+            transition: background-color var(--transition-smooth);
+        }
+        .nav-item {
+            flex: 1;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-sub);
+            transition: color 0.25s var(--m3-easing);
+            position: relative;
+            gap: 4px;
+        }
+        .nav-item span.material-symbols-outlined {
+            font-size: 24px;
+            font-variation-settings: 'FILL' 0, 'wght' 400;
+            transition: font-variation-settings 0.2s, color 0.2s;
+        }
+        .nav-label {
+            font-size: 10px;
+            font-weight: 600;
+        }
+        .nav-item.active {
+            color: var(--nav-icon-active);
+        }
+        .nav-item.active span.material-symbols-outlined {
+            font-variation-settings: 'FILL' 1, 'wght' 700;
+        }
+
+        /* ビュー切り替え */
+        .view {
+            display: none;
+        }
+        .view.active {
+            display: block;
+            animation: viewIn 0.3s var(--m3-easing);
+        }
+        @keyframes viewIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* プリセット選択ボタン */
+        .preset-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .preset-btn {
+            background: var(--bg-base);
+            color: var(--text-main);
+            border: none;
+            padding: 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.2s, opacity 0.1s;
+        }
+        .preset-btn:active {
+            opacity: 0.8;
+        }
+        .preset-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        /* トースト & ダイアログ */
+        .toast {
+            position: fixed;
+            bottom: 84px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--md-sys-color-on-surface);
+            color: var(--md-sys-color-surface);
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s var(--m3-easing);
+            z-index: 2000;
+        }
+        .toast.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .dialog-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000; display: flex; align-items: center; justify-content: center;
+            opacity: 0; visibility: hidden; transition: all 0.3s var(--m3-easing);
+        }
+        .dialog-overlay.active { opacity: 1; visibility: visible; }
+        .glass-dialog {
+            background: var(--glass-bg);
+            border-radius: var(--card-radius);
+            padding: 24px; max-width: 380px; width: 90%; text-align: center;
+            transform: scale(0.9) translateY(20px); transition: all 0.4s var(--m3-easing);
+        }
+        .dialog-overlay.active .glass-dialog { transform: scale(1) translateY(0); }
+
+        .badge {
+            background: var(--accent-primary);
+            color: var(--md-sys-color-on-primary);
+            padding: 4px 12px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 700;
+            display: inline-block;
+        }
+
+        .color-picker-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 12px 0;
+        }
+        .native-color-picker {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            background: none;
+            padding: 0;
+        }
+        .native-color-picker::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+        .native-color-picker::-webkit-color-swatch {
+            border: 2px solid var(--md-sys-color-outline);
+            border-radius: 50%;
+        }
+
+        /* プログレスバー */
+        .progress-bar-bg {
+            width: 100%;
+            height: 12px;
+            background: var(--bg-base);
+            border-radius: 6px;
+            overflow: hidden;
+            margin: 16px 0;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            width: 0%;
+            background: var(--accent-primary);
+            transition: width 0.1s linear;
+        }
+
+        /* 波形ビジュアルエリア */
+        .waveform-canvas {
+            width: 100%;
+            height: 64px;
+            background: var(--bg-base);
+            border-radius: 12px;
+            margin-top: 12px;
+            display: block;
+        }
+
+        .notice-card {
+            background: var(--md-sys-color-primary-container);
+            color: var(--md-sys-color-on-primary-container);
+            padding: 16px;
+            border-radius: 16px;
+            font-size: 13px;
+            line-height: 1.6;
+            margin-top: 16px;
+        }
+        .notice-card strong {
+            display: block;
+            margin-bottom: 4px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app-viewport">
+        <!-- ヘッダー -->
+        <header>
+            <div class="logo">
+                <img src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/newballs/germany/fronthaha.png" alt="Icon" class="app-header-icon" onerror="this.style.display='none'">
+                MP4 to WAV コンバーター
+            </div>
+            <button class="theme-toggle" id="theme-btn" title="テーマ切り替え">
+                <span class="material-symbols-outlined">light_mode</span>
+            </button>
+        </header>
+
+        <!-- メインコンテンツ -->
+        <main id="main-scroll-area">
+            <div id="overscroll-wrapper">
+                
+                <!-- 1. メインコンバータービュー -->
+                <section id="view-editor" class="view active">
+                    <!-- ファイル選択カード -->
+                    <div class="glass-card">
+                        <h2>MP4動画のインポート</h2>
+                        <p>動画ファイル (MP4, Mov, WebM等) から音声トラックを抽出し、無劣化のWAVフォーマットに変換します。</p>
+                        
+                        <div class="monet-dropzone" onclick="document.getElementById('video-file-input').click()">
+                            <span class="material-symbols-outlined" style="font-size: 44px; color: var(--accent-primary); margin-bottom: 8px;">movie</span>
+                            <div style="font-weight: 700; font-size: 15px;" id="file-status-title">MP4 ファイルを選択またはドロップ</div>
+                            <div style="font-size: 12px; color: var(--text-sub); margin-top: 4px;" id="file-status-sub">対応フォーマット: .mp4, .mov, .webm</div>
+                            <input type="file" id="video-file-input" accept="video/mp4,video/quicktime,video/webm,video/*" style="display: none;" onchange="handleVideoFileSelect(event)">
+                        </div>
+
+                        <!-- 読み込み後のファイル情報表示 -->
+                        <div id="media-info-container" style="display: none;">
+                            <div class="info-grid">
+                                <div class="info-box">
+                                    <div class="info-box-label">元ファイル名</div>
+                                    <div class="info-box-val" id="info-filename">-</div>
+                                </div>
+                                <div class="info-box">
+                                    <div class="info-box-label">元サイズ</div>
+                                    <div class="info-box-val" id="info-filesize">-</div>
+                                </div>
+                                <div class="info-box">
+                                    <div class="info-box-label">再生時間</div>
+                                    <div class="info-box-val" id="info-duration">-</div>
+                                </div>
+                            </div>
+
+                            <!-- 音声波形表示 -->
+                            <div style="font-weight: 600; font-size: 13px; margin-top: 12px; color: var(--text-main);">抽出された音声波形プレビュー</div>
+                            <canvas id="waveform-canvas" class="waveform-canvas"></canvas>
+
+                            <div style="margin-top: 14px; display: flex; gap: 10px;">
+                                <button class="ai-btn ai-btn-secondary" id="play-btn" onclick="togglePlay()">
+                                    <span class="material-symbols-outlined" id="play-icon">play_arrow</span>
+                                    音声プレビュー
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 変換・ダウンロードカード -->
+                    <div class="glass-card">
+                        <h2>WAVへ変換・保存</h2>
+                        <p>ブラウザ内部の高度なWeb Audio処理により、サーバーへアップロードせず安全・高速にWAVを生成します。</p>
+
+                        <button class="ai-btn" id="download-btn" style="width: 100%; justify-content: center; padding: 16px; font-size: 15px;" onclick="exportAndDownload()" disabled>
+                            <span class="material-symbols-outlined">download</span>
+                            WAVに変換してダウンロード
+                        </button>
+
+                        <!-- CapCut等の利用アドバイスカード -->
+                        <div class="notice-card">
+                            <strong>💡 素材・CapCut等でのご利用について</strong>
+                            非圧縮PCMのWAV形式へ展開するため、映像データを含まない分MP4動画よりファイルサイズが少し小さくなる（または同等程度）のが一般的です。<br>
+                            CapCutや各種動画編集アプリで「効果音」「BGM素材」として取り込む際に、映像なしの軽量な純粋音声ファイルとして快適にご活用いただけます。
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 2. Monetテーマ設定 & IndexedDB連動 -->
+                <section id="view-monet" class="view">
+                    <div class="glass-card">
+                        <h2>M3 Dynamic Monet カラー</h2>
+                        <p>お好みのテーマカラーを選択できます。設定は <strong>IndexedDB (iDB)</strong> に保存され自動で維持されます。</p>
+
+                        <!-- カラーピッカー -->
+                        <div class="color-picker-row">
+                            <input type="color" id="seed-color-input" class="native-color-picker" value="#3381FF" onchange="updateMonetThemeAndSave(this.value)">
+                            <div>
+                                <div style="font-weight: 700; font-size: 14px;" id="seed-hex-label">#3381FF</div>
+                                <div style="font-size: 12px; color: var(--text-sub);">シードカラーを選択してiDBに記憶</div>
+                            </div>
+                        </div>
+
+                        <!-- プリセットカラー -->
+                        <div style="margin-top: 14px;">
+                            <span style="font-size: 13px; font-weight: 600;">プリセット・シード</span>
+                            <div class="preset-grid">
+                                <button class="preset-btn" onclick="updateMonetThemeAndSave('#3381FF')">
+                                    <div class="preset-dot" style="background: #3381FF;"></div> Hyperos Blue
+                                </button>
+                                <button class="preset-btn" onclick="updateMonetThemeAndSave('#10B981')">
+                                    <div class="preset-dot" style="background: #10B981;"></div> Emerald
+                                </button>
+                                <button class="preset-btn" onclick="updateMonetThemeAndSave('#8B5CF6')">
+                                    <div class="preset-dot" style="background: #8B5CF6;"></div> Violet
+                                </button>
+                                <button class="preset-btn" onclick="updateMonetThemeAndSave('#F59E0B')">
+                                    <div class="preset-dot" style="background: #F59E0B;"></div> Amber
+                                </button>
+                                <button class="preset-btn" onclick="updateMonetThemeAndSave('#EC4899')">
+                                    <div class="preset-dot" style="background: #EC4899;"></div> Rose
+                                </button>
+                                <button class="preset-btn" onclick="updateMonetThemeAndSave('#0088CC')">
+                                    <div class="preset-dot" style="background: #0088CC;"></div> Germany Blue
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 3. アプリ情報 -->
+                <section id="view-about" class="view">
+                    <div class="glass-card" style="text-align: center;">
+                        <img src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/newballs/germany/fronthaha.png" alt="Germany Character" style="width: 88px; height: 88px; border-radius: 50%; margin-bottom: 12px; object-fit: cover; border: 2px solid var(--accent-primary);">
+                        <h2>MP4 to WAV コンバーター</h2>
+                        <span class="badge" style="margin-bottom: 16px;">v1.0.0 M3 Fast Converter</span>
+                        <p style="text-align: left;">
+                            MP4などの動画ファイルから音声データを抜き出し、高音質なWAVオーディオファイルに1ステップで変換するWebツールです。
+                        </p>
+                        <div style="text-align: left; background: var(--bg-base); padding: 14px; border-radius: 14px; font-size: 12px; line-height: 1.6;">
+                            • <strong>サーバー送信なし:</strong> お使いの端末・ブラウザ内のみで音声を抽出・デコードするため安心安全です。<br>
+                            • <strong>CapCut等の動画編集に最適:</strong> 映像を取り除き、音声専用素材として編集ソフトで扱いやすくします。
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+        </main>
+
+        <!-- 下付き固定ナビゲーションバー -->
+        <div class="bottom-nav-container">
+            <div class="nav-item active" data-view="view-editor" onclick="switchView('view-editor')">
+                <span class="material-symbols-outlined">transform</span>
+                <span class="nav-label">コンバーター</span>
+            </div>
+            <div class="nav-item" data-view="view-monet" onclick="switchView('view-monet')">
+                <span class="material-symbols-outlined">palette</span>
+                <span class="nav-label">Monet設定</span>
+            </div>
+            <div class="nav-item" data-view="view-about" onclick="switchView('view-about')">
+                <span class="material-symbols-outlined">info</span>
+                <span class="nav-label">アプリ情報</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- エクスポート進捗ダイアログ -->
+    <div class="dialog-overlay" id="export-dialog">
+        <div class="glass-dialog">
+            <span class="material-symbols-outlined" style="font-size: 44px; color: var(--accent-primary);">sync</span>
+            <h2 style="margin-top: 12px;" id="export-dialog-title">WAVファイルに変換中...</h2>
+            <p id="export-dialog-sub" style="margin-bottom: 12px;">音声データを抽出し、WAVフォーマットにパッキングしています。</p>
+
+            <div class="progress-bar-bg">
+                <div class="progress-bar-fill" id="export-progress-fill"></div>
+            </div>
+            <div style="font-size: 13px; font-weight: 700; color: var(--text-main);" id="export-status-text">0%</div>
+        </div>
+    </div>
+
+    <!-- トースト通知 -->
+    <div class="toast" id="toast-message">処理が完了しました</div>
+
+    <!-- Material Color Utilities (Monet Engine) -->
+    <script type="module">
+        import { 
+            argbFromHex, 
+            hexFromArgb, 
+            themeFromSourceColor 
+        } from 'https://esm.run/@material/material-color-utilities';
+
+        window.M3Monet = {
+            argbFromHex,
+            hexFromArgb,
+            themeFromSourceColor
+        };
+
+        if (window.onMonetEngineReady) {
+            window.onMonetEngineReady();
+        }
+    </script>
+
+    <script>
+        const DB_NAME = 'Mp4ToWavMonetDB';
+        const DB_VERSION = 1;
+        const STORE_NAME = 'settings';
+        let dbInstance = null;
+
+        function initIndexedDB() {
+            return new Promise((resolve) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+                request.onupgradeneeded = (e) => {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains(STORE_NAME)) {
+                        db.createObjectStore(STORE_NAME);
+                    }
+                };
+                request.onsuccess = (e) => {
+                    dbInstance = e.target.result;
+                    resolve(dbInstance);
+                };
+                request.onerror = (e) => {
+                    console.error("IndexedDB Error:", e);
+                    resolve(null);
+                };
+            });
+        }
+
+        async function saveM3ColorToIDB(colorHex) {
+            if (!dbInstance) await initIndexedDB();
+            if (!dbInstance) return;
+            try {
+                const tx = dbInstance.transaction(STORE_NAME, 'readwrite');
+                const store = tx.objectStore(STORE_NAME);
+                store.put(colorHex, 'm3_color');
+            } catch (err) {
+                console.error("Failed to save m3_color to iDB:", err);
+            }
+        }
+
+        async function loadM3ColorFromIDB() {
+            if (!dbInstance) await initIndexedDB();
+            if (!dbInstance) return null;
+            return new Promise((resolve) => {
+                try {
+                    const tx = dbInstance.transaction(STORE_NAME, 'readonly');
+                    const store = tx.objectStore(STORE_NAME);
+                    const req = store.get('m3_color');
+                    req.onsuccess = () => resolve(req.result || null);
+                    req.onerror = () => resolve(null);
+                } catch (e) {
+                    resolve(null);
+                }
+            });
+        }
+
+        let currentSeedColor = "#3381FF";
+        let isDarkMode = false;
+        let currentThemeObj = null;
+
+        const toast = document.getElementById('toast-message');
+        const themeBtn = document.getElementById('theme-btn');
+        const themeIcon = themeBtn.querySelector('span');
+
+        function updateMonetTheme(hexColor) {
+            currentSeedColor = hexColor;
+
+            const seedInput = document.getElementById('seed-color-input');
+            const seedLabel = document.getElementById('seed-hex-label');
+            if (seedInput) seedInput.value = hexColor;
+            if (seedLabel) seedLabel.textContent = hexColor.toUpperCase();
+
+            if (window.M3Monet) {
+                try {
+                    const argb = window.M3Monet.argbFromHex(hexColor);
+                    currentThemeObj = window.M3Monet.themeFromSourceColor(argb);
+                    applyM3Scheme(currentThemeObj);
+                } catch (e) {
+                    fallbackApplyTheme(hexColor);
+                }
+            } else {
+                fallbackApplyTheme(hexColor);
+            }
+        }
+
+        async function updateMonetThemeAndSave(hexColor) {
+            updateMonetTheme(hexColor);
+            await saveM3ColorToIDB(hexColor);
+            showToast(`テーマカラーを保存: ${hexColor.toUpperCase()}`);
+        }
+
+        function applyM3Scheme(theme) {
+            const scheme = isDarkMode ? theme.schemes.dark : theme.schemes.light;
+            const root = document.documentElement;
+            const hex = (argb) => window.M3Monet.hexFromArgb(argb);
+
+            const colors = {
+                primary: hex(scheme.primary),
+                onPrimary: hex(scheme.onPrimary),
+                primaryContainer: hex(scheme.primaryContainer),
+                onPrimaryContainer: hex(scheme.onPrimaryContainer),
+                secondary: hex(scheme.secondary),
+                onSecondary: hex(scheme.onSecondary),
+                secondaryContainer: hex(scheme.secondaryContainer),
+                onSecondaryContainer: hex(scheme.onSecondaryContainer),
+                tertiary: hex(scheme.tertiary),
+                onTertiary: hex(scheme.onTertiary),
+                tertiaryContainer: hex(scheme.tertiaryContainer),
+                onTertiaryContainer: hex(scheme.onTertiaryContainer),
+                background: hex(scheme.background),
+                onBackground: hex(scheme.onBackground),
+                surface: hex(scheme.surface),
+                onSurface: hex(scheme.onSurface),
+                surfaceVariant: hex(scheme.surfaceVariant),
+                onSurfaceVariant: hex(scheme.onSurfaceVariant),
+                outline: hex(scheme.outline)
+            };
+
+            root.style.setProperty('--md-sys-color-primary', colors.primary);
+            root.style.setProperty('--md-sys-color-on-primary', colors.onPrimary);
+            root.style.setProperty('--md-sys-color-primary-container', colors.primaryContainer);
+            root.style.setProperty('--md-sys-color-on-primary-container', colors.onPrimaryContainer);
+
+            root.style.setProperty('--md-sys-color-secondary', colors.secondary);
+            root.style.setProperty('--md-sys-color-on-secondary', colors.onSecondary);
+            root.style.setProperty('--md-sys-color-secondary-container', colors.secondaryContainer);
+            root.style.setProperty('--md-sys-color-on-secondary-container', colors.onSecondaryContainer);
+
+            root.style.setProperty('--md-sys-color-tertiary', colors.tertiary);
+            root.style.setProperty('--md-sys-color-on-tertiary', colors.onTertiary);
+            root.style.setProperty('--md-sys-color-tertiary-container', colors.tertiaryContainer);
+            root.style.setProperty('--md-sys-color-on-tertiary-container', colors.onTertiaryContainer);
+
+            root.style.setProperty('--md-sys-color-background', colors.background);
+            root.style.setProperty('--md-sys-color-on-background', colors.onBackground);
+
+            root.style.setProperty('--md-sys-color-surface', colors.surface);
+            root.style.setProperty('--md-sys-color-on-surface', colors.onSurface);
+            root.style.setProperty('--md-sys-color-surface-variant', colors.surfaceVariant);
+            root.style.setProperty('--md-sys-color-on-surface-variant', colors.onSurfaceVariant);
+            root.style.setProperty('--md-sys-color-outline', colors.outline);
+
+            root.style.setProperty('--bg-base', isDarkMode ? colors.background : colors.surfaceVariant);
+            root.style.setProperty('--glass-bg', isDarkMode ? colors.surfaceVariant : colors.background);
+
+            drawWaveform();
+        }
+
+        function fallbackApplyTheme(hex) {
+            const root = document.documentElement;
+            root.style.setProperty('--md-sys-color-primary', hex);
+            root.style.setProperty('--md-sys-color-background', isDarkMode ? '#121212' : '#F8F9FF');
+            root.style.setProperty('--md-sys-color-surface-variant', isDarkMode ? '#2C2C2E' : '#E1E2EC');
+            root.style.setProperty('--md-sys-color-on-surface', isDarkMode ? '#FFFFFF' : '#191C20');
+
+            root.style.setProperty('--bg-base', isDarkMode ? 'var(--md-sys-color-background)' : 'var(--md-sys-color-surface-variant)');
+            root.style.setProperty('--glass-bg', isDarkMode ? 'var(--md-sys-color-surface-variant)' : 'var(--md-sys-color-background)');
+        }
+
+        function toggleDarkTheme(isDark) {
+            isDarkMode = isDark;
+            themeIcon.textContent = isDark ? 'dark_mode' : 'light_mode';
+            if (currentThemeObj) {
+                applyM3Scheme(currentThemeObj);
+            } else {
+                updateMonetTheme(currentSeedColor);
+            }
+        }
+
+        themeBtn.addEventListener('click', () => {
+            toggleDarkTheme(!isDarkMode);
+        });
+
+        let audioCtx = null;
+        let audioBuffer = null;
+        let currentSourceNode = null;
+        let isPlaying = false;
+        let loadedFileName = "extracted_audio";
+
+        function initAudioContext() {
+            if (!audioCtx) {
+                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioContextClass();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        // 動画ファイル選択・ドラッグ＆ドロップ時のデコード処理
+        async function handleVideoFileSelect(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            loadedFileName = file.name.replace(/\.[^/.]+$/, "");
+            document.getElementById('file-status-title').textContent = file.name;
+            document.getElementById('file-status-sub').textContent = `${(file.size / (1024 * 1024)).toFixed(2)} MB - 解析完了`;
+
+            // UIのファイル情報更新
+            document.getElementById('info-filename').textContent = file.name;
+            document.getElementById('info-filesize').textContent = `${(file.size / (1024 * 1024)).toFixed(2)} MB`;
+
+            initAudioContext();
+            
+            try {
+                showToast("音声トラックを解析中...");
+                const arrayBuffer = await file.arrayBuffer();
+                audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+
+                // 時間計算
+                const durationSec = audioBuffer.duration;
+                const mins = Math.floor(durationSec / 60);
+                const secs = Math.floor(durationSec % 60);
+                document.getElementById('info-duration').textContent = `${mins}分${secs < 10 ? '0' : ''}${secs}秒`;
+
+                document.getElementById('media-info-container').style.display = 'block';
+                document.getElementById('download-btn').disabled = false;
+                
+                drawWaveform();
+                showToast("MP4から音声を正常に抽出しました");
+            } catch (err) {
+                console.error("Audio Decoding Error:", err);
+                showToast("動画から音声トラックを読み込めませんでした");
+            }
+        }
+
+        // 波形表示描画
+        function drawWaveform() {
+            const canvas = document.getElementById('waveform-canvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width = canvas.clientWidth;
+            const height = canvas.height = canvas.clientHeight;
+
+            ctx.clearRect(0, 0, width, height);
+
+            if (!audioBuffer) return;
+
+            const rawData = audioBuffer.getChannelData(0);
+            const step = Math.ceil(rawData.length / width);
+            const amp = height / 2;
+
+            const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--accent-primary') || '#3381FF';
+            ctx.fillStyle = primaryColor;
+
+            for (let i = 0; i < width; i++) {
+                let min = 1.0;
+                let max = -1.0;
+                for (let j = 0; j < step; j++) {
+                    const datum = rawData[(i * step) + j];
+                    if (datum < min) min = datum;
+                    if (datum > max) max = datum;
+                }
+                const y1 = (1 + min) * amp;
+                const y2 = (1 + max) * amp;
+                ctx.fillRect(i, y1, 1, Math.max(1, y2 - y1));
+            }
+        }
+
+        function togglePlay() {
+            if (!audioBuffer) return;
+            initAudioContext();
+
+            if (isPlaying) {
+                stopPlayback();
+            } else {
+                startPlayback();
+            }
+        }
+
+        function startPlayback() {
+            if (!audioBuffer) return;
+
+            currentSourceNode = audioCtx.createBufferSource();
+            currentSourceNode.buffer = audioBuffer;
+            currentSourceNode.connect(audioCtx.destination);
+
+            currentSourceNode.onended = () => {
+                isPlaying = false;
+                document.getElementById('play-icon').textContent = 'play_arrow';
+            };
+
+            currentSourceNode.start(0);
+            isPlaying = true;
+            document.getElementById('play-icon').textContent = 'pause';
+        }
+
+        function stopPlayback() {
+            if (currentSourceNode) {
+                try {
+                    currentSourceNode.stop();
+                } catch (e) {}
+                currentSourceNode = null;
+            }
+            isPlaying = false;
+            document.getElementById('play-icon').textContent = 'play_arrow';
+        }
+
+        async function exportAndDownload() {
+            if (!audioBuffer) {
+                showToast("ファイルが読み込まれていません");
+                return;
+            }
+
+            if (isPlaying) {
+                stopPlayback();
+            }
+
+            const dialog = document.getElementById('export-dialog');
+            const progressFill = document.getElementById('export-progress-fill');
+            const statusText = document.getElementById('export-status-text');
+            
+            dialog.classList.add('active');
+            progressFill.style.width = '10%';
+            statusText.textContent = '10%';
+
+            setTimeout(() => {
+                try {
+                    progressFill.style.width = '50%';
+                    statusText.textContent = '50% (エンコード中)';
+
+                    setTimeout(() => {
+                        const wavBlob = audioBufferToWavBlob(audioBuffer);
+                        const url = URL.createObjectURL(wavBlob);
+                        
+                        progressFill.style.width = '100%';
+                        statusText.textContent = '100% (完了)';
+
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `${loadedFileName}.wav`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+
+                        setTimeout(() => {
+                            dialog.classList.remove('active');
+                            showToast("WAVファイルをダウンロードしました");
+                        }, 400);
+                    }, 200);
+
+                } catch (err) {
+                    console.error("WAV Export Error:", err);
+                    dialog.classList.remove('active');
+                    showToast("WAV変換中にエラーが発生しました");
+                }
+            }, 100);
+        }
+
+        // AudioBuffer から RIFF 16-bit WAV Blob の生成
+        function audioBufferToWavBlob(buffer) {
+            const numChannels = buffer.numberOfChannels;
+            const sampleRate = buffer.sampleRate;
+            const format = 1; // PCM
+            const bitDepth = 16;
+            
+            const bytesPerSample = bitDepth / 8;
+            const blockAlign = numChannels * bytesPerSample;
+
+            const dataLength = buffer.length * blockAlign;
+            const bufferLength = 44 + dataLength;
+
+            const arrayBuffer = new ArrayBuffer(bufferLength);
+            const view = new DataView(arrayBuffer);
+
+            /* RIFF identifier */
+            writeString(view, 0, 'RIFF');
+            /* RIFF chunk length */
+            view.setUint32(4, 36 + dataLength, true);
+            /* RIFF type */
+            writeString(view, 8, 'WAVE');
+            /* format chunk identifier */
+            writeString(view, 12, 'fmt ');
+            /* format chunk length */
+            view.setUint32(16, 16, true);
+            /* sample format (raw) */
+            view.setUint16(20, format, true);
+            /* channel count */
+            view.setUint16(22, numChannels, true);
+            /* sample rate */
+            view.setUint32(24, sampleRate, true);
+            /* byte rate (sample rate * block align) */
+            view.setUint32(28, sampleRate * blockAlign, true);
+            /* block align */
+            view.setUint16(32, blockAlign, true);
+            /* bits per sample */
+            view.setUint16(34, bitDepth, true);
+            /* data chunk identifier */
+            writeString(view, 36, 'data');
+            /* data chunk length */
+            view.setUint32(40, dataLength, true);
+
+            // PCMサンプルのインターリーブ書き込み (16-bit)
+            const channels = [];
+            for (let i = 0; i < numChannels; i++) {
+                channels.push(buffer.getChannelData(i));
+            }
+
+            let offset = 44;
+            for (let i = 0; i < buffer.length; i++) {
+                for (let ch = 0; ch < numChannels; ch++) {
+                    let sample = channels[ch][i];
+                    sample = Math.max(-1, Math.min(1, sample));
+                    sample = (sample < 0 ? sample * 0x8000 : sample * 0x7FFF) | 0;
+                    view.setInt16(offset, sample, true);
+                    offset += 2;
+                }
+            }
+
+            return new Blob([arrayBuffer], { type: 'audio/wav' });
+        }
+
+        function writeString(view, offset, string) {
+            for (let i = 0; i < string.length; i++) {
+                view.setUint8(offset + i, string.charCodeAt(i));
+            }
+        }
+
+        const navItems = document.querySelectorAll('.nav-item');
+        const views = document.querySelectorAll('.view');
+
+        function switchView(viewId) {
+            navItems.forEach(n => {
+                n.classList.remove('active');
+                if (n.getAttribute('data-view') === viewId) {
+                    n.classList.add('active');
+                }
+            });
+
+            views.forEach(v => {
+                v.classList.remove('active');
+                if (v.id === viewId) {
+                    v.classList.add('active');
+                }
+            });
+        }
+
+        function showToast(msg) {
+            toast.textContent = msg;
+            toast.classList.add('active');
+            setTimeout(() => {
+                toast.classList.remove('active');
+            }, 2500);
+        }
+
+        /* 弾性オーバースクロール物理アニメーション */
+        const scrollArea = document.getElementById('main-scroll-area');
+        const overscrollWrapper = document.getElementById('overscroll-wrapper');
+
+        let startY = 0;
+        let currentPull = 0;
+        let isPulling = false;
+
+        scrollArea.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 1) {
+                startY = e.touches[0].clientY;
+                overscrollWrapper.classList.remove('spring-back');
+            }
+        }, { passive: true });
+
+        scrollArea.addEventListener('touchmove', (e) => {
+            if (e.touches.length !== 1) return;
+            const currentY = e.touches[0].clientY;
+            const deltaY = currentY - startY;
+
+            const isAtTop = scrollArea.scrollTop <= 0;
+            const isAtBottom = Math.abs(scrollArea.scrollHeight - scrollArea.clientHeight - scrollArea.scrollTop) < 2;
+
+            if ((isAtTop && deltaY > 0) || (isAtBottom && deltaY < 0)) {
+                currentPull = deltaY * 0.38;
+                overscrollWrapper.style.transform = `translateY(${currentPull}px) scaleY(${1 + Math.abs(currentPull) * 0.0003})`;
+                isPulling = true;
+            }
+        }, { passive: true });
+
+        scrollArea.addEventListener('touchend', () => {
+            if (isPulling) {
+                overscrollWrapper.classList.add('spring-back');
+                overscrollWrapper.style.transform = 'translateY(0px) scaleY(1)';
+                currentPull = 0;
+                isPulling = false;
+            }
+        });
+
+        // Monet Engine 準備完了ハンドラ
+        window.onMonetEngineReady = async function() {
+            const savedColor = await loadM3ColorFromIDB();
+            if (savedColor) {
+                currentSeedColor = savedColor;
+            }
+            
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (prefersDark) {
+                toggleDarkTheme(true);
+            } else {
+                updateMonetTheme(currentSeedColor);
+            }
+        };
+
+        window.onload = () => {
+            drawWaveform();
+        };
+    </script>
+</body>
+</html>
