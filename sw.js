@@ -9,9 +9,10 @@ const urlsToCache = [
   '{{ site.baseurl }}/index.html',
   '{{ site.baseurl }}/applist/',
   '{{ site.baseurl }}/applist/index.html',
+  '{{ site.baseurl }}/parklauncher/',
+  '{{ site.baseurl }}/parklauncher/index.html',
   '{{ site.baseurl }}/manifest.json'
 ];
-
 // インストール時にキャッシュを作成
 self.addEventListener('install', event => {
   event.waitUntil(
@@ -61,14 +62,47 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // ローカルリソースはキャッシュ優先
+// HTMLページはネットワーク優先
+if (
+  request.mode === 'navigate' ||
+  request.destination === 'document' ||
+  url.pathname.endsWith('/') ||
+  url.pathname.endsWith('.html')
+) {
   event.respondWith(
-    caches.match(request)
+    fetch(request, { cache: 'no-store' })
       .then(response => {
-        if (response) {
-          return response;
-        }
-        return fetch(request).then(response => {
+        const responseClone = response.clone();
+
+        caches.open(CACHE_NAME).then(cache => {
+          cache.put(request, responseClone);
+        });
+
+        return response;
+      })
+      .catch(() => caches.match(request))
+  );
+
+  return;
+}
+
+// CSS、JavaScript、画像などはキャッシュ利用
+event.respondWith(
+  caches.match(request).then(cachedResponse => {
+    return cachedResponse || fetch(request).then(response => {
+      if (response && response.status === 200) {
+        const responseClone = response.clone();
+
+        caches.open(STATIC_CACHE).then(cache => {
+          cache.put(request, responseClone);
+        });
+      }
+
+      return response;
+    });
+  })
+);
+
           if (!response || response.status !== 200 || response.type !== 'basic') {
             return response;
           }
