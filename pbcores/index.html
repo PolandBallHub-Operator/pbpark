@@ -1,0 +1,1328 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+    <title>PolandBall ログインボーナス & PBPoint</title>
+
+    <!-- Google Fonts & Material Symbols -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Noto+Sans+JP:wght@400;500;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+
+    <!-- PB Park Points API -->
+    <script src="/pbpark/points/points.js"></script>
+
+    <style>
+        /* M3 (Monet) ダイナミックカラー標準変数セット */
+        :root {
+            /* M3 Core Dynamic Tokens (初期値: PolandBall Red #DC2626) */
+            --md-sys-color-primary: #DC2626;
+            --md-sys-color-on-primary: #FFFFFF;
+            --md-sys-color-primary-container: #FFDAD6;
+            --md-sys-color-on-primary-container: #410002;
+            
+            --md-sys-color-secondary: #775653;
+            --md-sys-color-on-secondary: #FFFFFF;
+            --md-sys-color-secondary-container: #FFDAD6;
+            --md-sys-color-on-secondary-container: #2C1513;
+            
+            --md-sys-color-tertiary: #725B2E;
+            --md-sys-color-on-tertiary: #FFFFFF;
+            --md-sys-color-tertiary-container: #FEE0A6;
+            --md-sys-color-on-tertiary-container: #261900;
+
+            --md-sys-color-background: #FFF8F7;
+            --md-sys-color-on-background: #231918;
+            
+            --md-sys-color-surface: #FFF8F7;
+            --md-sys-color-on-surface: #231918;
+            --md-sys-color-surface-variant: #F5DDDA;
+            --md-sys-color-on-surface-variant: #534341;
+            --md-sys-color-outline: #857371;
+
+            /* UIコンポーネント用エイリアス */
+            --accent-primary: var(--md-sys-color-primary);
+            --accent-active: var(--md-sys-color-primary-container);
+            
+            --bg-base: var(--md-sys-color-surface-variant);
+            --glass-bg: var(--md-sys-color-background);
+            --text-main: var(--md-sys-color-on-surface);
+            --text-sub: var(--md-sys-color-on-surface-variant);
+            --bg-secondary: var(--md-sys-color-surface-variant);
+            --nav-bg: var(--md-sys-color-surface);
+            --nav-icon-active: var(--md-sys-color-primary);
+            
+            --m3-easing: cubic-bezier(0.32, 0.72, 0, 1);
+            --transition-smooth: 0.35s var(--m3-easing);
+            --card-padding: 24px;
+            --card-radius: 24px;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', 'Noto Sans JP', sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            transition: background-color var(--transition-smooth), color var(--transition-smooth);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* アプリ全体のコンテナ */
+        #app-viewport {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow: hidden;
+        }
+
+        /* ヘッダー */
+        header {
+            height: 64px;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-base);
+            transition: background-color var(--transition-smooth);
+            position: relative;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+        .logo {
+            font-weight: 700;
+            font-size: 18px;
+            letter-spacing: -0.5px;
+            color: var(--text-main);
+            text-align: center;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .logo-badge {
+            font-size: 10px;
+            background: var(--md-sys-color-primary-container);
+            color: var(--md-sys-color-on-primary-container);
+            padding: 2px 8px;
+            border-radius: 8px;
+            font-weight: 700;
+        }
+        .theme-toggle {
+            position: absolute;
+            right: 24px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: none;
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background var(--transition-smooth), transform 0.2s;
+        }
+        .theme-toggle:active {
+            transform: scale(0.92);
+        }
+
+        /* メインスクロールエリア */
+        main {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 12px 20px 100px;
+            max-width: 720px;
+            width: 100%;
+            margin: 0 auto;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior-y: none;
+            will-change: transform;
+        }
+
+        /* Elastic Overscroll 伸縮ラッパー */
+        #overscroll-wrapper {
+            transform-origin: center top;
+            transition: transform 0s linear;
+        }
+        #overscroll-wrapper.spring-back {
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        /* フラットソリッドカード */
+        .glass-card {
+            background: var(--glass-bg);
+            border-radius: var(--card-radius);
+            padding: var(--card-padding);
+            margin-bottom: 20px;
+            box-shadow: none !important;
+            border: none !important;
+            transition: background-color var(--transition-smooth), border-radius var(--transition-smooth);
+        }
+
+        /* ヒーローグラデーションカード */
+        .hero-gradient-card {
+            background: linear-gradient(135deg, var(--md-sys-color-primary), var(--md-sys-color-tertiary)) !important;
+            color: var(--md-sys-color-on-primary);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        h2 { 
+            font-size: 18px; 
+            margin-top: 0; 
+            margin-bottom: 12px;
+            font-weight: 700; 
+            letter-spacing: -0.3px;
+            color: var(--text-main);
+        }
+        p {
+            font-size: 13.5px;
+            line-height: 1.55;
+            margin-top: 0;
+            margin-bottom: 16px;
+            color: var(--text-sub);
+        }
+
+        /* PolandBall アバター表示制御 */
+        .pb-avatar-frame {
+            width: 105px;
+            height: 105px;
+            border-radius: 50%;
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .pb-ball-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: top;
+            border-radius: 50%;
+            transition: transform 0.3s var(--m3-easing);
+        }
+        .pb-ball-img:hover {
+            transform: scale(1.08) rotate(3deg);
+        }
+
+        /* リストコンポーネント */
+        .custom-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 16px;
+        }
+        .list-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 4px;
+            border-bottom: none !important;
+        }
+        .list-item-title {
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--text-main);
+        }
+        .list-item-desc {
+            font-size: 12px;
+            color: var(--text-sub);
+            margin-top: 2px;
+        }
+
+        /* トグルスイッチ */
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 4px;
+            color: var(--text-main);
+        }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 52px;
+            height: 30px;
+        }
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--bg-base);
+            transition: var(--transition-smooth);
+            border-radius: 15px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 4px;
+            bottom: 4px;
+            background: var(--text-sub);
+            transition: var(--transition-smooth);
+            border-radius: 50%;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+        }
+        input:checked + .slider {
+            background: var(--accent-primary);
+        }
+        input:checked + .slider:before {
+            transform: translateX(22px);
+            background: var(--md-sys-color-on-primary);
+        }
+
+        /* アクションボタン */
+        .ai-btn {
+            border: none;
+            outline: none;
+            padding: 12px 24px;
+            border-radius: 14px;
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--md-sys-color-on-primary);
+            cursor: pointer;
+            background: var(--accent-primary);
+            transition: opacity 0.2s, background-color var(--transition-smooth), transform 0.15s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            justify-content: center;
+        }
+        .ai-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .ai-btn:active:not(:disabled) {
+            opacity: 0.85;
+            transform: scale(0.98);
+        }
+        .ai-btn-secondary {
+            background: var(--md-sys-color-secondary-container);
+            color: var(--md-sys-color-on-secondary-container);
+        }
+
+        /* ナビゲーション */
+        .bottom-nav-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 72px;
+            background: var(--nav-bg);
+            border-top: 1px solid rgba(0,0,0,0.05);
+            z-index: 500;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding-bottom: env(safe-area-inset-bottom);
+            transition: background-color var(--transition-smooth);
+        }
+        .nav-item {
+            flex: 1;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-sub);
+            transition: color 0.25s var(--m3-easing);
+            position: relative;
+            gap: 4px;
+        }
+        .nav-item span.material-symbols-outlined {
+            font-size: 24px;
+            font-variation-settings: 'FILL' 0, 'wght' 400;
+            transition: font-variation-settings 0.2s, color 0.2s;
+        }
+        .nav-label {
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .nav-item.active {
+            color: var(--nav-icon-active);
+        }
+        .nav-item.active span.material-symbols-outlined {
+            font-variation-settings: 'FILL' 1, 'wght' 700;
+        }
+
+        /* ビュー切り替え */
+        .view {
+            display: none;
+        }
+        .view.active {
+            display: block;
+            animation: viewIn 0.3s var(--m3-easing);
+        }
+        @keyframes viewIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* プリセット選択ボタン */
+        .preset-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .preset-btn {
+            background: var(--bg-base);
+            color: var(--text-main);
+            border: none;
+            padding: 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.2s, opacity 0.1s;
+        }
+        .preset-btn:active {
+            opacity: 0.8;
+        }
+        .preset-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        /* トースト & ダイアログ */
+        .toast {
+            position: fixed;
+            bottom: 84px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--md-sys-color-on-surface);
+            color: var(--md-sys-color-surface);
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s var(--m3-easing);
+            z-index: 2000;
+        }
+        .toast.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .dialog-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.55);
+            backdrop-filter: blur(4px);
+            z-index: 1000; display: flex; align-items: center; justify-content: center;
+            opacity: 0; visibility: hidden; transition: all 0.3s var(--m3-easing);
+        }
+        .dialog-overlay.active { opacity: 1; visibility: visible; }
+        .glass-dialog {
+            background: var(--glass-bg);
+            border-radius: var(--card-radius);
+            padding: 24px; max-width: 380px; width: 90%; text-align: center;
+            transform: scale(0.9) translateY(20px); transition: all 0.4s var(--m3-easing);
+        }
+        .dialog-overlay.active .glass-dialog { transform: scale(1) translateY(0); }
+
+        .badge {
+            background: var(--accent-primary);
+            color: var(--md-sys-color-on-primary);
+            padding: 4px 12px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 700;
+            display: inline-block;
+        }
+
+        .color-picker-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 12px 0;
+        }
+        .native-color-picker {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            background: none;
+            padding: 0;
+        }
+        .native-color-picker::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+        .native-color-picker::-webkit-color-swatch {
+            border: 2px solid var(--md-sys-color-outline);
+            border-radius: 50%;
+        }
+
+        /* PolandBall ガチャアニメーション */
+        .pb-gacha-stage {
+            width: 140px;
+            height: 140px;
+            margin: 16px auto;
+            border-radius: 50%;
+            background: radial-gradient(circle at 35% 35%, var(--md-sys-color-primary-container), var(--md-sys-color-primary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 28px rgba(0,0,0,0.25);
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.4s var(--m3-easing);
+        }
+        .pb-gacha-stage.rolling {
+            animation: pbRollShake 0.6s infinite ease-in-out;
+        }
+        @keyframes pbRollShake {
+            0% { transform: rotate(0deg) scale(1); }
+            20% { transform: rotate(20deg) scale(1.08) translateY(-4px); }
+            40% { transform: rotate(-20deg) scale(0.92) translateY(4px); }
+            60% { transform: rotate(15deg) scale(1.05); }
+            80% { transform: rotate(-10deg) scale(0.98); }
+            100% { transform: rotate(0deg) scale(1); }
+        }
+
+        .pb-gacha-ball-inner {
+            width: 110px;
+            height: 110px;
+            border-radius: 50%;
+            object-fit: cover;
+            object-position: top;
+            transition: transform 0.5s var(--m3-easing), opacity 0.3s;
+        }
+
+        .pb-speech-bubble {
+            background: var(--bg-base);
+            color: var(--text-main);
+            border-radius: 16px;
+            padding: 10px 16px;
+            font-size: 13px;
+            font-weight: 700;
+            margin: 12px 0 16px;
+            position: relative;
+            display: inline-block;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            line-height: 1.4;
+        }
+        .pb-speech-bubble::after {
+            content: '';
+            position: absolute;
+            top: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 0 8px 8px 8px;
+            border-style: solid;
+            border-color: transparent transparent var(--bg-base) transparent;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app-viewport">
+        <!-- ヘッダー -->
+        <header>
+            <div class="logo">
+                PB Park Bonus
+                <span class="logo-badge">PBpoint</span>
+            </div>
+            <button class="theme-toggle" id="theme-btn" title="テーマ切り替え">
+                <span class="material-symbols-outlined">light_mode</span>
+            </button>
+        </header>
+
+        <!-- メインスクロールエリア -->
+        <main id="main-scroll-area">
+            <div id="overscroll-wrapper">
+                
+                <!-- 1. ホーム（ヒーローカード・ログインボーナス・PBガチャ） -->
+                <section id="view-home" class="view active">
+                    <!-- トップのヒーローエリア：グラデーションカード ＋ PBキャラ ＋ PBPoint残高 -->
+                    <div class="glass-card hero-gradient-card">
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+                            <div style="flex: 1;">
+                                <div style="font-size: 12px; font-weight: 700; opacity: 0.9; text-transform: uppercase; letter-spacing: 0.5px;">PolandBall Point</div>
+                                <div style="font-size: 38px; font-weight: 800; line-height: 1.1; margin: 4px 0 8px; letter-spacing: -1px;" id="hero-point-display">
+                                    0 <span style="font-size: 16px; font-weight: 600;">PT</span>
+                                </div>
+                                <div style="font-size: 12px; opacity: 0.9; display: flex; align-items: center; gap: 4px;" id="hero-status-desc">
+                                    <span class="material-symbols-outlined" style="font-size: 16px;">verified</span>
+                                    <span>召喚PB: <strong id="hero-ball-name">Poland</strong></span>
+                                </div>
+                            </div>
+
+                            <div class="pb-avatar-frame" onclick="rotateRandomBall()" title="タップでPolandBallチェンジ！">
+                                <img id="hero-pb-img" class="pb-ball-img" src="" alt="PolandBall Character">
+                            </div>
+                        </div>
+
+                        <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.18); backdrop-filter: blur(4px); padding: 10px 16px; border-radius: 14px; font-size: 12px; font-weight: 600;">
+                            <span>連続ログイン: <strong id="streak-count">0</strong> 日目</span>
+                            <span id="login-today-badge" style="background: rgba(255,255,255,0.25); padding: 2px 10px; border-radius: 10px;">未取得</span>
+                        </div>
+                    </div>
+
+                    <!-- デイリーログインボーナスカード -->
+                    <div class="glass-card">
+                        <h2>本日のログインボーナス</h2>
+                        <p>1日1回ログインすることで <strong>1 PBpoint</strong> を受け取ることができます！毎日忘れずに受け取りましょう。</p>
+
+                        <div class="custom-list">
+                            <div class="list-item">
+                                <div>
+                                    <div class="list-item-title">デイリーボーナス報酬</div>
+                                    <div class="list-item-desc" id="login-time-desc">本日未受取</div>
+                                </div>
+                                <span class="badge" style="font-size: 13px;">+1 PT</span>
+                            </div>
+                        </div>
+
+                        <button class="ai-btn" id="claim-login-btn" style="width: 100%; margin-top: 4px;" onclick="claimDailyBonus()">
+                            <span class="material-symbols-outlined">redeem</span>
+                            ログインボーナスを受け取る
+                        </button>
+                    </div>
+
+                    <!-- 月1回限定 PolandBall 召喚ガチャカード -->
+                    <div class="glass-card">
+                        <h2>月1回限定 PolandBall 召喚ガチャ</h2>
+                        <p>1ヶ月に1回だけ挑戦できるスペシャルPBガチャ！PolandBallたちが登場し <strong>10〜100 PT</strong> をランダムでプレゼント！</p>
+
+                        <div class="custom-list">
+                            <div class="list-item">
+                                <div>
+                                    <div class="list-item-title">今月のガチャ挑戦権</div>
+                                    <div class="list-item-desc" id="gacha-status-desc">判定中...</div>
+                                </div>
+                                <span class="badge" id="gacha-badge">月1回限定</span>
+                            </div>
+                        </div>
+
+                        <button class="ai-btn ai-btn-secondary" id="gacha-btn" style="width: 100%; margin-top: 4px;" onclick="openGachaDialog()">
+                            <span class="material-symbols-outlined">sports_soccer</span>
+                            PolandBall ガチャを召喚する
+                        </button>
+                    </div>
+                </section>
+
+                <!-- 2. M3 カラー設定 (IndexedDB保存) -->
+                <section id="view-settings" class="view">
+                    <div class="glass-card">
+                        <h2>M3 Dynamic Monet カラー設定</h2>
+                        <p>Material 3 (Monet) のシードカラーを設定します。選択したカラーは <strong>IndexedDB (iDB)</strong> に保存され、アプリ全体に即座に反映されます。</p>
+
+                        <!-- カラーピッカー -->
+                        <div class="color-picker-row">
+                            <input type="color" id="seed-color-input" class="native-color-picker" value="#DC2626" onchange="changeAndSaveM3Color(this.value)">
+                            <div>
+                                <div style="font-weight: 700; font-size: 14px;" id="seed-hex-label">#DC2626</div>
+                                <div style="font-size: 12px; color: var(--text-sub);">iDBに自動保存されるシードカラー</div>
+                            </div>
+                        </div>
+
+                        <!-- プリセットカラー -->
+                        <div style="margin-top: 14px;">
+                            <span style="font-size: 13px; font-weight: 600;">カラープリセット</span>
+                            <div class="preset-grid">
+                                <button class="preset-btn" onclick="changeAndSaveM3Color('#DC2626')">
+                                    <div class="preset-dot" style="background: #DC2626;"></div> Poland Red
+                                </button>
+                                <button class="preset-btn" onclick="changeAndSaveM3Color('#3381FF')">
+                                    <div class="preset-dot" style="background: #3381FF;"></div> Hyperos Blue
+                                </button>
+                                <button class="preset-btn" onclick="changeAndSaveM3Color('#10B981')">
+                                    <div class="preset-dot" style="background: #10B981;"></div> Mint Emerald
+                                </button>
+                                <button class="preset-btn" onclick="changeAndSaveM3Color('#8B5CF6')">
+                                    <div class="preset-dot" style="background: #8B5CF6;"></div> Radiant Violet
+                                </button>
+                                <button class="preset-btn" onclick="changeAndSaveM3Color('#F59E0B')">
+                                    <div class="preset-dot" style="background: #F59E0B;"></div> Amber Gold
+                                </button>
+                                <button class="preset-btn" onclick="changeAndSaveM3Color('#EC4899')">
+                                    <div class="preset-dot" style="background: #EC4899;"></div> Rose Pink
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass-card">
+                        <h2>システム設定</h2>
+                        <div class="toggle-row">
+                            <span>ダークテーマ (M3 Dark Scheme)</span>
+                            <label class="switch">
+                                <input type="checkbox" id="darkmode-toggle" onchange="toggleDarkTheme(this.checked)">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+
+        <!-- 下付き固定ナビゲーションバー -->
+        <div class="bottom-nav-container">
+            <div class="nav-item active" data-view="view-home" onclick="switchView('view-home')">
+                <span class="material-symbols-outlined">home</span>
+                <span class="nav-label">ホーム</span>
+            </div>
+            <div class="nav-item" data-view="view-settings" onclick="switchView('view-settings')">
+                <span class="material-symbols-outlined">palette</span>
+                <span class="nav-label">M3設定</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- PolandBall ガチャ演出ダイアログ -->
+    <div class="dialog-overlay" id="gacha-dialog">
+        <div class="glass-dialog">
+            <div style="display: flex; align-items: center; justify-content: center; gap: 6px; color: var(--accent-primary);">
+                <span class="material-symbols-outlined" style="font-size: 28px;">sports_soccer</span>
+                <h2 style="margin: 0;" id="gacha-dialog-title">PolandBall ガチャ</h2>
+            </div>
+            
+            <div id="gacha-anim-area">
+                <div class="pb-gacha-stage" id="gacha-sphere-el">
+                    <img id="gacha-ball-img" class="pb-gacha-ball-inner" src="https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/poland/happy.png" alt="PolandBall Gacha">
+                </div>
+                
+                <div class="pb-speech-bubble" id="gacha-speech-box">
+                    PolandBallを召喚してポイントを獲得しよう！
+                </div>
+                <p id="gacha-dialog-msg" style="font-size: 13px; margin-bottom: 8px; color: var(--text-sub);">最大 100 PT が当たるチャンス！</p>
+            </div>
+
+            <div style="display: flex; gap: 8px; margin-top: 16px;">
+                <button class="ai-btn" id="gacha-exec-btn" style="width: 100%; justify-content: center;" onclick="executePBGacha()">PolandBall を召喚！</button>
+                <button class="ai-btn ai-btn-secondary" id="gacha-close-btn" style="display: none; width: 100%; justify-content: center;" onclick="closeGachaDialog()">閉じる</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- トースト通知 -->
+    <div class="toast" id="toast-message">通知メッセージ</div>
+
+    <script type="module">
+        import { 
+            argbFromHex, 
+            hexFromArgb, 
+            themeFromSourceColor 
+        } from 'https://esm.run/@material/material-color-utilities';
+
+        window.M3Monet = {
+            argbFromHex,
+            hexFromArgb,
+            themeFromSourceColor
+        };
+
+        if (window.initMonetApp) {
+            window.initMonetApp();
+        }
+    </script>
+
+    <script>
+        /**
+         * 1. PBPoints API Interface & Polyfill
+         */
+        if (!window.PBPoints) {
+            let _inMemoryPoints = 0;
+            window.PBPoints = {
+                get: async function() {
+                    return Promise.resolve(_inMemoryPoints);
+                },
+                set: async function(amount) {
+                    _inMemoryPoints = Math.max(0, Math.floor(amount));
+                    window.dispatchEvent(new CustomEvent('pointsUpdated', { detail: _inMemoryPoints }));
+                    return Promise.resolve(_inMemoryPoints);
+                },
+                add: async function(amount, reason) {
+                    const current = await this.get();
+                    return await this.set(current + amount);
+                },
+                onChange: function(callback) {
+                    const handler = async () => {
+                        const pts = await this.get();
+                        callback(pts);
+                    };
+                    window.addEventListener('pointsUpdated', handler);
+                    return () => {
+                        window.removeEventListener('pointsUpdated', handler);
+                    };
+                }
+            };
+        }
+
+        /**
+         * 2. PolandBall Assets Data & Quotes
+         */
+        const PB_COUNTRIES = [
+            'germany', 'japan', 'china', 'italy', 'sierraleone', 
+            'russia', 'france', 'poland', 'england472x600', 'usa', 'korea', 'austria'
+        ];
+
+        const PB_EXPRESSIONS = [
+            'anger.png', 'dissatisfaction.png', 'happy.png', 'itome.png', 
+            'lol.png', 'normal.png', 'plot.png', 'smile.png', 'surprise.png'
+        ];
+
+        const PB_GACHA_QUOTES = {
+            'poland': ["Poland can into PBPoint!", "Nooo High points please!", "I give you points!"],
+            'germany': ["Work hard, get points!", "PBparkやり過ぎてない？宿題をチェックしよう"],
+            'japan': ["Desu! PBPointゲットです！", "Otsukaresama desu!"],
+            'usa': ["自由に遊ぼう！ここでは何でもできるよ"],
+            'england472x600': ["毎日貯まる。しかも無料", "Tea and PBPoints time!"],
+            'china': ["おめでとう", "More PBPoints for you!"],
+            'russia': ["寒い日もPBparkで遊ぼう"],
+            'france': ["結果がどうであれ、PBparkを好きになってほしいんよ"],
+            'italy': ["あれ？昨日はログインボーナスもらった？"],
+            'austria': ["毎日来れば溜まるよ！"],
+            'korea': ["ゲームとかで使えるんよ"],
+            'sierraleone': ["よろしくなんよ!"]
+        };
+
+        function getPBImageUrl(country, expression) {
+            return `https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/${country}/${expression}`;
+        }
+
+        function getRandomPBItem() {
+            const country = PB_COUNTRIES[Math.floor(Math.random() * PB_COUNTRIES.length)];
+            const exp = PB_EXPRESSIONS[Math.floor(Math.random() * PB_EXPRESSIONS.length)];
+            const displayName = country === 'england472x600' ? 'UK' : country.charAt(0).toUpperCase() + country.slice(1);
+            
+            const quotes = PB_GACHA_QUOTES[country] || ["PBPoint received!"];
+            const quote = quotes[Math.floor(Math.random() * quotes.length)];
+
+            return {
+                country,
+                expression: exp,
+                displayName,
+                quote,
+                url: getPBImageUrl(country, exp)
+            };
+        }
+
+        /**
+         * 3. IndexedDB (iDB) Operations for M3 Seed Color
+         */
+        const IDB_NAME = 'PBM3SettingsDB';
+        const IDB_STORE = 'settings';
+
+        function openSettingsIDB() {
+            return new Promise((resolve, reject) => {
+                const req = indexedDB.open(IDB_NAME, 1);
+                req.onupgradeneeded = (e) => {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains(IDB_STORE)) {
+                        db.createObjectStore(IDB_STORE);
+                    }
+                };
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+        }
+
+        async function saveM3ColorToIDB(hexColor) {
+            try {
+                const db = await openSettingsIDB();
+                const tx = db.transaction(IDB_STORE, 'readwrite');
+                tx.objectStore(IDB_STORE).put(hexColor, 'm3_seed');
+            } catch (e) {
+                console.error('Failed to save M3 color to IDB:', e);
+            }
+        }
+
+        async function loadM3ColorFromIDB() {
+            try {
+                const db = await openSettingsIDB();
+                const tx = db.transaction(IDB_STORE, 'readonly');
+                const req = tx.objectStore(IDB_STORE).get('m3_seed');
+                return new Promise((resolve) => {
+                    req.onsuccess = () => resolve(req.result || '#DC2626');
+                    req.onerror = () => resolve('#DC2626');
+                });
+            } catch (e) {
+                return '#DC2626';
+            }
+        }
+
+        /**
+         * 4. M3 Monet Dynamic Theme Engine Logic
+         */
+        let currentSeedColor = "#DC2626";
+        let isDarkMode = false;
+        let currentThemeObj = null;
+
+        async function initMonetApp() {
+            currentSeedColor = await loadM3ColorFromIDB();
+            
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            isDarkMode = prefersDark;
+            const darkToggle = document.getElementById('darkmode-toggle');
+            if (darkToggle) darkToggle.checked = isDarkMode;
+
+            updateMonetTheme(currentSeedColor);
+            setupPointsAndBonus();
+            rotateRandomBall();
+        }
+
+        window.initMonetApp = initMonetApp;
+
+        function changeAndSaveM3Color(hexColor) {
+            updateMonetTheme(hexColor);
+            saveM3ColorToIDB(hexColor);
+            showToast(`M3カラーを保存: ${hexColor.toUpperCase()}`);
+        }
+
+        function updateMonetTheme(hexColor) {
+            currentSeedColor = hexColor;
+
+            const seedInput = document.getElementById('seed-color-input');
+            const seedLabel = document.getElementById('seed-hex-label');
+            if (seedInput) seedInput.value = hexColor;
+            if (seedLabel) seedLabel.textContent = hexColor.toUpperCase();
+
+            const argb = window.M3Monet.argbFromHex(hexColor);
+            currentThemeObj = window.M3Monet.themeFromSourceColor(argb);
+            applyM3Scheme(currentThemeObj);
+        }
+
+        function applyM3Scheme(theme) {
+            const scheme = isDarkMode ? theme.schemes.dark : theme.schemes.light;
+            const root = document.documentElement;
+            const hex = (argb) => window.M3Monet.hexFromArgb(argb);
+
+            const colors = {
+                primary: hex(scheme.primary),
+                onPrimary: hex(scheme.onPrimary),
+                primaryContainer: hex(scheme.primaryContainer),
+                onPrimaryContainer: hex(scheme.onPrimaryContainer),
+                secondary: hex(scheme.secondary),
+                onSecondary: hex(scheme.onSecondary),
+                secondaryContainer: hex(scheme.secondaryContainer),
+                onSecondaryContainer: hex(scheme.onSecondaryContainer),
+                tertiary: hex(scheme.tertiary),
+                onTertiary: hex(scheme.onTertiary),
+                tertiaryContainer: hex(scheme.tertiaryContainer),
+                onTertiaryContainer: hex(scheme.onTertiaryContainer),
+                background: hex(scheme.background),
+                onBackground: hex(scheme.onBackground),
+                surface: hex(scheme.surface),
+                onSurface: hex(scheme.onSurface),
+                surfaceVariant: hex(scheme.surfaceVariant),
+                onSurfaceVariant: hex(scheme.onSurfaceVariant),
+                outline: hex(scheme.outline)
+            };
+
+            root.style.setProperty('--md-sys-color-primary', colors.primary);
+            root.style.setProperty('--md-sys-color-on-primary', colors.onPrimary);
+            root.style.setProperty('--md-sys-color-primary-container', colors.primaryContainer);
+            root.style.setProperty('--md-sys-color-on-primary-container', colors.onPrimaryContainer);
+
+            root.style.setProperty('--md-sys-color-secondary', colors.secondary);
+            root.style.setProperty('--md-sys-color-on-secondary', colors.onSecondary);
+            root.style.setProperty('--md-sys-color-secondary-container', colors.secondaryContainer);
+            root.style.setProperty('--md-sys-color-on-secondary-container', colors.onSecondaryContainer);
+
+            root.style.setProperty('--md-sys-color-tertiary', colors.tertiary);
+            root.style.setProperty('--md-sys-color-on-tertiary', colors.onTertiary);
+            root.style.setProperty('--md-sys-color-tertiary-container', colors.tertiaryContainer);
+            root.style.setProperty('--md-sys-color-on-tertiary-container', colors.onTertiaryContainer);
+
+            root.style.setProperty('--md-sys-color-background', colors.background);
+            root.style.setProperty('--md-sys-color-on-background', colors.onBackground);
+
+            root.style.setProperty('--md-sys-color-surface', colors.surface);
+            root.style.setProperty('--md-sys-color-on-surface', colors.onSurface);
+            root.style.setProperty('--md-sys-color-surface-variant', colors.surfaceVariant);
+            root.style.setProperty('--md-sys-color-on-surface-variant', colors.onSurfaceVariant);
+            root.style.setProperty('--md-sys-color-outline', colors.outline);
+
+            root.style.setProperty('--bg-base', isDarkMode ? colors.background : colors.surfaceVariant);
+            root.style.setProperty('--glass-bg', isDarkMode ? colors.surfaceVariant : colors.background);
+        }
+
+        function toggleDarkTheme(isDark) {
+            isDarkMode = isDark;
+            const themeBtnIcon = document.getElementById('theme-btn').querySelector('span');
+            if (themeBtnIcon) themeBtnIcon.textContent = isDark ? 'dark_mode' : 'light_mode';
+            
+            applyM3Scheme(currentThemeObj);
+        }
+
+        document.getElementById('theme-btn').addEventListener('click', () => {
+            toggleDarkTheme(!isDarkMode);
+        });
+
+        /**
+         * 5. PolandBall Character Rotation Logic
+         */
+        let currentBall = null;
+
+        function rotateRandomBall() {
+            currentBall = getRandomPBItem();
+            const imgEl = document.getElementById('hero-pb-img');
+            const nameEl = document.getElementById('hero-ball-name');
+
+            if (imgEl) {
+                imgEl.src = currentBall.url;
+            }
+            if (nameEl) {
+                nameEl.textContent = `${currentBall.displayName}`;
+            }
+        }
+
+        /**
+         * 6. Bonus System (Login Bonus & PB Gacha)
+         */
+        function getFormattedDate(date = new Date()) {
+            const y = date.getFullYear();
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const d = String(date.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+
+        function getFormattedMonth(date = new Date()) {
+            const y = date.getFullYear();
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            return `${y}-${m}`;
+        }
+
+        async function setupPointsAndBonus() {
+            try {
+                const pts = await PBPoints.get();
+                updatePointDisplay(pts);
+            } catch(e) {
+                console.error('Failed to fetch points from PBPoints API:', e);
+            }
+
+            PBPoints.onChange((pts) => {
+                updatePointDisplay(pts);
+            });
+
+            checkLoginBonusState();
+            checkGachaState();
+        }
+
+        function updatePointDisplay(pts) {
+            const display = document.getElementById('hero-point-display');
+            if (display) {
+                display.innerHTML = `${Number(pts).toLocaleString()} <span style="font-size: 16px; font-weight: 600;">PT</span>`;
+            }
+        }
+
+        function checkLoginBonusState() {
+            const today = getFormattedDate();
+            const lastLogin = localStorage.getItem('pb_last_login_date');
+            const streak = parseInt(localStorage.getItem('pb_login_streak') || '0', 10);
+
+            const streakEl = document.getElementById('streak-count');
+            const badgeEl = document.getElementById('login-today-badge');
+            const descEl = document.getElementById('login-time-desc');
+            const btn = document.getElementById('claim-login-btn');
+
+            if (streakEl) streakEl.textContent = streak;
+
+            if (lastLogin === today) {
+                if (badgeEl) {
+                    badgeEl.textContent = '受取済み';
+                    badgeEl.style.background = 'rgba(255,255,255,0.4)';
+                }
+                if (descEl) descEl.textContent = `本日受取完了 (${today})`;
+                if (btn) {
+                    btn.disabled = true;
+                    btn.innerHTML = `<span class="material-symbols-outlined">check_circle</span> 本日の受取完了`;
+                }
+            } else {
+                if (badgeEl) {
+                    badgeEl.textContent = '未受取';
+                    badgeEl.style.background = 'rgba(255,255,255,0.25)';
+                }
+                if (descEl) descEl.textContent = '本日分が受け取り可能です！';
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = `<span class="material-symbols-outlined">redeem</span> ログインボーナスを受け取る (+1 PT)`;
+                }
+            }
+        }
+
+        async function claimDailyBonus() {
+            const today = getFormattedDate();
+            const lastLogin = localStorage.getItem('pb_last_login_date');
+
+            if (lastLogin === today) {
+                showToast('本日のログインボーナスは既に受け取っています');
+                return;
+            }
+
+            let streak = parseInt(localStorage.getItem('pb_login_streak') || '0', 10);
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            
+            if (lastLogin === getFormattedDate(yesterday)) {
+                streak += 1;
+            } else {
+                streak = 1;
+            }
+
+            localStorage.setItem('pb_last_login_date', today);
+            localStorage.setItem('pb_login_streak', streak.toString());
+
+            try {
+                await PBPoints.add(1, 'ログインボーナス');
+                const latestPts = await PBPoints.get();
+                updatePointDisplay(latestPts);
+            } catch (e) {
+                console.error('PBPoints API call failed:', e);
+            }
+
+            checkLoginBonusState();
+            rotateRandomBall();
+            showToast('🎉 ログインボーナス 1 PBpoint を獲得しました！');
+        }
+
+        function checkGachaState() {
+            const currentMonth = getFormattedMonth();
+            const lastGachaMonth = localStorage.getItem('pb_last_gacha_month');
+
+            const descEl = document.getElementById('gacha-status-desc');
+            const badgeEl = document.getElementById('gacha-badge');
+            const btn = document.getElementById('gacha-btn');
+
+            if (lastGachaMonth === currentMonth) {
+                if (descEl) descEl.textContent = `今月分実行済み (${currentMonth})`;
+                if (badgeEl) {
+                    badgeEl.textContent = '召喚済み';
+                    badgeEl.style.background = 'var(--md-sys-color-outline)';
+                }
+                if (btn) {
+                    btn.disabled = true;
+                    btn.innerHTML = `<span class="material-symbols-outlined">event_busy</span> 今月のPBガチャは完了しています`;
+                }
+            } else {
+                if (descEl) descEl.textContent = '今月のPB召喚権があります！';
+                if (badgeEl) {
+                    badgeEl.textContent = '召喚可能';
+                    badgeEl.style.background = 'var(--accent-primary)';
+                }
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = `<span class="material-symbols-outlined">sports_soccer</span> PolandBall ガチャを召喚する (10〜100PT)`;
+                }
+            }
+        }
+
+        function openGachaDialog() {
+            const currentMonth = getFormattedMonth();
+            const lastGachaMonth = localStorage.getItem('pb_last_gacha_month');
+
+            if (lastGachaMonth === currentMonth) {
+                showToast('今月のガチャは既に引き終わっています');
+                return;
+            }
+
+            document.getElementById('gacha-dialog-title').textContent = "PolandBall ガチャ";
+            document.getElementById('gacha-speech-box').textContent = "カプセルを回してPolandBallを召喚しよう！";
+            document.getElementById('gacha-dialog-msg').textContent = "最大 100 PT が当たるチャンス！";
+            
+            const gachaBallImg = document.getElementById('gacha-ball-img');
+            gachaBallImg.src = getPBImageUrl('poland', 'happy.png');
+
+            document.getElementById('gacha-exec-btn').style.display = "inline-flex";
+            document.getElementById('gacha-close-btn').style.display = "none";
+            document.getElementById('gacha-sphere-el').classList.remove('rolling');
+
+            document.getElementById('gacha-dialog').classList.add('active');
+        }
+
+        function closeGachaDialog() {
+            document.getElementById('gacha-dialog').classList.remove('active');
+        }
+
+        async function executePBGacha() {
+            const currentMonth = getFormattedMonth();
+            const lastGachaMonth = localStorage.getItem('pb_last_gacha_month');
+
+            if (lastGachaMonth === currentMonth) {
+                showToast('今月のガチャは既に引き終わっています');
+                return;
+            }
+
+            const execBtn = document.getElementById('gacha-exec-btn');
+            const stage = document.getElementById('gacha-sphere-el');
+            const speech = document.getElementById('gacha-speech-box');
+            const msg = document.getElementById('gacha-dialog-msg');
+            const gachaBallImg = document.getElementById('gacha-ball-img');
+
+            execBtn.disabled = true;
+            stage.classList.add('rolling');
+            speech.textContent = "PolandBall がコロコロ回転中...";
+            msg.textContent = "だれが飛び出してくるかな...？";
+
+            let rollInterval = setInterval(() => {
+                const tempPB = getRandomPBItem();
+                gachaBallImg.src = tempPB.url;
+            }, 120);
+
+            setTimeout(async () => {
+                clearInterval(rollInterval);
+
+                const rand = Math.random() * 100;
+                let awardedPoints = 10;
+
+                if (rand < 0.8) {
+                    awardedPoints = 100;
+                } else if (rand < 4.0) {
+                    awardedPoints = 50;  
+                } else if (rand < 12.0) {
+                    awardedPoints = 30;  
+                } else if (rand < 30.0) {
+                    awardedPoints = 20;  
+                } else if (rand < 60.0) {
+                    awardedPoints = 15;  
+                } else {
+                    awardedPoints = 10;  
+                }
+
+                const summonedPB = getRandomPBItem();
+                gachaBallImg.src = summonedPB.url;
+
+                stage.classList.remove('rolling');
+                
+                localStorage.setItem('pb_last_gacha_month', currentMonth);
+
+                try {
+                    await PBPoints.add(awardedPoints, `PBガチャ(${summonedPB.displayName})`);
+                    const latestPts = await PBPoints.get();
+                    updatePointDisplay(latestPts);
+                } catch (e) {
+                    console.error('PBPoints API addition failed:', e);
+                }
+
+                checkGachaState();
+                
+                const heroImg = document.getElementById('hero-pb-img');
+                const heroName = document.getElementById('hero-ball-name');
+                if (heroImg) heroImg.src = summonedPB.url;
+                if (heroName) heroName.textContent = summonedPB.displayName;
+
+                document.getElementById('gacha-dialog-title').textContent = awardedPoints === 100 ? "🎊 超激レア PB大当り！ 🎊" : `🎉 ${summonedPB.displayName} を召喚！`;
+                
+                speech.textContent = `「${summonedPB.quote}」`;
+                msg.innerHTML = `<strong style="font-size: 22px; color: var(--accent-primary);">${awardedPoints} PBpoint</strong> を手に入れた！`;
+
+                execBtn.style.display = "none";
+                execBtn.disabled = false;
+                document.getElementById('gacha-close-btn').style.display = "inline-flex";
+
+                showToast(`🎁 ${summonedPB.displayName} が ${awardedPoints} PT を届けました！`);
+            }, 1800);
+        }
+
+        /**
+         * 7. General UI Navigation & Elastic Overscroll
+         */
+        const navItems = document.querySelectorAll('.nav-item');
+        const views = document.querySelectorAll('.view');
+
+        function switchView(viewId) {
+            navItems.forEach(n => {
+                n.classList.remove('active');
+                if (n.getAttribute('data-view') === viewId) {
+                    n.classList.add('active');
+                }
+            });
+
+            views.forEach(v => {
+                v.classList.remove('active');
+                if (v.id === viewId) {
+                    v.classList.add('active');
+                }
+            });
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast-message');
+            toast.textContent = msg;
+            toast.classList.add('active');
+            setTimeout(() => {
+                toast.classList.remove('active');
+            }, 2200);
+        }
+
+        const scrollArea = document.getElementById('main-scroll-area');
+        const overscrollWrapper = document.getElementById('overscroll-wrapper');
+
+        let startY = 0;
+        let currentPull = 0;
+        let isPulling = false;
+
+        scrollArea.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 1) {
+                startY = e.touches[0].clientY;
+                overscrollWrapper.classList.remove('spring-back');
+            }
+        }, { passive: true });
+
+        scrollArea.addEventListener('touchmove', (e) => {
+            if (e.touches.length !== 1) return;
+            const currentY = e.touches[0].clientY;
+            const deltaY = currentY - startY;
+
+            const isAtTop = scrollArea.scrollTop <= 0;
+            const isAtBottom = Math.abs(scrollArea.scrollHeight - scrollArea.clientHeight - scrollArea.scrollTop) < 2;
+
+            if ((isAtTop && deltaY > 0) || (isAtBottom && deltaY < 0)) {
+                currentPull = deltaY * 0.38;
+                overscrollWrapper.style.transform = `translateY(${currentPull}px) scaleY(${1 + Math.abs(currentPull) * 0.0003})`;
+                isPulling = true;
+            }
+        }, { passive: true });
+
+        scrollArea.addEventListener('touchend', () => {
+            if (isPulling) {
+                overscrollWrapper.classList.add('spring-back');
+                overscrollWrapper.style.transform = 'translateY(0px) scaleY(1)';
+                currentPull = 0;
+                isPulling = false;
+            }
+        });
+
+        window.onload = () => {
+            if (window.initMonetApp) {
+                window.initMonetApp();
+            }
+        };
+    </script>
+</body>
+</html>
