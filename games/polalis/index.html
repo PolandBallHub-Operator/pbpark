@@ -1,0 +1,1253 @@
+<!DOCTYPE html>
+<html lang="ja" class="h-full bg-slate-950 text-white select-none">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Polalis - Polandball Tetris Game</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Google Fonts: Orbitron & Inter for typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800;900&family=M+PLUS+1p:wght@500;700;900&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- PB Park Point Library -->
+  <script src="/pbpark/points/points.js"></script>
+
+  <style>
+    body {
+      font-family: 'Inter', 'M PLUS 1p', sans-serif;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    .font-logo {
+      font-family: 'Orbitron', sans-serif;
+    }
+
+    /* Polalis Typography Style */
+    .title-glow {
+      text-shadow: 0 0 15px rgba(239, 68, 68, 0.6), 0 0 30px rgba(59, 130, 246, 0.5);
+    }
+    
+    .text-stroke {
+      -webkit-text-stroke: 1.5px #0f172a;
+    }
+
+    /* UK image clip helper (Top 472 from 472x600) */
+    .uk-img-crop {
+      object-fit: cover;
+      object-position: top;
+      height: 127%;
+      width: 100%;
+    }
+
+    /* Smooth Pulse Effects */
+    @keyframes pulse-glow {
+      0%, 100% { transform: scale(1); filter: drop-shadow(0 0 8px rgba(244, 63, 94, 0.6)); }
+      50% { transform: scale(1.05); filter: drop-shadow(0 0 18px rgba(244, 63, 94, 0.9)); }
+    }
+    .animate-pb-pulse {
+      animation: pulse-glow 2.5s infinite ease-in-out;
+    }
+
+    /* Active button touch reaction */
+    .touch-btn:active {
+      transform: scale(0.92);
+      filter: brightness(1.2);
+    }
+
+    /* Custom Scrollbar for modals */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.6);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #3b82f6;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+
+<body class="h-full w-full overflow-hidden flex flex-col bg-slate-950 text-slate-100 antialiased">
+
+  <script>
+    /* Polyfill PBPoints if script fails to load, strictly read & subtract only */
+    if (!window.PBPoints) {
+      window.PBPoints = {
+        get: function() {
+          const val = localStorage.getItem('pb_user_points');
+          return val ? Math.max(0, parseInt(val, 10) || 0) : 0;
+        },
+        add: function(amount) {
+          const current = this.get();
+          const next = Math.max(0, current + amount);
+          localStorage.setItem('pb_user_points', next.toString());
+          window.dispatchEvent(new CustomEvent('pointsUpdated', { detail: next }));
+          return next;
+        },
+        set: function(amount) {
+          const next = Math.max(0, Math.floor(amount));
+          localStorage.setItem('pb_user_points', next.toString());
+          window.dispatchEvent(new CustomEvent('pointsUpdated', { detail: next }));
+          return next;
+        },
+        onChange: function(cb) {
+          const handler = () => cb(this.get());
+          window.addEventListener('pointsUpdated', handler);
+          window.addEventListener('storage', handler);
+          return () => {
+            window.removeEventListener('pointsUpdated', handler);
+            window.removeEventListener('storage', handler);
+          };
+        }
+      };
+    }
+  </script>
+
+  <div id="app" class="relative w-full h-[100dvh] max-w-md mx-auto flex flex-col justify-between overflow-hidden bg-slate-900 border-x border-slate-800 shadow-2xl">
+
+    <!-- Top Navigation / Currency Bar -->
+    <header class="flex-none px-4 py-2 bg-slate-950/80 backdrop-blur border-b border-slate-800 flex justify-between items-center z-20">
+      <!-- Random App Icon & Mini Title -->
+      <div class="flex items-center gap-2 cursor-pointer" onclick="showScreen('title')">
+        <div id="header-ball-icon" class="w-8 h-8 rounded-full overflow-hidden border border-rose-500 shadow-md bg-slate-800"></div>
+        <span class="font-logo font-bold text-lg tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-rose-500 via-purple-400 to-indigo-400">POLALIS</span>
+      </div>
+
+      <!-- Currency Badges -->
+      <div class="flex items-center gap-2 text-xs">
+        <!-- PB Points -->
+        <div class="bg-slate-800/90 border border-slate-700 px-2.5 py-1 rounded-full flex items-center gap-1.5 shadow-inner" title="PB Points (使用のみ可能)">
+          <i class="fa-solid fa-gem text-indigo-400"></i>
+          <span id="pb-points-val" class="font-bold text-indigo-200">0</span>
+          <span class="text-[10px] text-slate-400">PBP</span>
+        </div>
+
+        <!-- Polalis Coins -->
+        <div onclick="openCoinExchangeModal()" class="bg-slate-800/90 border border-amber-500/40 px-2.5 py-1 rounded-full flex items-center gap-1.5 cursor-pointer hover:border-amber-400 transition shadow-inner">
+          <i class="fa-solid fa-coins text-amber-400 animate-bounce"></i>
+          <span id="polalis-coins-val" class="font-bold text-amber-300">0</span>
+          <i class="fa-solid fa-plus text-[10px] text-amber-400"></i>
+        </div>
+      </div>
+    </header>
+
+    <!-- 1. TITLE SCREEN -->
+    <section id="screen-title" class="flex-1 flex flex-col items-center justify-between p-6 z-10 overflow-y-auto">
+      
+      <!-- Random Hero Polandball Icon Display -->
+      <div class="pt-4 flex flex-col items-center">
+        <div class="relative group">
+          <div class="absolute -inset-1 rounded-full bg-gradient-to-r from-rose-600 to-indigo-600 blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-tilt"></div>
+          <div id="hero-ball-container" class="relative w-32 h-32 rounded-full border-2 border-white/20 bg-slate-950 overflow-hidden shadow-2xl flex items-center justify-center animate-pb-pulse">
+            <!-- Dynamic Random Polandball Image inserted here -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Typography Heavy Logo Section -->
+      <div class="text-center my-4 space-y-2">
+        <p class="text-xs font-semibold tracking-widest text-rose-400 uppercase">Polandball Block Puzzle</p>
+        <h1 class="font-logo text-5xl sm:text-6xl font-black tracking-tight text-stroke text-transparent bg-clip-text bg-gradient-to-b from-rose-400 via-purple-300 to-indigo-500 title-glow">
+          POLALIS
+        </h1>
+        <p class="text-xs text-slate-400 font-medium">Clear lines, level up country balls & release PB Skills!</p>
+      </div>
+
+      <!-- Main Action Buttons -->
+      <div class="w-full space-y-3 px-4">
+        <!-- Start Game Button -->
+        <button onclick="startGame()" class="touch-btn w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-rose-600 via-purple-600 to-indigo-600 text-white font-bold text-lg shadow-lg shadow-rose-900/40 border border-white/20 flex items-center justify-center gap-3 active:scale-95 transition">
+          <i class="fa-solid fa-play"></i>
+          <span>GAME START</span>
+        </button>
+
+        <!-- Shop & Ball Upgrade Button -->
+        <button onclick="showScreen('shop')" class="touch-btn w-full py-3 px-6 rounded-2xl bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-base border border-amber-500/30 flex items-center justify-center gap-2 active:scale-95 transition">
+          <i class="fa-solid fa-[#0] fa-shield-halved text-amber-400"></i>
+          <span>BALLS & UPGRADES</span>
+        </button>
+
+        <!-- PB Point Exchange Button -->
+        <button onclick="openCoinExchangeModal()" class="touch-btn w-full py-2.5 px-6 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 text-indigo-300 font-semibold text-sm border border-indigo-500/30 flex items-center justify-center gap-2 active:scale-95 transition">
+          <i class="fa-solid fa-arrow-right-arrow-left text-indigo-400"></i>
+          <span>EXCHANGE PB POINTS</span>
+        </button>
+      </div>
+
+      <!-- Selected Ball Preview Footer -->
+      <div class="mt-4 w-full p-3 bg-slate-950/60 rounded-xl border border-slate-800 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div id="selected-ball-mini-icon" class="w-10 h-10 rounded-full border border-slate-700 overflow-hidden bg-slate-800"></div>
+          <div>
+            <div id="selected-ball-name" class="font-bold text-sm text-slate-200">Poland</div>
+            <div id="selected-ball-skill" class="text-xs text-slate-400">Skill: Space Gravity</div>
+          </div>
+        </div>
+        <div id="selected-ball-level" class="text-xs font-bold text-amber-400 bg-amber-400/10 px-2 py-1 rounded border border-amber-400/20">
+          Lv.1
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. GAME SCREEN -->
+    <section id="screen-game" class="hidden flex-1 flex flex-col justify-between p-2 overflow-hidden relative">
+      
+      <!-- Top Info Dashboard -->
+      <div class="flex items-center justify-between bg-slate-950/80 p-2 rounded-xl border border-slate-800 text-xs mb-1">
+        <!-- Score & Level -->
+        <div class="flex gap-4">
+          <div>
+            <span class="text-slate-400 block text-[10px]">SCORE</span>
+            <span id="game-score" class="font-logo font-bold text-base text-rose-400">0</span>
+          </div>
+          <div>
+            <span class="text-slate-400 block text-[10px]">LEVEL</span>
+            <span id="game-level" class="font-logo font-bold text-base text-indigo-400">1</span>
+          </div>
+          <div>
+            <span class="text-slate-400 block text-[10px]">LINES</span>
+            <span id="game-lines" class="font-logo font-bold text-base text-amber-400">0</span>
+          </div>
+        </div>
+
+        <!-- Pause Button -->
+        <button onclick="togglePause()" class="w-8 h-8 bg-slate-800 rounded-lg flex items-center justify-center border border-slate-700 text-slate-300 active:scale-90">
+          <i id="pause-icon" class="fa-solid fa-pause"></i>
+        </button>
+      </div>
+
+      <!-- Tetris Play Area & Side Sidebars -->
+      <div class="flex-1 flex gap-2 justify-center items-center overflow-hidden my-1">
+        
+        <!-- Left Column: HOLD & Ball Status -->
+        <div class="w-20 flex flex-col justify-between h-full py-1">
+          <!-- HOLD Box -->
+          <div class="bg-slate-950/90 border border-slate-800 rounded-xl p-2 text-center">
+            <span class="text-[10px] font-bold text-slate-400 block mb-1">HOLD</span>
+            <canvas id="hold-canvas" width="60" height="60" class="mx-auto bg-slate-900/50 rounded"></canvas>
+            <button onclick="handleHoldTouch()" class="mt-1 w-full py-1 bg-slate-800 text-[10px] font-bold rounded text-slate-300 border border-slate-700 active:scale-95">HOLD</button>
+          </div>
+
+          <!-- Active Polandball Skill Box -->
+          <div class="bg-slate-950/90 border border-slate-800 rounded-xl p-2 text-center flex flex-col items-center">
+            <div id="game-ball-icon" class="w-12 h-12 rounded-full border border-rose-500 overflow-hidden bg-slate-800 mb-1"></div>
+            <span id="game-ball-name" class="text-[10px] font-bold truncate max-w-full text-slate-300">Poland</span>
+            
+            <!-- Skill Charge Gauge -->
+            <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden my-1 border border-slate-700">
+              <div id="pb-gauge-bar" class="bg-gradient-to-r from-rose-500 to-amber-400 h-full w-0 transition-all duration-300"></div>
+            </div>
+
+            <button id="pb-skill-btn" onclick="triggerPBSkill()" disabled class="w-full py-1.5 rounded-lg text-[10px] font-black tracking-wider bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700 transition active:scale-95">
+              PB SKILL
+            </button>
+          </div>
+        </div>
+
+        <!-- Center: Game Board Canvas -->
+        <div class="relative flex-1 max-w-[240px] h-full flex items-center justify-center bg-slate-950 rounded-xl border-2 border-slate-800 overflow-hidden p-1">
+          <canvas id="tetris-canvas" class="w-full h-full object-contain rounded bg-slate-900/80"></canvas>
+          
+          <!-- Banner Overlay for Skill Execution -->
+          <div id="skill-banner" class="absolute inset-x-0 top-1/3 bg-gradient-to-r from-rose-600/90 via-purple-600/90 to-indigo-600/90 py-2 text-center transform -translate-y-1/2 hidden border-y border-white/30 backdrop-blur">
+            <span id="skill-banner-text" class="font-logo font-black text-sm text-amber-300 drop-shadow">SKILL ACTIVATED!</span>
+          </div>
+
+          <!-- Pause Overlay -->
+          <div id="pause-overlay" class="absolute inset-0 bg-slate-950/85 backdrop-blur flex flex-col items-center justify-center hidden z-30">
+            <h2 class="font-logo text-3xl font-bold text-rose-400 mb-4">PAUSED</h2>
+            <div class="space-y-3 w-3/4">
+              <button onclick="togglePause()" class="w-full py-2 bg-indigo-600 font-bold rounded-xl text-sm">RESUME</button>
+              <button onclick="showScreen('title')" class="w-full py-2 bg-slate-800 font-bold rounded-xl text-sm border border-slate-700">QUIT</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column: NEXT Preview -->
+        <div class="w-20 flex flex-col justify-start h-full py-1">
+          <div class="bg-slate-950/90 border border-slate-800 rounded-xl p-2 text-center">
+            <span class="text-[10px] font-bold text-slate-400 block mb-1">NEXT</span>
+            <canvas id="next-canvas" width="60" height="120" class="mx-auto bg-slate-900/50 rounded"></canvas>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Mobile On-Screen Controllers (Prevents clipping on mobile bottom) -->
+      <div id="mobile-controls" class="flex-none bg-slate-950/90 p-2 rounded-2xl border border-slate-800 grid grid-cols-5 gap-1.5 items-center z-10 my-1">
+        <!-- Left -->
+        <button id="btn-left" class="touch-btn h-12 bg-slate-800/90 hover:bg-slate-700 active:bg-rose-600 text-slate-200 rounded-xl flex items-center justify-center border border-slate-700 text-xl">
+          <i class="fa-solid fa-arrow-left"></i>
+        </button>
+
+        <!-- Rotate -->
+        <button id="btn-rotate" class="touch-btn h-12 bg-slate-800/90 hover:bg-slate-700 active:bg-indigo-600 text-slate-200 rounded-xl flex items-center justify-center border border-slate-700 text-xl">
+          <i class="fa-solid fa-rotate-right"></i>
+        </button>
+
+        <!-- Right -->
+        <button id="btn-right" class="touch-btn h-12 bg-slate-800/90 hover:bg-slate-700 active:bg-rose-600 text-slate-200 rounded-xl flex items-center justify-center border border-slate-700 text-xl">
+          <i class="fa-solid fa-arrow-right"></i>
+        </button>
+
+        <!-- Soft Drop -->
+        <button id="btn-down" class="touch-btn h-12 bg-slate-800/90 hover:bg-slate-700 active:bg-amber-600 text-slate-200 rounded-xl flex items-center justify-center border border-slate-700 text-xl">
+          <i class="fa-solid fa-arrow-down"></i>
+        </button>
+
+        <!-- Hard Drop -->
+        <button id="btn-drop" class="touch-btn h-12 bg-rose-600/80 hover:bg-rose-500 active:bg-rose-400 text-white font-black rounded-xl flex items-center justify-center border border-rose-400/40 text-lg">
+          <i class="fa-solid fa-angles-down"></i>
+        </button>
+      </div>
+    </section>
+
+    <!-- 3. SHOP & BALL UPGRADE SCREEN -->
+    <section id="screen-shop" class="hidden flex-1 flex flex-col p-4 overflow-hidden">
+      <!-- Shop Header -->
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800 flex-none">
+        <h2 class="font-logo text-xl font-bold text-amber-400 flex items-center gap-2">
+          <i class="fa-solid fa-earth-americas"></i> BALL SELECT & UPGRADE
+        </h2>
+        <button onclick="showScreen('title')" class="text-slate-400 hover:text-white px-2 py-1 bg-slate-800 rounded-lg text-xs">
+          <i class="fa-solid fa-xmark text-sm"></i>
+        </button>
+      </div>
+
+      <!-- Country Ball List Container -->
+      <div id="shop-ball-list" class="flex-1 overflow-y-auto space-y-3 py-3 pr-1">
+        <!-- Rendered dynamically by JavaScript -->
+      </div>
+    </section>
+
+  </div>
+
+  <!-- MODAL: PB POINT EXCHANGE DIALOG -->
+  <div id="modal-exchange" class="fixed inset-0 bg-slate-950/80 backdrop-blur z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-sm p-5 shadow-2xl space-y-4">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+        <h3 class="font-logo font-bold text-lg text-indigo-400 flex items-center gap-2">
+          <i class="fa-solid fa-arrow-right-arrow-left"></i> EXCHANGE PB POINTS
+        </h3>
+        <button onclick="closeCoinExchangeModal()" class="text-slate-400 hover:text-white text-sm">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="text-xs text-slate-300 space-y-2 leading-relaxed">
+        <p>1 PB Point can be converted into <span class="font-bold text-amber-400">10 Polalis Coins</span>.</p>
+        <p class="text-slate-400 text-[11px] bg-slate-950/50 p-2 rounded border border-slate-800">
+          <i class="fa-solid fa-circle-info text-indigo-400"></i> PB Points cannot be added or earned in this app. You can only spend existing PB Points from PB Park.
+        </p>
+      </div>
+
+      <!-- Available Points Display -->
+      <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 flex justify-between items-center text-sm">
+        <span class="text-slate-400">PB Points Balance:</span>
+        <span id="modal-pbp-balance" class="font-bold text-indigo-300">0 PBP</span>
+      </div>
+
+      <!-- Amount Input -->
+      <div class="space-y-1">
+        <label class="text-xs text-slate-400 block">PB Points to convert:</label>
+        <div class="flex gap-2">
+          <input id="pbp-input-amount" type="number" min="1" value="1" class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-bold text-center focus:outline-none focus:border-indigo-500">
+          <button onclick="setExchangeMax()" class="px-3 bg-slate-800 hover:bg-slate-700 text-xs font-bold rounded-xl text-slate-300 border border-slate-700">MAX</button>
+        </div>
+      </div>
+
+      <!-- Conversion Summary -->
+      <div class="text-center bg-amber-500/10 border border-amber-500/20 p-2 rounded-xl text-xs text-amber-300 font-bold">
+        You will receive: <span id="modal-coins-result">10</span> Polalis Coins
+      </div>
+
+      <!-- Buttons -->
+      <div class="flex gap-2 pt-2">
+        <button onclick="closeCoinExchangeModal()" class="flex-1 py-2.5 bg-slate-800 rounded-xl font-bold text-xs text-slate-300 border border-slate-700">CANCEL</button>
+        <button onclick="executeExchange()" class="flex-1 py-2.5 bg-gradient-to-r from-amber-500 to-indigo-600 rounded-xl font-bold text-xs text-white shadow-lg active:scale-95">CONVERT NOW</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: GAME OVER -->
+  <div id="modal-gameover" class="fixed inset-0 bg-slate-950/85 backdrop-blur z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-rose-500/40 rounded-2xl w-full max-w-sm p-6 shadow-2xl text-center space-y-4">
+      <div class="w-16 h-16 mx-auto rounded-full bg-rose-500/20 border border-rose-500 flex items-center justify-center text-rose-500 text-3xl">
+        <i class="fa-solid fa-skull"></i>
+      </div>
+      <h2 class="font-logo text-3xl font-black text-rose-500">GAME OVER</h2>
+      
+      <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
+        <div class="flex justify-between text-xs text-slate-400">
+          <span>Final Score</span>
+          <span id="go-score" class="font-bold text-rose-400 text-sm">0</span>
+        </div>
+        <div class="flex justify-between text-xs text-slate-400">
+          <span>Lines Cleared</span>
+          <span id="go-lines" class="font-bold text-amber-400 text-sm">0</span>
+        </div>
+        <div class="flex justify-between text-xs text-slate-400">
+          <span>Coins Earned</span>
+          <span id="go-coins" class="font-bold text-amber-300 text-sm">+0</span>
+        </div>
+      </div>
+
+      <div class="flex gap-2 pt-2">
+        <button onclick="closeGameOverModal(); startGame();" class="flex-1 py-3 bg-rose-600 font-bold rounded-xl text-sm shadow-lg active:scale-95">RETRY</button>
+        <button onclick="closeGameOverModal(); showScreen('title');" class="flex-1 py-3 bg-slate-800 font-bold rounded-xl text-sm border border-slate-700 active:scale-95">MENU</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ===================================================================
+       1. DATA STRUCTURES & ASSET MANAGEMENT
+       =================================================================== */
+    
+    // GitHub Raw URL Base
+    const ASSET_BASE = "https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/";
+
+    // Facial expressions list
+    const EXPRESSIONS = [
+      "anger.png", "dissatisfaction.png", "happy.png", "itome.png",
+      "lol.png", "normal.png", "plot.png", "sample.png", "smile.png", "surprise.png"
+    ];
+
+    // Country Ball Definitions
+    const COUNTRIES = [
+      { id: "poland", name: "Poland", skill: "Space Gravity", desc: "Slows down drop speed & grants light gravity.", cost: 0 },
+      { id: "germany", name: "Germany", skill: "Anschluss Blitz", desc: "Fills 8 random empty slots in the grid.", cost: 100 },
+      { id: "japan", name: "Japan", skill: "Sakura Clear", desc: "Instantly clears the bottom 2 lines.", cost: 150 },
+      { id: "usa", name: "USA", skill: "Freedom Bomb", desc: "Clears a 4x4 area around active piece.", cost: 200 },
+      { id: "russia", name: "Russia", skill: "General Winter", desc: "Freezes piece & boosts score multiplier.", cost: 250 },
+      { id: "china", name: "China", skill: "Great Wall", desc: "Solidifies bottom row gaps perfectly.", cost: 300 },
+      { id: "france", name: "France", skill: "Revolution Swap", desc: "Transforms current piece into an I-Bar.", cost: 200 },
+      { id: "italy", name: "Italy", skill: "Pizza Slice", desc: "Clears 2 vertical columns.", cost: 180 },
+      { id: "sierraleone", name: "Sierra Leone", skill: "Diamond Shine", desc: "Doubles coin drop for current game.", cost: 220 },
+      { id: "england472x600", name: "UK", skill: "Tea Time Freeze", desc: "Pauses drop timer for 12 seconds.", cost: 250 },
+      { id: "korea", name: "Korea", skill: "K-Rave Multiplier", desc: "Triples line clear scores for 20s.", cost: 280 },
+      { id: "austria", name: "Austria", skill: "Habsburg Hold", desc: "Unlimited HOLD switches for 30s.", cost: 200 }
+    ];
+
+    // Local Persistence Key for Coins and Levels
+    const STORAGE_KEY_POLALIS = "polalis_game_data";
+
+    let state = {
+      coins: 0,
+      selectedBall: "poland",
+      levels: {} // { poland: 1, japan: 1, ... }
+    };
+
+    // Helper: Construct Ball Image URL
+    function getBallImageUrl(countryId, expr = "normal.png") {
+      return `${ASSET_BASE}${countryId}/${expr}`;
+    }
+
+    /* ===================================================================
+       2. PERSISTENCE & POINT SYSTEM
+       =================================================================== */
+
+    function loadLocalState() {
+      const saved = localStorage.getItem(STORAGE_KEY_POLALIS);
+      if (saved) {
+        try {
+          state = JSON.parse(saved);
+        } catch (e) {
+          console.error("Failed to load local state", e);
+        }
+      }
+      // Ensure all country levels default to 1 if not set
+      COUNTRIES.forEach(c => {
+        if (!state.levels[c.id]) state.levels[c.id] = 1;
+      });
+      saveLocalState();
+      updateCurrencyDisplay();
+    }
+
+    function saveLocalState() {
+      localStorage.setItem(STORAGE_KEY_POLALIS, JSON.stringify(state));
+    }
+
+    function updateCurrencyDisplay() {
+      document.getElementById('polalis-coins-val').textContent = state.coins.toLocaleString();
+      const pbp = window.PBPoints ? window.PBPoints.get() : 0;
+      document.getElementById('pb-points-val').textContent = pbp.toLocaleString();
+    }
+
+    // Synchronize PB Points real-time
+    if (window.PBPoints && window.PBPoints.onChange) {
+      window.PBPoints.onChange(() => {
+        updateCurrencyDisplay();
+      });
+    }
+
+    /* ===================================================================
+       3. UI & SCREEN NAVIGATION
+       =================================================================== */
+
+    function showScreen(screenId) {
+      document.getElementById('screen-title').classList.add('hidden');
+      document.getElementById('screen-game').classList.add('hidden');
+      document.getElementById('screen-shop').classList.add('hidden');
+
+      document.getElementById(`screen-${screenId}`).classList.remove('hidden');
+
+      if (screenId === 'title') {
+        renderTitleScreen();
+      } else if (screenId === 'shop') {
+        renderShopScreen();
+      }
+    }
+
+    // Helper to render Polandball image with UK cropping logic
+    function createBallImageHTML(countryId, expr = "normal.png", extraClasses = "") {
+      const isUK = countryId === "england472x600";
+      const url = getBallImageUrl(countryId, expr);
+      if (isUK) {
+        return `<div class="w-full h-full relative overflow-hidden flex items-start justify-center">
+                  <img src="${url}" class="uk-img-crop ${extraClasses}" alt="UK Ball" />
+                </div>`;
+      }
+      return `<img src="${url}" class="w-full h-full object-cover ${extraClasses}" alt="${countryId} Ball" />`;
+    }
+
+    function renderTitleScreen() {
+      // Pick random ball for hero icon & app top icon
+      const randomCountry = COUNTRIES[Math.floor(Math.random() * COUNTRIES.length)].id;
+      const randomExpr = EXPRESSIONS[Math.floor(Math.random() * EXPRESSIONS.length)];
+      
+      document.getElementById('hero-ball-container').innerHTML = createBallImageHTML(randomCountry, randomExpr);
+      document.getElementById('header-ball-icon').innerHTML = createBallImageHTML(randomCountry, "happy.png");
+
+      // Update Selected Ball Info
+      const activeBall = COUNTRIES.find(c => c.id === state.selectedBall) || COUNTRIES[0];
+      const activeLvl = state.levels[activeBall.id] || 1;
+      
+      document.getElementById('selected-ball-mini-icon').innerHTML = createBallImageHTML(activeBall.id, "happy.png");
+      document.getElementById('selected-ball-name').textContent = activeBall.name;
+      document.getElementById('selected-ball-skill').textContent = `Skill: ${activeBall.skill}`;
+      document.getElementById('selected-ball-level').textContent = `Lv.${activeLvl}`;
+
+      updateCurrencyDisplay();
+    }
+
+    function renderShopScreen() {
+      const container = document.getElementById('shop-ball-list');
+      container.innerHTML = "";
+
+      COUNTRIES.forEach(ball => {
+        const lvl = state.levels[ball.id] || 1;
+        const isSelected = state.selectedBall === ball.id;
+        const upgradeCost = Math.floor(100 * Math.pow(1.5, lvl - 1));
+
+        const card = document.createElement('div');
+        card.className = `p-3 rounded-2xl border transition flex items-center justify-between gap-3 ${
+          isSelected ? 'bg-slate-800 border-rose-500 shadow-md' : 'bg-slate-950/70 border-slate-800'
+        }`;
+
+        card.innerHTML = `
+          <div class="flex items-center gap-3 flex-1 min-w-0">
+            <div class="w-12 h-12 rounded-full overflow-hidden border border-slate-700 bg-slate-900 flex-none">
+              ${createBallImageHTML(ball.id, isSelected ? "happy.png" : "normal.png")}
+            </div>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-2">
+                <span class="font-bold text-sm text-slate-100 truncate">${ball.name}</span>
+                <span class="text-[10px] font-bold text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded border border-amber-400/20">Lv.${lvl}</span>
+              </div>
+              <div class="text-[11px] font-semibold text-rose-400">${ball.skill}</div>
+              <div class="text-[10px] text-slate-400 truncate">${ball.desc}</div>
+            </div>
+          </div>
+
+          <div class="flex flex-col gap-1 items-end flex-none">
+            ${isSelected ? `
+              <span class="text-xs font-bold text-rose-400 px-3 py-1.5 bg-rose-500/10 rounded-xl border border-rose-500/30">SELECTED</span>
+            ` : `
+              <button onclick="selectBall('${ball.id}')" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-xs font-bold rounded-xl text-white shadow active:scale-95">EQUIP</button>
+            `}
+            <button onclick="upgradeBall('${ball.id}', ${upgradeCost})" class="px-2.5 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 text-[10px] font-bold rounded-lg flex items-center gap-1 active:scale-95">
+              <i class="fa-solid fa-arrow-up text-[9px]"></i>
+              <span>${upgradeCost}</span>
+              <i class="fa-solid fa-coins text-[9px]"></i>
+            </button>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function selectBall(ballId) {
+      state.selectedBall = ballId;
+      saveLocalState();
+      renderShopScreen();
+      renderTitleScreen();
+    }
+
+    function upgradeBall(ballId, cost) {
+      if (state.coins < cost) {
+        showToast("Not enough Polalis Coins!");
+        return;
+      }
+      state.coins -= cost;
+      state.levels[ballId] = (state.levels[ballId] || 1) + 1;
+      saveLocalState();
+      updateCurrencyDisplay();
+      renderShopScreen();
+      showToast(`Upgraded to Lv.${state.levels[ballId]}!`);
+    }
+
+    /* Toast Notification Helper */
+    function showToast(msg) {
+      const toast = document.createElement('div');
+      toast.className = "fixed bottom-20 left-1/2 -translate-x-1/2 bg-slate-800 text-amber-300 font-bold text-xs px-4 py-2 rounded-full border border-amber-500/40 shadow-xl z-50 animate-bounce";
+      toast.textContent = msg;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 2000);
+    }
+
+    /* ===================================================================
+       4. COIN EXCHANGE MODAL (PBPoints strictly converted only)
+       =================================================================== */
+
+    function openCoinExchangeModal() {
+      const modal = document.getElementById('modal-exchange');
+      const pbp = window.PBPoints ? window.PBPoints.get() : 0;
+      document.getElementById('modal-pbp-balance').textContent = `${pbp.toLocaleString()} PBP`;
+      document.getElementById('pbp-input-amount').value = Math.min(10, pbp > 0 ? pbp : 1);
+      updateExchangeCalculation();
+      modal.classList.remove('hidden');
+    }
+
+    function closeCoinExchangeModal() {
+      document.getElementById('modal-exchange').classList.add('hidden');
+    }
+
+    document.getElementById('pbp-input-amount').addEventListener('input', updateExchangeCalculation);
+
+    function updateExchangeCalculation() {
+      const input = parseInt(document.getElementById('pbp-input-amount').value, 10) || 0;
+      document.getElementById('modal-coins-result').textContent = (Math.max(0, input) * 10).toLocaleString();
+    }
+
+    function setExchangeMax() {
+      const pbp = window.PBPoints ? window.PBPoints.get() : 0;
+      document.getElementById('pbp-input-amount').value = pbp;
+      updateExchangeCalculation();
+    }
+
+    function executeExchange() {
+      const input = parseInt(document.getElementById('pbp-input-amount').value, 10) || 0;
+      const currentPBP = window.PBPoints ? window.PBPoints.get() : 0;
+
+      if (input <= 0) {
+        showToast("Enter a valid amount!");
+        return;
+      }
+
+      if (input > currentPBP) {
+        showToast("Insufficient PB Points!");
+        return;
+      }
+
+      // Subtract PB Points using strict API
+      if (window.PBPoints) {
+        window.PBPoints.add(-input);
+      }
+
+      // Add corresponding Polalis Coins (1 PBP = 10 Coins)
+      const coinsAdded = input * 10;
+      state.coins += coinsAdded;
+      saveLocalState();
+      updateCurrencyDisplay();
+      closeCoinExchangeModal();
+      showToast(`Exchanged for ${coinsAdded} Coins!`);
+    }
+
+    /* ===================================================================
+       5. TETRIS ENGINE & GAME LOGIC
+       =================================================================== */
+
+    const COLS = 10;
+    const ROWS = 20;
+
+    // Classic Tetris Piece Blocks Colors (Standard Vibrant Color Scheme)
+    const SHAPES = [
+      { shape: [[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]], color: "#06b6d4" }, // I - Cyan
+      { shape: [[1,0,0],[1,1,1],[0,0,0]], color: "#3b82f6" },               // J - Blue
+      { shape: [[0,0,1],[1,1,1],[0,0,0]], color: "#f97316" },               // L - Orange
+      { shape: [[1,1],[1,1]], color: "#eab308" },                           // O - Yellow
+      { shape: [[0,1,1],[1,1,0],[0,0,0]], color: "#22c55e" },               // S - Green
+      { shape: [[0,1,0],[1,1,1],[0,0,0]], color: "#a855f7" },               // T - Purple
+      { shape: [[1,1,0],[0,1,1],[0,0,0]], color: "#ef4444" }                // Z - Red
+    ];
+
+    let canvas, ctx;
+    let holdCanvas, holdCtx;
+    let nextCanvas, nextCtx;
+
+    let grid = [];
+    let score = 0;
+    let lines = 0;
+    let level = 1;
+    let gameOver = false;
+    let isPaused = false;
+    let dropCounter = 0;
+    let dropInterval = 1000;
+    let lastTime = 0;
+
+    let currentPiece = null;
+    let nextPieces = [];
+    let holdPiece = null;
+    let canHold = true;
+
+    let pbGauge = 0; // 0 to 100
+    let pbSkillActive = false;
+    let scoreMultiplier = 1;
+    let tempGravitySlow = false;
+    let unlimitedHold = false;
+
+    // Initialize Game Engine
+    function startGame() {
+      showScreen('game');
+
+      canvas = document.getElementById('tetris-canvas');
+      ctx = canvas.getContext('2d');
+      holdCanvas = document.getElementById('hold-canvas');
+      holdCtx = holdCanvas.getContext('2d');
+      nextCanvas = document.getElementById('next-canvas');
+      nextCtx = nextCanvas.getContext('2d');
+
+      resizeCanvas();
+
+      grid = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
+      score = 0;
+      lines = 0;
+      level = 1;
+      gameOver = false;
+      isPaused = false;
+      dropInterval = 1000;
+      pbGauge = 0;
+      pbSkillActive = false;
+      scoreMultiplier = 1;
+      tempGravitySlow = false;
+      unlimitedHold = false;
+      holdPiece = null;
+      canHold = true;
+
+      nextPieces = [getRandomPiece(), getRandomPiece(), getRandomPiece()];
+      spawnPiece();
+
+      updateGameDashboard();
+      updateGaugeUI();
+
+      // Set Active Ball Graphic in Game Screen
+      const activeBall = COUNTRIES.find(c => c.id === state.selectedBall) || COUNTRIES[0];
+      document.getElementById('game-ball-icon').innerHTML = createBallImageHTML(activeBall.id, "happy.png");
+      document.getElementById('game-ball-name').textContent = activeBall.name;
+
+      lastTime = performance.now();
+      requestAnimationFrame(gameLoop);
+    }
+
+    function resizeCanvas() {
+      const container = canvas.parentElement;
+      const w = container.clientWidth - 8;
+      const h = container.clientHeight - 8;
+      canvas.width = w;
+      canvas.height = h;
+    }
+
+    window.addEventListener('resize', () => {
+      if (canvas) resizeCanvas();
+    });
+
+    function getRandomPiece() {
+      const idx = Math.floor(Math.random() * SHAPES.length);
+      const template = SHAPES[idx];
+      return {
+        matrix: template.shape.map(row => [...row]),
+        color: template.color,
+        x: Math.floor((COLS - template.shape[0].length) / 2),
+        y: 0
+      };
+    }
+
+    function spawnPiece() {
+      currentPiece = nextPieces.shift();
+      nextPieces.push(getRandomPiece());
+      canHold = true;
+
+      // Check for Game Over collision
+      if (collide(grid, currentPiece)) {
+        gameOver = true;
+        handleGameOver();
+      }
+    }
+
+    function collide(board, piece) {
+      const m = piece.matrix;
+      for (let r = 0; r < m.length; r++) {
+        for (let c = 0; c < m[r].length; c++) {
+          if (m[r][c] !== 0) {
+            let newX = piece.x + c;
+            let newY = piece.y + r;
+            if (newX < 0 || newX >= COLS || newY >= ROWS) return true;
+            if (newY >= 0 && board[newY][newX] !== 0) return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    /* Block Renderer (Standard block with modern depth & borders) */
+    function drawBlock(context, x, y, size, color) {
+      context.fillStyle = color;
+      context.fillRect(x, y, size, size);
+
+      // Inner Highlight / Bevel for classic block texture
+      context.fillStyle = "rgba(255, 255, 255, 0.25)";
+      context.fillRect(x, y, size, 3);
+      context.fillRect(x, y, 3, size);
+
+      context.fillStyle = "rgba(0, 0, 0, 0.25)";
+      context.fillRect(x, y + size - 3, size, 3);
+      context.fillRect(x + size - 3, y, 3, size);
+
+      context.strokeStyle = "rgba(15, 23, 42, 0.4)";
+      context.strokeRect(x, y, size, size);
+    }
+
+    function render() {
+      const blockSize = canvas.width / COLS;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Draw Grid Background lines
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.03)";
+      ctx.lineWidth = 1;
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          ctx.strokeRect(c * blockSize, r * blockSize, blockSize, blockSize);
+        }
+      }
+
+      // Draw Fixed Grid Blocks
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          if (grid[r][c] !== 0) {
+            drawBlock(ctx, c * blockSize, r * blockSize, blockSize, grid[r][c]);
+          }
+        }
+      }
+
+      // Draw Ghost Piece
+      if (currentPiece) {
+        const ghost = { ...currentPiece, y: currentPiece.y };
+        while (!collide(grid, ghost)) {
+          ghost.y++;
+        }
+        ghost.y--;
+
+        // Render Ghost outline
+        const m = ghost.matrix;
+        for (let r = 0; r < m.length; r++) {
+          for (let c = 0; c < m[r].length; c++) {
+            if (m[r][c] !== 0) {
+              ctx.strokeStyle = ghost.color;
+              ctx.lineWidth = 2;
+              ctx.strokeRect((ghost.x + c) * blockSize + 1, (ghost.y + r) * blockSize + 1, blockSize - 2, blockSize - 2);
+            }
+          }
+        }
+
+        // Draw Active Moving Piece
+        for (let r = 0; r < m.length; r++) {
+          for (let c = 0; c < m[r].length; c++) {
+            if (m[r][c] !== 0) {
+              drawBlock(ctx, (currentPiece.x + c) * blockSize, (currentPiece.y + r) * blockSize, blockSize, currentPiece.color);
+            }
+          }
+        }
+      }
+
+      // Draw Side Previews
+      renderHoldPreview();
+      renderNextPreview();
+    }
+
+    function renderHoldPreview() {
+      holdCtx.clearRect(0, 0, holdCanvas.width, holdCanvas.height);
+      if (!holdPiece) return;
+      const size = 12;
+      const m = holdPiece.matrix;
+      const offsetX = (holdCanvas.width - m[0].length * size) / 2;
+      const offsetY = (holdCanvas.height - m.length * size) / 2;
+
+      for (let r = 0; r < m.length; r++) {
+        for (let c = 0; c < m[r].length; c++) {
+          if (m[r][c] !== 0) {
+            drawBlock(holdCtx, offsetX + c * size, offsetY + r * size, size, holdPiece.color);
+          }
+        }
+      }
+    }
+
+    function renderNextPreview() {
+      nextCtx.clearRect(0, 0, nextCanvas.width, nextCanvas.height);
+      const size = 12;
+      
+      nextPieces.slice(0, 2).forEach((piece, idx) => {
+        const m = piece.matrix;
+        const offsetX = (nextCanvas.width - m[0].length * size) / 2;
+        const offsetY = 10 + idx * 50;
+
+        for (let r = 0; r < m.length; r++) {
+          for (let c = 0; c < m[r].length; c++) {
+            if (m[r][c] !== 0) {
+              drawBlock(nextCtx, offsetX + c * size, offsetY + r * size, size, piece.color);
+            }
+          }
+        }
+      });
+    }
+
+    function gameLoop(time = 0) {
+      if (gameOver) return;
+
+      const deltaTime = time - lastTime;
+      lastTime = time;
+
+      if (!isPaused) {
+        dropCounter += deltaTime;
+        const speed = tempGravitySlow ? dropInterval * 2.5 : dropInterval;
+        if (dropCounter > speed) {
+          dropPiece();
+        }
+        render();
+      }
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    function dropPiece() {
+      currentPiece.y++;
+      if (collide(grid, currentPiece)) {
+        currentPiece.y--;
+        mergePiece();
+        clearLines();
+        spawnPiece();
+      }
+      dropCounter = 0;
+    }
+
+    function hardDrop() {
+      while (!collide(grid, currentPiece)) {
+        currentPiece.y++;
+      }
+      currentPiece.y--;
+      mergePiece();
+      clearLines();
+      spawnPiece();
+      dropCounter = 0;
+    }
+
+    function movePiece(dir) {
+      currentPiece.x += dir;
+      if (collide(grid, currentPiece)) {
+        currentPiece.x -= dir;
+      }
+    }
+
+    function rotatePiece() {
+      const m = currentPiece.matrix;
+      const N = m.length;
+      // Transpose & Reverse for 90deg rotation
+      const rotated = m.map((val, index) => m.map(row => row[index]).reverse());
+      const originalMatrix = currentPiece.matrix;
+      currentPiece.matrix = rotated;
+
+      // Basic wall kick
+      let offset = 1;
+      while (collide(grid, currentPiece)) {
+        currentPiece.x += offset;
+        offset = -(offset + (offset > 0 ? 1 : -1));
+        if (offset > m[0].length) {
+          currentPiece.matrix = originalMatrix;
+          return;
+        }
+      }
+    }
+
+    function handleHoldTouch() {
+      if (!canHold && !unlimitedHold) return;
+
+      if (!holdPiece) {
+        holdPiece = { matrix: SHAPES.find(s => s.color === currentPiece.color).shape, color: currentPiece.color };
+        spawnPiece();
+      } else {
+        const temp = { matrix: SHAPES.find(s => s.color === currentPiece.color).shape, color: currentPiece.color };
+        currentPiece = {
+          matrix: holdPiece.matrix,
+          color: holdPiece.color,
+          x: Math.floor((COLS - holdPiece.matrix[0].length) / 2),
+          y: 0
+        };
+        holdPiece = temp;
+      }
+      canHold = false;
+    }
+
+    function mergePiece() {
+      const m = currentPiece.matrix;
+      for (let r = 0; r < m.length; r++) {
+        for (let c = 0; c < m[r].length; c++) {
+          if (m[r][c] !== 0) {
+            grid[currentPiece.y + r][currentPiece.x + c] = currentPiece.color;
+          }
+        }
+      }
+    }
+
+    function clearLines() {
+      let linesCleared = 0;
+      for (let r = ROWS - 1; r >= 0; r--) {
+        if (grid[r].every(cell => cell !== 0)) {
+          grid.splice(r, 1);
+          grid.unshift(Array(COLS).fill(0));
+          linesCleared++;
+          r++; // Check same row again after shift
+        }
+      }
+
+      if (linesCleared > 0) {
+        lines += linesCleared;
+        const lineScores = [0, 100, 300, 500, 800];
+        score += (lineScores[linesCleared] || 1000) * level * scoreMultiplier;
+        
+        // Gauge accumulation
+        addGauge(linesCleared * 25);
+
+        // Level up every 10 lines
+        level = Math.floor(lines / 10) + 1;
+        dropInterval = Math.max(100, 1000 - (level - 1) * 80);
+
+        updateGameDashboard();
+      }
+    }
+
+    function addGauge(amount) {
+      pbGauge = Math.min(100, pbGauge + amount);
+      updateGaugeUI();
+    }
+
+    function updateGaugeUI() {
+      const bar = document.getElementById('pb-gauge-bar');
+      const btn = document.getElementById('pb-skill-btn');
+      bar.style.width = `${pbGauge}%`;
+
+      if (pbGauge >= 100) {
+        btn.disabled = false;
+        btn.className = "w-full py-1.5 rounded-lg text-[10px] font-black tracking-wider bg-gradient-to-r from-rose-500 to-amber-400 text-slate-950 border border-amber-300 shadow-md cursor-pointer animate-pulse active:scale-95";
+      } else {
+        btn.disabled = true;
+        btn.className = "w-full py-1.5 rounded-lg text-[10px] font-black tracking-wider bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700 transition";
+      }
+    }
+
+    function updateGameDashboard() {
+      document.getElementById('game-score').textContent = score.toLocaleString();
+      document.getElementById('game-level').textContent = level;
+      document.getElementById('game-lines').textContent = lines;
+    }
+
+    /* ===================================================================
+       6. PB SKILLS (Country-specific abilities)
+       =================================================================== */
+
+    function triggerPBSkill() {
+      if (pbGauge < 100) return;
+      pbGauge = 0;
+      updateGaugeUI();
+
+      const activeBall = COUNTRIES.find(c => c.id === state.selectedBall) || COUNTRIES[0];
+      const ballLvl = state.levels[activeBall.id] || 1;
+
+      // Display Skill Banner
+      const banner = document.getElementById('skill-banner');
+      document.getElementById('skill-banner-text').textContent = `${activeBall.name.toUpperCase()}: ${activeBall.skill.toUpperCase()}!`;
+      banner.classList.remove('hidden');
+      setTimeout(() => banner.classList.add('hidden'), 2200);
+
+      // Execute Skill Logic
+      switch (activeBall.id) {
+        case "poland": // Space Gravity (slow drop for 15s)
+          tempGravitySlow = true;
+          setTimeout(() => { tempGravitySlow = false; }, 15000 + ballLvl * 2000);
+          break;
+
+        case "japan": // Sakura Clear (Clear bottom 2 lines)
+          grid.splice(ROWS - 2, 2);
+          grid.unshift(Array(COLS).fill(0), Array(COLS).fill(0));
+          score += 500;
+          break;
+
+        case "germany": // Anschluss Blitz (Fill 8 empty gaps)
+          let filled = 0;
+          for (let r = ROWS - 1; r >= 0 && filled < 8; r--) {
+            for (let c = 0; c < COLS && filled < 8; c++) {
+              if (grid[r][c] === 0) {
+                grid[r][c] = "#a855f7";
+                filled++;
+              }
+            }
+          }
+          break;
+
+        case "usa": // Freedom Bomb (Clear 4x4 surrounding area)
+          const cx = currentPiece.x;
+          const cy = currentPiece.y;
+          for (let r = Math.max(0, cy - 2); r < Math.min(ROWS, cy + 2); r++) {
+            for (let c = Math.max(0, cx - 2); c < Math.min(COLS, cx + 2); c++) {
+              grid[r][c] = 0;
+            }
+          }
+          break;
+
+        case "china": // Great Wall (Fill bottom line holes)
+          grid[ROWS - 1] = Array(COLS).fill("#f97316");
+          break;
+
+        case "france": // Revolution Swap (Transform piece into I-Bar)
+          currentPiece = {
+            matrix: [[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]],
+            color: "#06b6d4",
+            x: currentPiece.x,
+            y: currentPiece.y
+          };
+          break;
+
+        case "korea": // K-Rave Multiplier (Triple score for 20s)
+          scoreMultiplier = 3;
+          setTimeout(() => { scoreMultiplier = 1; }, 20000);
+          break;
+
+        case "austria": // Habsburg Hold (Unlimited HOLD for 30s)
+          unlimitedHold = true;
+          setTimeout(() => { unlimitedHold = false; }, 30000);
+          break;
+
+        case "england472x600": // Tea Time Freeze (Pause timer)
+          tempGravitySlow = true;
+          setTimeout(() => { tempGravitySlow = false; }, 12000);
+          break;
+
+        default:
+          score += 1000;
+      }
+
+      updateGameDashboard();
+    }
+
+    function togglePause() {
+      isPaused = !isPaused;
+      const overlay = document.getElementById('pause-overlay');
+      const icon = document.getElementById('pause-icon');
+      if (isPaused) {
+        overlay.classList.remove('hidden');
+        icon.className = "fa-solid fa-play";
+      } else {
+        overlay.classList.add('hidden');
+        icon.className = "fa-solid fa-pause";
+      }
+    }
+
+    function handleGameOver() {
+      const modal = document.getElementById('modal-gameover');
+      const coinsEarned = Math.floor(score / 100) + lines * 2;
+      state.coins += coinsEarned;
+      saveLocalState();
+      updateCurrencyDisplay();
+
+      document.getElementById('go-score').textContent = score.toLocaleString();
+      document.getElementById('go-lines').textContent = lines;
+      document.getElementById('go-coins').textContent = `+${coinsEarned}`;
+
+      modal.classList.remove('hidden');
+    }
+
+    function closeGameOverModal() {
+      document.getElementById('modal-gameover').classList.add('hidden');
+    }
+
+    /* ===================================================================
+       7. INPUT LISTENERS (Touch & Keyboard)
+       =================================================================== */
+
+    // Touch Button Controls for Mobile responsiveness
+    document.getElementById('btn-left').addEventListener('touchstart', (e) => { e.preventDefault(); if (!isPaused) movePiece(-1); });
+    document.getElementById('btn-right').addEventListener('touchstart', (e) => { e.preventDefault(); if (!isPaused) movePiece(1); });
+    document.getElementById('btn-rotate').addEventListener('touchstart', (e) => { e.preventDefault(); if (!isPaused) rotatePiece(); });
+    document.getElementById('btn-down').addEventListener('touchstart', (e) => { e.preventDefault(); if (!isPaused) dropPiece(); });
+    document.getElementById('btn-drop').addEventListener('touchstart', (e) => { e.preventDefault(); if (!isPaused) hardDrop(); });
+
+    // Also support Click events
+    document.getElementById('btn-left').addEventListener('click', () => { if (!isPaused) movePiece(-1); });
+    document.getElementById('btn-right').addEventListener('click', () => { if (!isPaused) movePiece(1); });
+    document.getElementById('btn-rotate').addEventListener('click', () => { if (!isPaused) rotatePiece(); });
+    document.getElementById('btn-down').addEventListener('click', () => { if (!isPaused) dropPiece(); });
+    document.getElementById('btn-drop').addEventListener('click', () => { if (!isPaused) hardDrop(); });
+
+    // Keyboard Controls
+    document.addEventListener('keydown', (e) => {
+      if (document.getElementById('screen-game').classList.contains('hidden') || isPaused) return;
+
+      switch (e.code) {
+        case 'ArrowLeft':
+          movePiece(-1);
+          break;
+        case 'ArrowRight':
+          movePiece(1);
+          break;
+        case 'ArrowDown':
+          dropPiece();
+          break;
+        case 'ArrowUp':
+        case 'KeyX':
+          rotatePiece();
+          break;
+        case 'Space':
+          hardDrop();
+          break;
+        case 'KeyC':
+        case 'ShiftLeft':
+          handleHoldTouch();
+          break;
+        case 'KeyE':
+          triggerPBSkill();
+          break;
+        case 'KeyP':
+          togglePause();
+          break;
+      }
+    });
+
+    /* ===================================================================
+       8. INITIALIZATION ON LOAD
+       =================================================================== */
+    window.onload = function() {
+      loadLocalState();
+      renderTitleScreen();
+    };
+  </script>
+
+</body>
+</html>
