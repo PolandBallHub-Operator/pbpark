@@ -1,0 +1,1461 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+    <title>API Test - PB Park Point System</title>
+
+    <!-- Google Fonts & Material Symbols -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&family=Noto+Sans+JP:wght@400;500;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+
+    <style>
+        /* M3 (Monet) ダイナミックカラー標準変数セット */
+        :root {
+            /* M3 Core Dynamic Tokens (初期値: Hyperos Blue #3381FF) */
+            --md-sys-color-primary: #3381FF;
+            --md-sys-color-on-primary: #FFFFFF;
+            --md-sys-color-primary-container: #DCE3FF;
+            --md-sys-color-on-primary-container: #001945;
+            
+            --md-sys-color-secondary: #575E71;
+            --md-sys-color-on-secondary: #FFFFFF;
+            --md-sys-color-secondary-container: #DCB8FF;
+            --md-sys-color-on-secondary-container: #141B2C;
+            
+            --md-sys-color-tertiary: #715573;
+            --md-sys-color-on-tertiary: #FFFFFF;
+            --md-sys-color-tertiary-container: #FBD7FC;
+            --md-sys-color-on-tertiary-container: #29132D;
+
+            --md-sys-color-background: #F8F9FF;
+            --md-sys-color-on-background: #191C20;
+            
+            --md-sys-color-surface: #F8F9FF;
+            --md-sys-color-on-surface: #191C20;
+            --md-sys-color-surface-variant: #E1E2EC;
+            --md-sys-color-on-surface-variant: #44474F;
+            --md-sys-color-outline: #757780;
+
+            /* UIコンポーネント用エイリアス */
+            --accent-primary: var(--md-sys-color-primary);
+            --accent-active: var(--md-sys-color-primary-container);
+            
+            --bg-base: var(--md-sys-color-surface-variant);
+            --glass-bg: var(--md-sys-color-background);
+            --text-main: var(--md-sys-color-on-surface);
+            --text-sub: var(--md-sys-color-on-surface-variant);
+            --bg-secondary: var(--md-sys-color-surface-variant);
+            --nav-bg: var(--md-sys-color-surface);
+            --nav-icon-active: var(--md-sys-color-primary);
+            
+            --m3-easing: cubic-bezier(0.32, 0.72, 0, 1);
+            --transition-smooth: 0.35s var(--m3-easing);
+            --card-padding: 24px;
+            --card-radius: 24px;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', 'Noto Sans JP', sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            transition: background-color var(--transition-smooth), color var(--transition-smooth);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* アプリ全体のコンテナ（フルスクリーンWebアプリ仕様） */
+        #app-viewport {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow: hidden;
+        }
+
+        /* ヘッダー */
+        header {
+            height: 64px;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-base);
+            transition: background-color var(--transition-smooth);
+            position: relative;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+        .logo {
+            font-weight: 700;
+            font-size: 18px;
+            letter-spacing: -0.5px;
+            color: var(--text-main);
+            text-align: center;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .logo-badge {
+            font-size: 10px;
+            background: var(--md-sys-color-primary-container);
+            color: var(--md-sys-color-on-primary-container);
+            padding: 2px 8px;
+            border-radius: 8px;
+            font-weight: 700;
+        }
+        .theme-toggle {
+            position: absolute;
+            right: 24px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: none;
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background var(--transition-smooth), transform 0.2s;
+        }
+        .theme-toggle:active {
+            transform: scale(0.92);
+        }
+
+        /* メインスクロールエリア */
+        main {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 12px 20px 100px;
+            max-width: 720px;
+            width: 100%;
+            margin: 0 auto;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior-y: none;
+            will-change: transform;
+        }
+
+        /* Elastic Overscroll 伸縮ラッパー */
+        #overscroll-wrapper {
+            transform-origin: center top;
+            transition: transform 0s linear;
+        }
+        #overscroll-wrapper.spring-back {
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        /* フラットソリッドカード（枠線なし・影なし・入れ子カード完全排除） */
+        .glass-card {
+            background: var(--glass-bg);
+            border-radius: var(--card-radius);
+            padding: var(--card-padding);
+            margin-bottom: 20px;
+            box-shadow: none !important;
+            border: none !important;
+            transition: background-color var(--transition-smooth), border-radius var(--transition-smooth);
+        }
+
+        h2 { 
+            font-size: 18px; 
+            margin-top: 0; 
+            margin-bottom: 12px;
+            font-weight: 700; 
+            letter-spacing: -0.3px;
+            color: var(--text-main);
+        }
+        p {
+            font-size: 13.5px;
+            line-height: 1.55;
+            margin-top: 0;
+            margin-bottom: 16px;
+            color: var(--text-sub);
+        }
+
+        /* ------------------ UIコンポーネント設計 ------------------ */
+
+        /* リストコンポーネント（仕切り線なし） */
+        .custom-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 16px;
+        }
+        .list-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 4px;
+            border-bottom: none !important;
+        }
+        .list-item-title {
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--text-main);
+        }
+        .list-item-desc {
+            font-size: 12px;
+            color: var(--text-sub);
+            margin-top: 2px;
+        }
+
+        /* 太いスライダー */
+        .slider-wrapper {
+            margin: 16px 0;
+        }
+        .slider-label-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-main);
+        }
+        .thick-slider-container {
+            position: relative;
+            width: 100%;
+            height: 24px;
+            background: var(--bg-base);
+            border-radius: 12px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: background var(--transition-smooth);
+            display: flex;
+            align-items: center;
+        }
+        .thick-slider-fill {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 50%;
+            background: var(--accent-primary);
+            transition: background-color var(--transition-smooth), width 0.05s ease-out;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 3px;
+        }
+        .thick-slider-knob {
+            width: 18px;
+            height: 18px;
+            background: var(--md-sys-color-on-primary);
+            border-radius: 50%;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+            flex-shrink: 0;
+        }
+        .thick-slider-input {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+            margin: 0;
+            z-index: 5;
+        }
+
+        /* トグルスイッチ */
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 4px;
+            border-bottom: none !important;
+            color: var(--text-main);
+        }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 52px;
+            height: 30px;
+        }
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--bg-base);
+            transition: var(--transition-smooth);
+            border-radius: 15px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 4px;
+            bottom: 4px;
+            background: var(--text-sub);
+            transition: var(--transition-smooth);
+            border-radius: 50%;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+        }
+        input:checked + .slider {
+            background: var(--accent-primary);
+        }
+        input:checked + .slider:before {
+            transform: translateX(22px);
+            background: var(--md-sys-color-on-primary);
+        }
+
+        /* アクションボタン */
+        .ai-btn {
+            border: none;
+            outline: none;
+            padding: 12px 24px;
+            border-radius: 14px;
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--md-sys-color-on-primary);
+            cursor: pointer;
+            background: var(--accent-primary);
+            transition: opacity 0.2s, background-color var(--transition-smooth), color var(--transition-smooth);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            justify-content: center;
+        }
+        .ai-btn:active {
+            opacity: 0.85;
+        }
+        .ai-btn-secondary {
+            background: var(--md-sys-color-secondary-container);
+            color: var(--md-sys-color-on-secondary-container);
+        }
+
+        /* インプットテキスト */
+        .glass-input-wrapper {
+            margin-bottom: 14px;
+        }
+        .glass-input {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: none;
+            background: var(--bg-base);
+            color: var(--text-main);
+            font-size: 14px;
+            font-family: inherit;
+            box-sizing: border-box;
+            transition: background var(--transition-smooth);
+        }
+        .glass-input:focus {
+            outline: 2px solid var(--accent-primary);
+        }
+
+        /* ------------------ ナビゲーション ------------------ */
+        .bottom-nav-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 72px;
+            background: var(--nav-bg);
+            border-top: 1px solid rgba(0,0,0,0.05);
+            z-index: 500;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding-bottom: env(safe-area-inset-bottom);
+            transition: background-color var(--transition-smooth);
+        }
+        .nav-item {
+            flex: 1;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-sub);
+            transition: color 0.25s var(--m3-easing);
+            position: relative;
+            gap: 4px;
+        }
+        .nav-item span.material-symbols-outlined {
+            font-size: 24px;
+            font-variation-settings: 'FILL' 0, 'wght' 400;
+            transition: font-variation-settings 0.2s, color 0.2s;
+        }
+        .nav-label {
+            font-size: 10px;
+            font-weight: 600;
+        }
+        .nav-item.active {
+            color: var(--nav-icon-active);
+        }
+        .nav-item.active span.material-symbols-outlined {
+            font-variation-settings: 'FILL' 1, 'wght' 700;
+        }
+
+        /* ビュー切り替え */
+        .view {
+            display: none;
+        }
+        .view.active {
+            display: block;
+            animation: viewIn 0.3s var(--m3-easing);
+        }
+        @keyframes viewIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* M3 Monet トナルパレット表示グリッド */
+        .palette-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 10px;
+            margin-top: 12px;
+        }
+        .palette-chip {
+            padding: 12px;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 70px;
+            font-size: 11px;
+            font-weight: 700;
+            transition: background 0.3s;
+        }
+
+        /* プリセット選択ボタン */
+        .preset-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .preset-btn {
+            background: var(--bg-base);
+            color: var(--text-main);
+            border: none;
+            padding: 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.2s, opacity 0.1s;
+        }
+        .preset-btn:active {
+            opacity: 0.8;
+        }
+        .preset-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        /* コードプレビュー */
+        .code-preview {
+            background: var(--bg-base);
+            border-radius: 12px;
+            padding: 14px;
+            font-family: 'Fira Code', monospace;
+            font-size: 12px;
+            color: var(--text-main);
+            overflow-x: auto;
+            white-space: pre-wrap;
+            margin-bottom: 12px;
+            line-height: 1.4;
+        }
+
+        /* 画像ドロップゾーン */
+        .monet-dropzone {
+            border: 2px dashed var(--md-sys-color-outline);
+            border-radius: var(--card-radius);
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            background: rgba(0, 0, 0, 0.02);
+            transition: background 0.2s, border-color 0.2s;
+            margin-bottom: 16px;
+        }
+        .monet-dropzone:hover {
+            background: rgba(0, 0, 0, 0.04);
+            border-color: var(--accent-primary);
+        }
+
+        /* トースト & ダイアログ */
+        .toast {
+            position: fixed;
+            bottom: 84px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--md-sys-color-on-surface);
+            color: var(--md-sys-color-surface);
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s var(--m3-easing);
+            z-index: 2000;
+        }
+        .toast.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .dialog-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000; display: flex; align-items: center; justify-content: center;
+            opacity: 0; visibility: hidden; transition: all 0.3s var(--m3-easing);
+        }
+        .dialog-overlay.active { opacity: 1; visibility: visible; }
+        .glass-dialog {
+            background: var(--glass-bg);
+            border-radius: var(--card-radius);
+            padding: 24px; max-width: 380px; width: 90%; text-align: center;
+            transform: scale(0.9) translateY(20px); transition: all 0.4s var(--m3-easing);
+        }
+        .dialog-overlay.active .glass-dialog { transform: scale(1) translateY(0); }
+
+        .badge {
+            background: var(--accent-primary);
+            color: var(--md-sys-color-on-primary);
+            padding: 4px 12px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 700;
+            display: inline-block;
+        }
+
+        .color-picker-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 12px 0;
+        }
+        .native-color-picker {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            background: none;
+            padding: 0;
+        }
+        .native-color-picker::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+        .native-color-picker::-webkit-color-swatch {
+            border: 2px solid var(--md-sys-color-outline);
+            border-radius: 50%;
+        }
+
+        /* API App Specific Custom Styling */
+        .point-hero {
+            text-align: center;
+            padding: 10px 0;
+        }
+        .point-amount {
+            font-size: 48px;
+            font-weight: 700;
+            color: var(--accent-primary);
+            margin: 12px 0;
+            letter-spacing: -1px;
+            line-height: 1;
+        }
+        .quick-action-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+            gap: 8px;
+            margin: 14px 0;
+        }
+        .log-container {
+            background: var(--bg-base);
+            border-radius: 12px;
+            padding: 12px;
+            font-family: 'Fira Code', monospace;
+            font-size: 11px;
+            max-height: 180px;
+            overflow-y: auto;
+            color: var(--text-main);
+        }
+        .log-item {
+            margin-bottom: 6px;
+            padding-bottom: 4px;
+            border-bottom: 1px dashed rgba(0,0,0,0.08);
+            display: flex;
+            justify-content: space-between;
+        }
+        .auth-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: var(--bg-base);
+            z-index: 3000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .auth-overlay.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- パスワード認証オーバーレイ -->
+    <div id="auth-screen" class="auth-overlay">
+        <div class="glass-card" style="max-width: 420px; width: 100%; text-align: center;">
+            <span class="material-symbols-outlined" style="font-size: 48px; color: var(--accent-primary); margin-bottom: 8px;">lock</span>
+            <h2>API Test 認証</h2>
+            <p>このアプリケーションを使用するにはセキュリティパスワードを入力してください。</p>
+            <div class="glass-input-wrapper">
+                <input type="password" id="auth-password-input" class="glass-input" placeholder="パスワードを入力..." onkeyup="if(event.key==='Enter') verifyPassword()">
+            </div>
+            <button class="ai-btn" style="width: 100%; justify-content: center;" onclick="verifyPassword()">
+                <span class="material-symbols-outlined">key</span> 認証してログイン
+            </button>
+        </div>
+    </div>
+
+    <div id="app-viewport">
+        <!-- ヘッダー -->
+        <header>
+            <div class="logo">
+                API Test
+                <span class="logo-badge">PB Points</span>
+            </div>
+            <button class="theme-toggle" id="theme-btn" title="テーマ切り替え">
+                <span class="material-symbols-outlined">light_mode</span>
+            </button>
+        </header>
+
+        <!-- メインコンテンツ -->
+        <main id="main-scroll-area">
+            <div id="overscroll-wrapper">
+                <!-- 1. ポイント操作ビュー -->
+                <section id="view-points" class="view active">
+                    <div class="glass-card">
+                        <div class="point-hero">
+                            <span class="badge">リアルタイム残高</span>
+                            <div class="point-amount" id="main-point-display">0</div>
+                            <p style="margin-bottom: 0;">PB Park Point System (localStorage連動)</p>
+                        </div>
+                    </div>
+
+                    <div class="glass-card">
+                        <h2>クイックポイント操作 (PBPoints.add)</h2>
+                        <p>ボタンをタップして直接ポイントを加算・減算します。</p>
+
+                        <div class="quick-action-grid">
+                            <button class="ai-btn" onclick="executeQuickAdd(10, 'デイリーログイン')">+10 pt</button>
+                            <button class="ai-btn" onclick="executeQuickAdd(50, 'ミッション達成')">+50 pt</button>
+                            <button class="ai-btn" onclick="executeQuickAdd(100, 'ボーナス付与')">+100 pt</button>
+                            <button class="ai-btn ai-btn-secondary" onclick="executeQuickAdd(-10, 'アイテム消費')">-10 pt</button>
+                            <button class="ai-btn ai-btn-secondary" onclick="executeQuickAdd(-50, 'サービス利用')">-50 pt</button>
+                            <button class="ai-btn ai-btn-secondary" onclick="executeQuickAdd(-100, '全額消費')">-100 pt</button>
+                        </div>
+                    </div>
+
+                    <div class="glass-card">
+                        <h2>カスタムポイント操作</h2>
+                        <p>任意の数値および理由を指定して API 操作を実行します。</p>
+
+                        <div class="glass-input-wrapper">
+                            <input type="number" id="custom-amount-input" class="glass-input" placeholder="ポイント数 (例: 25 または -15)">
+                        </div>
+                        <div class="glass-input-wrapper">
+                            <input type="text" id="custom-reason-input" class="glass-input" placeholder="操作理由 (任意: 例: 開発テスト)">
+                        </div>
+
+                        <div style="display: flex; gap: 8px; margin-top: 10px;">
+                            <button class="ai-btn" style="flex: 1;" onclick="executeCustomAdd()">
+                                <span class="material-symbols-outlined">add_circle</span> PBPoints.add()
+                            </button>
+                            <button class="ai-btn ai-btn-secondary" style="flex: 1;" onclick="executeCustomSet()">
+                                <span class="material-symbols-outlined">tune</span> PBPoints.set()
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="glass-card">
+                        <h2>操作ログ</h2>
+                        <div class="log-container" id="api-log-list">
+                            <div class="log-item"><span>システム初期化完了</span> <span>NOW</span></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 2. API テストビュー -->
+                <section id="view-api-test" class="view">
+                    <div class="glass-card">
+                        <h2>PBPoints API インスペクター</h2>
+                        <p>ガイドラインに基づく JavaScript API の動作テストを実行します。</p>
+
+                        <div class="custom-list">
+                            <div class="list-item">
+                                <div>
+                                    <div class="list-item-title">PBPoints.get()</div>
+                                    <div class="list-item-desc">現在のポイント値を取得します</div>
+                                </div>
+                                <button class="ai-btn" style="padding: 6px 14px; font-size: 12px;" onclick="testApiGet()">実行</button>
+                            </div>
+
+                            <div class="list-item">
+                                <div>
+                                    <div class="list-item-title">PBPoints.add(50, "Test")</div>
+                                    <div class="list-item-desc">50ポイントを加算テスト</div>
+                                </div>
+                                <button class="ai-btn" style="padding: 6px 14px; font-size: 12px;" onclick="testApiAdd()">実行</button>
+                            </div>
+
+                            <div class="list-item">
+                                <div>
+                                    <div class="list-item-title">PBPoints.set(0)</div>
+                                    <div class="list-item-desc">ポイントを0にリセット</div>
+                                </div>
+                                <button class="ai-btn ai-btn-secondary" style="padding: 6px 14px; font-size: 12px;" onclick="testApiSetZero()">実行</button>
+                            </div>
+
+                            <div class="list-item">
+                                <div>
+                                    <div class="list-item-title">onChange イベントテスト</div>
+                                    <div class="list-item-desc">リスナー購読状態: <span id="sub-status" style="font-weight: bold; color: var(--accent-primary);">有効</span></div>
+                                </div>
+                                <button class="ai-btn ai-btn-secondary" id="toggle-sub-btn" style="padding: 6px 14px; font-size: 12px;" onclick="toggleSubscription()">解除</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass-card">
+                        <h2>ストレージ仕様</h2>
+                        <div class="custom-list">
+                            <div class="list-item">
+                                <div>
+                                    <div class="list-item-title">localStorage Key</div>
+                                    <div class="list-item-desc"><code>pb_user_points</code></div>
+                                </div>
+                            </div>
+                            <div class="list-item">
+                                <div>
+                                    <div class="list-item-title">エイリアス</div>
+                                    <div class="list-item-desc"><code>window.PointsSystem</code></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 3. Monet シードカラー＆パレット生成ビュー -->
+                <section id="view-monet" class="view">
+                    <div class="glass-card">
+                        <h2>Monet dynamic Color Engine</h2>
+                        <p>シードカラー（基準色）を変更すると、全体のトナルパレットが更新され、設定はIndexedDBに保存されます。</p>
+
+                        <!-- カラーピッカー -->
+                        <div class="color-picker-row">
+                            <input type="color" id="seed-color-input" class="native-color-picker" value="#3381FF" onchange="updateMonetTheme(this.value)">
+                            <div>
+                                <div style="font-weight: 700; font-size: 14px;" id="seed-hex-label">#3381FF</div>
+                                <div style="font-size: 12px; color: var(--text-sub);">シードカラーを選択または変更</div>
+                            </div>
+                        </div>
+
+                        <!-- 画像から抽出 -->
+                        <div class="monet-dropzone" id="monet-drop-area" onclick="triggerImageInput()">
+                            <span class="material-symbols-outlined" style="font-size: 36px; color: var(--accent-primary); margin-bottom: 6px;">add_photo_alternate</span>
+                            <div style="font-weight: 700; font-size: 13px;">画像をアップロードして色抽出</div>
+                            <div style="font-size: 11px; color: var(--text-sub); margin-top: 2px;">画像からメインカラーを抽出しMonet適用</div>
+                            <input type="file" id="image-file-input" accept="image/*" style="display: none;" onchange="handleImageSelect(event)">
+                        </div>
+
+                        <!-- プリセットカラー -->
+                        <div style="margin-top: 14px;">
+                            <span style="font-size: 13px; font-weight: 600;">プリセット・シード</span>
+                            <div class="preset-grid">
+                                <button class="preset-btn" onclick="updateMonetTheme('#3381FF')">
+                                    <div class="preset-dot" style="background: #3381FF;"></div> Hyperos Blue
+                                </button>
+                                <button class="preset-btn" onclick="updateMonetTheme('#10B981')">
+                                    <div class="preset-dot" style="background: #10B981;"></div> Mint Emerald
+                                </button>
+                                <button class="preset-btn" onclick="updateMonetTheme('#8B5CF6')">
+                                    <div class="preset-dot" style="background: #8B5CF6;"></div> Radiant Violet
+                                </button>
+                                <button class="preset-btn" onclick="updateMonetTheme('#F59E0B')">
+                                    <div class="preset-dot" style="background: #F59E0B;"></div> Amber Glow
+                                </button>
+                                <button class="preset-btn" onclick="updateMonetTheme('#EC4899')">
+                                    <div class="preset-dot" style="background: #EC4899;"></div> Rose Monet
+                                </button>
+                                <button class="preset-btn" onclick="updateMonetTheme('#64748B')">
+                                    <div class="preset-dot" style="background: #64748B;"></div> Slate Neutral
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- M3 Dynamic Schemes パレット確認 -->
+                    <div class="glass-card">
+                        <h2>生成された M3 ロール</h2>
+                        <p>現在のテーマで適用されている主要な Material 3 カラーロールです。</p>
+
+                        <div class="palette-grid">
+                            <div class="palette-chip" style="background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary);">
+                                <span>Primary</span>
+                                <span id="hex-primary">-</span>
+                            </div>
+                            <div class="palette-chip" style="background: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container);">
+                                <span>Primary Container</span>
+                                <span id="hex-primary-container">-</span>
+                            </div>
+                            <div class="palette-chip" style="background: var(--md-sys-color-secondary); color: var(--md-sys-color-on-secondary);">
+                                <span>Secondary</span>
+                                <span id="hex-secondary">-</span>
+                            </div>
+                            <div class="palette-chip" style="background: var(--md-sys-color-tertiary); color: var(--md-sys-color-on-tertiary);">
+                                <span>Tertiary</span>
+                                <span id="hex-tertiary">-</span>
+                            </div>
+                            <div class="palette-chip" style="background: var(--md-sys-color-surface-variant); color: var(--md-sys-color-on-surface-variant);">
+                                <span>Surface Variant</span>
+                                <span id="hex-surface-variant">-</span>
+                            </div>
+                            <div class="palette-chip" style="background: var(--md-sys-color-background); color: var(--md-sys-color-on-background); border: 1px solid var(--md-sys-color-outline);">
+                                <span>Background</span>
+                                <span id="hex-background">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 4. CSS/JSONコード出力ビュー -->
+                <section id="view-code" class="view">
+                    <div class="glass-card">
+                        <h2>Material 3 CSS トークン</h2>
+                        <p>現在動的に生成された CSS カスタムプロパティ（CSS変数）を出力します。</p>
+
+                        <div style="margin-bottom: 12px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                <span style="font-weight: 700; font-size: 13px;">M3 System Color Variables</span>
+                                <button class="preset-btn" style="padding: 4px 10px; margin: 0; background: var(--accent-primary); color: var(--md-sys-color-on-primary);" onclick="copyCode('css-tokens-code')">コピー</button>
+                            </div>
+                            <div class="code-preview" id="css-tokens-code"></div>
+                        </div>
+
+                        <div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                <span style="font-weight: 700; font-size: 13px;">M3 JSON Schema Token</span>
+                                <button class="preset-btn" style="padding: 4px 10px; margin: 0; background: var(--accent-primary); color: var(--md-sys-color-on-primary);" onclick="copyCode('json-tokens-code')">コピー</button>
+                            </div>
+                            <div class="code-preview" id="json-tokens-code"></div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+
+        <!-- 下付き固定ナビゲーションバー -->
+        <div class="bottom-nav-container">
+            <div class="nav-item active" data-view="view-points" onclick="switchView('view-points')">
+                <span class="material-symbols-outlined">database</span>
+                <span class="nav-label">ポイント</span>
+            </div>
+            <div class="nav-item" data-view="view-api-test" onclick="switchView('view-api-test')">
+                <span class="material-symbols-outlined">terminal</span>
+                <span class="nav-label">API テスト</span>
+            </div>
+            <div class="nav-item" data-view="view-monet" onclick="switchView('view-monet')">
+                <span class="material-symbols-outlined">palette</span>
+                <span class="nav-label">Monet設定</span>
+            </div>
+            <div class="nav-item" data-view="view-code" onclick="switchView('view-code')">
+                <span class="material-symbols-outlined">code</span>
+                <span class="nav-label">コード出力</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- トースト通知 -->
+    <div class="toast" id="toast-message">メッセージ</div>
+
+    <!-- Material Color Utilities (Monet Engine Integration) -->
+    <script type="module">
+        import { 
+            argbFromHex, 
+            hexFromArgb, 
+            themeFromSourceColor 
+        } from 'https://esm.run/@material/material-color-utilities';
+
+        // グローバルにMonet計算関数をアタッチ
+        window.M3Monet = {
+            argbFromHex,
+            hexFromArgb,
+            themeFromSourceColor
+        };
+
+        if (window.initMonetEngine) {
+            window.initMonetEngine();
+        }
+    </script>
+
+    <script>
+        /**
+         * PB Park Point System API Implementation (window.PBPoints)
+         * Guideline準拠: localStorage ("pb_user_points") によるポイントデータ管理
+         */
+        (function() {
+            const STORAGE_KEY = 'pb_user_points';
+            const listeners = new Set();
+
+            function getPoints() {
+                const val = localStorage.getItem(STORAGE_KEY);
+                if (val === null) return 0;
+                const parsed = parseInt(val, 10);
+                return isNaN(parsed) || parsed < 0 ? 0 : parsed;
+            }
+
+            function setPoints(amount) {
+                let num = Math.floor(Number(amount));
+                if (isNaN(num) || !isFinite(num) || num < 0) num = 0;
+                localStorage.setItem(STORAGE_KEY, num.toString());
+                notifyChange(num);
+                return num;
+            }
+
+            function addPoints(amount, reason) {
+                let num = Number(amount);
+                if (isNaN(num) || !isFinite(num)) return getPoints();
+                const current = getPoints();
+                let next = current + Math.floor(num);
+                if (next < 0) next = 0;
+                localStorage.setItem(STORAGE_KEY, next.toString());
+                notifyChange(next);
+                return next;
+            }
+
+            function notifyChange(points) {
+                listeners.forEach(cb => {
+                    try { cb(points); } catch(e) { console.error("onChange listener error:", e); }
+                });
+                window.dispatchEvent(new CustomEvent('pointsUpdated', { detail: { points } }));
+            }
+
+            window.addEventListener('storage', (e) => {
+                if (e.key === STORAGE_KEY) {
+                    const pts = getPoints();
+                    listeners.forEach(cb => { try { cb(pts); } catch(err){} });
+                }
+            });
+
+            window.PBPoints = {
+                get: getPoints,
+                set: setPoints,
+                add: addPoints,
+                onChange: function(callback) {
+                    if (typeof callback === 'function') {
+                        listeners.add(callback);
+                        return function unsubscribe() {
+                            listeners.delete(callback);
+                        };
+                    }
+                    return function() {};
+                }
+            };
+
+            // 後方互換エイリアス
+            window.PointsSystem = window.PBPoints;
+        })();
+
+        /**
+         * IndexedDB による M3カラー設定保存モジュール
+         */
+        const DB_NAME = 'MonetColorDB';
+        const DB_VERSION = 1;
+        const STORE_NAME = 'theme_settings';
+
+        function openColorDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+                request.onupgradeneeded = (e) => {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains(STORE_NAME)) {
+                        db.createObjectStore(STORE_NAME);
+                    }
+                };
+                request.onsuccess = (e) => resolve(e.target.result);
+                request.onerror = (e) => reject(e.target.error);
+            });
+        }
+
+        async function saveThemeToIDB(seedColor, isDark) {
+            try {
+                const db = await openColorDB();
+                const tx = db.transaction(STORE_NAME, 'readwrite');
+                const store = tx.objectStore(STORE_NAME);
+                store.put({ seedColor, isDark }, 'currentTheme');
+            } catch (e) {
+                console.warn("IndexedDB Save Error:", e);
+            }
+        }
+
+        async function loadThemeFromIDB() {
+            try {
+                const db = await openColorDB();
+                return new Promise((resolve) => {
+                    const tx = db.transaction(STORE_NAME, 'readonly');
+                    const store = tx.objectStore(STORE_NAME);
+                    const req = store.get('currentTheme');
+                    req.onsuccess = () => resolve(req.result);
+                    req.onerror = () => resolve(null);
+                });
+            } catch (e) {
+                console.warn("IndexedDB Load Error:", e);
+                return null;
+            }
+        }
+
+        /**
+         * 認証及び Monet テーマ制御
+         */
+        const TARGET_PASS = "pbp3123axz1234professionalgermany";
+
+        function verifyPassword() {
+            const input = document.getElementById('auth-password-input').value;
+            if (input === TARGET_PASS) {
+                document.getElementById('auth-screen').classList.add('hidden');
+                showToast("認証に成功しました");
+            } else {
+                showToast("パスワードが正しくありません");
+            }
+        }
+
+        let currentSeedColor = "#3381FF";
+        let isDarkMode = false;
+        let currentThemeObj = null;
+
+        const toast = document.getElementById('toast-message');
+        const themeBtn = document.getElementById('theme-btn');
+        const themeIcon = themeBtn.querySelector('span');
+
+        function updateMonetTheme(hexColor, skipIDB = false) {
+            currentSeedColor = hexColor;
+
+            const seedInput = document.getElementById('seed-color-input');
+            const seedLabel = document.getElementById('seed-hex-label');
+            if (seedInput) seedInput.value = hexColor;
+            if (seedLabel) seedLabel.textContent = hexColor.toUpperCase();
+
+            if (window.M3Monet) {
+                try {
+                    const argb = window.M3Monet.argbFromHex(hexColor);
+                    currentThemeObj = window.M3Monet.themeFromSourceColor(argb);
+                    applyM3Scheme(currentThemeObj);
+                } catch (e) {
+                    console.error("Monet Error:", e);
+                    fallbackApplyTheme(hexColor);
+                }
+            } else {
+                fallbackApplyTheme(hexColor);
+            }
+
+            if (!skipIDB) {
+                saveThemeToIDB(currentSeedColor, isDarkMode);
+            }
+        }
+
+        function applyM3Scheme(theme) {
+            const scheme = isDarkMode ? theme.schemes.dark : theme.schemes.light;
+            const root = document.documentElement;
+
+            const hex = (argb) => window.M3Monet.hexFromArgb(argb);
+
+            const colors = {
+                primary: hex(scheme.primary),
+                onPrimary: hex(scheme.onPrimary),
+                primaryContainer: hex(scheme.primaryContainer),
+                onPrimaryContainer: hex(scheme.onPrimaryContainer),
+                secondary: hex(scheme.secondary),
+                onSecondary: hex(scheme.onSecondary),
+                secondaryContainer: hex(scheme.secondaryContainer),
+                onSecondaryContainer: hex(scheme.onSecondaryContainer),
+                tertiary: hex(scheme.tertiary),
+                onTertiary: hex(scheme.onTertiary),
+                tertiaryContainer: hex(scheme.tertiaryContainer),
+                onTertiaryContainer: hex(scheme.onTertiaryContainer),
+                background: hex(scheme.background),
+                onBackground: hex(scheme.onBackground),
+                surface: hex(scheme.surface),
+                onSurface: hex(scheme.onSurface),
+                surfaceVariant: hex(scheme.surfaceVariant),
+                onSurfaceVariant: hex(scheme.onSurfaceVariant),
+                outline: hex(scheme.outline)
+            };
+
+            root.style.setProperty('--md-sys-color-primary', colors.primary);
+            root.style.setProperty('--md-sys-color-on-primary', colors.onPrimary);
+            root.style.setProperty('--md-sys-color-primary-container', colors.primaryContainer);
+            root.style.setProperty('--md-sys-color-on-primary-container', colors.onPrimaryContainer);
+
+            root.style.setProperty('--md-sys-color-secondary', colors.secondary);
+            root.style.setProperty('--md-sys-color-on-secondary', colors.onSecondary);
+            root.style.setProperty('--md-sys-color-secondary-container', colors.secondaryContainer);
+            root.style.setProperty('--md-sys-color-on-secondary-container', colors.onSecondaryContainer);
+
+            root.style.setProperty('--md-sys-color-tertiary', colors.tertiary);
+            root.style.setProperty('--md-sys-color-on-tertiary', colors.onTertiary);
+            root.style.setProperty('--md-sys-color-tertiary-container', colors.tertiaryContainer);
+            root.style.setProperty('--md-sys-color-on-tertiary-container', colors.onTertiaryContainer);
+
+            root.style.setProperty('--md-sys-color-background', colors.background);
+            root.style.setProperty('--md-sys-color-on-background', colors.onBackground);
+
+            root.style.setProperty('--md-sys-color-surface', colors.surface);
+            root.style.setProperty('--md-sys-color-on-surface', colors.onSurface);
+            root.style.setProperty('--md-sys-color-surface-variant', colors.surfaceVariant);
+            root.style.setProperty('--md-sys-color-on-surface-variant', colors.onSurfaceVariant);
+            root.style.setProperty('--md-sys-color-outline', colors.outline);
+
+            root.style.setProperty('--bg-base', isDarkMode ? colors.background : colors.surfaceVariant);
+            root.style.setProperty('--glass-bg', isDarkMode ? colors.surfaceVariant : colors.background);
+
+            updateHexLabels(colors);
+            updateCodePreviews(colors);
+        }
+
+        function fallbackApplyTheme(hex) {
+            const root = document.documentElement;
+            root.style.setProperty('--md-sys-color-primary', hex);
+            root.style.setProperty('--md-sys-color-background', isDarkMode ? '#121212' : '#F8F9FF');
+            root.style.setProperty('--md-sys-color-surface-variant', isDarkMode ? '#2C2C2E' : '#E1E2EC');
+            root.style.setProperty('--md-sys-color-on-surface', isDarkMode ? '#FFFFFF' : '#191C20');
+
+            root.style.setProperty('--bg-base', isDarkMode ? 'var(--md-sys-color-background)' : 'var(--md-sys-color-surface-variant)');
+            root.style.setProperty('--glass-bg', isDarkMode ? 'var(--md-sys-color-surface-variant)' : 'var(--md-sys-color-background)');
+        }
+
+        function updateHexLabels(c) {
+            const el = (id) => document.getElementById(id);
+            if (el('hex-primary')) el('hex-primary').textContent = c.primary;
+            if (el('hex-primary-container')) el('hex-primary-container').textContent = c.primaryContainer;
+            if (el('hex-secondary')) el('hex-secondary').textContent = c.secondary;
+            if (el('hex-tertiary')) el('hex-tertiary').textContent = c.tertiary;
+            if (el('hex-surface-variant')) el('hex-surface-variant').textContent = c.surfaceVariant;
+            if (el('hex-background')) el('hex-background').textContent = c.background;
+        }
+
+        function updateCodePreviews(c) {
+            const cssArea = document.getElementById('css-tokens-code');
+            const jsonArea = document.getElementById('json-tokens-code');
+
+            if (cssArea) {
+                cssArea.textContent = 
+`:root {
+  /* Dynamic Material 3 Monet Tokens (${isDarkMode ? 'Dark' : 'Light'}) */
+  --md-sys-color-primary: ${c.primary};
+  --md-sys-color-on-primary: ${c.onPrimary};
+  --md-sys-color-primary-container: ${c.primaryContainer};
+  --md-sys-color-on-primary-container: ${c.onPrimaryContainer};
+
+  --md-sys-color-secondary: ${c.secondary};
+  --md-sys-color-secondary-container: ${c.secondaryContainer};
+
+  --md-sys-color-tertiary: ${c.tertiary};
+
+  --md-sys-color-background: ${c.background};
+  --md-sys-color-on-background: ${c.onBackground};
+
+  --md-sys-color-surface: ${c.surface};
+  --md-sys-color-surface-variant: ${c.surfaceVariant};
+  --md-sys-color-on-surface: ${c.onSurface};
+  --md-sys-color-outline: ${c.outline};
+}`;
+            }
+
+            if (jsonArea) {
+                jsonArea.textContent = JSON.stringify({
+                    seed: currentSeedColor,
+                    mode: isDarkMode ? 'dark' : 'light',
+                    schemes: c
+                }, null, 2);
+            }
+        }
+
+        window.initMonetEngine = async function() {
+            const savedSetting = await loadThemeFromIDB();
+            if (savedSetting) {
+                currentSeedColor = savedSetting.seedColor || currentSeedColor;
+                isDarkMode = !!savedSetting.isDark;
+                themeIcon.textContent = isDarkMode ? 'dark_mode' : 'light_mode';
+            }
+            updateMonetTheme(currentSeedColor, true);
+        };
+
+        function toggleDarkTheme(isDark) {
+            isDarkMode = isDark;
+            themeIcon.textContent = isDark ? 'dark_mode' : 'light_mode';
+
+            if (currentThemeObj) {
+                applyM3Scheme(currentThemeObj);
+            } else {
+                updateMonetTheme(currentSeedColor, true);
+            }
+            saveThemeToIDB(currentSeedColor, isDarkMode);
+        }
+
+        themeBtn.addEventListener('click', () => {
+            toggleDarkTheme(!isDarkMode);
+        });
+
+        // ポイントUIのイベントとログ処理
+        let unsubscribePointListener = null;
+
+        function refreshPointUI(pts) {
+            const mainDisp = document.getElementById('main-point-display');
+            if (mainDisp) mainDisp.textContent = Number(pts).toLocaleString();
+        }
+
+        function logApiAction(method, detail, res) {
+            const container = document.getElementById('api-log-list');
+            if (!container) return;
+            const now = new Date().toLocaleTimeString();
+            const div = document.createElement('div');
+            div.className = 'log-item';
+            div.innerHTML = `<span><strong>${method}</strong>(${detail}) &rarr; ${res}</span><span>${now}</span>`;
+            container.insertBefore(div, container.firstChild);
+        }
+
+        function executeQuickAdd(amount, reason) {
+            const newBalance = PBPoints.add(amount, reason);
+            logApiAction('add', `${amount}, "${reason}"`, newBalance);
+            showToast(`ポイント操作: ${amount > 0 ? '+' : ''}${amount} pt`);
+        }
+
+        function executeCustomAdd() {
+            const amtInput = document.getElementById('custom-amount-input');
+            const reasonInput = document.getElementById('custom-reason-input');
+            const amt = parseInt(amtInput.value, 10);
+            if (isNaN(amt)) {
+                showToast("有効なポイント数を入力してください");
+                return;
+            }
+            const reason = reasonInput.value || "カスタム操作";
+            const res = PBPoints.add(amt, reason);
+            logApiAction('add', `${amt}, "${reason}"`, res);
+            showToast(`PBPoints.add(${amt}) 実行完了`);
+            amtInput.value = '';
+        }
+
+        function executeCustomSet() {
+            const amtInput = document.getElementById('custom-amount-input');
+            const amt = parseInt(amtInput.value, 10);
+            if (isNaN(amt) || amt < 0) {
+                showToast("0以上の整数を入力してください");
+                return;
+            }
+            const res = PBPoints.set(amt);
+            logApiAction('set', `${amt}`, res);
+            showToast(`PBPoints.set(${amt}) 実行完了`);
+            amtInput.value = '';
+        }
+
+        // API Inspector テスト関数
+        function testApiGet() {
+            const val = PBPoints.get();
+            logApiAction('get', '', val);
+            showToast(`PBPoints.get() = ${val}`);
+        }
+
+        function testApiAdd() {
+            const res = PBPoints.add(50, 'API Test');
+            logApiAction('add', '50, "API Test"', res);
+            showToast(`加算成功: 残高 ${res}`);
+        }
+
+        function testApiSetZero() {
+            const res = PBPoints.set(0);
+            logApiAction('set', '0', res);
+            showToast("ポイントを0に設定しました");
+        }
+
+        function toggleSubscription() {
+            const statusEl = document.getElementById('sub-status');
+            const btn = document.getElementById('toggle-sub-btn');
+
+            if (unsubscribePointListener) {
+                unsubscribePointListener();
+                unsubscribePointListener = null;
+                statusEl.textContent = '解除中';
+                statusEl.style.color = 'var(--text-sub)';
+                btn.textContent = '有効化';
+                showToast("onChange 購読解除");
+            } else {
+                unsubscribePointListener = PBPoints.onChange((pts) => {
+                    refreshPointUI(pts);
+                });
+                statusEl.textContent = '有効';
+                statusEl.style.color = 'var(--accent-primary)';
+                btn.textContent = '解除';
+                showToast("onChange 購読再開");
+            }
+        }
+
+        // 画像からカラー抽出
+        function triggerImageInput() {
+            document.getElementById('image-file-input').click();
+        }
+
+        function handleImageSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = 50;
+                    canvas.height = 50;
+                    ctx.drawImage(img, 0, 0, 50, 50);
+
+                    const imageData = ctx.getImageData(0, 0, 50, 50).data;
+                    let r = 0, g = 0, b = 0, count = 0;
+
+                    for (let i = 0; i < imageData.length; i += 16) {
+                        r += imageData[i];
+                        g += imageData[i + 1];
+                        b += imageData[i + 2];
+                        count++;
+                    }
+
+                    r = Math.floor(r / count);
+                    g = Math.floor(g / count);
+                    b = Math.floor(b / count);
+
+                    const extractedHex = "#" + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
+                    updateMonetTheme(extractedHex);
+                    showToast(`抽出色: ${extractedHex.toUpperCase()}`);
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function copyCode(elementId) {
+            const elem = document.getElementById(elementId);
+            if (elem) {
+                const range = document.createRange();
+                range.selectNode(elem);
+                window.getSelection().removeAllRanges();
+                window.getSelection().addRange(range);
+                document.execCommand('copy');
+                window.getSelection().removeAllRanges();
+                showToast('コードをコピーしました');
+            }
+        }
+
+        // ビュー切り替え
+        const navItems = document.querySelectorAll('.nav-item');
+        const views = document.querySelectorAll('.view');
+
+        function switchView(viewId) {
+            navItems.forEach(n => {
+                n.classList.remove('active');
+                if (n.getAttribute('data-view') === viewId) {
+                    n.classList.add('active');
+                }
+            });
+
+            views.forEach(v => {
+                v.classList.remove('active');
+                if (v.id === viewId) {
+                    v.classList.add('active');
+                }
+            });
+        }
+
+        function showToast(msg) {
+            toast.textContent = msg;
+            toast.classList.add('active');
+            setTimeout(() => {
+                toast.classList.remove('active');
+            }, 2200);
+        }
+
+        // 滑らかなオーバースクロール物理アニメーション
+        const scrollArea = document.getElementById('main-scroll-area');
+        const overscrollWrapper = document.getElementById('overscroll-wrapper');
+
+        let startY = 0;
+        let currentPull = 0;
+        let isPulling = false;
+
+        scrollArea.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 1) {
+                startY = e.touches[0].clientY;
+                overscrollWrapper.classList.remove('spring-back');
+            }
+        }, { passive: true });
+
+        scrollArea.addEventListener('touchmove', (e) => {
+            if (e.touches.length !== 1) return;
+            const currentY = e.touches[0].clientY;
+            const deltaY = currentY - startY;
+
+            const isAtTop = scrollArea.scrollTop <= 0;
+            const isAtBottom = Math.abs(scrollArea.scrollHeight - scrollArea.clientHeight - scrollArea.scrollTop) < 2;
+
+            if ((isAtTop && deltaY > 0) || (isAtBottom && deltaY < 0)) {
+                currentPull = deltaY * 0.38;
+                overscrollWrapper.style.transform = `translateY(${currentPull}px) scaleY(${1 + Math.abs(currentPull) * 0.0003})`;
+                isPulling = true;
+            }
+        }, { passive: true });
+
+        scrollArea.addEventListener('touchend', () => {
+            if (isPulling) {
+                overscrollWrapper.classList.add('spring-back');
+                overscrollWrapper.style.transform = 'translateY(0px) scaleY(1)';
+                currentPull = 0;
+                isPulling = false;
+            }
+        });
+
+        // 画面起動時の初期化
+        window.onload = function() {
+            // 初期ポイント読み込み & onChange 購読開始
+            refreshPointUI(PBPoints.get());
+            unsubscribePointListener = PBPoints.onChange((pts) => {
+                refreshPointUI(pts);
+            });
+
+            // テーマ初期化
+            if (window.initMonetEngine) {
+                window.initMonetEngine();
+            }
+        };
+    </script>
+</body>
+</html>
