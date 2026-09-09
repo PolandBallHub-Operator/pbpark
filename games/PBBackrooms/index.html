@@ -1,0 +1,1623 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Polandball Backrooms 3D - Infinite Minecraft Edition</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Three.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Segoe+UI:wght@400;600;700&family=Inter:wght@400;700;900&display=swap');
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+            font-family: 'Inter', system-ui, sans-serif;
+            background-color: #000000;
+            color: #ffffff;
+        }
+
+        .font-minecraft { font-family: 'Press Start 2P', monospace; }
+        .font-win7 { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        .vhs-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 2;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            background-size: 100% 4px, 6px 100%;
+            opacity: 0.35;
+        }
+
+        /* Minecraft Styled UI */
+        .btn-mc {
+            background: linear-gradient(to bottom, #737373, #3a3a3a);
+            border-top: 2px solid #a3a3a3;
+            border-left: 2px solid #a3a3a3;
+            border-bottom: 4px solid #1a1a1a;
+            border-right: 4px solid #1a1a1a;
+            color: #e0e0e0;
+            text-shadow: 2px 2px #000;
+            transition: all 0.05s ease;
+            cursor: pointer;
+        }
+        .btn-mc:hover {
+            background: linear-gradient(to bottom, #8a8a8a, #4a4a4a);
+            border-top: 2px solid #c0c0c0;
+            border-left: 2px solid #c0c0c0;
+            color: #ffffa0;
+        }
+        .btn-mc:active {
+            border-top: 4px solid #1a1a1a;
+            border-left: 4px solid #1a1a1a;
+            border-bottom: 2px solid #a3a3a3;
+            border-right: 2px solid #a3a3a3;
+            transform: translateY(2px);
+        }
+
+        .mc-panel {
+            background: #c6c6c6;
+            border-top: 3px solid #ffffff;
+            border-left: 3px solid #ffffff;
+            border-bottom: 3px solid #555555;
+            border-right: 3px solid #555555;
+            color: #000000;
+            box-shadow: 0 0 10px rgba(0,0,0,0.8);
+        }
+
+        .mc-hotbar {
+            background: rgba(0, 0, 0, 0.65);
+            border: 2px solid #3c3c3c;
+            border-radius: 4px;
+        }
+
+        /* Windows 7 Aero Style */
+        .win7-window {
+            background: rgba(220, 235, 252, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.9);
+            border-radius: 8px;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6), 0 0 15px rgba(56, 150, 240, 0.4);
+        }
+
+        .win7-titlebar {
+            background: linear-gradient(to bottom, 
+                rgba(235, 245, 255, 0.9) 0%, 
+                rgba(195, 220, 245, 0.85) 40%, 
+                rgba(160, 195, 235, 0.85) 50%, 
+                rgba(190, 220, 250, 0.9) 100%);
+            border-bottom: 1px solid rgba(120, 160, 200, 0.8);
+            border-top-left-radius: 7px;
+            border-top-right-radius: 7px;
+            height: 32px;
+        }
+
+        .win7-btn-close {
+            background: linear-gradient(to bottom, #f89882, #e04324 50%, #c4290d 50%, #f1684e);
+            border: 1px solid #7d1203;
+            border-radius: 3px;
+            color: white;
+            text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.6);
+        }
+        .win7-btn-close:hover {
+            background: linear-gradient(to bottom, #fcae9a, #f05234 50%, #d43519 50%, #ff7c62);
+        }
+
+        .win7-body {
+            background: #f0f0f0;
+            color: #111111;
+            border: 1px solid #a0a0a0;
+            border-radius: 0 0 6px 6px;
+        }
+
+        .win7-button {
+            background: linear-gradient(to bottom, #f2f2f2 0%, #ebebeb 45%, #dddddd 50%, #cfcfcf 100%);
+            border: 1px solid #707070;
+            border-radius: 3px;
+            color: #111;
+            box-shadow: inset 0 1px 0 #fff;
+        }
+        .win7-button:hover {
+            border-color: #3c7fb1;
+            background: linear-gradient(to bottom, #eaf6fd 0%, #d9f0fc 45%, #bee6fd 50%, #a7d9f5 100%);
+        }
+
+        /* Radar HUD */
+        .radar-hud {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 150px;
+            height: 150px;
+            background: rgba(10, 15, 30, 0.85);
+            border: 3px solid #38bdf8;
+            border-radius: 50%;
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.4), inset 0 0 15px rgba(0, 0, 0, 0.9);
+            z-index: 10;
+            overflow: hidden;
+        }
+
+        .radar-header {
+            position: absolute;
+            top: 4px;
+            width: 100%;
+            text-align: center;
+            font-size: 8px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            color: #38bdf8;
+            text-shadow: 0 0 5px #38bdf8;
+            pointer-events: none;
+        }
+
+        .crosshair {
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 16px; height: 16px;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 10;
+            mix-blend-mode: difference;
+        }
+        .crosshair::before, .crosshair::after {
+            content: '';
+            position: absolute;
+            background-color: #ffffff;
+        }
+        .crosshair::before { top: 7px; left: 0; width: 16px; height: 2px; }
+        .crosshair::after { top: 0; left: 7px; width: 2px; height: 16px; }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #1a1a1a; }
+        ::-webkit-scrollbar-thumb { background: #555555; border-radius: 3px; }
+    </style>
+</head>
+<body class="relative w-full h-full select-none bg-black text-white">
+
+    <div id="canvas-container"></div>
+    <div class="vhs-overlay"></div>
+    <div id="crosshair" class="crosshair hidden"></div>
+
+    <!-- Death Screen Overlay -->
+    <div id="death-screen" class="fixed inset-0 z-40 hidden flex flex-col items-center justify-center p-4 bg-red-950/80 backdrop-blur-sm">
+        <h1 class="font-minecraft text-red-500 text-3xl sm:text-5xl font-bold mb-4 drop-shadow-[0_4px_0_rgba(0,0,0,1)] text-center animate-bounce">
+            YOU DIED!
+        </h1>
+        <p class="font-minecraft text-yellow-300 text-xs sm:text-sm mb-8 text-center" id="death-reason">
+            You were caught by Nextbot!
+        </p>
+        <button id="btn-respawn" class="btn-mc px-8 py-4 font-minecraft text-sm rounded shadow-2xl">
+            TITLE SCREEN
+        </button>
+    </div>
+
+    <!-- Minecraft Style HUD Overlay -->
+    <div id="hud-overlay" class="absolute inset-0 z-10 pointer-events-none hidden flex flex-col justify-between p-4">
+        <!-- Top Stats Bar -->
+        <div class="flex justify-between items-start pointer-events-auto">
+            <div class="mc-panel p-3 rounded flex items-center space-x-4">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-coins text-yellow-500 text-lg"></i>
+                    <div>
+                        <div class="text-[9px] font-minecraft text-slate-700">COINS</div>
+                        <div id="hud-coins" class="text-xs font-minecraft text-yellow-800 font-bold">0</div>
+                    </div>
+                </div>
+                <div class="h-6 w-[2px] bg-slate-400"></div>
+                <div class="flex flex-col">
+                    <span class="text-[9px] font-minecraft text-slate-700 mb-1">MODE</span>
+                    <span id="hud-mode-text" class="text-[10px] font-minecraft text-emerald-800 font-bold">INFINITE</span>
+                </div>
+            </div>
+
+            <!-- Pause Button -->
+            <button id="btn-pause" class="btn-mc px-4 py-2 font-minecraft text-xs rounded shadow">
+                <i class="fa-solid fa-pause mr-1"></i> PAUSE
+            </button>
+        </div>
+
+        <!-- Lexip A10 Radar HUD -->
+        <div class="radar-hud pointer-events-auto">
+            <div class="radar-header font-minecraft">LEXIP A10</div>
+            <canvas id="radar-canvas" width="150" height="150"></canvas>
+        </div>
+
+        <!-- Bottom Hotbar Status -->
+        <div class="w-full flex flex-col items-center pointer-events-auto mb-2">
+            <div class="font-minecraft text-[10px] text-yellow-300 mb-2 drop-shadow-[0_2px_2px_rgba(0,0,0,1)] bg-black/60 px-3 py-1 rounded border border-yellow-500/30">
+                [WASD] Move | [SPACE] Jump | [SHIFT] Sprint | [MOUSE] Look Around
+            </div>
+
+            <div class="mc-hotbar p-3 flex items-center gap-4">
+                <!-- Minecraft Hearts (Health) -->
+                <div class="flex flex-col items-center">
+                    <div class="text-[8px] font-minecraft text-slate-300 mb-1">HEALTH</div>
+                    <div id="hud-hearts-container" class="flex space-x-1 text-red-500 text-base drop-shadow"></div>
+                </div>
+
+                <div class="h-8 w-[1px] bg-slate-600"></div>
+
+                <!-- Stamina Bar -->
+                <div class="flex flex-col items-center">
+                    <div class="text-[8px] font-minecraft text-slate-300 mb-1">STAMINA</div>
+                    <div class="w-36 h-3 bg-slate-900 border border-slate-600 rounded-sm overflow-hidden p-0.5">
+                        <div id="hud-stamina-bar" class="bg-cyan-400 h-full w-full transition-all duration-75"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Minecraft Style Title Screen -->
+    <div id="menu-overlay" class="absolute inset-0 z-20 flex flex-col justify-between items-center py-8 px-4 bg-black/40 backdrop-blur-xs overflow-y-auto">
+        <div class="flex flex-col items-center mt-2">
+            <div class="relative">
+                <h1 class="font-minecraft text-2xl sm:text-4xl md:text-5xl font-black tracking-wider text-center text-yellow-400 drop-shadow-[0_5px_0_rgba(0,0,0,1)] border-b-4 border-yellow-600 pb-2">
+                    POLANDBALL
+                </h1>
+                <div class="font-minecraft text-xs sm:text-lg text-red-500 font-bold tracking-widest text-center mt-1 drop-shadow-[0_2px_0_rgba(0,0,0,1)]">
+                    INFINITE BACKROOMS 3D
+                </div>
+                <div class="absolute -right-6 -bottom-3 text-yellow-300 font-minecraft text-[10px] sm:text-xs rotate-[-12deg] animate-pulse bg-red-600 px-2 py-0.5 rounded shadow-lg border border-yellow-300">
+                    Desktop Edition!
+                </div>
+            </div>
+
+            <!-- Currency Stats -->
+            <div class="flex items-center space-x-4 mt-6">
+                <div class="mc-panel px-4 py-2 rounded flex items-center space-x-3">
+                    <i class="fa-solid fa-coins text-yellow-600 text-lg"></i>
+                    <div>
+                        <div class="text-[8px] font-minecraft text-slate-700">COINS</div>
+                        <div id="menu-coins" class="text-xs font-minecraft text-yellow-900 font-bold">0</div>
+                    </div>
+                </div>
+                <div class="mc-panel px-4 py-2 rounded flex items-center space-x-3">
+                    <i class="fa-solid fa-gem text-indigo-600 text-lg"></i>
+                    <div>
+                        <div class="text-[8px] font-minecraft text-slate-700">PB POINT (API)</div>
+                        <div class="text-xs font-minecraft text-indigo-900 font-bold">Exchange</div>
+                    </div>
+                    <button id="btn-open-exchange" class="btn-mc text-[9px] px-2 py-1 font-minecraft">
+                        Convert
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Menu Action Buttons -->
+        <div class="w-full max-w-xs my-4 flex flex-col space-y-3 font-minecraft text-xs">
+            <button id="btn-start-game" class="btn-mc py-3.5 w-full rounded text-center tracking-wide font-bold">
+                <i class="fa-solid fa-play mr-2 text-green-400"></i> INFINITE BACKROOMS
+            </button>
+            <button id="btn-open-studio" class="btn-mc py-3.5 w-full rounded text-center tracking-wide font-bold">
+                <i class="fa-solid fa-robot mr-2 text-amber-400"></i> NEXTBOT STUDIO
+            </button>
+            <button id="btn-open-maker" class="btn-mc py-3.5 w-full rounded text-center tracking-wide font-bold">
+                <i class="fa-solid fa-cubes mr-2 text-cyan-400"></i> BACKROOMS MAKER
+            </button>
+            <button id="btn-open-shop" class="btn-mc py-3.5 w-full rounded text-center tracking-wide font-bold">
+                <i class="fa-solid fa-store mr-2 text-yellow-400"></i> SHOP (WIN 7 STYLE)
+            </button>
+        </div>
+
+        <div class="text-center font-minecraft text-[9px] text-slate-300 drop-shadow-[0_1px_2px_rgba(0,0,0,1)] bg-slate-900/80 px-4 py-2 rounded border border-slate-700">
+            <i class="fa-solid fa-desktop mr-1 text-cyan-400"></i> Optimized for Desktop (WASD + Space + Mouse)
+        </div>
+    </div>
+
+    <!-- Nextbot Studio Modal -->
+    <div id="modal-studio" class="fixed inset-0 z-30 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border-2 border-slate-600 rounded-xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
+            <div class="p-4 border-b border-slate-700 flex justify-between items-center bg-slate-800">
+                <h3 class="font-minecraft text-xs text-amber-400 flex items-center gap-2">
+                    <i class="fa-solid fa-robot"></i> NEXTBOT STUDIO
+                </h3>
+                <button class="btn-close-modal text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            
+            <div class="p-5 overflow-y-auto space-y-5">
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">1. Select Country</label>
+                    <div id="studio-country-list" class="grid grid-cols-3 sm:grid-cols-4 gap-2"></div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">2. Expression</label>
+                    <div id="studio-expr-list" class="grid grid-cols-3 sm:grid-cols-5 gap-2"></div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Sound Tone</label>
+                        <select id="studio-voice-select" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs text-white focus:outline-none">
+                            <option value="siren">Scary Siren Tone</option>
+                            <option value="glitch">Glitch Beep</option>
+                            <option value="monster">Monster Roar</option>
+                            <option value="static">Static Buzz</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Bot Name</label>
+                        <input id="studio-name-input" type="text" value="Custom Bot" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs text-white focus:outline-none">
+                    </div>
+                </div>
+
+                <!-- Preview Canvas -->
+                <div class="bg-slate-950 border border-slate-800 rounded p-3 flex flex-col items-center justify-center">
+                    <span class="text-[10px] text-slate-500 mb-1 font-bold">PREVIEW</span>
+                    <canvas id="studio-preview-canvas" width="140" height="140" class="border border-slate-700 rounded bg-slate-900"></canvas>
+                </div>
+            </div>
+
+            <div class="p-4 border-t border-slate-800 bg-slate-800/50 flex justify-end space-x-3">
+                <button class="btn-close-modal btn-mc px-4 py-2 text-xs font-minecraft">Cancel</button>
+                <button id="btn-save-nextbot" class="btn-mc px-4 py-2 text-xs font-minecraft text-amber-300">
+                    Add Nextbot
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Backrooms Stage Maker Modal -->
+    <div id="modal-maker" class="fixed inset-0 z-30 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border-2 border-slate-600 rounded-xl max-w-3xl w-full max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
+            <div class="p-4 border-b border-slate-700 flex justify-between items-center bg-slate-800">
+                <h3 class="font-minecraft text-xs text-cyan-400 flex items-center gap-2">
+                    <i class="fa-solid fa-cubes"></i> BACKROOMS MAKER
+                </h3>
+                <button class="btn-close-modal text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+
+            <div class="p-5 overflow-y-auto flex flex-col md:flex-row gap-6">
+                <div class="w-full md:w-52 space-y-3">
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider">Paint Tool</label>
+                    <div class="space-y-2">
+                        <button data-tool="wall" class="btn-maker-tool w-full py-2 px-3 bg-cyan-600 text-white rounded text-xs font-bold flex items-center gap-2">
+                            <i class="fa-solid fa-square text-cyan-300"></i> Wall Block
+                        </button>
+                        <button data-tool="empty" class="btn-maker-tool w-full py-2 px-3 bg-slate-800 text-slate-300 rounded text-xs font-bold flex items-center gap-2">
+                            <i class="fa-solid fa-border-none"></i> Floor
+                        </button>
+                        <button data-tool="player" class="btn-maker-tool w-full py-2 px-3 bg-slate-800 text-slate-300 rounded text-xs font-bold flex items-center gap-2">
+                            <i class="fa-solid fa-user text-green-400"></i> Player Spawn
+                        </button>
+                        <button data-tool="nextbot" class="btn-maker-tool w-full py-2 px-3 bg-slate-800 text-slate-300 rounded text-xs font-bold flex items-center gap-2">
+                            <i class="fa-solid fa-robot text-red-400"></i> Nextbot Spawn
+                        </button>
+                    </div>
+                    <div class="pt-3 border-t border-slate-800 space-y-2">
+                        <button id="btn-export-map" class="w-full py-2 btn-mc text-[9px] font-minecraft">
+                            Export Stage (.json)
+                        </button>
+                        <label class="w-full py-2 btn-mc text-[9px] font-minecraft text-center block cursor-pointer">
+                            Import Stage (.json)
+                            <input id="input-import-map" type="file" accept=".json" class="hidden">
+                        </label>
+                        <button id="btn-clear-maker" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-xs font-bold">
+                            Clear Stage
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex-1 flex flex-col items-center justify-center bg-slate-950 p-3 border border-slate-800 rounded">
+                    <canvas id="maker-grid-canvas" width="300" height="300" class="cursor-pointer border border-slate-700 rounded bg-slate-900"></canvas>
+                    <p class="text-[10px] text-slate-400 mt-2">Click or drag tiles to edit map. Outer walls are auto-enclosed.</p>
+                </div>
+            </div>
+
+            <div class="p-4 border-t border-slate-800 bg-slate-800/50 flex justify-end space-x-3">
+                <button class="btn-close-modal btn-mc px-4 py-2 text-xs font-minecraft">Cancel</button>
+                <button id="btn-play-custom-map" class="btn-mc px-4 py-2 text-xs font-minecraft text-cyan-300">
+                    Play Stage
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Windows 7 Aero Style Shop Modal -->
+    <div id="modal-shop" class="fixed inset-0 z-30 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="win7-window font-win7 max-w-xl w-full flex flex-col overflow-hidden">
+            <div class="win7-titlebar px-3 flex items-center justify-between">
+                <div class="flex items-center space-x-2 text-xs font-semibold text-slate-800">
+                    <i class="fa-solid fa-store text-blue-600"></i>
+                    <span>Polandball Shop & PBPoint Exchange - Windows 7 Edition</span>
+                </div>
+                <div class="flex items-center space-x-1">
+                    <button class="w-6 h-5 bg-slate-200/50 border border-slate-400 text-[10px] text-slate-700 rounded-sm flex items-center justify-center">_</button>
+                    <button class="w-6 h-5 bg-slate-200/50 border border-slate-400 text-[10px] text-slate-700 rounded-sm flex items-center justify-center">□</button>
+                    <button class="btn-close-modal win7-btn-close w-8 h-5 text-xs font-bold flex items-center justify-center">✕</button>
+                </div>
+            </div>
+
+            <div class="win7-body p-4 space-y-4 max-h-[80vh] overflow-y-auto">
+                <!-- Strict PBPoint Exchange Panel -->
+                <div class="bg-white border border-slate-300 rounded p-3 shadow-inner">
+                    <h4 class="font-bold text-slate-800 text-xs mb-1 flex items-center gap-2">
+                        <i class="fa-solid fa-shield-halved text-blue-600"></i> PBPoint Strict Exchange (1 Point = 100 Coins)
+                    </h4>
+                    <p class="text-[11px] text-slate-600 mb-3">
+                        Exchange points directly via official Polandball API. (No offline fallbacks permitted)
+                    </p>
+                    
+                    <div class="space-y-2">
+                        <input id="api-endpoint-url" type="text" placeholder="https://api.polandballhub.org/v1/points/consume" class="w-full bg-slate-50 border border-slate-300 rounded p-1.5 text-xs text-slate-800 focus:outline-none focus:border-blue-500" value="https://api.polandballhub.org/v1/points/consume">
+                        
+                        <div class="flex items-center space-x-2">
+                            <input id="exchange-amount-input" type="number" min="1" value="1" class="w-20 bg-white border border-slate-300 rounded p-1.5 text-center font-bold text-xs text-slate-800">
+                            <span class="text-xs text-slate-700">Point(s)</span>
+                            <i class="fa-solid fa-arrow-right text-slate-400 text-xs"></i>
+                            <span id="exchange-calc-coins" class="text-xs text-blue-700 font-bold">100 Coins</span>
+                            <button id="btn-execute-exchange" class="ml-auto win7-button px-3 py-1.5 text-xs font-semibold">
+                                Convert API
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Characters Shop -->
+                <div class="bg-white border border-slate-300 rounded p-3 shadow-inner">
+                    <h4 class="font-bold text-slate-800 text-xs mb-2">Unlock Characters (20 Coins Each)</h4>
+                    <div id="shop-country-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-2"></div>
+                </div>
+
+                <!-- World Themes -->
+                <div class="bg-white border border-slate-300 rounded p-3 shadow-inner">
+                    <h4 class="font-bold text-slate-800 text-xs mb-2">Backrooms Visual Theme</h4>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button data-world="classic" class="btn-world-select win7-button p-2 text-center text-xs font-semibold">Classic Yellow</button>
+                        <button data-world="concrete" class="btn-world-select win7-button p-2 text-center text-xs font-semibold">Dark Concrete</button>
+                        <button data-world="flat" class="btn-world-select win7-button p-2 text-center text-xs font-semibold">Green Matrix</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-3 bg-slate-200/90 border-t border-slate-300 flex justify-end">
+                <button class="btn-close-modal win7-button px-5 py-1 text-xs font-semibold">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="fixed top-5 left-1/2 transform -translate-x-1/2 z-50 flex flex-col items-center space-y-2 pointer-events-none"></div>
+
+    <script>
+        const ASSET_BASE = "https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/";
+
+        const COUNTRIES = [
+            { id: "germany", name: "Germany", price: 0 },
+            { id: "japan", name: "Japan", price: 0 },
+            { id: "china", name: "China", price: 20 },
+            { id: "italy", name: "Italy", price: 20 },
+            { id: "sierraleone", name: "Sierra Leone", price: 20 },
+            { id: "russia", name: "Russia", price: 20 },
+            { id: "france", name: "France", price: 20 },
+            { id: "poland", name: "Poland", price: 20 },
+            { id: "england472x600", name: "UK (England)", price: 20 },
+            { id: "usa", name: "USA", price: 20 },
+            { id: "korea", name: "Korea", price: 20 },
+            { id: "austria", name: "Austria", price: 20 }
+        ];
+
+        const EXPRESSIONS = [
+            "anger.png", "dissatisfaction.png", "happy.png", "itome.png",
+            "lol.png", "normal.png", "plot.png", "smile.png", "surprise.png"
+        ];
+
+        const TILE_SIZE = 4;
+        const RENDER_RADIUS = 8; // Render radius for infinite maze
+
+        const AppState = {
+            coins: 0,
+            unlockedCountries: ["germany", "japan"],
+            selectedWorld: "classic",
+            activeNextbots: [
+                { country: "germany", expr: "anger.png", sound: "siren", name: "Angry Germany" },
+                { country: "japan", expr: "surprise.png", sound: "glitch", name: "Surprised Japan" }
+            ],
+            customMap: null,
+            makerGrid: createDefaultMakerGrid()
+        };
+
+        function createDefaultMakerGrid() {
+            const grid = Array(12).fill(0).map(() => Array(12).fill(0));
+            // Enclose outer border with walls
+            for (let i = 0; i < 12; i++) {
+                grid[0][i] = 1;
+                grid[11][i] = 1;
+                grid[i][0] = 1;
+                grid[i][11] = 1;
+            }
+            grid[1][1] = 2; // Default Player Spawn
+            grid[10][10] = 3; // Default Nextbot Spawn
+            return grid;
+        }
+
+        const AudioSys = {
+            ctx: null,
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            },
+            playClick() {
+                this.init();
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = "sine";
+                osc.frequency.setValueAtTime(400, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(800, this.ctx.currentTime + 0.05);
+                gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.05);
+                osc.connect(gain); gain.connect(this.ctx.destination);
+                osc.start(); osc.stop(this.ctx.currentTime + 0.05);
+            },
+            playJump() {
+                this.init();
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = "square";
+                osc.frequency.setValueAtTime(150, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(350, this.ctx.currentTime + 0.12);
+                gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.12);
+                osc.connect(gain); gain.connect(this.ctx.destination);
+                osc.start(); osc.stop(this.ctx.currentTime + 0.12);
+            },
+            playSiren() {
+                this.init();
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = "sawtooth";
+                osc.frequency.setValueAtTime(250, this.ctx.currentTime);
+                osc.frequency.linearRampToValueAtTime(500, this.ctx.currentTime + 0.25);
+                gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.25);
+                osc.connect(gain); gain.connect(this.ctx.destination);
+                osc.start(); osc.stop(this.ctx.currentTime + 0.25);
+            },
+            playHit() {
+                this.init();
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = "sawtooth";
+                osc.frequency.setValueAtTime(120, this.ctx.currentTime);
+                osc.frequency.linearRampToValueAtTime(40, this.ctx.currentTime + 0.3);
+                gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.3);
+                osc.connect(gain); gain.connect(this.ctx.destination);
+                osc.start(); osc.stop(this.ctx.currentTime + 0.3);
+            }
+        };
+
+        const DB_NAME = "PBBackroomsDB_v4";
+        let dbInstance = null;
+
+        function initDatabase() {
+            return new Promise((resolve) => {
+                const request = indexedDB.open(DB_NAME, 1);
+                request.onupgradeneeded = (e) => {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains("user_data")) {
+                        db.createObjectStore("user_data", { keyPath: "key" });
+                    }
+                };
+                request.onsuccess = (e) => {
+                    dbInstance = e.target.result;
+                    loadUserData().then(resolve);
+                };
+                request.onerror = () => resolve();
+            });
+        }
+
+        function loadUserData() {
+            return new Promise((resolve) => {
+                if (!dbInstance) return resolve();
+                const tx = dbInstance.transaction("user_data", "readonly");
+                const store = tx.objectStore("user_data");
+                const req = store.get("state");
+                req.onsuccess = () => {
+                    if (req.result && req.result.value) {
+                        const val = req.result.value;
+                        AppState.coins = val.coins ?? 0;
+                        AppState.unlockedCountries = val.unlockedCountries ?? AppState.unlockedCountries;
+                        AppState.selectedWorld = val.selectedWorld ?? "classic";
+                        if (val.activeNextbots) AppState.activeNextbots = val.activeNextbots;
+                    }
+                    updateUI();
+                    resolve();
+                };
+                req.onerror = () => resolve();
+            });
+        }
+
+        function saveUserData() {
+            if (!dbInstance) return;
+            const tx = dbInstance.transaction("user_data", "readwrite");
+            const store = tx.objectStore("user_data");
+            store.put({
+                key: "state",
+                value: {
+                    coins: AppState.coins,
+                    unlockedCountries: AppState.unlockedCountries,
+                    selectedWorld: AppState.selectedWorld,
+                    activeNextbots: AppState.activeNextbots
+                }
+            });
+        }
+
+        async function consumePBPointsAPI(endpointUrl, pointsToConsume) {
+            if (!endpointUrl || !endpointUrl.startsWith("http")) {
+                throw new Error("Invalid API Endpoint URL.");
+            }
+
+            const response = await fetch(endpointUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ points: pointsToConsume })
+            });
+
+            if (!response.ok) {
+                throw new Error(`API returned HTTP error ${response.status}`);
+            }
+
+            const data = await response.json();
+            if (data.success) {
+                return data;
+            } else {
+                throw new Error(data.message || "PBPoint API Verification Failed");
+            }
+        }
+
+        const textureCache = {};
+
+        function getBallImageUrl(countryId, expr) {
+            return `${ASSET_BASE}${countryId}/${expr}`;
+        }
+
+        function loadBallTexture(countryId, expr) {
+            const key = `${countryId}_${expr}`;
+            if (textureCache[key]) return Promise.resolve(textureCache[key]);
+
+            return new Promise((resolve) => {
+                const url = getBallImageUrl(countryId, expr);
+                const img = new Image();
+                img.crossOrigin = "Anonymous";
+                img.onload = () => {
+                    const canvas = document.createElement("canvas");
+                    canvas.width = 472;
+                    canvas.height = 472;
+                    const ctx = canvas.getContext("2d");
+
+                    if (countryId === "england472x600") {
+                        // Crop top 472x472 from 472x600 image
+                        ctx.drawImage(img, 0, 0, 472, 472, 0, 0, 472, 472);
+                    } else {
+                        ctx.drawImage(img, 0, 0, 472, 472);
+                    }
+
+                    const texture = new THREE.CanvasTexture(canvas);
+                    texture.needsUpdate = true;
+                    textureCache[key] = texture;
+                    resolve(texture);
+                };
+                img.onerror = () => {
+                    const canvas = document.createElement("canvas");
+                    canvas.width = 256; canvas.height = 256;
+                    const ctx = canvas.getContext("2d");
+                    ctx.fillStyle = "#ef4444"; ctx.fillRect(0, 0, 256, 256);
+                    ctx.fillStyle = "#ffffff"; ctx.font = "bold 20px sans-serif";
+                    ctx.fillText(countryId, 30, 130);
+                    const texture = new THREE.CanvasTexture(canvas);
+                    textureCache[key] = texture;
+                    resolve(texture);
+                };
+                img.src = url;
+            });
+        }
+
+        function showToast(message, type = "info") {
+            const container = document.getElementById("toast-container");
+            const toast = document.createElement("div");
+            const colors = {
+                info: "bg-slate-800 border-slate-600 text-white",
+                success: "bg-emerald-900 border-emerald-500 text-emerald-200",
+                error: "bg-red-900 border-red-500 text-red-200"
+            };
+            toast.className = `px-4 py-2 rounded-lg border shadow-xl text-xs font-bold transition-all duration-300 transform translate-y-[-10px] opacity-0 ${colors[type]}`;
+            toast.innerText = message;
+            container.appendChild(toast);
+
+            setTimeout(() => toast.classList.remove("translate-y-[-10px]", "opacity-0"), 10);
+            setTimeout(() => {
+                toast.classList.add("opacity-0", "translate-y-[-10px]");
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        let scene, camera, renderer, clock;
+        let player = {
+            x: 2, y: 1.6, z: 2,
+            vy: 0, isGrounded: true,
+            rotY: 0, rotX: 0,
+            hp: 100, stamina: 100,
+            radius: 0.35
+        };
+
+        let nextbotsInGame = [];
+        let activeWallMeshes = {};
+        let isGameRunning = false;
+        let isInfiniteMode = true;
+        let menuCamAngle = 0;
+
+        let floorMesh, ceilingMesh, wallGeometry, wallMaterial;
+
+        // Deterministic Pseudo-random hash for Infinite Backrooms
+        function isWallAtGrid(gx, gz) {
+            if (!isInfiniteMode && AppState.customMap) {
+                if (gx < 0 || gz < 0 || gz >= 12 || gx >= 12) return true; // Stage border wall
+                return AppState.customMap[gz][gx] === 1;
+            }
+
+            // Always clear starting spawn area
+            if (Math.abs(gx) <= 1 && Math.abs(gz) <= 1) return false;
+
+            const val = Math.sin(gx * 12.9898 + gz * 78.233) * 43758.5453;
+            const hash = val - Math.floor(val);
+            return hash < 0.28;
+        }
+
+        function checkTileCollision(posX, posZ, radius) {
+            // Calculate grid range around position
+            const minGx = Math.floor((posX - radius) / TILE_SIZE);
+            const maxGx = Math.floor((posX + radius) / TILE_SIZE);
+            const minGz = Math.floor((posZ - radius) / TILE_SIZE);
+            const maxGz = Math.floor((posZ + radius) / TILE_SIZE);
+
+            for (let gz = minGz; gz <= maxGz; gz++) {
+                for (let gx = minGx; gx <= maxGx; gx++) {
+                    if (isWallAtGrid(gx, gz)) {
+                        // Tile (gx, gz) bounding box in world space
+                        const minX = gx * TILE_SIZE;
+                        const maxX = (gx + 1) * TILE_SIZE;
+                        const minZ = gz * TILE_SIZE;
+                        const maxZ = (gz + 1) * TILE_SIZE;
+
+                        // Find closest point on wall AABB box
+                        const closestX = Math.max(minX, Math.min(posX, maxX));
+                        const closestZ = Math.max(minZ, Math.min(posZ, maxZ));
+
+                        const distX = posX - closestX;
+                        const distZ = posZ - closestZ;
+                        const distSq = distX * distX + distZ * distZ;
+
+                        if (distSq < radius * radius) {
+                            return true; // Collision detected
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+
+        function init3DEngine() {
+            const container = document.getElementById("canvas-container");
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            container.appendChild(renderer.domElement);
+
+            clock = new THREE.Clock();
+            window.addEventListener("resize", onWindowResize);
+
+            setupSceneLightsAndFloor();
+        }
+
+        function onWindowResize() {
+            if (!camera || !renderer) return;
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function setupSceneLightsAndFloor() {
+            while (scene.children.length > 0) scene.remove(scene.children[0]);
+            activeWallMeshes = {};
+
+            const fogColor = 0x221f10;
+            scene.background = new THREE.Color(fogColor);
+            scene.fog = new THREE.FogExp2(fogColor, 0.04);
+
+            const ambientLight = new THREE.AmbientLight(0x888060, 0.95);
+            scene.add(ambientLight);
+
+            let wallColor = 0xddc870;
+            if (AppState.selectedWorld === "concrete") wallColor = 0x444444;
+            if (AppState.selectedWorld === "flat") wallColor = 0x228833;
+
+            wallGeometry = new THREE.BoxGeometry(TILE_SIZE, 3.5, TILE_SIZE);
+            wallMaterial = new THREE.MeshStandardMaterial({ color: wallColor, roughness: 0.8 });
+
+            // Endless Floor & Ceiling Planes
+            const floorGeo = new THREE.PlaneGeometry(1000, 1000);
+            const floorMat = new THREE.MeshStandardMaterial({ color: 0x332d1a, roughness: 0.9 });
+            floorMesh = new THREE.Mesh(floorGeo, floorMat);
+            floorMesh.rotation.x = -Math.PI / 2;
+            scene.add(floorMesh);
+
+            const ceilingMat = new THREE.MeshStandardMaterial({ color: 0x1f1f18 });
+            ceilingMesh = new THREE.Mesh(floorGeo, ceilingMat);
+            ceilingMesh.rotation.x = Math.PI / 2;
+            ceilingMesh.position.y = 3.5;
+            scene.add(ceilingMesh);
+        }
+
+        function updateInfiniteMaze() {
+            const playerGx = Math.floor(player.x / TILE_SIZE);
+            const playerGz = Math.floor(player.z / TILE_SIZE);
+
+            floorMesh.position.x = playerGx * TILE_SIZE;
+            floorMesh.position.z = playerGz * TILE_SIZE;
+            ceilingMesh.position.x = playerGx * TILE_SIZE;
+            ceilingMesh.position.z = playerGz * TILE_SIZE;
+
+            const neededKeys = new Set();
+            const rad = isInfiniteMode ? RENDER_RADIUS : 6;
+
+            for (let r = -rad; r <= rad; r++) {
+                for (let c = -rad; c <= rad; c++) {
+                    const gx = playerGx + c;
+                    const gz = playerGz + r;
+                    const key = `${gx}_${gz}`;
+
+                    if (isWallAtGrid(gx, gz)) {
+                        neededKeys.add(key);
+                        if (!activeWallMeshes[key]) {
+                            const wall = new THREE.Mesh(wallGeometry, wallMaterial);
+                            // Position mesh center at grid tile center
+                            wall.position.set((gx + 0.5) * TILE_SIZE, 1.75, (gz + 0.5) * TILE_SIZE);
+                            scene.add(wall);
+                            activeWallMeshes[key] = wall;
+                        }
+                    }
+                }
+            }
+
+            // Remove distant walls
+            for (let key in activeWallMeshes) {
+                if (!neededKeys.has(key)) {
+                    scene.remove(activeWallMeshes[key]);
+                    delete activeWallMeshes[key];
+                }
+            }
+        }
+
+        async function spawnNextbots() {
+            nextbotsInGame.forEach(b => scene.remove(b.mesh));
+            nextbotsInGame = [];
+
+            const botsToSpawn = AppState.activeNextbots;
+
+            for (let i = 0; i < botsToSpawn.length; i++) {
+                const config = botsToSpawn[i];
+                const texture = await loadBallTexture(config.country, config.expr);
+                
+                const spriteMat = new THREE.SpriteMaterial({ map: texture });
+                const sprite = new THREE.Sprite(spriteMat);
+                sprite.scale.set(2, 2, 1);
+
+                let spawnX, spawnZ;
+
+                if (!isInfiniteMode && config.customX !== undefined && config.customZ !== undefined) {
+                    spawnX = config.customX;
+                    spawnZ = config.customZ;
+                } else {
+                    // Find an open tile near player
+                    let foundOpen = false;
+                    for (let attempt = 0; attempt < 50; attempt++) {
+                        const gx = Math.floor(player.x / TILE_SIZE) + (Math.floor(Math.random() * 8) - 4) + 5;
+                        const gz = Math.floor(player.z / TILE_SIZE) + (Math.floor(Math.random() * 8) - 4) + 5;
+                        if (!isWallAtGrid(gx, gz)) {
+                            spawnX = (gx + 0.5) * TILE_SIZE;
+                            spawnZ = (gz + 0.5) * TILE_SIZE;
+                            foundOpen = true;
+                            break;
+                        }
+                    }
+                    if (!foundOpen) {
+                        spawnX = player.x + 10;
+                        spawnZ = player.z + 10;
+                    }
+                }
+
+                sprite.position.set(spawnX, 1.0, spawnZ);
+                scene.add(sprite);
+
+                nextbotsInGame.push({
+                    mesh: sprite,
+                    speed: 3.8 + Math.random() * 0.4,
+                    sound: config.sound,
+                    name: config.name || "Nextbot",
+                    radius: 0.6
+                });
+            }
+        }
+
+        const keys = {};
+
+        window.addEventListener("keydown", (e) => {
+            keys[e.code] = true;
+            if (e.code === "Space" && isGameRunning && player.isGrounded) {
+                player.vy = 8.2; // Jump force
+                player.isGrounded = false;
+                AudioSys.playJump();
+            }
+        });
+
+        window.addEventListener("keyup", (e) => { keys[e.code] = false; });
+
+        document.addEventListener("mousemove", (e) => {
+            if (document.pointerLockElement === renderer?.domElement) {
+                player.rotY -= e.movementX * 0.0025;
+                player.rotX = Math.max(-1.3, Math.min(1.3, player.rotX - e.movementY * 0.0025));
+            }
+        });
+
+        function updatePlayer(delta) {
+            if (!isGameRunning) return;
+
+            // Gravity & Jump Physics
+            player.vy -= 22.0 * delta;
+            player.y += player.vy * delta;
+
+            if (player.y <= 1.6) {
+                player.y = 1.6;
+                player.vy = 0;
+                player.isGrounded = true;
+            }
+
+            // Sprint Speed & Stamina
+            let speed = 4.8;
+            if (keys["ShiftLeft"]) {
+                if (player.stamina > 5) {
+                    speed = 8.5;
+                    player.stamina = Math.max(0, player.stamina - delta * 30);
+                }
+            } else {
+                player.stamina = Math.min(100, player.stamina + delta * 20);
+            }
+
+            document.getElementById("hud-stamina-bar").style.width = player.stamina + "%";
+
+            // Camera View Angle Movement
+            let inputForward = 0;
+            let inputRight = 0;
+
+            if (keys["KeyW"]) inputForward += 1;
+            if (keys["KeyS"]) inputForward -= 1;
+            if (keys["KeyA"]) inputRight -= 1;
+            if (keys["KeyD"]) inputRight += 1;
+
+            if (inputForward !== 0 || inputRight !== 0) {
+                const len = Math.hypot(inputForward, inputRight);
+                inputForward /= len;
+                inputRight /= len;
+
+                const forwardX = -Math.sin(player.rotY);
+                const forwardZ = -Math.cos(player.rotY);
+                const rightX = Math.cos(player.rotY);
+                const rightZ = -Math.sin(player.rotY);
+
+                const dx = (forwardX * inputForward + rightX * inputRight) * speed * delta;
+                const dz = (forwardZ * inputForward + rightZ * inputRight) * speed * delta;
+
+                // Wall Collision with smooth sliding
+                const nextX = player.x + dx;
+                const nextZ = player.z + dz;
+
+                if (!checkTileCollision(nextX, player.z, player.radius)) {
+                    player.x = nextX;
+                }
+                if (!checkTileCollision(player.x, nextZ, player.radius)) {
+                    player.z = nextZ;
+                }
+            }
+
+            camera.position.set(player.x, player.y, player.z);
+            camera.rotation.set(player.rotX, player.rotY, 0, "YXZ");
+
+            updateInfiniteMaze();
+        }
+
+        function updateNextbots(delta) {
+            if (!isGameRunning) return;
+
+            nextbotsInGame.forEach((bot) => {
+                const dx = player.x - bot.mesh.position.x;
+                const dz = player.z - bot.mesh.position.z;
+                const dist = Math.hypot(dx, dz);
+
+                // Relocate Nextbot if it gets stuck far behind in Infinite Mode
+                if (isInfiniteMode && dist > 35) {
+                    const playerGx = Math.floor(player.x / TILE_SIZE);
+                    const playerGz = Math.floor(player.z / TILE_SIZE);
+                    for (let attempt = 0; attempt < 20; attempt++) {
+                        const gx = playerGx + (Math.floor(Math.random() * 6) - 3) + 4;
+                        const gz = playerGz + (Math.floor(Math.random() * 6) - 3) + 4;
+                        if (!isWallAtGrid(gx, gz)) {
+                            bot.mesh.position.x = (gx + 0.5) * TILE_SIZE;
+                            bot.mesh.position.z = (gz + 0.5) * TILE_SIZE;
+                            break;
+                        }
+                    }
+                    return;
+                }
+
+                if (dist > 0.7) {
+                    const moveX = (dx / dist) * bot.speed * delta;
+                    const moveZ = (dz / dist) * bot.speed * delta;
+
+                    let moved = false;
+
+                    // Try direct movement with sliding
+                    if (!checkTileCollision(bot.mesh.position.x + moveX, bot.mesh.position.z, bot.radius)) {
+                        bot.mesh.position.x += moveX;
+                        moved = true;
+                    }
+                    if (!checkTileCollision(bot.mesh.position.x, bot.mesh.position.z + moveZ, bot.radius)) {
+                        bot.mesh.position.z += moveZ;
+                        moved = true;
+                    }
+
+                    // If completely blocked by corner, attempt perpendicular slide
+                    if (!moved) {
+                        const altX = (dz > 0 ? 1 : -1) * bot.speed * delta;
+                        const altZ = (dx > 0 ? -1 : 1) * bot.speed * delta;
+                        if (!checkTileCollision(bot.mesh.position.x + altX, bot.mesh.position.z, bot.radius)) {
+                            bot.mesh.position.x += altX;
+                        }
+                        if (!checkTileCollision(bot.mesh.position.x, bot.mesh.position.z + altZ, bot.radius)) {
+                            bot.mesh.position.z += altZ;
+                        }
+                    }
+
+                    if (Math.random() < 0.008) AudioSys.playSiren();
+                } else {
+                    // Touched player -> Instant death / return to menu
+                    player.hp = 0;
+                    renderHeartsHUD();
+                    triggerDeathScreen(bot.name);
+                }
+            });
+        }
+
+        function renderHeartsHUD() {
+            const container = document.getElementById("hud-hearts-container");
+            if (!container) return;
+            container.innerHTML = "";
+
+            const totalHearts = 10;
+            const currentHearts = Math.ceil((player.hp / 100) * totalHearts);
+
+            for (let i = 0; i < totalHearts; i++) {
+                const heart = document.createElement("i");
+                heart.className = i < currentHearts ? "fa-solid fa-heart text-red-500" : "fa-solid fa-heart text-slate-800";
+                container.appendChild(heart);
+            }
+        }
+
+        function renderRadarHUD() {
+            const canvas = document.getElementById("radar-canvas");
+            if (!canvas) return;
+            const ctx = canvas.getContext("2d");
+            const w = canvas.width, h = canvas.height;
+            const cx = w / 2, cy = h / 2;
+
+            ctx.clearRect(0, 0, w, h);
+
+            // Radar concentric rings
+            ctx.strokeStyle = "rgba(56, 189, 248, 0.3)";
+            ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.arc(cx, cy, 20, 0, Math.PI*2); ctx.stroke();
+            ctx.beginPath(); ctx.arc(cx, cy, 40, 0, Math.PI*2); ctx.stroke();
+            ctx.beginPath(); ctx.arc(cx, cy, 60, 0, Math.PI*2); ctx.stroke();
+
+            // Center Player Marker
+            ctx.fillStyle = "#38bdf8";
+            ctx.beginPath(); ctx.arc(cx, cy, 4, 0, Math.PI*2); ctx.fill();
+
+            // Render enemy dots on radar relative to view yaw
+            nextbotsInGame.forEach((bot) => {
+                const dx = bot.mesh.position.x - player.x;
+                const dz = bot.mesh.position.z - player.z;
+
+                const angle = Math.atan2(dz, dx) - player.rotY - Math.PI/2;
+                const dist = Math.hypot(dx, dz) * 3.5;
+
+                const rx = cx + Math.cos(angle) * dist;
+                const ry = cy + Math.sin(angle) * dist;
+
+                if (Math.hypot(rx - cx, ry - cy) < 68) {
+                    ctx.fillStyle = "#ef4444";
+                    ctx.shadowColor = "#ef4444";
+                    ctx.shadowBlur = 6;
+                    ctx.beginPath(); ctx.arc(rx, ry, 5, 0, Math.PI*2); ctx.fill();
+                    ctx.shadowBlur = 0;
+                }
+            });
+        }
+
+        function triggerDeathScreen(botName) {
+            AudioSys.playHit();
+            isGameRunning = false;
+            if (document.pointerLockElement) document.exitPointerLock();
+
+            document.getElementById("death-reason").innerText = `You were caught by ${botName}!`;
+            document.getElementById("hud-overlay").classList.add("hidden");
+            document.getElementById("crosshair").classList.add("hidden");
+            document.getElementById("death-screen").classList.remove("hidden");
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const delta = clock.getDelta();
+
+            if (isGameRunning) {
+                updatePlayer(delta);
+                updateNextbots(delta);
+                renderRadarHUD();
+            } else {
+                // Panorama Title Camera Rotation
+                menuCamAngle += delta * 0.2;
+                camera.position.x = Math.cos(menuCamAngle) * 10;
+                camera.position.z = Math.sin(menuCamAngle) * 10;
+                camera.position.y = 1.8;
+                camera.lookAt(0, 1.8, 0);
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        function startGame(modeInfinite = true) {
+            AudioSys.playClick();
+            isInfiniteMode = modeInfinite;
+            setupSceneLightsAndFloor();
+
+            // Find valid spawn point if playing custom map
+            if (!isInfiniteMode && AppState.customMap) {
+                let foundSpawn = false;
+                for (let r = 0; r < 12; r++) {
+                    for (let c = 0; c < 12; c++) {
+                        if (AppState.customMap[r][c] === 2) { // Player Spawn Tile
+                            player.x = (c + 0.5) * TILE_SIZE;
+                            player.z = (r + 0.5) * TILE_SIZE;
+                            foundSpawn = true;
+                            break;
+                        }
+                    }
+                    if (foundSpawn) break;
+                }
+                if (!foundSpawn) {
+                    // Find first empty tile
+                    for (let r = 0; r < 12; r++) {
+                        for (let c = 0; c < 12; c++) {
+                            if (AppState.customMap[r][c] === 0) {
+                                player.x = (c + 0.5) * TILE_SIZE;
+                                player.z = (r + 0.5) * TILE_SIZE;
+                                foundSpawn = true;
+                                break;
+                            }
+                        }
+                        if (foundSpawn) break;
+                    }
+                }
+            } else {
+                player.x = 2; player.z = 2;
+            }
+
+            player.y = 1.6; player.vy = 0;
+            player.hp = 100; player.stamina = 100;
+            player.isGrounded = true;
+
+            isGameRunning = true;
+            renderHeartsHUD();
+
+            document.getElementById("hud-mode-text").innerText = isInfiniteMode ? "INFINITE" : "STAGE MAKER";
+            document.getElementById("death-screen").classList.add("hidden");
+            document.getElementById("hud-overlay").classList.remove("hidden");
+            document.getElementById("crosshair").classList.remove("hidden");
+            document.getElementById("menu-overlay").classList.add("hidden");
+
+            spawnNextbots();
+            renderer.domElement.requestPointerLock();
+        }
+
+        function stopGame() {
+            isGameRunning = false;
+            if (document.pointerLockElement) document.exitPointerLock();
+            document.getElementById("hud-overlay").classList.add("hidden");
+            document.getElementById("crosshair").classList.add("hidden");
+            document.getElementById("death-screen").classList.add("hidden");
+            document.getElementById("menu-overlay").classList.remove("hidden");
+        }
+
+        let selectedStudioCountry = "germany";
+        let selectedStudioExpr = "normal.png";
+
+        function renderStudioUI() {
+            const countryContainer = document.getElementById("studio-country-list");
+            countryContainer.innerHTML = "";
+
+            COUNTRIES.forEach((c) => {
+                const isUnlocked = AppState.unlockedCountries.includes(c.id);
+                const btn = document.createElement("button");
+                btn.className = `btn-mc p-2 rounded text-xs flex flex-col items-center justify-center space-y-1 ${
+                    selectedStudioCountry === c.id ? "border-amber-400 text-yellow-300" : ""
+                } ${!isUnlocked ? "opacity-50" : ""}`;
+
+                btn.innerHTML = `
+                    <span class="font-bold">${c.name}</span>
+                    <span class="text-[9px] ${isUnlocked ? 'text-emerald-400' : 'text-yellow-400'}">
+                        ${isUnlocked ? 'Unlocked' : '20 Coins'}
+                    </span>
+                `;
+
+                if (isUnlocked) {
+                    btn.onclick = () => {
+                        AudioSys.playClick();
+                        selectedStudioCountry = c.id;
+                        renderStudioUI();
+                        updateStudioPreview();
+                    };
+                }
+                countryContainer.appendChild(btn);
+            });
+
+            const exprContainer = document.getElementById("studio-expr-list");
+            exprContainer.innerHTML = "";
+            EXPRESSIONS.forEach((expr) => {
+                const btn = document.createElement("button");
+                btn.className = `btn-mc p-1.5 text-[10px] font-bold text-center ${
+                    selectedStudioExpr === expr ? "text-amber-300" : ""
+                }`;
+                btn.innerText = expr.replace(".png", "");
+                btn.onclick = () => {
+                    AudioSys.playClick();
+                    selectedStudioExpr = expr;
+                    renderStudioUI();
+                    updateStudioPreview();
+                };
+                exprContainer.appendChild(btn);
+            });
+        }
+
+        function updateStudioPreview() {
+            const canvas = document.getElementById("studio-preview-canvas");
+            const ctx = canvas.getContext("2d");
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const img = new Image();
+            img.crossOrigin = "Anonymous";
+            img.onload = () => {
+                if (selectedStudioCountry === "england472x600") {
+                    ctx.drawImage(img, 0, 0, 472, 472, 0, 0, canvas.width, canvas.height);
+                } else {
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                }
+            };
+            img.src = getBallImageUrl(selectedStudioCountry, selectedStudioExpr);
+        }
+
+        let activeMakerTool = "wall";
+        let isMakerPainting = false;
+
+        function renderMakerGrid() {
+            const canvas = document.getElementById("maker-grid-canvas");
+            const ctx = canvas.getContext("2d");
+            const cellSize = canvas.width / 12;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            for (let r = 0; r < 12; r++) {
+                for (let c = 0; c < 12; c++) {
+                    const x = c * cellSize;
+                    const y = r * cellSize;
+                    const val = AppState.makerGrid[r][c];
+
+                    if (val === 1) ctx.fillStyle = "#38bdf8"; // Wall
+                    else if (val === 2) ctx.fillStyle = "#22c55e"; // Player Spawn
+                    else if (val === 3) ctx.fillStyle = "#ef4444"; // Nextbot Spawn
+                    else ctx.fillStyle = "#1e293b"; // Floor
+
+                    ctx.fillRect(x + 1, y + 1, cellSize - 2, cellSize - 2);
+
+                    if (val === 2) {
+                        ctx.fillStyle = "#ffffff";
+                        ctx.font = "9px sans-serif";
+                        ctx.fillText("START", x + 2, y + 16);
+                    } else if (val === 3) {
+                        ctx.fillStyle = "#ffffff";
+                        ctx.font = "9px sans-serif";
+                        ctx.fillText("BOT", x + 5, y + 16);
+                    }
+                }
+            }
+        }
+
+        function applyMakerTool(r, c) {
+            if (r < 0 || r >= 12 || c < 0 || c >= 12) return;
+
+            if (activeMakerTool === "wall") AppState.makerGrid[r][c] = 1;
+            if (activeMakerTool === "empty") AppState.makerGrid[r][c] = 0;
+            if (activeMakerTool === "player") {
+                // Clear existing player spawns
+                for (let i = 0; i < 12; i++) {
+                    for (let j = 0; j < 12; j++) {
+                        if (AppState.makerGrid[i][j] === 2) AppState.makerGrid[i][j] = 0;
+                    }
+                }
+                AppState.makerGrid[r][c] = 2;
+            }
+            if (activeMakerTool === "nextbot") AppState.makerGrid[r][c] = 3;
+
+            renderMakerGrid();
+        }
+
+        function updateUI() {
+            document.getElementById("menu-coins").innerText = AppState.coins;
+            document.getElementById("hud-coins").innerText = AppState.coins;
+            renderShopGrid();
+        }
+
+        function renderShopGrid() {
+            const container = document.getElementById("shop-country-grid");
+            if (!container) return;
+            container.innerHTML = "";
+
+            COUNTRIES.forEach((c) => {
+                const isUnlocked = AppState.unlockedCountries.includes(c.id);
+                const card = document.createElement("div");
+                card.className = "bg-slate-100 border border-slate-300 p-2 rounded flex flex-col justify-between space-y-2";
+                card.innerHTML = `
+                    <div class="text-xs font-bold text-slate-800">${c.name}</div>
+                    ${
+                        isUnlocked
+                            ? `<span class="text-[9px] text-emerald-700 font-bold"><i class="fa-solid fa-check"></i> Unlocked</span>`
+                            : `<button data-id="${c.id}" class="btn-buy-country win7-button text-[10px] font-bold py-1 px-2">
+                                Buy 20 Coins
+                               </button>`
+                    }
+                `;
+                container.appendChild(card);
+            });
+
+            document.querySelectorAll(".btn-buy-country").forEach((btn) => {
+                btn.onclick = (e) => {
+                    AudioSys.playClick();
+                    const id = e.target.getAttribute("data-id");
+                    if (AppState.coins >= 20) {
+                        AppState.coins -= 20;
+                        AppState.unlockedCountries.push(id);
+                        saveUserData();
+                        updateUI();
+                        showToast("Unlocked new character!", "success");
+                    } else {
+                        showToast("Not enough coins!", "error");
+                    }
+                };
+            });
+        }
+
+        window.onload = function() {
+            initDatabase();
+            init3DEngine();
+
+            document.getElementById("btn-start-game").onclick = () => startGame(true);
+            document.getElementById("btn-pause").onclick = stopGame;
+            document.getElementById("btn-respawn").onclick = stopGame;
+
+            // Nextbot Studio
+            document.getElementById("btn-open-studio").onclick = () => {
+                AudioSys.playClick();
+                renderStudioUI();
+                updateStudioPreview();
+                document.getElementById("modal-studio").classList.remove("hidden");
+            };
+
+            document.getElementById("btn-save-nextbot").onclick = () => {
+                AudioSys.playClick();
+                const name = document.getElementById("studio-name-input").value;
+                const sound = document.getElementById("studio-voice-select").value;
+
+                AppState.activeNextbots.unshift({
+                    country: selectedStudioCountry,
+                    expr: selectedStudioExpr,
+                    sound: sound,
+                    name: name || "Custom Bot"
+                });
+                if (AppState.activeNextbots.length > 3) AppState.activeNextbots.pop();
+
+                saveUserData();
+                document.getElementById("modal-studio").classList.add("hidden");
+                showToast("Added Nextbot to Active Roster!", "success");
+            };
+
+            // Stage Maker
+            document.getElementById("btn-open-maker").onclick = () => {
+                AudioSys.playClick();
+                renderMakerGrid();
+                document.getElementById("modal-maker").classList.remove("hidden");
+            };
+
+            const makerCanvas = document.getElementById("maker-grid-canvas");
+            
+            makerCanvas.onmousedown = (e) => {
+                isMakerPainting = true;
+                const rect = makerCanvas.getBoundingClientRect();
+                const c = Math.floor((e.clientX - rect.left) / (rect.width / 12));
+                const r = Math.floor((e.clientY - rect.top) / (rect.height / 12));
+                applyMakerTool(r, c);
+            };
+
+            makerCanvas.onmousemove = (e) => {
+                if (!isMakerPainting) return;
+                const rect = makerCanvas.getBoundingClientRect();
+                const c = Math.floor((e.clientX - rect.left) / (rect.width / 12));
+                const r = Math.floor((e.clientY - rect.top) / (rect.height / 12));
+                applyMakerTool(r, c);
+            };
+
+            window.addEventListener("mouseup", () => { isMakerPainting = false; });
+
+            document.querySelectorAll(".btn-maker-tool").forEach((btn) => {
+                btn.onclick = () => {
+                    AudioSys.playClick();
+                    activeMakerTool = btn.getAttribute("data-tool");
+                    document.querySelectorAll(".btn-maker-tool").forEach(b => b.classList.replace("bg-cyan-600", "bg-slate-800"));
+                    btn.classList.replace("bg-slate-800", "bg-cyan-600");
+                };
+            });
+
+            document.getElementById("btn-clear-maker").onclick = () => {
+                AppState.makerGrid = createDefaultMakerGrid();
+                renderMakerGrid();
+            };
+
+            document.getElementById("btn-export-map").onclick = () => {
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(AppState.makerGrid));
+                const downloadAnchor = document.createElement("a");
+                downloadAnchor.setAttribute("href", dataStr);
+                downloadAnchor.setAttribute("download", "backrooms_stage.json");
+                document.body.appendChild(downloadAnchor);
+                downloadAnchor.click();
+                downloadAnchor.remove();
+            };
+
+            document.getElementById("input-import-map").onchange = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (evt) => {
+                    try {
+                        const parsed = JSON.parse(evt.target.result);
+                        if (Array.isArray(parsed) && parsed.length === 12) {
+                            AppState.makerGrid = parsed;
+                            renderMakerGrid();
+                            showToast("Custom Stage Loaded Successfully!", "success");
+                        }
+                    } catch (err) {
+                        showToast("Invalid JSON Stage File!", "error");
+                    }
+                };
+                reader.readAsText(file);
+            };
+
+            document.getElementById("btn-play-custom-map").onclick = () => {
+                AppState.customMap = AppState.makerGrid;
+                
+                // Collect custom placed Nextbots
+                const customBots = [];
+                for (let r = 0; r < 12; r++) {
+                    for (let c = 0; c < 12; c++) {
+                        if (AppState.makerGrid[r][c] === 3) {
+                            customBots.push({
+                                country: AppState.activeNextbots[0]?.country || "germany",
+                                expr: AppState.activeNextbots[0]?.expr || "anger.png",
+                                sound: "siren",
+                                name: "Stage Bot",
+                                customX: (c + 0.5) * TILE_SIZE,
+                                customZ: (r + 0.5) * TILE_SIZE
+                            });
+                        }
+                    }
+                }
+
+                if (customBots.length > 0) {
+                    AppState.activeNextbots = customBots;
+                }
+
+                document.getElementById("modal-maker").classList.add("hidden");
+                startGame(false);
+            };
+
+            // Shop Modal
+            document.getElementById("btn-open-shop").onclick = () => {
+                AudioSys.playClick();
+                renderShopGrid();
+                document.getElementById("modal-shop").classList.remove("hidden");
+            };
+
+            document.getElementById("btn-open-exchange").onclick = () => {
+                AudioSys.playClick();
+                document.getElementById("modal-shop").classList.remove("hidden");
+            };
+
+            document.querySelectorAll(".btn-world-select").forEach((btn) => {
+                btn.onclick = () => {
+                    AudioSys.playClick();
+                    AppState.selectedWorld = btn.getAttribute("data-world");
+                    saveUserData();
+                    showToast("Backrooms Visual Theme Saved!", "info");
+                };
+            });
+
+            // Strict API Exchange (No Fallbacks Allowed)
+            document.getElementById("btn-execute-exchange").onclick = async () => {
+                AudioSys.playClick();
+                const endpoint = document.getElementById("api-endpoint-url").value;
+                const pts = parseInt(document.getElementById("exchange-amount-input").value) || 0;
+
+                if (pts <= 0) return;
+
+                try {
+                    await consumePBPointsAPI(endpoint, pts);
+                    AppState.coins += pts * 100;
+                    saveUserData();
+                    updateUI();
+                    showToast(`Converted ${pts} Points to ${pts * 100} Coins!`, "success");
+                } catch (err) {
+                    showToast(`API Conversion Failed: ${err.message}`, "error");
+                }
+            };
+
+            document.getElementById("exchange-amount-input").oninput = (e) => {
+                const pts = parseInt(e.target.value) || 0;
+                document.getElementById("exchange-calc-coins").innerText = `${pts * 100} Coins`;
+            };
+
+            // Close Modals
+            document.querySelectorAll(".btn-close-modal").forEach((btn) => {
+                btn.onclick = () => {
+                    AudioSys.playClick();
+                    document.querySelectorAll("#modal-studio, #modal-maker, #modal-shop").forEach(m => m.classList.add("hidden"));
+                };
+            });
+
+            animate();
+        };
+    </script>
+</body>
+</html>
