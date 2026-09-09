@@ -1,8 +1,8 @@
 ---
 # this ensures Jekyll processes the file
 ---
-const CACHE_NAME = 'polandballhub-cache-v2';
-const STATIC_CACHE = 'polandballhub-static-v2';
+const CACHE_NAME = 'polandballhub-cache-v3';
+const STATIC_CACHE = 'polandballhub-static-v3';
 
 const urlsToCache = [
   '{{ site.baseurl }}/',
@@ -13,134 +13,89 @@ const urlsToCache = [
   '{{ site.baseurl }}/parklauncher/index.html',
   '{{ site.baseurl }}/manifest.json'
 ];
-// インストール時にキャッシュを作成
+
 self.addEventListener('install', event => {
   event.waitUntil(
-    Promise.all([
-      caches.open(CACHE_NAME).then(cache => {
-        console.log('Opened dynamic cache');
-        return cache.addAll(urlsToCache).catch(err => {
-          console.log('Cache addAll error:', err);
-        });
-      }),
-      caches.open(STATIC_CACHE).then(cache => {
-        console.log('Opened static cache');
-      })
-    ]).then(() => {
-      self.skipWaiting();
-    })
+    caches.open(CACHE_NAME)
+      .then(cache => cache.addAll(urlsToCache))
+      .then(() => self.skipWaiting())
   );
 });
 
-// フェッチイベント処理
+self.addEventListener('activate', event => {
+  const cacheWhitelist = [CACHE_NAME, STATIC_CACHE];
+
+  event.waitUntil(
+    caches.keys()
+      .then(cacheNames => Promise.all(
+        cacheNames
+          .filter(cacheName => !cacheWhitelist.includes(cacheName))
+          .map(cacheName => caches.delete(cacheName))
+      ))
+      .then(() => self.clients.claim())
+  );
+});
+
 self.addEventListener('fetch', event => {
   const { request } = event;
-  const url = new URL(request.url);
 
-  // GETリクエストのみ処理
   if (request.method !== 'GET') {
     return;
   }
 
-  // 外部リソース（CDN、API）はネットワーク優先
-  if (url.origin !== location.origin) {
+  const url = new URL(request.url);
+
+  // Keep third-party resources network-first, with a cached fallback.
+  if (url.origin !== self.location.origin) {
     event.respondWith(
       fetch(request)
         .then(response => {
-          if (response && response.status === 200) {
+          if (response && response.ok) {
             const responseClone = response.clone();
-            caches.open(STATIC_CACHE).then(cache => {
-              cache.put(request, responseClone);
-            });
+            caches.open(STATIC_CACHE).then(cache => cache.put(request, responseClone));
           }
           return response;
         })
-        .catch(() => {
-          return caches.match(request);
-        })
+        .catch(() => caches.match(request))
     );
     return;
   }
 
-// HTMLページはネットワーク優先
-if (
-  request.mode === 'navigate' ||
-  request.destination === 'document' ||
-  url.pathname.endsWith('/') ||
-  url.pathname.endsWith('.html')
-) {
+  // HTML navigation stays fresh but remains available offline.
+  if (
+    request.mode === 'navigate' ||
+    request.destination === 'document' ||
+    url.pathname.endsWith('/') ||
+    url.pathname.endsWith('.html')
+  ) {
+    event.respondWith(
+      fetch(request, { cache: 'no-store' })
+        .then(response => {
+          if (response && response.ok) {
+            const responseClone = response.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(request, responseClone));
+          }
+          return response;
+        })
+        .catch(() => caches.match(request))
+    );
+    return;
+  }
+
+  // Static assets use cache-first for fast repeat visits.
   event.respondWith(
-    fetch(request, { cache: 'no-store' })
-      .then(response => {
-        const responseClone = response.clone();
-
-        caches.open(CACHE_NAME).then(cache => {
-          cache.put(request, responseClone);
-        });
-
-        return response;
-      })
-      .catch(() => caches.match(request))
-  );
-
-  return;
-}
-
-// CSS、JavaScript、画像などはキャッシュ利用
-event.respondWith(
-  caches.match(request).then(cachedResponse => {
-    return cachedResponse || fetch(request).then(response => {
-      if (response && response.status === 200) {
-        const responseClone = response.clone();
-
-        caches.open(STATIC_CACHE).then(cache => {
-          cache.put(request, responseClone);
-        });
+    caches.match(request).then(cachedResponse => {
+      if (cachedResponse) {
+        return cachedResponse;
       }
 
-      return response;
-    });
-  })
-);
-
-          if (!response || response.status !== 200 || response.type !== 'basic') {
-            return response;
-          }
-          const responseToCache = response.clone();
-          caches.open(CACHE_NAME).then(cache => {
-            cache.put(request, responseToCache);
-          });
-          return response;
-        });
-      })
-      .catch(() => {
-        // オフライン時のフォールバック
-        return new Response('オフラインです。インターネット接続を確認してください。', {
-          status: 503,
-          statusText: 'Service Unavailable',
-          headers: new Headers({
-            'Content-Type': 'text/plain; charset=utf-8'
-          })
-        });
-      })
-  );
-});
-
-// アクティベーション時に古いキャッシュを削除
-self.addEventListener('activate', event => {
-  const cacheWhitelist = [CACHE_NAME, STATIC_CACHE];
-  event.waitUntil(
-    caches.keys().then(cacheNames => {
-      return Promise.all(
-        cacheNames.map(cacheName => {
-          if (cacheWhitelist.indexOf(cacheName) === -1) {
-            console.log('Deleting old cache:', cacheName);
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    }).then(() => {
-      self.clients.claim();
+      return fetch(request).then(response => {
+        if (response && response.ok) {
+          const responseClone = response.clone();
+          caches.open(STATIC_CACHE).then(cache => cache.put(request, responseClone));
+        }
+        return response;
+      });
     })
   );
 });
