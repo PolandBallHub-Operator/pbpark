@@ -1,1 +1,1275 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>タングルとカード - Polandballpark Studio</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for symbols & icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom styling for app layout & animations -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800;900&display=swap');
 
+        body {
+            font-family: 'M PLUS Rounded 1c', sans-serif;
+            background: #0f172a;
+            color: #f8fafc;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+            overflow: hidden;
+        }
+
+        /* Glassmorphism mobile wrapper */
+        .app-container {
+            width: 100%;
+            max-width: 480px;
+            height: 100vh;
+            height: 100dvh;
+            margin: 0 auto;
+            position: relative;
+            background: linear-gradient(135deg, #1e1b4b 0%, #311b92 50%, #0f172a 100%);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Custom Card styles */
+        .playing-card {
+            aspect-ratio: 2.5 / 3.5;
+            perspective: 1000px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .playing-card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-style: preserve-3d;
+        }
+
+        .playing-card.flipped .playing-card-inner {
+            transform: rotateY(180deg);
+        }
+
+        .card-front, .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            border-radius: 0.5rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 0.35rem;
+            box-sizing: border-box;
+            border: 2px solid #e2e8f0;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-front {
+            background-color: #ffffff;
+            color: #1e293b;
+            transform: rotateY(180deg);
+        }
+
+        .card-back {
+            background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%);
+            color: #fbbf24;
+            border-color: #fbbf24;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Character speech bubble */
+        .speech-bubble {
+            position: relative;
+            background: rgba(255, 255, 255, 0.95);
+            color: #1e293b;
+            border-radius: 1.25rem;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3);
+        }
+        
+        .speech-bubble::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 30px;
+            border-width: 10px 10px 0;
+            border-style: solid;
+            border-color: rgba(255, 255, 255, 0.95) transparent;
+            display: block;
+            width: 0;
+        }
+
+        /* Custom pulse and bounce keyframes */
+        @keyframes gentle-bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+
+        .animate-gentle {
+            animation: gentle-bounce 2.5s infinite ease-in-out;
+        }
+
+        @keyframes card-draw {
+            0% { transform: translateY(50px) scale(0.8); opacity: 0; }
+            100% { transform: translateY(0) scale(1); opacity: 1; }
+        }
+
+        .animate-draw {
+            animation: card-draw 0.3s ease-out forwards;
+        }
+
+        /* Custom Scrollbar for list menus */
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen bg-slate-950 p-0 md:p-4">
+
+    <div class="app-container rounded-none md:rounded-3xl border-0 md:border-4 border-slate-700/50">
+        
+        <!-- ========================================== -->
+        <!-- 1. STARTUP / SPLASH SCREEN                 -->
+        <!-- ========================================== -->
+        <div id="splash-screen" class="absolute inset-0 z-50 bg-slate-900 flex flex-col items-center justify-center p-6 text-center transition-opacity duration-700">
+            <!-- Studio Logo Block -->
+            <div id="splash-content" class="flex flex-col items-center space-y-6 opacity-0 transition-opacity duration-1000">
+                <div class="relative">
+                    <!-- Polandball Image -->
+                    <img id="pb-logo" src="https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/poland/normal.png" 
+                         alt="Polandball" 
+                         class="w-32 h-32 object-contain drop-shadow-[0_10px_20px_rgba(239,68,68,0.4)] animate-gentle"
+                         onerror="this.src='https://placehold.co/128x128/ef4444/ffffff?text=PB'">
+                    <div class="absolute -bottom-2 -right-2 bg-amber-400 text-slate-950 px-2 py-0.5 rounded-full text-xs font-black tracking-widest shadow">
+                        STUDIO
+                    </div>
+                </div>
+
+                <div class="space-y-1">
+                    <h1 class="text-2xl font-black tracking-wider text-slate-100 uppercase">
+                        Polandballpark
+                    </h1>
+                    <p class="text-xs text-amber-400 font-bold uppercase tracking-widest">
+                        Presents
+                    </p>
+                </div>
+
+                <div class="pt-8 flex items-center space-x-2 text-slate-400 text-xs">
+                    <span class="inline-block w-2 h-2 rounded-full bg-indigo-500 animate-ping"></span>
+                    <span>Touch screen to start</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top App Bar -->
+        <header class="w-full bg-slate-900/80 backdrop-blur-md px-4 py-3 border-b border-white/10 flex items-center justify-between z-20 shrink-0">
+            <div class="flex items-center space-x-2">
+                <span class="text-2xl text-amber-400 font-black">🂥</span>
+                <div>
+                    <h2 class="text-sm font-extrabold text-white tracking-wide flex items-center gap-1">
+                        タングルとカード
+                    </h2>
+                    <p class="text-[10px] text-indigo-300 font-semibold">
+                        ♠️ ♣️ ♥️ ♦️ Card Game
+                    </p>
+                </div>
+            </div>
+
+            <!-- Level Selector / Display Badge -->
+            <div class="flex items-center space-x-2 bg-indigo-950/80 border border-indigo-500/40 rounded-full px-3 py-1">
+                <i class="fa-solid fa-crown text-amber-400 text-xs"></i>
+                <span class="text-xs font-bold text-slate-200">Lv.</span>
+                <span id="header-level-val" class="text-sm font-black text-amber-300">1</span>
+            </div>
+        </header>
+
+        <!-- Main Dynamic Screen View Container -->
+        <main id="main-view" class="flex-1 relative flex flex-col overflow-hidden">
+
+            <!-- ========================================== -->
+            <!-- 2. MAIN MENU SCREEN                        -->
+            <!-- ========================================== -->
+            <div id="screen-menu" class="absolute inset-0 flex flex-col justify-between p-4 z-10 transition-transform duration-300">
+                
+                <!-- Character & Dialogue Section -->
+                <div class="flex flex-col items-center pt-2 space-y-3">
+                    
+                    <!-- Speech Bubble -->
+                    <div class="speech-bubble w-full max-w-xs p-3.5 text-center transition-all duration-300">
+                        <p id="tangle-dialogue" class="text-sm font-bold text-slate-800 leading-snug">
+                            「イッヒと遊ぶダス！トランプゲームを選ぶダス！」
+                        </p>
+                    </div>
+
+                    <!-- Character Card Tangle Image -->
+                    <div class="relative group cursor-pointer" onclick="app.speakRandom()">
+                        <div class="absolute inset-0 bg-indigo-500/20 blur-xl rounded-full"></div>
+                        <img id="card-tangle-img" 
+                             src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbpark/refs/heads/main/games/cardgamet/cardgametangle.png" 
+                             alt="Card Tangle" 
+                             class="w-36 h-36 object-contain relative z-10 drop-shadow-[0_10px_15px_rgba(0,0,0,0.5)] transition-transform duration-200 active:scale-95"
+                             onerror="this.src='https://placehold.co/150x150/4f46e5/ffffff?text=CardTangle'">
+                        
+                        <div class="absolute -top-1 -right-1 bg-rose-500 text-white rounded-full w-7 h-7 flex items-center justify-center text-xs font-black shadow-lg">
+                            ♠️
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Difficulty Level Slider (Lv 1 - 100) -->
+                <div class="bg-slate-900/70 border border-white/10 rounded-2xl p-3.5 backdrop-blur-md shadow-lg space-y-2">
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="font-bold text-slate-300 flex items-center gap-1">
+                            <i class="fa-solid fa-sliders text-indigo-400"></i> 難しさ (難易度)
+                        </span>
+                        <span class="font-black text-amber-400 text-sm">
+                            Lv. <span id="level-display">1</span> / 100
+                        </span>
+                    </div>
+
+                    <div class="flex items-center space-x-3">
+                        <span class="text-xs font-bold text-slate-400">1</span>
+                        <input id="level-slider" type="range" min="1" max="100" value="1" 
+                               class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                               oninput="app.updateLevel(this.value)">
+                        <span class="text-xs font-bold text-amber-400">100</span>
+                    </div>
+
+                    <p id="level-desc" class="text-[11px] text-slate-400 text-center font-medium">
+                        初心者向け：ゆっくり遊べるダス！
+                    </p>
+                </div>
+
+                <!-- Game Selection Grid -->
+                <div class="grid grid-cols-2 gap-2.5 pt-1">
+                    
+                    <!-- Baba-nuki (Old Maid) -->
+                    <button onclick="app.startGame('babanuki')" 
+                            class="bg-gradient-to-br from-indigo-600 to-indigo-800 hover:from-indigo-500 hover:to-indigo-700 active:scale-95 text-white p-3.5 rounded-2xl border border-indigo-400/30 flex flex-col items-center justify-center space-y-1 shadow-lg transition-all">
+                        <span class="text-2xl">🂥 ♠️</span>
+                        <span class="font-extrabold text-sm">ババ抜き</span>
+                        <span class="text-[10px] text-indigo-200">ジョーカーを回避ダス！</span>
+                    </button>
+
+                    <!-- Jiji-nuki -->
+                    <button onclick="app.startGame('jijinuki')" 
+                            class="bg-gradient-to-br from-purple-600 to-purple-800 hover:from-purple-500 hover:to-purple-700 active:scale-95 text-white p-3.5 rounded-2xl border border-purple-400/30 flex flex-col items-center justify-center space-y-1 shadow-lg transition-all">
+                        <span class="text-2xl">🂥 ♥️</span>
+                        <span class="font-extrabold text-sm">ジジ抜き</span>
+                        <span class="text-[10px] text-purple-200">1枚隠された謎カード！</span>
+                    </button>
+
+                    <!-- Speed -->
+                    <button onclick="app.startGame('speed')" 
+                            class="bg-gradient-to-br from-rose-600 to-rose-800 hover:from-rose-500 hover:to-rose-700 active:scale-95 text-white p-3.5 rounded-2xl border border-rose-400/30 flex flex-col items-center justify-center space-y-1 shadow-lg transition-all">
+                        <span class="text-2xl">🂥 ♦️</span>
+                        <span class="font-extrabold text-sm">スピード</span>
+                        <span class="text-[10px] text-rose-200">速攻タップ対決するダス！</span>
+                    </button>
+
+                    <!-- Memory (Shinkei-suijaku) -->
+                    <button onclick="app.startGame('memory')" 
+                            class="bg-gradient-to-br from-emerald-600 to-emerald-800 hover:from-emerald-500 hover:to-emerald-700 active:scale-95 text-white p-3.5 rounded-2xl border border-emerald-400/30 flex flex-col items-center justify-center space-y-1 shadow-lg transition-all">
+                        <span class="text-2xl">🂥 ♣️</span>
+                        <span class="font-extrabold text-sm">神経衰弱</span>
+                        <span class="text-[10px] text-emerald-200">記憶力で勝負ダス！</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- ========================================== -->
+            <!-- 3. GAME PLAY AREA                          -->
+            <!-- ========================================== -->
+            <div id="screen-game" class="absolute inset-0 flex flex-col p-3 z-10 translate-x-full transition-transform duration-300">
+                
+                <!-- Top Status Bar in Game -->
+                <div class="flex justify-between items-center bg-slate-900/60 backdrop-blur border border-white/10 rounded-xl px-3 py-1.5 mb-2">
+                    <button onclick="app.quitGame()" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold px-2.5 py-1 rounded-lg border border-slate-600">
+                        <i class="fa-solid fa-arrow-left"></i> 戻る
+                    </button>
+
+                    <div id="game-status-text" class="text-xs font-bold text-amber-300">
+                        ゲーム中...
+                    </div>
+
+                    <div id="game-score-badge" class="text-xs font-extrabold text-indigo-300">
+                        スコア: 0
+                    </div>
+                </div>
+
+                <!-- Opponent Card Tangle Avatar Area -->
+                <div class="flex items-center space-x-2 bg-indigo-950/50 p-2 rounded-xl border border-indigo-500/20 mb-2">
+                    <img src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbpark/refs/heads/main/games/cardgamet/cardgametangle.png" 
+                         class="w-10 h-10 object-contain drop-shadow" alt="Opponent">
+                    <div class="flex-1 min-w-0">
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-bold text-white truncate">カードタングル</span>
+                            <span id="opp-card-count" class="text-[10px] text-indigo-300 font-semibold">手札: 0枚</span>
+                        </div>
+                        <p id="game-tangle-msg" class="text-[11px] text-amber-200 truncate font-medium">
+                            「負けないノイ！」
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Main Dynamic Playing Board -->
+                <div id="game-board" class="flex-1 bg-slate-900/40 border border-white/5 rounded-2xl p-2 relative flex flex-col justify-between overflow-hidden">
+                    <!-- Dynamic Game Cards render here -->
+                </div>
+
+            </div>
+        </main>
+
+        <!-- Result Overlay Modal -->
+        <div id="modal-result" class="absolute inset-0 z-40 bg-slate-950/80 backdrop-blur-md hidden flex flex-col items-center justify-center p-6 text-center animate-draw">
+            <div class="bg-slate-900 border-2 border-indigo-500/50 rounded-3xl p-6 w-full max-w-xs shadow-2xl space-y-4">
+                <div id="result-icon" class="text-5xl">🏆</div>
+                <h3 id="result-title" class="text-2xl font-black text-white">勝利ダス！</h3>
+                <p id="result-desc" class="text-xs text-slate-300 font-medium">カードタングルに見事に勝利したダス！</p>
+                
+                <div class="pt-2 flex flex-col space-y-2">
+                    <button onclick="app.restartGame()" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black py-2.5 rounded-xl text-sm shadow">
+                        もう一度遊ぶノイ！
+                    </button>
+                    <button onclick="app.quitGame()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2 rounded-xl text-xs">
+                        メニューへ戻る
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        /**
+         * Sound Effects Engine using Web Audio API (No external assets required)
+         */
+        class SoundEngine {
+            constructor() {
+                this.ctx = null;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            }
+
+            playTone(freq, duration = 0.1, type = 'sine') {
+                try {
+                    this.init();
+                    if (!this.ctx) return;
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = type;
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                    gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + duration);
+                } catch(e) {}
+            }
+
+            playCardFlip() {
+                this.playTone(400, 0.05, 'triangle');
+            }
+
+            playMatch() {
+                this.playTone(523.25, 0.1, 'sine');
+                setTimeout(() => this.playTone(659.25, 0.15, 'sine'), 80);
+            }
+
+            playWin() {
+                const notes = [523.25, 659.25, 783.99, 1046.50];
+                notes.forEach((freq, idx) => {
+                    setTimeout(() => this.playTone(freq, 0.2, 'triangle'), idx * 100);
+                });
+            }
+
+            playLose() {
+                const notes = [300, 260, 220];
+                notes.forEach((freq, idx) => {
+                    setTimeout(() => this.playTone(freq, 0.25, 'sawtooth'), idx * 120);
+                });
+            }
+        }
+
+        const sound = new SoundEngine();
+
+        /**
+         * Main Application & Game Logic Engine
+         */
+        class CardGameApp {
+            constructor() {
+                this.currentLevel = 1;
+                this.currentGame = null;
+                this.suits = ['♠️', '♣️', '♥️', '♦️'];
+                this.suitColors = { '♠️': 'text-slate-800', '♣️': 'text-slate-800', '♥️': 'text-rose-600', '♦️': 'text-rose-600' };
+                
+                // Card Tangle Catchphrases
+                this.quotes = [
+                    "イッヒと遊ぶダス！トランプゲームを選ぶダス！",
+                    "カードタングルはカードの天才ダス！",
+                    "♠️ ♣️ ♥️ ♦️ どのスートが好きダスか？",
+                    "難しさLv100に挑戦してみるダス？",
+                    "Nein！負けないダスよ〜！集中するダス！",
+                    "🂥 カードは心を映す鏡ダス！"
+                ];
+
+                // Level descriptions
+                this.levelDescriptions = {
+                    low: "初級：手札少なめ・スローペースで遊ぶダス！",
+                    mid: "中級：カード増量・標準的な勝負ダス！",
+                    high: "上級：スピード超高速・タングルの記憶力完璧ダス！",
+                    god: "神級 Lv100：極限のカードバトルダス！！"
+                };
+
+                this.initEvents();
+            }
+
+            initEvents() {
+                // Splash screen transition
+                const splash = document.getElementById('splash-screen');
+                const splashContent = document.getElementById('splash-content');
+
+                setTimeout(() => {
+                    splashContent.classList.remove('opacity-0');
+                }, 300);
+
+                splash.addEventListener('click', () => {
+                    sound.init();
+                    sound.playCardFlip();
+                    splash.classList.add('opacity-0');
+                    setTimeout(() => splash.style.display = 'none', 700);
+                });
+            }
+
+            // Update level and text dynamically
+            updateLevel(val) {
+                this.currentLevel = parseInt(val, 10);
+                document.getElementById('level-display').innerText = this.currentLevel;
+                document.getElementById('header-level-val').innerText = this.currentLevel;
+
+                const descEl = document.getElementById('level-desc');
+                if (this.currentLevel <= 25) descEl.innerText = this.levelDescriptions.low;
+                else if (this.currentLevel <= 65) descEl.innerText = this.levelDescriptions.mid;
+                else if (this.currentLevel <= 95) descEl.innerText = this.levelDescriptions.high;
+                else descEl.innerText = this.levelDescriptions.god;
+
+                // Tangle reaction when dragging slider
+                if (Math.random() < 0.2) {
+                    this.speak(`「Lv.${this.currentLevel}か！やるダスね！」`);
+                }
+            }
+
+            speak(text) {
+                const bubble = document.getElementById('tangle-dialogue');
+                const inGameBubble = document.getElementById('game-tangle-msg');
+                if (bubble) bubble.innerText = text;
+                if (inGameBubble) inGameBubble.innerText = text;
+            }
+
+            speakRandom() {
+                sound.playCardFlip();
+                const q = this.quotes[Math.floor(Math.random() * this.quotes.length)];
+                this.speak(q);
+            }
+
+            createDeck(includeJoker = false, maxRank = 13) {
+                const deck = [];
+                let id = 0;
+                for (let rank = 1; rank <= maxRank; rank++) {
+                    for (let suit of this.suits) {
+                        deck.push({
+                            id: id++,
+                            suit: suit,
+                            rank: rank,
+                            valStr: rank === 1 ? 'A' : rank === 11 ? 'J' : rank === 12 ? 'Q' : rank === 13 ? 'K' : rank.toString(),
+                            isJoker: false
+                        });
+                    }
+                }
+                if (includeJoker) {
+                    deck.push({ id: id++, suit: '🃏', rank: 0, valStr: 'JOKER', isJoker: true });
+                }
+                return this.shuffle(deck);
+            }
+
+            shuffle(array) {
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]];
+                }
+                return array;
+            }
+
+            // Navigation helpers
+            startGame(gameType) {
+                sound.playCardFlip();
+                this.currentGame = gameType;
+                document.getElementById('screen-menu').classList.add('-translate-x-full');
+                document.getElementById('screen-game').classList.remove('translate-x-full');
+
+                if (gameType === 'babanuki') this.initBabanuki(false);
+                else if (gameType === 'jijinuki') this.initBabanuki(true);
+                else if (gameType === 'speed') this.initSpeed();
+                else if (gameType === 'memory') this.initMemory();
+            }
+
+            quitGame() {
+                sound.playCardFlip();
+                document.getElementById('screen-menu').classList.remove('-translate-x-full');
+                document.getElementById('screen-game').classList.add('translate-x-full');
+                document.getElementById('modal-result').classList.add('hidden');
+                this.speak("「次は何で遊ぶダスか？」");
+            }
+
+            restartGame() {
+                document.getElementById('modal-result').classList.add('hidden');
+                this.startGame(this.currentGame);
+            }
+
+            showWin(msg = "カードタングルに勝利したダス！") {
+                sound.playWin();
+                document.getElementById('result-icon').innerText = "🏆";
+                document.getElementById('result-title').innerText = "勝利ダス！";
+                document.getElementById('result-desc').innerText = msg;
+                document.getElementById('modal-result').classList.remove('hidden');
+            }
+
+            showLose(msg = "カードタングルの勝ちダス！") {
+                sound.playLose();
+                document.getElementById('result-icon').innerText = "😭";
+                document.getElementById('result-title').innerText = "Nein！敗北ダス…";
+                document.getElementById('result-desc').innerText = msg;
+                document.getElementById('modal-result').classList.remove('hidden');
+            }
+
+            // ==========================================
+            // GAME MODE 1 & 2: BABA-NUKI & JIJI-NUKI
+            // ==========================================
+            initBabanuki(isJijinuki = false) {
+                document.getElementById('game-status-text').innerText = isJijinuki ? "ジジ抜き" : "ババ抜き";
+                const board = document.getElementById('game-board');
+                board.innerHTML = '';
+
+                // Card count scaling by Level (Lv1: 1~5 ranks, Lv100: full 1~13 ranks)
+                const maxRank = Math.min(13, Math.max(3, Math.floor(this.currentLevel / 8) + 3));
+                let deck = this.createDeck(!isJijinuki, maxRank);
+
+                if (isJijinuki) {
+                    // Remove 1 random card secretly
+                    deck.pop();
+                }
+
+                // Deal cards to player (0) and Tangle (1)
+                let playerHand = [];
+                let tangleHand = [];
+
+                deck.forEach((card, idx) => {
+                    if (idx % 2 === 0) playerHand.push(card);
+                    else tangleHand.push(card);
+                });
+
+                // Helper to discard pairs
+                const removePairs = (hand) => {
+                    const counts = {};
+                    hand.forEach(c => {
+                        if (!c.isJoker) counts[c.rank] = (counts[c.rank] || 0) + 1;
+                    });
+                    const remaining = [];
+                    const removedRanks = new Set();
+                    hand.forEach(c => {
+                        if (c.isJoker) {
+                            remaining.push(c);
+                        } else if (counts[c.rank] % 2 === 1 && !removedRanks.has(c.rank)) {
+                            remaining.push(c);
+                            removedRanks.add(c.rank);
+                        }
+                    });
+                    return remaining;
+                };
+
+                playerHand = removePairs(playerHand);
+                tangleHand = removePairs(tangleHand);
+
+                this.babanukiState = {
+                    playerHand,
+                    tangleHand,
+                    isPlayerTurn: true,
+                    isJijinuki,
+                    isBusy: false
+                };
+
+                this.speak(isJijinuki ? "「1枚消えたジジ抜きダス！引き当てるダス！」" : "「ジョーカーを持ったら負けダスよ〜！」");
+                this.renderBabanukiBoard();
+            }
+
+            renderBabanukiBoard() {
+                const board = document.getElementById('game-board');
+                board.innerHTML = '';
+                const { playerHand, tangleHand, isPlayerTurn } = this.babanukiState;
+
+                document.getElementById('opp-card-count').innerText = `手札: ${tangleHand.length}枚`;
+                document.getElementById('game-score-badge').innerText = `自分: ${playerHand.length}枚`;
+
+                // Check Win/Loss
+                if (playerHand.length === 0 && tangleHand.length === 0) {
+                    this.showWin("引き分けダス！二人とも手札ゼロ！");
+                    return;
+                }
+                if (playerHand.length === 0) {
+                    this.showWin("上がりダス！お見事ダス！");
+                    return;
+                }
+                if (tangleHand.length === 0) {
+                    this.showLose("イッヒが上がったダス！");
+                    return;
+                }
+
+                // Render Opponent Hand (Hidden cards to draw from)
+                const oppArea = document.createElement('div');
+                oppArea.className = "flex justify-center items-center gap-1.5 flex-wrap my-auto min-h-[110px] p-2 bg-slate-950/30 rounded-xl border border-white/5";
+                
+                tangleHand.forEach((card, idx) => {
+                    const cardEl = document.createElement('div');
+                    cardEl.className = `playing-card w-12 sm:w-14 cursor-pointer hover:-translate-y-2 transition-transform duration-200 ${isPlayerTurn && !this.babanukiState.isBusy ? 'ring-2 ring-amber-400' : ''}`;
+                    cardEl.innerHTML = `
+                        <div class="playing-card-inner">
+                            <div class="card-back text-sm">
+                                <span class="text-amber-300 font-bold">🂥</span>
+                            </div>
+                        </div>
+                    `;
+                    if (isPlayerTurn && !this.babanukiState.isBusy) {
+                        cardEl.onclick = () => this.babanukiPlayerDraw(idx);
+                    }
+                    oppArea.appendChild(cardEl);
+                });
+
+                // Center Turn Info Banner
+                const infoArea = document.createElement('div');
+                infoArea.className = "text-center my-2 py-1 px-3 bg-indigo-950/70 rounded-full border border-indigo-400/30 text-xs font-bold text-amber-300";
+                infoArea.innerText = isPlayerTurn ? "👉 イッヒの手札から1枚選んで引くダス！" : "🤖 イッヒが手札を選んでいる Nein…";
+
+                // Render Player Hand (Visible)
+                const playerArea = document.createElement('div');
+                playerArea.className = "flex justify-center items-center gap-1.5 flex-wrap my-auto min-h-[110px] p-2 bg-slate-950/30 rounded-xl border border-white/5";
+
+                playerHand.forEach((card) => {
+                    const colorClass = this.suitColors[card.suit] || 'text-slate-900';
+                    const cardEl = document.createElement('div');
+                    cardEl.className = "playing-card flipped w-12 sm:w-14 animate-draw";
+                    cardEl.innerHTML = `
+                        <div class="playing-card-inner">
+                            <div class="card-front">
+                                <div class="text-[10px] font-bold ${colorClass}">${card.valStr} ${card.suit}</div>
+                                <div class="text-lg font-black text-center ${card.isJoker ? 'text-purple-600' : colorClass}">
+                                    ${card.isJoker ? '🃏' : card.suit}
+                                </div>
+                                <div class="text-[10px] font-bold ${colorClass} text-right">${card.valStr}</div>
+                            </div>
+                        </div>
+                    `;
+                    playerArea.appendChild(cardEl);
+                });
+
+                board.appendChild(oppArea);
+                board.appendChild(infoArea);
+                board.appendChild(playerArea);
+
+                if (!isPlayerTurn && !this.babanukiState.isBusy) {
+                    this.babanukiState.isBusy = true;
+                    setTimeout(() => this.babanukiTangleDraw(), 1000);
+                }
+            }
+
+            babanukiPlayerDraw(index) {
+                if (this.babanukiState.isBusy) return;
+                this.babanukiState.isBusy = true;
+
+                sound.playCardFlip();
+                const drawn = this.babanukiState.tangleHand.splice(index, 1)[0];
+                const matchIdx = this.babanukiState.playerHand.findIndex(c => !c.isJoker && !drawn.isJoker && c.rank === drawn.rank);
+
+                if (matchIdx !== -1) {
+                    sound.playMatch();
+                    this.babanukiState.playerHand.splice(matchIdx, 1);
+                    this.speak("「あ！ペアが揃ったダスね！」");
+                } else {
+                    this.babanukiState.playerHand.push(drawn);
+                    this.speak("「ふふっ、何のカードを引いたんか？」");
+                }
+
+                this.babanukiState.isPlayerTurn = false;
+                this.babanukiState.isBusy = false;
+                this.renderBabanukiBoard();
+            }
+
+            babanukiTangleDraw() {
+                if (this.babanukiState.playerHand.length === 0) {
+                    this.babanukiState.isBusy = false;
+                    return;
+                }
+                sound.playCardFlip();
+
+                // Tangle draws from Player
+                const idx = Math.floor(Math.random() * this.babanukiState.playerHand.length);
+                const drawn = this.babanukiState.playerHand.splice(idx, 1)[0];
+                const matchIdx = this.babanukiState.tangleHand.findIndex(c => !c.isJoker && !drawn.isJoker && c.rank === drawn.rank);
+
+                if (matchIdx !== -1) {
+                    sound.playMatch();
+                    this.babanukiState.tangleHand.splice(matchIdx, 1);
+                    this.speak("「やったダス！ペアが揃ったダス！」");
+                } else {
+                    this.babanukiState.tangleHand.push(drawn);
+                    this.speak("「むむっ…揃わなかったダス！」");
+                }
+
+                this.babanukiState.isPlayerTurn = true;
+                this.babanukiState.isBusy = false;
+                this.renderBabanukiBoard();
+            }
+
+            renderBabanukiBoard() {
+                const board = document.getElementById('game-board');
+                board.innerHTML = '';
+                const { playerHand, tangleHand, isPlayerTurn } = this.babanukiState;
+
+                document.getElementById('opp-card-count').innerText = `手札: ${tangleHand.length}枚`;
+                document.getElementById('game-score-badge').innerText = `自分: ${playerHand.length}枚`;
+
+                // Check Win/Loss
+                if (playerHand.length === 0 && tangleHand.length === 0) {
+                    this.showWin("引き分けダス！二人とも手札ゼロ！");
+                    return;
+                }
+                if (playerHand.length === 0) {
+                    this.showWin("上がりダス！お見事ダス！");
+                    return;
+                }
+                if (tangleHand.length === 0) {
+                    this.showLose("カードタングルが上がったダス！");
+                    return;
+                }
+
+                // Render Opponent Hand (Hidden cards to draw from)
+                const oppArea = document.createElement('div');
+                oppArea.className = "flex justify-center items-center gap-1.5 flex-wrap my-auto min-h-[110px] p-2 bg-slate-950/30 rounded-xl border border-white/5";
+                
+                tangleHand.forEach((card, idx) => {
+                    const cardEl = document.createElement('div');
+                    cardEl.className = `playing-card w-12 sm:w-14 cursor-pointer hover:-translate-y-2 transition-transform duration-200 ${isPlayerTurn ? 'ring-2 ring-amber-400' : ''}`;
+                    cardEl.innerHTML = `
+                        <div class="playing-card-inner">
+                            <div class="card-back text-sm">
+                                <span class="text-amber-300 font-bold">🂥</span>
+                            </div>
+                        </div>
+                    `;
+                    if (isPlayerTurn) {
+                        cardEl.onclick = () => this.babanukiPlayerDraw(idx);
+                    }
+                    oppArea.appendChild(cardEl);
+                });
+
+                // Center Turn Info Banner
+                const infoArea = document.createElement('div');
+                infoArea.className = "text-center my-2 py-1 px-3 bg-indigo-950/70 rounded-full border border-indigo-400/30 text-xs font-bold text-amber-300";
+                infoArea.innerText = isPlayerTurn ? "👉 タングルの手札から1枚選んで引くダス！" : "🤖 タングルが手札を選んでいる Nein…";
+
+                // Render Player Hand (Visible)
+                const playerArea = document.createElement('div');
+                playerArea.className = "flex justify-center items-center gap-1.5 flex-wrap my-auto min-h-[110px] p-2 bg-slate-950/30 rounded-xl border border-white/5";
+
+                playerHand.forEach((card) => {
+                    const colorClass = this.suitColors[card.suit] || 'text-slate-900';
+                    const cardEl = document.createElement('div');
+                    cardEl.className = "playing-card flipped w-12 sm:w-14 animate-draw";
+                    cardEl.innerHTML = `
+                        <div class="playing-card-inner">
+                            <div class="card-front">
+                                <div class="text-[10px] font-bold ${colorClass}">${card.valStr} ${card.suit}</div>
+                                <div class="text-lg font-black text-center ${card.isJoker ? 'text-purple-600' : colorClass}">
+                                    ${card.isJoker ? '🃏' : card.suit}
+                                </div>
+                                <div class="text-[10px] font-bold ${colorClass} text-right">${card.valStr}</div>
+                            </div>
+                        </div>
+                    `;
+                    playerArea.appendChild(cardEl);
+                });
+
+                board.appendChild(oppArea);
+                board.appendChild(infoArea);
+                board.appendChild(playerArea);
+
+                if (!isPlayerTurn) {
+                    setTimeout(() => this.babanukiTangleDraw(), 1000);
+                }
+            }
+
+            babanukiPlayerDraw(index) {
+                sound.playCardFlip();
+                const drawn = this.babanukiState.tangleHand.splice(index, 1)[0];
+                const matchIdx = this.babanukiState.playerHand.findIndex(c => !c.isJoker && !drawn.isJoker && c.rank === drawn.rank);
+
+                if (matchIdx !== -1) {
+                    sound.playMatch();
+                    this.babanukiState.playerHand.splice(matchIdx, 1);
+                    this.speak("「あ！ペアが揃ったダスね！」");
+                } else {
+                    this.babanukiState.playerHand.push(drawn);
+                    this.speak("「ふふっ、何のカードを引いたんか？」");
+                }
+
+                this.babanukiState.isPlayerTurn = false;
+                this.renderBabanukiBoard();
+            }
+
+            babanukiTangleDraw() {
+                if (this.babanukiState.playerHand.length === 0) return;
+                sound.playCardFlip();
+
+                // Tangle draws from Player
+                const idx = Math.floor(Math.random() * this.babanukiState.playerHand.length);
+                const drawn = this.babanukiState.playerHand.splice(idx, 1)[0];
+                const matchIdx = this.babanukiState.tangleHand.findIndex(c => !c.isJoker && !drawn.isJoker && c.rank === drawn.rank);
+
+                if (matchIdx !== -1) {
+                    sound.playMatch();
+                    this.babanukiState.tangleHand.splice(matchIdx, 1);
+                    this.speak("「やったダス！ペアが揃ったダス！」");
+                } else {
+                    this.babanukiState.tangleHand.push(drawn);
+                    this.speak("「むむっ…揃わなかったダス！」");
+                }
+
+                this.babanukiState.isPlayerTurn = true;
+                this.renderBabanukiBoard();
+            }
+
+            // ==========================================
+            // GAME MODE 3: SPEED (スピーディートランプ)
+            // ==========================================
+            initSpeed() {
+                document.getElementById('game-status-text').innerText = "スピード";
+                const board = document.getElementById('game-board');
+                board.innerHTML = '';
+
+                // Speed Deck setup
+                const deck1 = this.createDeck(false, 13);
+                const deck2 = this.createDeck(false, 13);
+
+                // Player side & Tangle side
+                this.speedState = {
+                    pHand: deck1.slice(0, 4),
+                    pStock: deck1.slice(4),
+                    tHand: deck2.slice(0, 4),
+                    tStock: deck2.slice(4),
+                    center1: null,
+                    center2: null,
+                    timer: null,
+                    tangleInterval: null
+                };
+
+                // Initialize center cards
+                this.speedState.center1 = this.speedState.pStock.pop();
+                this.speedState.center2 = this.speedState.tStock.pop();
+
+                this.speak("「場札の数字±1のカードを素早く出すダス！」");
+                this.renderSpeedBoard();
+                this.startSpeedTangleAI();
+            }
+
+            renderSpeedBoard() {
+                const board = document.getElementById('game-board');
+                board.innerHTML = '';
+                const { pHand, tHand, center1, center2, pStock, tStock } = this.speedState;
+
+                document.getElementById('opp-card-count').innerText = `残山札: ${tStock.length}枚`;
+                document.getElementById('game-score-badge').innerText = `自分山札: ${pStock.length}枚`;
+
+                if (pHand.length === 0 && pStock.length === 0) {
+                    this.stopSpeedAI();
+                    this.showWin("速攻勝利ダス！カードを全部出し切ったダス！");
+                    return;
+                }
+                if (tHand.length === 0 && tStock.length === 0) {
+                    this.stopSpeedAI();
+                    this.showLose("タングルの速攻勝ちダス！");
+                    return;
+                }
+
+                // Opponent cards (Hidden/small)
+                const oppArea = document.createElement('div');
+                oppArea.className = "flex justify-center items-center gap-1 bg-slate-950/30 p-1.5 rounded-xl border border-white/5";
+                tHand.forEach(() => {
+                    oppArea.innerHTML += `
+                        <div class="playing-card w-10 sm:w-12">
+                            <div class="playing-card-inner"><div class="card-back text-xs">🂥</div></div>
+                        </div>
+                    `;
+                });
+
+                // Center Pile Area (Play targets)
+                const centerArea = document.createElement('div');
+                centerArea.className = "flex justify-center items-center space-x-6 my-auto p-4 bg-indigo-950/40 rounded-2xl border border-indigo-500/20";
+
+                const renderCenterCard = (card, targetIdx) => {
+                    if (!card) return `<div class="w-16 h-22 border-2 border-dashed border-slate-600 rounded-lg"></div>`;
+                    const colorClass = this.suitColors[card.suit];
+                    return `
+                        <div onclick="app.speedCardStuckReset()" class="playing-card flipped w-16 sm:w-20 cursor-pointer hover:scale-105 transition-transform shadow-lg">
+                            <div class="playing-card-inner">
+                                <div class="card-front">
+                                    <div class="text-xs font-bold ${colorClass}">${card.valStr} ${card.suit}</div>
+                                    <div class="text-2xl font-black text-center ${colorClass}">${card.suit}</div>
+                                    <div class="text-xs font-bold ${colorClass} text-right">${card.valStr}</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                };
+
+                centerArea.innerHTML = `
+                    <div class="flex flex-col items-center">
+                        <span class="text-[10px] text-indigo-300 font-bold mb-1">台札 1</span>
+                        ${renderCenterCard(center1, 1)}
+                    </div>
+                    <div class="flex flex-col items-center">
+                        <span class="text-[10px] text-indigo-300 font-bold mb-1">台札 2</span>
+                        ${renderCenterCard(center2, 2)}
+                    </div>
+                `;
+
+                // Player Hand (Clickable cards)
+                const playerArea = document.createElement('div');
+                playerArea.className = "flex justify-center items-center gap-2 bg-slate-950/30 p-2 rounded-xl border border-white/5";
+
+                pHand.forEach((card, idx) => {
+                    const colorClass = this.suitColors[card.suit];
+                    const cardEl = document.createElement('div');
+                    cardEl.className = "playing-card flipped w-14 sm:w-16 cursor-pointer hover:-translate-y-2 active:scale-95 transition-all";
+                    cardEl.innerHTML = `
+                        <div class="playing-card-inner">
+                            <div class="card-front">
+                                <div class="text-xs font-bold ${colorClass}">${card.valStr} ${card.suit}</div>
+                                <div class="text-xl font-black text-center ${colorClass}">${card.suit}</div>
+                                <div class="text-xs font-bold ${colorClass} text-right">${card.valStr}</div>
+                            </div>
+                        </div>
+                    `;
+                    cardEl.onclick = () => this.speedPlayPlayerCard(idx);
+                    playerArea.appendChild(cardEl);
+                });
+
+                board.appendChild(oppArea);
+                board.appendChild(centerArea);
+                board.appendChild(playerArea);
+            }
+
+            isValidSpeedMove(cardRank, targetRank) {
+                if (!cardRank || !targetRank) return false;
+                const diff = Math.abs(cardRank - targetRank);
+                // Normal ±1 or K(13)-A(1) wrap around
+                return diff === 1 || diff === 12;
+            }
+
+            speedPlayPlayerCard(handIdx) {
+                const { pHand, pStock, center1, center2 } = this.speedState;
+                const card = pHand[handIdx];
+
+                if (this.isValidSpeedMove(card.rank, center1.rank)) {
+                    sound.playCardFlip();
+                    this.speedState.center1 = card;
+                    pHand.splice(handIdx, 1);
+                    if (pStock.length > 0) pHand.push(pStock.pop());
+                    this.renderSpeedBoard();
+                } else if (this.isValidSpeedMove(card.rank, center2.rank)) {
+                    sound.playCardFlip();
+                    this.speedState.center2 = card;
+                    pHand.splice(handIdx, 1);
+                    if (pStock.length > 0) pHand.push(pStock.pop());
+                    this.renderSpeedBoard();
+                } else {
+                    this.speak("「そのカードは出せないダス！」");
+                }
+            }
+
+            startSpeedTangleAI() {
+                // AI speed based on Lv 1~100 (Interval ranges from 3000ms down to 400ms)
+                const intervalMs = Math.max(400, 3200 - (this.currentLevel * 28));
+
+                this.speedState.tangleInterval = setInterval(() => {
+                    const { tHand, tStock, center1, center2 } = this.speedState;
+                    if (!tHand || tHand.length === 0) return;
+
+                    // Search playable card for Tangle
+                    for (let i = 0; i < tHand.length; i++) {
+                        const card = tHand[i];
+                        if (this.isValidSpeedMove(card.rank, center1.rank)) {
+                            this.speedState.center1 = card;
+                            tHand.splice(i, 1);
+                            if (tStock.length > 0) tHand.push(tStock.pop());
+                            sound.playCardFlip();
+                            this.speak("「出せたダス！」");
+                            this.renderSpeedBoard();
+                            return;
+                        } else if (this.isValidSpeedMove(card.rank, center2.rank)) {
+                            this.speedState.center2 = card;
+                            tHand.splice(i, 1);
+                            if (tStock.length > 0) tHand.push(tStock.pop());
+                            sound.playCardFlip();
+                            this.speak("「はやいダス！」");
+                            this.renderSpeedBoard();
+                            return;
+                        }
+                    }
+
+                    // If stuck on both sides for both players, refresh center cards automatically
+                    this.checkSpeedStuck();
+
+                }, intervalMs);
+            }
+
+            checkSpeedStuck() {
+                const { pHand, tHand, center1, center2, pStock, tStock } = this.speedState;
+                const canPlayerMove = pHand.some(c => this.isValidSpeedMove(c.rank, center1.rank) || this.isValidSpeedMove(c.rank, center2.rank));
+                const canTangleMove = tHand.some(c => this.isValidSpeedMove(c.rank, center1.rank) || this.isValidSpeedMove(c.rank, center2.rank));
+
+                if (!canPlayerMove && !canTangleMove) {
+                    if (pStock.length > 0) this.speedState.center1 = pStock.pop();
+                    if (tStock.length > 0) this.speedState.center2 = tStock.pop();
+                    this.speak("「Nein！誰も出せないダス！仕切り直しダス！」");
+                    this.renderSpeedBoard();
+                }
+            }
+
+            stopSpeedAI() {
+                if (this.speedState && this.speedState.tangleInterval) {
+                    clearInterval(this.speedState.tangleInterval);
+                }
+            }
+
+            // ==========================================
+            // GAME MODE 4: MEMORY (神経衰弱)
+            // ==========================================
+            initMemory() {
+                document.getElementById('game-status-text').innerText = "神経衰弱";
+                const board = document.getElementById('game-board');
+                board.innerHTML = '';
+
+                // Scale grid size with level (Lv1: 6 cards, Lv100: 20 cards)
+                const pairsCount = Math.min(10, Math.max(3, Math.floor(this.currentLevel / 10) + 3));
+                const cards = [];
+                const fullDeck = this.createDeck(false, 13);
+                const selectedRanks = fullDeck.slice(0, pairsCount);
+
+                selectedRanks.forEach(c => {
+                    // Create 2 cards of same rank with 2 different suits
+                    cards.push({ id: Math.random(), rank: c.rank, valStr: c.valStr, suit: '♠️', isFlipped: false, isMatched: false });
+                    cards.push({ id: Math.random(), rank: c.rank, valStr: c.valStr, suit: '♥️', isFlipped: false, isMatched: false });
+                });
+
+                this.memoryState = {
+                    cards: this.shuffle(cards),
+                    flippedCards: [],
+                    pScore: 0,
+                    tScore: 0,
+                    isPlayerTurn: true,
+                    aiMemory: {}, // Card rank memory for Card Tangle
+                    isBusy: false
+                };
+
+                this.speak("「めくったカードの位置を覚えるダス！」");
+                this.renderMemoryBoard();
+            }
+
+            renderMemoryBoard() {
+                const board = document.getElementById('game-board');
+                board.innerHTML = '';
+                const { cards, pScore, tScore, isPlayerTurn } = this.memoryState;
+
+                document.getElementById('opp-card-count').innerText = `タングル: ${tScore}ペア`;
+                document.getElementById('game-score-badge').innerText = `自分: ${pScore}ペア`;
+
+                const totalPairs = cards.length / 2;
+                if (pScore + tScore === totalPairs) {
+                    if (pScore > tScore) this.showWin(`【${pScore} 対 ${tScore}】で見事勝利ダス！`);
+                    else if (tScore > pScore) this.showLose(`【${tScore} 対 ${pScore}】でタングルの勝ちダス！`);
+                    else this.showWin(`【${pScore} 対 ${tScore}】で引き分けダスよ！`);
+                    return;
+                }
+
+                const grid = document.createElement('div');
+                const cols = cards.length <= 8 ? 'grid-cols-3' : cards.length <= 12 ? 'grid-cols-4' : 'grid-cols-5';
+                grid.className = `grid ${cols} gap-2 m-auto w-full max-h-full overflow-y-auto p-1`;
+
+                cards.forEach((card, idx) => {
+                    const colorClass = this.suitColors[card.suit];
+                    const cardEl = document.createElement('div');
+                    cardEl.className = `playing-card ${card.isFlipped || card.isMatched ? 'flipped' : ''} ${card.isMatched ? 'opacity-30 pointer-events-none' : 'cursor-pointer hover:scale-105'} h-20 sm:h-24 transition-all`;
+
+                    cardEl.innerHTML = `
+                        <div class="playing-card-inner">
+                            <div class="card-back text-sm">🂥</div>
+                            <div class="card-front">
+                                <div class="text-[10px] font-bold ${colorClass}">${card.valStr} ${card.suit}</div>
+                                <div class="text-xl font-black text-center ${colorClass}">${card.suit}</div>
+                                <div class="text-[10px] font-bold ${colorClass} text-right">${card.valStr}</div>
+                            </div>
+                        </div>
+                    `;
+
+                    if (!card.isFlipped && !card.isMatched && isPlayerTurn && !this.memoryState.isBusy) {
+                        cardEl.onclick = () => this.memoryFlipCard(idx);
+                    }
+
+                    grid.appendChild(cardEl);
+                });
+
+                board.appendChild(grid);
+
+                if (!isPlayerTurn && !this.memoryState.isBusy) {
+                    setTimeout(() => this.memoryTangleTurn(), 800);
+                }
+            }
+
+            memoryFlipCard(index) {
+                const { cards, flippedCards } = this.memoryState;
+                const card = cards[index];
+
+                sound.playCardFlip();
+                card.isFlipped = true;
+                flippedCards.push(index);
+
+                // Memorize card position for AI
+                this.memoryState.aiMemory[index] = card.rank;
+
+                this.renderMemoryBoard();
+
+                if (flippedCards.length === 2) {
+                    this.memoryCheckMatch();
+                }
+            }
+
+            memoryCheckMatch() {
+                this.memoryState.isBusy = true;
+                const { cards, flippedCards, isPlayerTurn } = this.memoryState;
+                const idx1 = flippedCards[0];
+                const idx2 = flippedCards[1];
+
+                if (cards[idx1].rank === cards[idx2].rank) {
+                    // Match found!
+                    sound.playMatch();
+                    cards[idx1].isMatched = true;
+                    cards[idx2].isMatched = true;
+
+                    if (isPlayerTurn) {
+                        this.memoryState.pScore++;
+                        this.speak("「ペアGETダス！すごいダス！」");
+                    } else {
+                        this.memoryState.tScore++;
+                        this.speak("「やったダス！ペアゲットダス！」");
+                    }
+
+                    this.memoryState.flippedCards = [];
+                    // Keep turn on match, release busy lock after short delay
+                    setTimeout(() => {
+                        this.memoryState.isBusy = false;
+                        this.renderMemoryBoard();
+                    }, 800);
+                } else {
+                    // No match - turn ends
+                    setTimeout(() => {
+                        cards[idx1].isFlipped = false;
+                        cards[idx2].isFlipped = false;
+                        this.memoryState.flippedCards = [];
+                        this.memoryState.isPlayerTurn = !isPlayerTurn;
+                        this.memoryState.isBusy = false;
+                        this.speak(isPlayerTurn ? "「惜しいダス！イッヒの番ダスよ！」" : "「むむっ、違ったダス！」");
+                        this.renderMemoryBoard();
+                    }, 1200);
+                }
+            }
+
+            memoryTangleTurn() {
+                if (this.memoryState.isBusy) return;
+                this.memoryState.isBusy = true;
+
+                const { cards, aiMemory } = this.memoryState;
+                const unrevealedIdxs = cards.map((c, i) => (!c.isMatched && !c.isFlipped ? i : null)).filter(v => v !== null);
+
+                if (unrevealedIdxs.length < 2) {
+                    this.memoryState.isBusy = false;
+                    return;
+                }
+
+                let choice1 = null;
+                let choice2 = null;
+
+                // Higher level = better AI memory precision (Lv100 = 100% memory accuracy)
+                const memoryAccuracy = Math.min(1, this.currentLevel / 100);
+
+                // AI tries to recall pairs from memory
+                if (Math.random() <= memoryAccuracy) {
+                    const knownRanks = {};
+                    for (let idx of unrevealedIdxs) {
+                        if (aiMemory[idx] !== undefined) {
+                            const rank = aiMemory[idx];
+                            if (knownRanks[rank] !== undefined) {
+                                choice1 = knownRanks[rank];
+                                choice2 = idx;
+                                break;
+                            } else {
+                                knownRanks[rank] = idx;
+                            }
+                        }
+                    }
+                }
+
+                // If no memory match, pick randomly
+                if (choice1 === null || choice2 === null) {
+                    choice1 = unrevealedIdxs[Math.floor(Math.random() * unrevealedIdxs.length)];
+                    const remaining = unrevealedIdxs.filter(i => i !== choice1);
+                    choice2 = remaining[Math.floor(Math.random() * remaining.length)];
+                }
+
+                // Flip 1st card
+                this.memoryFlipCard(choice1);
+
+                // Flip 2nd card after delay
+                setTimeout(() => {
+                    this.memoryFlipCard(choice2);
+                }, 800);
+            }
+        }
+
+        // Initialize application instance on DOM Ready
+        let app;
+        window.addEventListener('DOMContentLoaded', () => {
+            app = new CardGameApp();
+        });
+    </script>
+</body>
+</html>
