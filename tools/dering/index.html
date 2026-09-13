@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>輪!ドイツ! Ring! Deutschland!</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Leaflet CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;900&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            font-family: 'M PLUS Rounded 1c', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #0d1117;
+            color: #ffffff;
+        }
+
+        /* 3D Bird's View Viewport Strategy (Prevent black bounds) */
+        #viewport-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            perspective: 1200px;
+        }
+
+        /* Oversized Map Container extended to 400vw x 400vh to cover far off-screen horizons */
+        #map-oversized-wrapper {
+            position: absolute;
+            width: 400vw;
+            height: 400vh;
+            top: -150vh;
+            left: -150vw;
+            transform-style: preserve-3d;
+            transition: transform 0.1s linear;
+        }
+
+        #leaflet-map {
+            width: 100%;
+            height: 100%;
+            background: #1a202c;
+        }
+
+        /* Disable Leaflet default UI elements we don't need */
+        .leaflet-control-container .leaflet-top,
+        .leaflet-control-container .leaflet-bottom {
+            display: none !important;
+        }
+
+        /* Custom Ball Marker Styles */
+        .ball-marker-container {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .ball-img-wrapper {
+            width: 64px;
+            height: 64px;
+            position: relative;
+            filter: drop-shadow(0 8px 6px rgba(0,0,0,0.4));
+            animation: bounce 2s infinite ease-in-out;
+        }
+
+        .ball-img-wrapper img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        /* Special UK Handling: 472x600 cropped to 472x472 (Top portion) */
+        .ball-img-wrapper.uk-crop img {
+            object-fit: cover;
+            object-position: top;
+            height: 127%; /* Crop bottom part */
+        }
+
+        .ball-shadow {
+            width: 48px;
+            height: 12px;
+            background: rgba(0, 0, 0, 0.35);
+            border-radius: 50%;
+            margin-top: -6px;
+            transform: scaleY(0.5);
+            animation: shadow-scale 2s infinite ease-in-out;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-12px); }
+        }
+
+        @keyframes shadow-scale {
+            0%, 100% { transform: scale(1); opacity: 0.6; }
+            50% { transform: scale(0.7); opacity: 0.3; }
+        }
+
+        /* Floating background balls for Start Screen */
+        .floating-ball {
+            position: absolute;
+            pointer-events: none;
+            animation: floatAround 12s infinite ease-in-out;
+            opacity: 0.85;
+        }
+
+        @keyframes floatAround {
+            0% { transform: translate(0, 0) rotate(0deg); }
+            33% { transform: translate(30px, -50px) rotate(15deg); }
+            66% { transform: translate(-20px, 40px) rotate(-10deg); }
+            100% { transform: translate(0, 0) rotate(0deg); }
+        }
+
+        /* DE-Ring Styling (Germany Flag Gradient) */
+        .de-ring {
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            border: 14px solid transparent;
+            background: linear-gradient(#000, #000) padding-box,
+                        linear-gradient(135deg, #000000 0%, #dd0000 50%, #ffcc00 100%) border-box;
+            box-shadow: 0 0 20px rgba(255, 204, 0, 0.6), inset 0 0 15px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Speech Bubble Style */
+        .speech-bubble {
+            position: absolute;
+            bottom: 75px;
+            background: rgba(255, 255, 255, 0.95);
+            color: #1a202c;
+            padding: 8px 14px;
+            border-radius: 16px;
+            font-size: 13px;
+            font-weight: 700;
+            white-space: nowrap;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            border: 2px solid #dd0000;
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 999;
+        }
+
+        .speech-bubble::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 8px 8px 0;
+            border-style: solid;
+            border-color: #dd0000 transparent;
+            display: block;
+            width: 0;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Pulse ring around player */
+        .player-pulse {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            border: 3px solid #ffcc00;
+            border-radius: 50%;
+            animation: pulse-ring 2s infinite;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+        }
+
+        @keyframes pulse-ring {
+            0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(2.2); opacity: 0; }
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-white select-none overflow-hidden">
+
+    <!-- MAIN CONTAINER -->
+    <div id="app" class="relative w-full h-full">
+
+        <!-- START SCREEN -->
+        <div id="start-screen" class="absolute inset-0 z-50 flex flex-col items-center justify-between p-6 bg-gradient-to-b from-slate-900 via-zinc-900 to-black overflow-hidden">
+            <!-- Floating Background Balls Container -->
+            <div id="floating-balls-bg" class="absolute inset-0 pointer-events-none z-0"></div>
+
+            <div class="relative z-10 text-center mt-12">
+                <div class="inline-block px-4 py-1 bg-yellow-400 text-black font-extrabold rounded-full text-xs tracking-widest mb-3 shadow-lg uppercase">
+                    GPS Location Game
+                </div>
+                <h1 class="text-4xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-red-500 to-amber-300 drop-shadow-md">
+                    輪!ドイツ!
+                </h1>
+                <p class="text-lg md:text-xl font-bold text-gray-300 mt-1 tracking-wider">
+                    Ring! Deutschland!
+                </p>
+                <p class="text-xs text-gray-400 mt-2 max-w-xs mx-auto">
+                    ドイツの街や道路に現れるポーランドボールたちをDE-Ringでゲットしよう！
+                </p>
+            </div>
+
+            <!-- Start Image Centerpiece -->
+            <div class="relative z-10 my-auto flex flex-col items-center">
+                <div class="relative w-40 h-40 flex items-center justify-center">
+                    <div class="de-ring animate-spin" style="animation-duration: 15s;"></div>
+                    <img src="https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/germany/happy.png" 
+                         alt="Germany Ball" class="absolute w-24 h-24 object-contain drop-shadow-2xl">
+                </div>
+            </div>
+
+            <!-- Start Action Button -->
+            <div class="relative z-10 w-full max-w-xs mb-8">
+                <button id="btn-start" class="w-full py-4 bg-gradient-to-r from-yellow-400 via-red-500 to-black text-white font-black text-xl rounded-2xl shadow-2xl border-2 border-yellow-300 hover:scale-105 active:scale-95 transition transform flex items-center justify-center gap-3">
+                    <i class="fa-solid font-bold fa-location-dot text-yellow-300"></i>
+                    <span>冒険をはじめる！</span>
+                </button>
+                <p class="text-[10px] text-center text-gray-400 mt-3">※位置情報(GPS)を使用します</p>
+            </div>
+        </div>
+
+        <!-- 3D MAP SCREEN -->
+        <div id="map-screen" class="absolute inset-0 z-10 hidden">
+            <!-- 3D Perspective Viewport -->
+            <div id="viewport-container">
+                <div id="map-oversized-wrapper">
+                    <div id="leaflet-map"></div>
+                </div>
+            </div>
+
+            <!-- MAP HUD TOP BAR -->
+            <div class="absolute top-4 left-4 right-4 z-20 flex justify-between items-center pointer-events-auto">
+                <!-- Status Badge -->
+                <div class="bg-slate-900/90 backdrop-blur border border-slate-700/80 rounded-2xl px-4 py-2 flex items-center gap-3 shadow-xl">
+                    <div class="w-3 h-3 rounded-full bg-emerald-400 animate-pulse"></div>
+                    <div>
+                        <div class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">現在地トラッキング</div>
+                        <div id="gps-status" class="text-xs font-bold text-gray-200">GPSを取得中...</div>
+                    </div>
+                </div>
+
+                <!-- Collection Zukan Button -->
+                <button id="btn-open-zukan" class="bg-gradient-to-r from-yellow-500 to-amber-600 text-slate-950 font-black px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 border border-yellow-300 active:scale-95 transition">
+                    <i class="fa-solid fa-book-bookmark text-lg"></i>
+                    <span class="text-sm">図鑑</span>
+                    <span id="zukan-count-badge" class="bg-black text-yellow-400 text-xs px-2 py-0.5 rounded-full ml-1">0/99</span>
+                </button>
+            </div>
+
+            <!-- MAP CONTROLS (ROTATION & ZOOM) RIGHT SIDE -->
+            <div class="absolute right-4 top-1/2 -translate-y-1/2 z-20 flex flex-col gap-3 pointer-events-auto">
+                <button id="btn-zoom-in" class="w-12 h-12 bg-slate-900/90 border border-slate-700 rounded-2xl text-white font-bold flex items-center justify-center shadow-xl active:scale-95 text-xl">
+                    <i class="fa-solid fa-plus"></i>
+                </button>
+                <button id="btn-zoom-out" class="w-12 h-12 bg-slate-900/90 border border-slate-700 rounded-2xl text-white font-bold flex items-center justify-center shadow-xl active:scale-95 text-xl">
+                    <i class="fa-solid fa-minus"></i>
+                </button>
+                <button id="btn-rotate-left" class="w-12 h-12 bg-slate-900/90 border border-slate-700 rounded-2xl text-yellow-400 font-bold flex items-center justify-center shadow-xl active:scale-95">
+                    <i class="fa-solid fa-rotate-left"></i>
+                </button>
+                <button id="btn-rotate-right" class="w-12 h-12 bg-slate-900/90 border border-slate-700 rounded-2xl text-yellow-400 font-bold flex items-center justify-center shadow-xl active:scale-95">
+                    <i class="fa-solid fa-rotate-right"></i>
+                </button>
+            </div>
+
+            <!-- MAP BOTTOM CONTROLS & INFO -->
+            <div class="absolute bottom-6 left-4 right-4 z-20 flex flex-col items-center gap-3 pointer-events-none">
+                <div class="bg-slate-900/90 backdrop-blur px-4 py-2 rounded-full border border-slate-700 text-xs text-gray-300 shadow-xl pointer-events-auto flex items-center gap-2">
+                    <i class="fa-solid fa-compass text-yellow-400"></i>
+                    <span>見回し: 右ボタン / ズーム: +-ボタン</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- RING THROW GAME OVERLAY -->
+        <div id="throw-screen" class="absolute inset-0 z-40 hidden bg-gradient-to-b from-slate-950 via-zinc-900 to-slate-950 flex flex-col justify-between items-center p-6">
+            <!-- Header Info -->
+            <div class="w-full flex justify-between items-center z-10">
+                <button id="btn-close-throw" class="w-10 h-10 bg-slate-800 border border-slate-600 rounded-full text-white flex items-center justify-center">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+                <div class="text-center">
+                    <span id="target-country-name" class="text-xs font-bold text-yellow-400 tracking-widest uppercase">ドイツボール</span>
+                    <h2 id="target-ball-title" class="text-xl font-black text-white">野生のボールが現れた！</h2>
+                </div>
+                <div class="w-10"></div>
+            </div>
+
+            <!-- Target Area (Ball Floating) -->
+            <div id="target-area" class="relative w-full h-64 flex items-center justify-center my-auto">
+                <div id="target-ball-box" class="relative flex flex-col items-center">
+                    <div id="target-img-container" class="w-36 h-36 relative transition-transform duration-300">
+                        <img id="target-ball-img" src="" alt="Target Ball" class="w-full h-full object-contain drop-shadow-2xl">
+                    </div>
+                    <!-- Catch Status Message Overlay -->
+                    <div id="catch-msg" class="absolute -bottom-10 bg-yellow-400 text-black font-black px-4 py-1.5 rounded-full text-sm shadow-xl hidden animate-bounce">
+                        ゲット成功！
+                    </div>
+                    <div id="miss-msg" class="absolute -bottom-10 bg-red-600 text-white font-black px-4 py-1.5 rounded-full text-sm shadow-xl hidden">
+                        おしい！ハズレ！
+                    </div>
+                </div>
+            </div>
+
+            <!-- Throw Controls & Canvas Container -->
+            <div class="w-full flex flex-col items-center mb-6 z-10 gap-4">
+                <p id="throw-hint" class="text-xs font-bold text-gray-300 bg-slate-800/80 px-4 py-1.5 rounded-full border border-slate-700">
+                    左右に動くボールのタイミングに合わせてDE-Ringを投げよう！
+                </p>
+
+                <!-- Throwing Ring Visual / Drag Area -->
+                <div id="ring-touch-area" class="relative w-48 h-48 flex items-center justify-center cursor-grab active:cursor-grabbing">
+                    <div id="throw-ring" class="de-ring transition-transform duration-75"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ZUKAN (ENCYCLOPEDIA) MODAL -->
+        <div id="zukan-modal" class="absolute inset-0 z-50 hidden bg-slate-950/95 backdrop-blur-md flex flex-col">
+            <!-- Zukan Header -->
+            <div class="p-4 bg-slate-900 border-b border-slate-800 flex justify-between items-center">
+                <div>
+                    <h2 class="text-xl font-black text-yellow-400 flex items-center gap-2">
+                        <i class="fa-solid fa-book"></i> ポーランドボール図鑑
+                    </h2>
+                    <p id="zukan-sub-title" class="text-xs text-gray-400">集めた仲間の図鑑 (全99種)</p>
+                </div>
+                <button id="btn-close-zukan" class="w-10 h-10 bg-slate-800 rounded-full text-gray-300 flex items-center justify-center border border-slate-700">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Country Filter Tabs -->
+            <div id="zukan-tabs" class="flex gap-2 p-3 overflow-x-auto bg-slate-900/60 border-b border-slate-800 no-scrollbar">
+                <!-- Tab items generated dynamically -->
+            </div>
+
+            <!-- Zukan Grid Container -->
+            <div class="flex-1 overflow-y-auto p-4">
+                <div id="zukan-grid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+                    <!-- Cards generated dynamically -->
+                </div>
+            </div>
+        </div>
+
+        <!-- DIALOG / MESSAGE BOX -->
+        <div id="dialog-modal" class="absolute inset-0 z-50 hidden bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+            <div class="bg-slate-900 border-2 border-yellow-400 rounded-3xl p-6 max-w-sm w-full text-center shadow-2xl">
+                <div id="dialog-icon" class="text-4xl text-yellow-400 mb-3">
+                    <i class="fa-solid fa-circle-info"></i>
+                </div>
+                <h3 id="dialog-title" class="text-lg font-black mb-2 text-white">お知らせ</h3>
+                <p id="dialog-body" class="text-sm text-gray-300 mb-6">メッセージテキスト</p>
+                <button id="btn-dialog-ok" class="w-full py-3 bg-yellow-400 text-black font-black rounded-xl shadow-lg hover:bg-yellow-300">
+                    OK
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const BASE_IMAGE_URL = 'https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/';
+
+        const COUNTRIES = [
+            { id: 'germany', name: 'ドイツ', flag: '🇩🇪' },
+            { id: 'austria', name: 'オーストリア', flag: '🇦🇹' },
+            { id: 'japan', name: '日本', flag: '🇯🇵' },
+            { id: 'china', name: '中国', flag: '🇨🇳' },
+            { id: 'italy', name: 'イタリア', flag: '🇮🇹' },
+            { id: 'sierraleone', name: 'シエラレオネ', flag: '🇸🇱' },
+            { id: 'russia', name: 'ロシア', flag: '🇷🇺' },
+            { id: 'france', name: 'フランス', flag: '🇫🇷' },
+            { id: 'poland', name: 'ポーランド', flag: '🇵🇱' },
+            { id: 'england472x600', name: 'イギリス', flag: '🇬🇧', isUK: true },
+            { id: 'usa', name: 'アメリカ', flag: '🇺🇸' }
+        ];
+
+        const EMOTIONS = [
+            { id: 'normal.png', name: 'ふつう' },
+            { id: 'smile.png', name: 'にっこり' },
+            { id: 'happy.png', name: 'まんめん' },
+            { id: 'surprise.png', name: 'びっくり' },
+            { id: 'anger.png', name: 'おこり' },
+            { id: 'dissatisfaction.png', name: 'ふまん' },
+            { id: 'lol.png', name: 'わらい' },
+            { id: 'itome.png', name: '糸目' },
+            { id: 'plot.png', name: 'たくらみ' }
+        ];
+
+        const CAUGHT_DIALOGUES = [
+            "元気なんよ！",
+            "おさんぽ頑張るんね！",
+            "DAS IST GUT!",
+            "きょうもいい天気ね！",
+            "ドイツはすばらしいんよ！",
+            "また会ったんね！",
+            "いっしょにお散歩するんよ！"
+        ];
+
+        /* =================================================================
+           2. INDEXED DB CONTROLLER
+           ================================================================= */
+        class DBController {
+            constructor() {
+                this.dbName = 'RingDeutschlandDB';
+                this.version = 1;
+                this.db = null;
+            }
+
+            async init() {
+                return new Promise((resolve, reject) => {
+                    const request = indexedDB.open(this.dbName, this.version);
+                    request.onupgradeneeded = (e) => {
+                        const db = e.target.result;
+                        if (!db.objectStoreNames.contains('caught_balls')) {
+                            db.createObjectStore('caught_balls', { keyPath: 'key' });
+                        }
+                    };
+                    request.onsuccess = (e) => {
+                        this.db = e.target.result;
+                        resolve();
+                    };
+                    request.onerror = (e) => reject(e);
+                });
+            }
+
+            async saveBall(countryId, emotionId) {
+                if (!this.db) return;
+                const key = `${countryId}_${emotionId}`;
+                const item = {
+                    key: key,
+                    countryId: countryId,
+                    emotionId: emotionId,
+                    caughtAt: new Date().toISOString()
+                };
+                return new Promise((resolve, reject) => {
+                    const tx = this.db.transaction('caught_balls', 'readwrite');
+                    const store = tx.objectStore('caught_balls');
+                    const request = store.put(item);
+                    request.onsuccess = () => resolve(true);
+                    request.onerror = () => reject(false);
+                });
+            }
+
+            async getCaughtBalls() {
+                if (!this.db) return [];
+                return new Promise((resolve) => {
+                    const tx = this.db.transaction('caught_balls', 'readonly');
+                    const store = tx.objectStore('caught_balls');
+                    const request = store.getAll();
+                    request.onsuccess = () => resolve(request.result || []);
+                    request.onerror = () => resolve([]);
+                });
+            }
+
+            async isCaught(countryId, emotionId) {
+                if (!this.db) return false;
+                const key = `${countryId}_${emotionId}`;
+                return new Promise((resolve) => {
+                    const tx = this.db.transaction('caught_balls', 'readonly');
+                    const store = tx.objectStore('caught_balls');
+                    const request = store.get(key);
+                    request.onsuccess = () => resolve(!!request.result);
+                    request.onerror = () => resolve(false);
+                });
+            }
+        }
+
+        const dbCtrl = new DBController();
+
+        /* =================================================================
+           3. GAME APP STATE & GLOBALS
+           ================================================================= */
+        let map = null;
+        let userLat = 52.5200; // Default to Berlin if no GPS yet
+        let userLng = 13.4050;
+        let mapHeading = 0; // Camera rotation degree
+        let mapZoom = 17;
+        let playerMarker = null;
+        let spawnedBalls = []; // Active balls on map
+        let caughtKeysSet = new Set(); // Local cache of caught keys
+        let activeThrowBall = null; // Currently attempting ball
+
+        /* Helper to get Ball Image URL */
+        function getBallImageUrl(countryId, emotionId) {
+            return `${BASE_IMAGE_URL}${countryId}/${emotionId}`;
+        }
+
+        /* Show Custom Modal Dialog */
+        function showDialog(title, text, iconClass = 'fa-info-circle') {
+            document.getElementById('dialog-title').innerText = title;
+            document.getElementById('dialog-body').innerText = text;
+            document.getElementById('dialog-icon').innerHTML = `<i class="fa-solid ${iconClass}"></i>`;
+            document.getElementById('dialog-modal').classList.remove('hidden');
+        }
+
+        document.getElementById('btn-dialog-ok').addEventListener('click', () => {
+            document.getElementById('dialog-modal').classList.add('hidden');
+        });
+
+        /* =================================================================
+           4. START SCREEN & FLOATING ANIMATIONS
+           ================================================================= */
+        function initStartScreen() {
+            const container = document.getElementById('floating-balls-bg');
+            container.innerHTML = '';
+            
+            // Generate 12 random floating balls
+            for (let i = 0; i < 12; i++) {
+                const country = COUNTRIES[Math.floor(Math.random() * COUNTRIES.length)];
+                const emotion = EMOTIONS[Math.floor(Math.random() * EMOTIONS.length)];
+                const img = document.createElement('img');
+                img.src = getBallImageUrl(country.id, emotion.id);
+                img.className = 'floating-ball';
+                
+                if (country.isUK) {
+                    img.style.objectFit = 'cover';
+                    img.style.objectPosition = 'top';
+                }
+
+                const size = 40 + Math.random() * 50;
+                img.style.width = `${size}px`;
+                img.style.height = `${size}px`;
+                img.style.left = `${Math.random() * 90}%`;
+                img.style.top = `${Math.random() * 90}%`;
+                img.style.animationDuration = `${8 + Math.random() * 10}s`;
+                img.style.animationDelay = `${Math.random() * 5}s`;
+                
+                container.appendChild(img);
+            }
+        }
+
+        /* =================================================================
+           5. 3D BIRD'S EYE MAP ENGINE
+           ================================================================= */
+        function initMap() {
+            if (map) return;
+
+            // Initialize Leaflet Map
+            map = L.map('leaflet-map', {
+                zoomControl: false,
+                attributionControl: false,
+                dragging: false, // Map panning disabled per requirements
+                touchZoom: false,
+                doubleClickZoom: false,
+                scrollWheelZoom: false,
+                boxZoom: false,
+                keyboard: false,
+                fadeAnimation: false,
+                markerZoomAnimation: false
+            }).setView([userLat, userLng], mapZoom);
+
+            // OpenStreetMap Standard Tiles with high tile buffer for far-off rendering
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                minZoom: 12,
+                subdomains: ['a', 'b', 'c'],
+                keepBuffer: 25, // Preloads and retains 25 tile rows/cols far beyond viewport
+                updateWhenIdle: false,
+                updateWhenZooming: false
+            }).addTo(map);
+
+            // Custom Player Icon (Germany Flag Ball)
+            const playerIcon = L.divIcon({
+                className: 'custom-player-marker',
+                html: `
+                    <div class="relative w-16 h-16 flex items-center justify-center">
+                        <div class="player-pulse"></div>
+                        <div class="ball-img-wrapper z-10">
+                            <img src="${getBallImageUrl('germany', 'smile.png')}" alt="Player">
+                        </div>
+                    </div>
+                `,
+                iconSize: [64, 64],
+                iconAnchor: [32, 32]
+            });
+
+            playerMarker = L.marker([userLat, userLng], { icon: playerIcon }).addTo(map);
+
+            update3DTransform();
+            spawnInitialBalls();
+        }
+
+        /* Apply 3D Perspective Tilt and Heading Rotation to Oversized Wrapper */
+        function update3DTransform() {
+            const wrapper = document.getElementById('map-oversized-wrapper');
+            if (wrapper) {
+                // perspective tilt 52deg, rotate heading
+                wrapper.style.transform = `rotateX(52deg) rotateZ(${mapHeading}deg)`;
+            }
+        }
+
+        /* Zoom and Rotation Button Event Listeners */
+        document.getElementById('btn-zoom-in').addEventListener('click', () => {
+            if (map && mapZoom < 19) {
+                mapZoom += 0.5;
+                map.setZoom(mapZoom);
+            }
+        });
+
+        document.getElementById('btn-zoom-out').addEventListener('click', () => {
+            if (map && mapZoom > 14) {
+                mapZoom -= 0.5;
+                map.setZoom(mapZoom);
+            }
+        });
+
+        document.getElementById('btn-rotate-left').addEventListener('click', () => {
+            mapHeading -= 30;
+            update3DTransform();
+        });
+
+        document.getElementById('btn-rotate-right').addEventListener('click', () => {
+            mapHeading += 30;
+            update3DTransform();
+        });
+
+        /* Haversine Formula for exact distance calculation in meters */
+        function getDistanceInMeters(lat1, lon1, lat2, lon2) {
+            const R = 6371000; // Earth radius in meters
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return R * c;
+        }
+
+        /* =================================================================
+           6. SPATIAL BALL SPAWNING (Wider 300m - 3km Distribution)
+           ================================================================= */
+        function spawnInitialBalls() {
+            // Clear existing markers
+            spawnedBalls.forEach(b => map.removeLayer(b.marker));
+            spawnedBalls = [];
+
+            // Spawn balls across a wider radius (300m to 3000m) with min 250m spacing between balls
+            const count = 12;
+            let attempts = 0;
+
+            while (spawnedBalls.length < count && attempts < 250) {
+                attempts++;
+                const distance = 300 + Math.random() * 2700; // 300m to 3000m wide spread
+                const angle = Math.random() * Math.PI * 2;
+                
+                const dLat = (distance * Math.cos(angle)) / 111000;
+                const dLng = (distance * Math.sin(angle)) / (111000 * Math.cos(userLat * Math.PI / 180));
+
+                const bLat = userLat + dLat;
+                const bLng = userLng + dLng;
+
+                // Ensure balls are spaced well apart from one another (at least 250m distance)
+                const isTooClose = spawnedBalls.some(b => getDistanceInMeters(bLat, bLng, b.lat, b.lng) < 250);
+                if (isTooClose) continue;
+
+                const country = COUNTRIES[Math.floor(Math.random() * COUNTRIES.length)];
+                const emotion = EMOTIONS[Math.floor(Math.random() * EMOTIONS.length)];
+                const key = `${country.id}_${emotion.id}`;
+
+                // Create Marker
+                const ukClass = country.isUK ? 'uk-crop' : '';
+                const ballHtml = `
+                    <div class="ball-marker-container" id="ball-marker-${spawnedBalls.length}">
+                        <div class="ball-img-wrapper ${ukClass}">
+                            <img src="${getBallImageUrl(country.id, emotion.id)}" alt="${country.name}">
+                        </div>
+                        <div class="ball-shadow"></div>
+                    </div>
+                `;
+
+                const icon = L.divIcon({
+                    className: 'ball-leaflet-icon',
+                    html: ballHtml,
+                    iconSize: [64, 76],
+                    iconAnchor: [32, 68]
+                });
+
+                const marker = L.marker([bLat, bLng], { icon: icon }).addTo(map);
+
+                const ballData = {
+                    id: spawnedBalls.length,
+                    country: country,
+                    emotion: emotion,
+                    key: key,
+                    lat: bLat,
+                    lng: bLng,
+                    marker: marker
+                };
+
+                // Click event on Polandball
+                marker.on('click', () => handleBallClick(ballData));
+                spawnedBalls.push(ballData);
+            }
+        }
+
+        /* Handle Clicking a Polandball on the Map */
+        async function handleBallClick(ball) {
+            const isCaught = caughtKeysSet.has(ball.key);
+
+            if (isCaught) {
+                // Already Caught: Display Speech Bubble Dialogue
+                showBallSpeechBubble(ball);
+            } else {
+                // Strict 10m Proximity Check
+                const distance = getDistanceInMeters(userLat, userLng, ball.lat, ball.lng);
+                if (distance > 10) {
+                    showDialog(
+                        '距離が遠すぎます！',
+                        `ボールまであと約 ${Math.round(distance)}m です。\nゲットするには10m以内に近づいてタップしてください！`,
+                        'fa-location-dot'
+                    );
+                    return;
+                }
+
+                // Within 10m: Open Ring Throw Game Screen
+                startThrowGame(ball);
+            }
+        }
+
+        /* Show Speech Bubble for Already Caught Balls */
+        function showBallSpeechBubble(ball) {
+            const el = document.getElementById(`ball-marker-${ball.id}`);
+            if (!el) return;
+
+            // Remove previous bubble if any
+            const prev = el.querySelector('.speech-bubble');
+            if (prev) prev.remove();
+
+            const dialogue = CAUGHT_DIALOGUES[Math.floor(Math.random() * CAUGHT_DIALOGUES.length)];
+            const bubble = document.createElement('div');
+            bubble.className = 'speech-bubble';
+            bubble.innerText = dialogue;
+
+            el.appendChild(bubble);
+
+            setTimeout(() => {
+                bubble.remove();
+            }, 3000);
+        }
+
+        /* =================================================================
+           7. REAL GPS GEOLOCATION TRACKING
+           ================================================================= */
+        function startGeolocationTracking() {
+            if (!navigator.geolocation) {
+                document.getElementById('gps-status').innerText = 'GPS非対応端末';
+                showDialog('エラー', 'お使いのブラウザは位置情報(GPS)に対応していません。');
+                return;
+            }
+
+            document.getElementById('gps-status').innerText = 'リアルタイムGPS通信中...';
+
+            // Immediate real-time tracking settings with zero cache delay
+            const options = {
+                enableHighAccuracy: true,
+                maximumAge: 0,
+                timeout: 5000
+            };
+
+            navigator.geolocation.watchPosition(
+                (pos) => {
+                    userLat = pos.coords.latitude;
+                    userLng = pos.coords.longitude;
+                    const accuracy = pos.coords.accuracy ? Math.round(pos.coords.accuracy) : 0;
+
+                    document.getElementById('gps-status').innerText = 
+                        `LAT: ${userLat.toFixed(5)}, LNG: ${userLng.toFixed(5)} (誤差: ±${accuracy}m)`;
+
+                    if (map) {
+                        // Smoothly animate map center & player marker with real-time GPS stream
+                        map.panTo([userLat, userLng], { animate: true, duration: 0.3 });
+                        if (playerMarker) {
+                            playerMarker.setLatLng([userLat, userLng]);
+                        }
+                    }
+                },
+                (err) => {
+                    console.warn('Geolocation Error:', err);
+                    document.getElementById('gps-status').innerText = 'GPS取得待機中 (標準座標表示)';
+                },
+                options
+            );
+        }
+
+        /* =================================================================
+           8. DE-RING THROW MINI-GAME LOGIC
+           ================================================================= */
+        let throwTouchStartY = 0;
+        let isThrowing = false;
+        let targetX = 0;
+        let targetDirection = 1;
+        let targetSpeed = 3;
+        let targetAnimReq = null;
+
+        function animateTargetBall() {
+            const containerWidth = document.getElementById('target-area').clientWidth || 300;
+            const maxOffset = Math.min(110, containerWidth / 2 - 40);
+
+            targetX += targetSpeed * targetDirection;
+            if (targetX > maxOffset) {
+                targetX = maxOffset;
+                targetDirection = -1;
+            } else if (targetX < -maxOffset) {
+                targetX = -maxOffset;
+                targetDirection = 1;
+            }
+
+            const box = document.getElementById('target-ball-box');
+            if (box) {
+                box.style.transform = `translateX(${targetX}px)`;
+            }
+
+            targetAnimReq = requestAnimationFrame(animateTargetBall);
+        }
+
+        function stopTargetBallAnimation() {
+            if (targetAnimReq) {
+                cancelAnimationFrame(targetAnimReq);
+                targetAnimReq = null;
+            }
+        }
+
+        function startThrowGame(ball) {
+            activeThrowBall = ball;
+            
+            document.getElementById('target-country-name').innerText = `${ball.country.flag} ${ball.country.name}`;
+            document.getElementById('target-ball-title').innerText = `${ball.emotion.name}なボールが現れた！`;
+
+            const imgEl = document.getElementById('target-ball-img');
+            imgEl.src = getBallImageUrl(ball.country.id, ball.emotion.id);
+
+            if (ball.country.isUK) {
+                imgEl.style.objectFit = 'cover';
+                imgEl.style.objectPosition = 'top';
+                imgEl.style.height = '127%';
+            } else {
+                imgEl.style.objectFit = 'contain';
+                imgEl.style.height = '100%';
+            }
+
+            // Reset ring and messages
+            const ring = document.getElementById('throw-ring');
+            ring.style.transform = 'translateY(0px) scale(1)';
+            document.getElementById('catch-msg').classList.add('hidden');
+            document.getElementById('miss-msg').classList.add('hidden');
+            document.getElementById('throw-hint').innerText = '左右に動くボールをねらってDE-Ringを上にスワイプ！';
+
+            // Randomize target movement speed for variable difficulty
+            targetSpeed = 2.5 + Math.random() * 3.5;
+            targetX = 0;
+            targetDirection = Math.random() > 0.5 ? 1 : -1;
+
+            stopTargetBallAnimation();
+            animateTargetBall();
+
+            document.getElementById('throw-screen').classList.remove('hidden');
+            isThrowing = false;
+        }
+
+        async function executeThrowAnimation() {
+            isThrowing = true;
+            document.getElementById('throw-hint').innerText = 'それっ！';
+
+            // Animate ring flying upward
+            throwRing.style.transition = 'transform 0.5s cubic-bezier(0.25, 1, 0.5, 1)';
+            throwRing.style.transform = 'translateY(-320px) scale(0.55)';
+
+            setTimeout(async () => {
+                // Precision timing hit detection: Check if ring center aligns with ball offset
+                const catchMargin = 48; // Max allowed distance from center to catch
+                const isHit = Math.abs(targetX) <= catchMargin;
+
+                if (isHit) {
+                    stopTargetBallAnimation();
+                    document.getElementById('catch-msg').classList.remove('hidden');
+                    document.getElementById('target-img-container').style.transform = 'scale(1.15) rotate(10deg)';
+
+                    // Save to IndexedDB
+                    if (activeThrowBall) {
+                        await dbCtrl.saveBall(activeThrowBall.country.id, activeThrowBall.emotion.id);
+                        caughtKeysSet.add(activeThrowBall.key);
+                        updateZukanBadge();
+                    }
+
+                    setTimeout(() => {
+                        stopThrowGame();
+                        
+                        showDialog(
+                            'ゲット大成功！', 
+                            `${activeThrowBall.country.name} (${activeThrowBall.emotion.name}) が仲間になったんよ！`,
+                            'fa-circle-check'
+                        );
+                    }, 1200);
+                } else {
+                    // Missed throw! Show feedback and allow retry
+                    document.getElementById('miss-msg').classList.remove('hidden');
+                    document.getElementById('throw-hint').innerText = 'おしい！もう一度タイミングを合わせて投げよう！';
+
+                    setTimeout(() => {
+                        document.getElementById('miss-msg').classList.add('hidden');
+                        throwRing.style.transition = 'transform 0.15s ease-out';
+                        throwRing.style.transform = 'translateY(0px) scale(1)';
+                        isThrowing = false;
+                    }, 800);
+                }
+
+            }, 500);
+        }
+
+        function stopThrowGame() {
+            stopTargetBallAnimation();
+            document.getElementById('throw-screen').classList.add('hidden');
+            document.getElementById('target-img-container').style.transform = 'scale(1) rotate(0deg)';
+            throwRing.style.transition = 'transform 0.075s';
+        }
+
+        document.getElementById('btn-close-throw').addEventListener('click', stopThrowGame);
+        async function refreshCaughtCache() {
+            const list = await dbCtrl.getCaughtBalls();
+            caughtKeysSet = new Set(list.map(item => item.key));
+            updateZukanBadge();
+        }
+
+        function updateZukanBadge() {
+            const totalCount = COUNTRIES.length * EMOTIONS.length;
+            const badge = document.getElementById('zukan-count-badge');
+            if (badge) {
+                badge.innerText = `${caughtKeysSet.size}/${totalCount}`;
+            }
+            const subTitle = document.getElementById('zukan-sub-title');
+            if (subTitle) {
+                subTitle.innerText = `集めた仲間の図鑑 (全${totalCount}種)`;
+            }
+        }
+
+        function renderZukanTabs() {
+            const container = document.getElementById('zukan-tabs');
+            container.innerHTML = '';
+            const totalCount = COUNTRIES.length * EMOTIONS.length;
+
+            const allBtn = document.createElement('button');
+            allBtn.className = `px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition ${activeZukanCountryTab === 'all' ? 'bg-yellow-400 text-black' : 'bg-slate-800 text-gray-300'}`;
+            allBtn.innerText = `すべて (全${totalCount}種)`;
+            allBtn.addEventListener('click', () => {
+                activeZukanCountryTab = 'all';
+                renderZukanTabs();
+                renderZukanGrid();
+            });
+            container.appendChild(allBtn);
+
+            COUNTRIES.forEach(c => {
+                const btn = document.createElement('button');
+                btn.className = `px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition ${activeZukanCountryTab === c.id ? 'bg-yellow-400 text-black' : 'bg-slate-800 text-gray-300'}`;
+                btn.innerText = `${c.flag} ${c.name}`;
+                btn.addEventListener('click', () => {
+                    activeZukanCountryTab = c.id;
+                    renderZukanTabs();
+                    renderZukanGrid();
+                });
+                container.appendChild(btn);
+            });
+        }
+
+        function renderZukanGrid() {
+            const grid = document.getElementById('zukan-grid');
+            grid.innerHTML = '';
+
+            const filteredCountries = activeZukanCountryTab === 'all' 
+                ? COUNTRIES 
+                : COUNTRIES.filter(c => c.id === activeZukanCountryTab);
+
+            filteredCountries.forEach(country => {
+                EMOTIONS.forEach(emotion => {
+                    const key = `${country.id}_${emotion.id}`;
+                    const isCaught = caughtKeysSet.has(key);
+
+                    const card = document.createElement('div');
+                    card.className = `relative rounded-2xl p-3 flex flex-col items-center justify-between border ${isCaught ? 'bg-slate-900 border-slate-700 shadow-lg' : 'bg-slate-950/40 border-slate-900 opacity-60'}`;
+
+                    const ukClass = country.isUK ? 'uk-crop' : '';
+                    const imgUrl = getBallImageUrl(country.id, emotion.id);
+
+                    card.innerHTML = `
+                        <div class="w-16 h-16 relative flex items-center justify-center my-1">
+                            ${isCaught ? `
+                                <div class="ball-img-wrapper w-full h-full ${ukClass}">
+                                    <img src="${imgUrl}" alt="${country.name}" class="w-full h-full object-contain">
+                                </div>
+                            ` : `
+                                <div class="w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center text-slate-600 font-black text-xl">
+                                    ?
+                                </div>
+                            `}
+                        </div>
+                        <div class="text-center mt-2 w-full">
+                            <div class="text-[10px] font-bold text-gray-400 truncate">${country.flag} ${country.name}</div>
+                            <div class="text-xs font-black ${isCaught ? 'text-yellow-400' : 'text-gray-600'} truncate">${emotion.name}</div>
+                        </div>
+                    `;
+
+                    if (isCaught) {
+                        card.addEventListener('click', () => {
+                            showDialog(`${country.name} (${emotion.name})`, `【セリフ】「${CAUGHT_DIALOGUES[Math.floor(Math.random() * CAUGHT_DIALOGUES.length)]}」`, 'fa-face-smile');
+                        });
+                    }
+
+                    grid.appendChild(card);
+                });
+            });
+        }
+
+        document.getElementById('btn-open-zukan').addEventListener('click', () => {
+            renderZukanTabs();
+            renderZukanGrid();
+            document.getElementById('zukan-modal').classList.remove('hidden');
+        });
+
+        document.getElementById('btn-close-zukan').addEventListener('click', () => {
+            document.getElementById('zukan-modal').classList.add('hidden');
+        });
+
+        /* =================================================================
+           10. INITIALIZATION & EVENTS
+           ================================================================= */
+        window.addEventListener('DOMContentLoaded', async () => {
+            // Init DB
+            try {
+                await dbCtrl.init();
+                await refreshCaughtCache();
+            } catch (err) {
+                console.error('IndexedDB Init failed:', err);
+            }
+
+            initStartScreen();
+
+            // Start Button Event
+            document.getElementById('btn-start').addEventListener('click', () => {
+                document.getElementById('start-screen').classList.add('hidden');
+                document.getElementById('map-screen').classList.remove('hidden');
+                
+                initMap();
+                startGeolocationTracking();
+            });
+        });
+    </script>
+</body>
+</html>
