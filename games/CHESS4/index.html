@@ -1,0 +1,1462 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+    <title>PBChess♞ - Polandball Chess</title>
+
+    <!-- Google Fonts & Material Symbols -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+
+    <!-- Chess.js Library for chess rules validation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+
+    <style>
+        /* デフォルトテーマ（PTZ.jsonのデフォルト値と連動） */
+        :root {
+            --accent-primary: #3381FF;
+            --accent-active: #1A5FCC;
+            
+            /* PTZ 規格初期値 */
+            --ptz-theme-name: "Default Blue PTZ";
+            --ptz-card-radius: 24px;
+            --ptz-slider-height: 16px;
+            --ptz-toggle-width: 54px;
+            --ptz-toggle-height: 30px;
+            --ptz-toggle-knob-radius: 50%;
+            --ptz-toggle-knob-width: 22px;
+            --ptz-blur-intensity: 0px;
+
+            /* Light Mode ベースカラー */
+            --bg-base: #F7F7F7;
+            --glass-bg: #FFFFFF;
+            --text-main: #000000;
+            --text-sub: #666666;
+            --bg-secondary: #EEEEEE;
+            --nav-bg: #FFFFFF;
+            --nav-icon-active: #000000;
+            
+            --m3-easing: cubic-bezier(0.32, 0.72, 0, 1);
+            --transition-smooth: 0.35s var(--m3-easing);
+            --card-padding: 24px;
+
+            /* Chessboard board colors */
+            --square-light: #F0D9B5;
+            --square-dark: #B58863;
+            --square-highlight: rgba(51, 129, 255, 0.5);
+            --square-selected: rgba(255, 204, 0, 0.6);
+        }
+
+        /* ダークモード */
+        .dark-mode {
+            --bg-base: #121212;
+            --glass-bg: #1E1E1E;
+            --text-main: #FFFFFF;
+            --text-sub: #A1A1A6;
+            --bg-secondary: #2C2C2E;
+            --nav-bg: #1E1E1E;
+            --nav-icon-active: #FFFFFF;
+
+            --square-light: #CDD2D6;
+            --square-dark: #6E8A9F;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', 'Noto Sans JP', sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            transition: background-color var(--transition-smooth), color var(--transition-smooth);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* アプリ全体のコンテナ */
+        #app-viewport {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        /* ヘッダー */
+        header {
+            height: 64px;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--glass-bg);
+            transition: background-color var(--transition-smooth);
+            position: relative;
+            flex-shrink: 0;
+        }
+        .logo {
+            font-weight: 700;
+            font-size: 20px;
+            letter-spacing: -0.5px;
+            color: var(--text-main);
+            text-align: center;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .theme-toggle {
+            position: absolute;
+            right: 24px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: none;
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background var(--transition-smooth), transform 0.2s;
+        }
+        .theme-toggle:active {
+            transform: scale(0.9);
+        }
+
+        /* メインコンテンツ */
+        main {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 24px 20px 100px;
+            max-width: 720px;
+            width: 100%;
+            margin: 0 auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* フラットソリッドカード */
+        .glass-card {
+            background: var(--glass-bg);
+            border-radius: var(--ptz-card-radius);
+            padding: var(--card-padding);
+            margin-bottom: 20px;
+            box-shadow: none !important;
+            border: none !important;
+            transition: background-color var(--transition-smooth), border-radius var(--transition-smooth);
+        }
+
+        h2 { 
+            font-size: 18px; 
+            margin-top: 0; 
+            margin-bottom: 12px;
+            font-weight: 700; 
+            letter-spacing: -0.3px;
+        }
+        p {
+            font-size: 13.5px;
+            line-height: 1.5;
+            margin-top: 0;
+            margin-bottom: 16px;
+            color: var(--text-sub);
+        }
+
+        /* リストコンポーネント */
+        .custom-list {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            margin-bottom: 16px;
+        }
+        .list-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 4px;
+            border-bottom: 1px solid var(--bg-secondary);
+            cursor: pointer;
+        }
+        .list-item:last-child {
+            border-bottom: none;
+        }
+        .list-item-title {
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .list-item-desc {
+            font-size: 12px;
+            color: var(--text-sub);
+        }
+
+        /* アクションボタン */
+        .ai-btn {
+            border: none;
+            outline: none;
+            padding: 12px 24px;
+            border-radius: 14px;
+            font-weight: 600;
+            font-size: 14px;
+            color: white;
+            cursor: pointer;
+            background: var(--accent-primary);
+            transition: transform 0.2s, background-color var(--transition-smooth);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            justify-content: center;
+        }
+        .ai-btn:hover {
+            transform: scale(1.02);
+        }
+        .ai-btn:active {
+            background: var(--accent-active);
+            transform: scale(0.96);
+        }
+        .ai-btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-main);
+        }
+
+        /* 下付き固定ナビゲーションバー */
+        .bottom-nav-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 72px;
+            background: var(--nav-bg);
+            border-top: 1px solid var(--bg-secondary);
+            z-index: 500;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding-bottom: env(safe-area-inset-bottom);
+            transition: background-color var(--transition-smooth), border-color var(--transition-smooth);
+        }
+        .nav-item {
+            flex: 1;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-sub);
+            transition: color 0.25s var(--m3-easing);
+            position: relative;
+            gap: 4px;
+        }
+        .nav-item span.material-symbols-outlined {
+            font-size: 24px;
+            font-variation-settings: 'FILL' 0, 'wght' 400;
+            transition: font-variation-settings 0.2s, color 0.2s;
+        }
+        .nav-label {
+            font-size: 10px;
+            font-weight: 600;
+        }
+        .nav-item.active {
+            color: var(--nav-icon-active);
+        }
+        .nav-item.active span.material-symbols-outlined {
+            font-variation-settings: 'FILL' 1, 'wght' 700;
+        }
+
+        /* ビュー切り替え */
+        .view {
+            display: none;
+        }
+        .view.active {
+            display: block;
+            animation: viewIn 0.3s var(--m3-easing);
+        }
+        @keyframes viewIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ポーランドボール画像表示用スタイル */
+        .pb-avatar {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            background-color: var(--bg-secondary);
+            position: relative;
+        }
+        .pb-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center;
+            transition: transform 0.2s ease;
+        }
+        /* UK (england472x600) 用クロップ処理 */
+        .pb-avatar img.uk-crop {
+            object-fit: cover;
+            object-position: top;
+            height: 127%;
+            width: 100%;
+        }
+
+        /* 対戦相手カードレイアウト（内部にカードを作らない直下配置） */
+        .opponent-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 16px;
+            position: relative;
+        }
+        .opponent-info {
+            flex-grow: 1;
+        }
+        .opponent-name {
+            font-size: 18px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .opponent-title {
+            font-size: 12px;
+            color: var(--text-sub);
+            margin-top: 2px;
+        }
+        .speech-bubble {
+            font-size: 13px;
+            color: var(--text-main);
+            margin-top: 6px;
+            font-style: italic;
+        }
+
+        /* チェス盤スタイル */
+        .chessboard-wrapper {
+            width: 100%;
+            max-width: 480px;
+            margin: 0 auto 16px;
+            aspect-ratio: 1 / 1;
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            grid-template-rows: repeat(8, 1fr);
+            border-radius: 12px;
+            overflow: hidden;
+            user-select: none;
+            touch-action: manipulation;
+        }
+        .chess-square {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: calc(min(80vw, 480px) / 10);
+            cursor: pointer;
+            position: relative;
+            transition: background-color 0.15s ease;
+        }
+        .chess-square.light {
+            background-color: var(--square-light);
+        }
+        .chess-square.dark {
+            background-color: var(--square-dark);
+        }
+        .chess-square.selected {
+            background-color: var(--square-selected) !important;
+        }
+        .chess-square.highlight::after {
+            content: "";
+            width: 30%;
+            height: 30%;
+            background-color: var(--square-highlight);
+            border-radius: 50%;
+            position: absolute;
+        }
+        .chess-square.capture-highlight::after {
+            content: "";
+            width: 85%;
+            height: 85%;
+            border: 4px solid var(--square-highlight);
+            border-radius: 50%;
+            position: absolute;
+        }
+        .piece-symbol {
+            z-index: 2;
+            line-height: 1;
+            filter: drop-shadow(0 2px 3px rgba(0,0,0,0.2));
+        }
+
+        /* DeepTeankingAI ローディングオーバーレイ */
+        .deepthinking-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.65);
+            backdrop-filter: blur(4px);
+            border-radius: var(--ptz-card-radius);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        .deepthinking-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .spinner {
+            width: 44px;
+            height: 44px;
+            border: 4px solid rgba(255,255,255,0.2);
+            border-top: 4px solid var(--accent-primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 12px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* バッジ */
+        .badge {
+            background: var(--accent-primary);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 700;
+            display: inline-block;
+        }
+
+        /* トースト通知 */
+        .toast {
+            position: fixed;
+            bottom: 84px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--text-main);
+            color: var(--glass-bg);
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s var(--m3-easing);
+            z-index: 2000;
+        }
+        .toast.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .preset-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .preset-btn {
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            border: none;
+            padding: 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+.play-hero{background:#58cc9d;color:#fff;border-radius:var(--ptz-card-radius);padding:28px 20px;text-align:center;margin-bottom:20px}
+.play-hero h1{margin:10px 0 2px;font-size:26px}.play-hero p{color:#fff;margin-bottom:8px}
+.pb-avatar.big{width:120px;height:120px;margin:0 auto;background:rgba(255,255,255,.25)}
+.stats{display:flex;gap:10px;justify-content:center;margin:14px 0}
+.stat{width:92px;background:#3f8f6e;border-radius:16px;font-weight:700;font-size:11px;padding-top:6px}
+.stat b{display:block;background:#58cc9d;margin:6px 2px 2px;border-radius:14px;padding:12px 0;font-size:20px;border:2px solid #3f8f6e}
+.d-btn{background:#fff;color:#3fae82;font-weight:800;border:0;border-radius:16px;padding:16px;width:100%;font-size:15px;box-shadow:0 5px 0 #a7e3cd;cursor:pointer;letter-spacing:1px}
+.d-btn:active{transform:translateY(4px);box-shadow:0 1px 0 #a7e3cd}
+.chip{border:0;border-radius:14px;padding:7px 14px;margin:3px;font-weight:700;font-size:13px;background:rgba(255,255,255,.3);color:#fff;cursor:pointer}.chip.on{background:#fff;color:#3fae82}
+.inp{border:2px solid var(--bg-secondary);border-radius:12px;padding:10px;background:var(--glass-bg);color:var(--text-main);font-size:14px;width:100%}
+.code{font-size:26px;letter-spacing:4px;color:var(--accent-primary)}
+.unit-h{background:#58cc9d;color:#fff;border-radius:16px;padding:12px 16px;margin:18px 0 4px}.unit-h small{display:block;opacity:.85;font-size:11px}
+.node-w{display:flex;flex-direction:column;align-items:center;margin:14px 0;cursor:pointer}
+.node{width:72px;height:72px;border-radius:50%;background:#58cc9d;box-shadow:0 7px 0 #3f8f6e;display:flex;align-items:center;justify-content:center;font-size:32px;color:#fff}
+.node.done{background:#ffc800;box-shadow:0 7px 0 #cc9f00}.stars{color:#ffc800;font-size:13px;margin-top:10px}.node-n{font-size:12px;font-weight:700}
+.lp{position:fixed;inset:0;background:var(--bg-base);z-index:1500;display:none;flex-direction:column}.lp.on{display:flex}
+.lp-top{display:flex;align-items:center;gap:12px;padding:14px 16px}.lp-top button{border:0;background:none;font-size:22px;color:var(--text-sub);cursor:pointer}
+.lp-bar{flex:1;height:14px;background:var(--bg-secondary);border-radius:8px;overflow:hidden}.lp-bar i{display:block;height:100%;width:0;background:#58cc02;transition:width .4s}
+.lp-body{flex:1;overflow:auto;padding:8px 16px;max-width:560px;margin:0 auto;width:100%}
+.coach{display:flex;gap:10px;align-items:center;margin-bottom:12px}.bubble{border:2px solid var(--bg-secondary);border-radius:16px;padding:12px;font-size:14px;flex:1;background:var(--glass-bg);min-height:50px}
+.opt{display:block;width:100%;margin:8px 0;padding:14px;border-radius:14px;border:2px solid var(--bg-secondary);background:var(--glass-bg);color:var(--text-main);font-weight:600;font-size:14px;text-align:left;cursor:pointer}
+.opt.good{border-color:#58cc02;background:#d7ffb8;color:#3c7d00}.opt.bad{border-color:#ff4b4b;background:#ffdfe0;color:#c03030}
+.lp-foot{padding:16px;background:var(--glass-bg)}.lp-foot.good{background:#d7ffb8;color:#3c7d00}.lp-foot.bad{background:#ffdfe0;color:#c03030}
+.lp-foot button{display:block;margin:10px auto 0;width:100%;max-width:560px;border:0;border-radius:14px;padding:14px;background:#58cc02;color:#fff;font-weight:800;box-shadow:0 4px 0 #46a302;cursor:pointer}.lp-foot.bad button{background:#ff4b4b;box-shadow:0 4px 0 #cc3c3c}
+.chat-log{height:180px;overflow:auto;display:flex;flex-direction:column;gap:6px;padding:4px}
+.msg{max-width:85%;padding:8px 12px;border-radius:14px;font-size:13px;line-height:1.5;white-space:pre-wrap}.msg.u{align-self:flex-end;background:var(--accent-primary);color:#fff}.msg.b{align-self:flex-start;background:var(--bg-secondary)}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}.chips button{border:0;border-radius:14px;padding:6px 10px;font-size:11px;background:var(--bg-secondary);color:var(--text-main);cursor:pointer}
+.chat-in{display:flex;gap:6px}.chat-in input{flex:1;border:2px solid var(--bg-secondary);border-radius:12px;padding:10px;background:var(--glass-bg);color:var(--text-main);font-size:14px}
+#side{position:fixed;top:0;right:0;bottom:72px;width:min(360px,92vw);background:var(--glass-bg);z-index:900;transform:translateX(105%);transition:transform .3s var(--m3-easing);padding:14px;display:flex;flex-direction:column;box-shadow:-4px 0 20px rgba(0,0,0,.18)}
+#side.open{transform:none}#side .chat{flex:1;display:flex;flex-direction:column;min-height:0}#side .chat-log{flex:1;height:auto}
+.side-h{display:flex;align-items:center;gap:10px;margin-bottom:8px}.side-h button{margin-left:auto;border:0;background:none;font-size:20px;color:var(--text-sub);cursor:pointer}
+#splash{position:fixed;inset:0;background:#58cc9d;z-index:3000;display:flex;align-items:center;justify-content:center;flex-direction:column;color:#fff;transition:opacity .5s}
+#splash.out{opacity:0;pointer-events:none}#splash h1{font-size:40px;margin:12px 0 0;letter-spacing:1px}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:2500;display:none;align-items:center;justify-content:center;padding:20px}.modal.on{display:flex}
+.modal .box{background:var(--glass-bg);border-radius:24px;padding:24px;max-width:420px;width:100%;max-height:90vh;overflow:auto}
+.icons{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:12px 0}.icons .pb-avatar{width:100%;height:auto;aspect-ratio:1;cursor:pointer;border:3px solid transparent}.icons .pb-avatar.on{border-color:var(--accent-primary)}
+.hdr-me{position:absolute;left:20px;width:40px;height:40px;cursor:pointer}.hdr-me .pb-avatar{width:40px;height:40px}
+.chat-btn{right:72px;display:none}
+.list-item.sel{background:var(--bg-secondary);border-radius:12px}
+
+.play-hero{background:var(--glass-bg);color:var(--text-main);text-align:center}.play-hero h1{font-size:22px}.play-hero p{color:var(--text-sub)}
+.pb-avatar.big{background:var(--bg-secondary)}
+.chip{background:var(--bg-secondary);color:var(--text-main)}.chip.on{background:var(--accent-primary);color:#fff}
+.rec-bar{display:flex;height:10px;border-radius:5px;overflow:hidden;background:var(--bg-secondary);margin:14px 0 6px}#rb-w{background:var(--accent-primary)}#rb-d{background:#9aa0a6}#rb-l{background:#3a3a3c}
+#rec-txt{font-size:13px;color:var(--text-sub);margin-bottom:14px}
+#splash{background:linear-gradient(135deg,var(--accent-primary),var(--accent-active))}
+.lp-bar i{background:var(--accent-primary)}
+.lp-foot button{background:var(--accent-primary);box-shadow:none}.lp-foot.bad button{background:var(--accent-primary);box-shadow:none}
+.lp-foot.good,.lp-foot.bad{background:var(--bg-secondary);color:var(--text-main)}
+.opt.good{border-color:var(--accent-primary);background:rgba(51,129,255,.12);color:var(--text-main)}.opt.bad{border-color:#999;background:var(--bg-secondary);color:var(--text-sub)}
+.les-card{display:flex;gap:12px;align-items:center;padding:12px;border-radius:16px;background:var(--bg-secondary);margin-bottom:8px;cursor:pointer}
+.les-i{font-size:24px;width:44px;height:44px;border-radius:12px;background:var(--glass-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.term{color:var(--accent-primary);border-bottom:1px dashed var(--accent-primary);cursor:pointer}
+.think{opacity:.55}.rp-ctl{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px}
+    </style>
+</head>
+<body>
+
+    <div id="app-viewport">
+        <!-- ヘッダー -->
+        <header>
+            <div class="hdr-me" id="hdr-me" onclick="switchView('view-user')"><div class="pb-avatar"><img id="hdr-img" alt=""></div></div>
+            <button class="theme-toggle chat-btn" id="chat-btn" onclick="toggleSide()" title="Chess assistant"><span class="material-symbols-outlined">chat</span></button>
+            <div class="logo">
+                <span>PBChess</span>
+                <span style="color: var(--accent-primary);">♞</span>
+            </div>
+            <button class="theme-toggle" id="theme-btn" title="テーマ切り替え">
+                <span class="material-symbols-outlined">light_mode</span>
+            </button>
+        </header>
+
+        <!-- メインコンテンツ -->
+        <main>
+            <!-- 1. タイトル画面ビュー (初期画面) -->
+            <section id="view-title" class="view active">
+                <div class="glass-card" style="text-align: center; padding: 36px 24px;">
+                    <div style="font-size: 56px; margin-bottom: 8px;">♞</div>
+                    <h1 style="font-size: 28px; margin: 0 0 8px; font-weight: 700;">PBChess♞</h1>
+                    <p style="max-width: 440px; margin: 0 auto 24px; color: var(--text-sub);">
+                        世界各国のポーランドボールたちと本格チェスバトル！<br>
+                        最強の英国(UK)は超超分析機能「DeepTeankingAI」であなたとチェス対戦。
+                    </p>
+                    <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+                        <button class="ai-btn" onclick="switchView('view-play')">
+                            <span class="material-symbols-outlined">sports_esports</span>
+                            Playタブで対戦する
+                        </button>
+                        <button class="ai-btn ai-btn-secondary" onclick="switchView('view-lessons')">
+                            <span class="material-symbols-outlined">school</span>
+                            イギリスのチェス講座
+                        </button>
+                    </div>
+                </div>
+
+                </section>
+
+            <!-- PLAY -->
+            <section id="view-play" class="view">
+                <div class="glass-card play-hero">
+                    <div class="pb-avatar big"><img id="play-img" alt=""></div>
+                    <h1>Play</h1><p id="play-sub"></p>
+                    <div id="lvl-box" style="display:none"><p style="font-size:12px;margin:0">DeepTeankingAI 推論レベル</p><div id="lvl-chips"></div><p id="lvl-desc" style="font-size:12px"></p></div>
+                    <div class="rec-bar"><i id="rb-w"></i><i id="rb-d"></i><i id="rb-l"></i></div><div id="rec-txt"></div>
+                    <button class="ai-btn" style="width:100%" onclick="startGame(selOpp)">対局を始める</button>
+                </div>
+                <div class="glass-card">
+                    <h2>友達とオンライン対戦（ワンタイム）</h2>
+                    <p>部屋コードは1回限り。対局が終わると自動で無効になります。部屋を作った人が白です。</p>
+                    <button class="ai-btn" onclick="hostRoom()"><span class="material-symbols-outlined">add_circle</span>部屋を作る</button>
+                    <div style="display:flex;gap:8px;margin-top:12px"><input class="inp" id="join-code" maxlength="6" placeholder="部屋コード(6文字)"><button class="ai-btn ai-btn-secondary" onclick="joinRoom()">参加</button></div>
+                    <div id="room-st" style="margin-top:12px;font-size:13px"></div>
+                </div>
+                <div class="glass-card"><h2>対戦相手を選択（全10キャラ）</h2><p>ボールごとに思考アルゴリズムと難易度が変化します。</p><div class="custom-list" id="opponent-select-list"></div></div>
+            </section>
+
+            <!-- 2. チェス対戦ビュー -->
+            <section id="view-game" class="view">
+                <div class="glass-card" style="position: relative;">
+                    <!-- Opponent Header (ポーランドボール表示) -->
+                    <div class="opponent-header">
+                        <div class="pb-avatar" id="game-pb-avatar">
+                            <img id="game-pb-img" src="" alt="Polandball">
+                        </div>
+                        <div class="opponent-info">
+                            <div class="opponent-name">
+                                <span id="game-pb-name">イギリス</span>
+                                <span class="badge" id="game-pb-diff">最強</span>
+                            </div>
+                            <div class="opponent-title" id="game-pb-title">大英帝国のチェス大マスター</div>
+                            <div class="speech-bubble" id="game-pb-speech">「チェックメイトまでの手順を計算中だ...」</div>
+                        </div>
+                    </div>
+
+                    <!-- チェス盤 -->
+                    <div class="chessboard-wrapper" id="chessboard">
+                        <!-- 8x8 マス目をJSで生成 -->
+                    </div>
+
+                    <!-- ゲーム操作ボタン -->
+                    <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 12px;">
+                        <button class="ai-btn ai-btn-secondary" id="undo-btn" onclick="undoMove()">
+                            <span class="material-symbols-outlined">undo</span>
+                            待った
+                        </button>
+                        <button class="ai-btn ai-btn-secondary" onclick="resignGame()">
+                            <span class="material-symbols-outlined">flag</span>
+                            投了
+                        </button>
+                        <button class="ai-btn" onclick="restartGame()">
+                            <span class="material-symbols-outlined">restart_alt</span>
+                            最初から
+                        </button>
+                    </div>
+
+                    <!-- DeepTeankingAI 分析中オーバーレイ -->
+                    <div class="deepthinking-overlay" id="deepthinking-modal">
+                        <div class="spinner"></div>
+                        <div style="font-weight: 700; font-size: 16px; margin-bottom: 4px;">DeepTeankingAI 分析中...</div>
+                        <div style="font-size: 12px; opacity: 0.8;" id="deepthinking-subtext">幾千の未来局面を思考中</div>
+                    </div>
+                </div>
+
+                <div class="glass-card" id="teach-card">
+                    <div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0">DeepTeaching</h2><label style="font-size:13px"><input type="checkbox" id="teach-on" checked> ON</label></div>
+                    <p id="teach-msg" style="margin:8px 0 12px;color:var(--text-main)">指した手をイギリス先生が評価し、最善手を教えます。</p>
+                    <button class="ai-btn ai-btn-secondary" onclick="hint()"><span class="material-symbols-outlined">lightbulb</span>ヒント</button>
+                </div>
+
+                <!-- 局面ログ -->
+                <div class="glass-card">
+                    <h2>対局情報</h2>
+                    <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 8px;">
+                        <span style="color: var(--text-sub);">手番: <b id="turn-indicator" style="color: var(--text-main);">あなた (白)</b></span>
+                        <span style="color: var(--text-sub);">状態: <b id="status-indicator" style="color: var(--text-main);">対局中</b></span>
+                    </div>
+                    <div style="max-height: 80px; overflow-y: auto; font-family: monospace; font-size: 12px; color: var(--text-sub); border-top: 1px solid var(--bg-secondary); padding-top: 8px;" id="move-history">
+                        対局が開始されました。
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. チェス講座ビュー -->
+            <section id="view-lessons" class="view">
+                <div class="glass-card">
+                    <div style="display:flex;align-items:center;gap:16px"><div class="pb-avatar"><img class="uk-crop" id="les-uk" alt="UK"></div>
+                    <div><h2 style="margin:0">イギリス紳士のチェス講座</h2><p style="margin:4px 0 0;font-size:12px">「基礎から定跡まで、ここでチェスの全てを。」<b id="lesson-prog" style="margin-left:6px"></b></p></div></div>
+                    <div id="coach-card" class="glass-card" style="background:var(--bg-secondary);padding:16px"></div><div id="lesson-list"></div><h2 style="margin-top:24px">特訓・壁打ち</h2><div id="drill-list"></div>
+                </div>
+            </section>
+
+            <section id="view-user" class="view">
+                <div class="glass-card" style="text-align:center">
+                    <div class="pb-avatar big" style="background:var(--bg-secondary)"><img id="user-img" alt=""></div>
+                    <h2 id="user-name" style="margin-top:12px"></h2><p>PBポイント: <b id="user-xp">0</b> ／ 戦績 <span id="user-rec"></span></p>
+                    <button class="ai-btn" onclick="openSetup()"><span class="material-symbols-outlined">edit</span>名前・アイコンを変更</button> <button class="ai-btn ai-btn-secondary" onclick="switchView('view-ptz')">設定・ライセンス</button>
+                </div>
+            </section>
+
+            <section id="view-rec" class="view">
+                <div class="glass-card"><h2>弱点分析（IndexedDB）</h2><p id="analysis" style="white-space:pre-wrap;color:var(--text-main)"></p></div>
+                <div class="glass-card" id="replay-card" style="display:none"><h2>リプレイ</h2><p id="rp-note"></p>
+                    <div class="chessboard-wrapper" id="rp-board"></div>
+                    <div class="rp-ctl" id="rp-ctl"><button class="ai-btn" id="rp-play" onclick="rpToggle()">▶ 再生</button>
+                        <select class="inp" id="rp-mode" style="width:auto"><option value="lapse">タイムラプス</option><option value="real">リアルタイム</option></select>
+                        <input type="range" id="rp-slider" min="0" max="0" value="0" style="flex:1" oninput="rpTo(+this.value)"></div>
+                    <p id="rp-log" style="margin-top:12px;font-family:monospace;font-size:12px"></p></div>
+                <div class="glass-card"><h2>Record assistant</h2><p>開いて聞くヘルプデスク。リプレイを開いた試合について質問できます（止めた位置も記憶します）。</p><div class="chat" id="rec-chat"></div></div>
+                <div class="glass-card"><h2>対局記録</h2><p>直近10局はリプレイ可能。それ以前は手順ログのみ保存され、分析に使われます。</p><div class="custom-list" id="rec-list"></div></div>
+            </section>
+
+            <!-- 4. PTZ設定ビュー -->
+            <section id="view-ptz" class="view">
+                <div class="glass-card">
+                    <h2>Open source LICENSE</h2>
+                    <p>Powered by chess.js
+<br>I have no connection to the author of Chess.js.UNOFFICIAL,
+<br>Copyright (c) 2025, Jeff Hlywa (jhlywa@gmail.com)
+All rights reserved.
+
+<br>Redistribution and use in source and binary forms, with or without
+<br>modification, are permitted provided that the following conditions are met:
+
+<br>1. Redistributions of source code must retain the above copyright notice,
+   this list of conditions and the following disclaimer.
+<br>2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+<br>THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+POSSIBILITY OF SUCH DAMAGE.
+<br>試験機能として、アプリのテーマは以下から選べます。
+                    </p>
+                    <div class="preset-grid">
+                        <button class="preset-btn" onclick="loadPreset('default')">Default Blue</button>
+                        <button class="preset-btn" onclick="loadPreset('sharpPurple')">Sharp Purple</button>
+                        <button class="preset-btn" onclick="loadPreset('chunkyRose')">Chunky Rose</button>
+                        <button class="preset-btn" onclick="loadPreset('minimalGray')">Monochrome</button>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- 下付き固定ナビゲーションバー -->
+        <div class="bottom-nav-container">
+            <div class="nav-item active" data-view="view-title" onclick="switchView('view-title')"><span class="material-symbols-outlined">home</span><span class="nav-label">ホーム</span></div>
+            <div class="nav-item" data-view="view-play" onclick="switchView('view-play')"><span class="material-symbols-outlined">grid_view</span><span class="nav-label">Play</span></div>
+            <div class="nav-item" data-view="view-game" onclick="switchView('view-game')"><span class="material-symbols-outlined">sports_esports</span><span class="nav-label">対戦</span></div>
+            <div class="nav-item" data-view="view-lessons" onclick="switchView('view-lessons')"><span class="material-symbols-outlined">school</span><span class="nav-label">講座</span></div>
+            <div class="nav-item" data-view="view-user" onclick="switchView('view-user')"><span class="material-symbols-outlined">person</span><span class="nav-label">ユーザー</span></div>
+            <div class="nav-item" data-view="view-rec" onclick="switchView('view-rec')"><span class="material-symbols-outlined">history</span><span class="nav-label">記録</span></div>
+        </div>
+    </div>
+
+    <aside id="side"><div class="side-h"><div class="pb-avatar" style="width:40px;height:40px"><img id="side-img" alt=""></div><div><b>Chess assistant</b><div class="list-item-desc" id="side-sub"></div></div><button onclick="toggleSide()">✕</button></div><div class="chat" id="side-chat"></div></aside>
+    <div class="lp" id="lp">
+        <div class="lp-top"><button onclick="closeLesson()">✕</button><div class="lp-bar"><i id="lp-fill"></i></div><b id="lp-hearts">ミス 0</b></div>
+        <div class="lp-body">
+            <div class="coach"><div class="pb-avatar" style="width:64px;height:64px"><img class="uk-crop" id="lp-uk" alt="UK"></div><div class="bubble" id="lp-q"></div></div>
+            <div class="chessboard-wrapper" id="lp-board"></div><div id="lp-opts"></div>
+            <div class="glass-card" style="padding:12px;margin-top:16px"><div class="chat" id="lp-chat"></div></div>
+        </div>
+        <div class="lp-foot" id="lp-foot"><div id="lp-fmsg"></div><button id="lp-btn" style="display:none"></button></div>
+    </div>
+    <div class="modal" id="setup"><div class="box"><h2>プロフィール設定</h2><p>名前とアイコンを選んでください。</p>
+        <input class="inp" id="set-name" maxlength="12" placeholder="あなたの名前"><div class="icons" id="set-icons"></div>
+        <button class="ai-btn" style="width:100%" onclick="saveSetup()">決定</button></div></div>
+    <div id="splash"><div class="pb-avatar big"><img class="uk-crop" id="sp-uk" alt=""></div><h1>PB-chess</h1></div>
+
+    <div class="modal" id="sim" onclick="this.classList.remove('on')"><div class="box"><h2>もしも分岐</h2><div class="chessboard-wrapper" id="sim-board" style="max-width:320px"></div><p id="sim-txt" style="margin-top:12px"></p></div></div>
+    <!-- トースト通知 -->
+    <div class="toast" id="toast-message">トーストメッセージ</div>
+
+    <script>
+        /**
+         * PBChess♞ - Application Logic
+         */
+
+        const BASE_IMG_URL = "https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/";
+
+        // 10か国の定義
+        const OPPONENTS = {
+            poland: {
+                id: "poland",
+                name: "ポーランド",
+                title: "チェス初心者",
+                diffText: "難易度 1",
+                level: 1,
+                dirName: "poland",
+                speeches: {
+                    normal: "チェスのルールはおぼえたよ！",
+                    win: "Yay! ポーランドはチェス勝てる！",
+                    lose: "Nooo! また負けた...",
+                    thinking: "どこに動かすんだっけ...",
+                    check: "チェック！やったんよ!"
+                }
+            },
+            sierraleone: {
+                id: "sierraleone",
+                name: "シエラレオネ",
+                title: "のんびりプレイヤー",
+                diffText: "難易度 2",
+                level: 2,
+                dirName: "sierraleone",
+                speeches: {
+                    normal: "楽しくチェスを打とうね！",
+                    win: "やった〜！勝ったよ！",
+                    lose: "良い勝負だったね！",
+                    thinking: "うーんと、次は...",
+                    check: "気をつけて！チェックだよ！"
+                }
+            },
+            italy: {
+                id: "italy",
+                name: "イタリア",
+                title: "気まぐれタクティシャン",
+                diffText: "難易度 3",
+                level: 3,
+                dirName: "italy",
+                speeches: {
+                    normal: "パスタを食べながらチェスさ！",
+                    win: "Mamma Mia! 完璧な勝利！",
+                    lose: "ピッツァの焼き時間を間違えた...",
+                    thinking: "直感で指すスタイルさ！",
+                    check: "チェック！アモーレ！"
+                }
+            },
+            france: {
+                id: "france",
+                name: "フランス",
+                title: "優雅なる攻防手",
+                diffText: "難易度 4",
+                level: 4,
+                dirName: "france",
+                speeches: {
+                    normal: "エレガントな手をお見せしよう。",
+                    win: "美しいチェックメイトだ。",
+                    lose: "失礼、集中を切らしてしまった。",
+                    thinking: "最善の美学を探索中...",
+                    check: "チェック。お逃げなさい。"
+                }
+            },
+            china: {
+                id: "china",
+                name: "中国",
+                title: "定石重視の堅実派",
+                diffText: "難易度 5",
+                level: 5,
+                dirName: "china",
+                speeches: {
+                    normal: "将棋の経験をチェスに応用するんよ。",
+                    win: "計画通りなんよ！再見！",
+                    lose: "お見事なんね...参りました。",
+                    thinking: "盤面全体を計算中なんよ...",
+                    check: "チェックだよ！逃げ道はないんよ！"
+                }
+            },
+            japan: {
+                id: "japan",
+                name: "日本",
+                title: "詰み重視の詰チェス師範",
+                diffText: "難易度 6",
+                level: 6,
+                dirName: "japan",
+                speeches: {
+                    normal: "将棋で鍛えた読みに抜かりはありません。",
+                    win: "詰みました。対局ありがとうございました。",
+                    lose: "参りました...素晴らしい構想でした。",
+                    thinking: "相手の狙いを深読中...",
+                    check: "王手(チェック)でございます。"
+                }
+            },
+            germany: {
+                id: "germany",
+                name: "ドイツ",
+                title: "精密な戦術機械",
+                diffText: "難易度 7",
+                level: 7,
+                dirName: "germany",
+                speeches: {
+                    normal: "計算にミスは存在しない。準備はいいか？",
+                    win: "計画通りの必然的勝利だ。",
+                    lose: "エラー発生...計算不可能な手を指された。",
+                    thinking: "アルゴリズムを実行中...",
+                    check: "チェック。脱出確率は0.02%だ。"
+                }
+            },
+            usa: {
+                id: "usa",
+                name: "アメリカ",
+                title: "アグレッシブ・アタッカー",
+                diffText: "難易度 8",
+                level: 8,
+                dirName: "usa",
+                speeches: {
+                    normal: "ガンガン攻撃していくぜ！ついてこれるか？",
+                    win: "USA! USA! 完璧なノックアウトだ！",
+                    lose: "Hey! 今のはウォーミングアップだ！",
+                    thinking: "最短の攻撃ルートをアタック！",
+                    check: "Check! 逃げ場はないぜ！"
+                }
+            },
+            russia: {
+                id: "russia",
+                name: "ロシア",
+                title: "グランドマスター級の絶対王者",
+                diffText: "難易度 9",
+                level: 9,
+                dirName: "russia",
+                speeches: {
+                    normal: "極寒の盤面へようこそ。甘さは捨てろ。",
+                    win: "これがロシアチェスの伝統だ。",
+                    lose: "見事だ...君のチェスを認めよう。",
+                    thinking: "数万の分岐を読んでいる...",
+                    check: "チェック。逃げ道はすでに塞いだ。"
+                }
+            },
+            england472x600: {
+                id: "england472x600",
+                name: "イギリス (UK)",
+                title: "DeepTeankingAI搭載・チェス最強",
+                diffText: "最強",
+                level: 10,
+                dirName: "england472x600",
+                speeches: {
+                    normal: "紅茶でも飲みながらやりましょう。負けは確定していますがね。",
+                    win: "Checkmate, my friend. 全ての未来は見えていました。",
+                    lose: "まさか...DeepTeankingAIの計算を超えるとは！",
+                    thinking: "DeepTeankingAI分析中... 勝利の方程式を導出しています...",
+                    check: "王手ですな。エレガントに対処なさってください。"
+                }
+            }
+        };
+
+        // Unicode 駒シンボル
+        const PIECE_SYMBOLS = {
+            'p': '♟', 'r': '♜', 'n': '♞', 'b': '♝', 'q': '♛', 'k': '♚',
+            'P': '♙', 'R': '♖', 'N': '♘', 'B': '♗', 'Q': '♕', 'K': '♔'
+        };
+
+        // アプリ状態
+        let currentOpponent = OPPONENTS.england472x600;
+        let game = null;
+        let selectedSquare = null;
+        let validMovesForSquare = [];
+
+        function getBallImgUrl(countryDir, face = 'normal') {
+            return `${BASE_IMG_URL}${countryDir}/${face}.png`;
+        }
+
+        function setBallFace(imgElem, countryDir, face) {
+            imgElem.src = getBallImgUrl(countryDir, face);
+            if (countryDir === 'england472x600') {
+                imgElem.classList.add('uk-crop');
+            } else {
+                imgElem.classList.remove('uk-crop');
+            }
+        }
+
+
+        const $=id=>document.getElementById(id);
+        const LS={g(k,d){try{const v=JSON.parse(localStorage.getItem(k));return v==null?d:v}catch(e){return d}},s(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+        let me=LS.g('pbc_me',null),stats=LS.g('pbc_stats',{w:0,l:0,d:0,xp:0}),prog=LS.g('pbc_les',{});
+        const LV={2:['名人','2手先まで予測'],3:['達人','3手先まで予測（従来の強さ）'],4:['超人','4手先まで予測（思考に数秒かかります）']};
+        let selOpp='england472x600',lvl=3,mode='ai',myColor='w',sel=null,vm=[],over=false,recorded=false,t0=0,t1=0,evs=[],sans=[],peer=null,conn=null,aiBusy=false,resType='',resText='',asst_=null;
+        const avImg=d=>`<div class="pb-avatar" style="width:48px;height:48px"><img class="${d==='england472x600'?'uk-crop':''}" src="${getBallImgUrl(d,'normal')}"></div>`;
+
+        function typeInto(el,t,cb,sp){el._k=(el._k||0)+1;const k=el._k;let i=0;(function f(){if(el._k!==k)return;el.textContent=t.slice(0,++i);const b=el.closest('.chat-log');if(b)b.scrollTop=b.scrollHeight;if(i<t.length)setTimeout(f,sp||22);else cb&&cb()})()}
+        function mkChat(root,fn,chips,hello){root.innerHTML='<div class="chat-log"></div><div class="chips"></div><div class="chat-in"><input placeholder="メッセージを入力…"><button class="ai-btn">送信</button></div>';const log=root.children[0],ch=root.children[1],inp=root.querySelector('input');
+            const add=(c,t,ty)=>{const d=document.createElement('div');d.className='msg '+c;log.appendChild(d);if(ty)typeInto(d,t);else d.textContent=t;log.scrollTop=log.scrollHeight};
+            const send=t=>{t=(t||inp.value).trim();if(!t)return;inp.value='';add('u',t);setTimeout(()=>add('b',fn(t),1),250)};
+            root.querySelector('button.ai-btn').onclick=()=>send();inp.onkeydown=e=>{if(e.key==='Enter'&&!e.isComposing)send()};
+            chips.forEach(c=>{const b=document.createElement('button');b.textContent=c;b.onclick=()=>send(c);ch.appendChild(b)});if(hello)add('b',hello,1)}
+
+        // ---- プロフィール ----
+        function refreshMe(){if(!me)return;setBallFace($('hdr-img'),me.icon,'normal');setBallFace($('user-img'),me.icon,'normal');$('user-name').textContent=me.name;$('user-xp').textContent=stats.xp;$('user-rec').textContent=`${stats.w}勝 ${stats.l}敗 ${stats.d}分`}
+        let setIcon='poland';
+        function openSetup(){$('set-name').value=me?me.name:'';setIcon=me?me.icon:'poland';const g=$('set-icons');g.innerHTML='';Object.values(OPPONENTS).forEach(o=>{const d=document.createElement('div');d.className='pb-avatar'+(o.dirName===setIcon?' on':'');d.innerHTML=`<img class="${o.dirName==='england472x600'?'uk-crop':''}" src="${getBallImgUrl(o.dirName,'normal')}">`;d.onclick=()=>{setIcon=o.dirName;[...g.children].forEach(x=>x.classList.remove('on'));d.classList.add('on')};g.appendChild(d)});$('setup').classList.add('on')}
+        function saveSetup(){me={name:$('set-name').value.trim()||'プレイヤー',icon:setIcon};LS.s('pbc_me',me);$('setup').classList.remove('on');refreshMe();updatePlay()}
+
+        // ---- Play タブ ----
+        function renderOpponentSelectList(){const c=$('opponent-select-list');c.innerHTML='';Object.values(OPPONENTS).forEach(o=>{const i=document.createElement('div');i.className='list-item'+(o.id===selOpp?' sel':'');i.onclick=()=>{selOpp=o.id;updatePlay()};i.innerHTML=`<div style="display:flex;align-items:center;gap:12px">${avImg(o.dirName)}<div><div class="list-item-title">${o.name} <span class="badge" style="font-size:10px">${o.diffText}</span></div><div class="list-item-desc">${o.title}</div></div></div><span class="material-symbols-outlined" style="color:var(--accent-primary)">${o.id===selOpp?'check_circle':'radio_button_unchecked'}</span>`;c.appendChild(i)})}
+        function updatePlay(){const o=OPPONENTS[selOpp];setBallFace($('play-img'),o.dirName,'normal');$('play-sub').textContent=`${o.name} との対局 ― ${o.title}`;$('st-w').textContent=stats.w;$('st-l').textContent=stats.l;$('st-d').textContent=stats.d;
+            $('lvl-box').style.display=selOpp==='england472x600'?'':'none';const ch=$('lvl-chips');ch.innerHTML='';[2,3,4].forEach(k=>{const b=document.createElement('button');b.className='chip'+(k===lvl?' on':'');b.textContent=LV[k][0];b.onclick=()=>{lvl=k;updatePlay()};ch.appendChild(b)});$('lvl-desc').textContent=LV[lvl][1];renderOpponentSelectList();refreshMe()}
+        function startGame(id){initGame(id,'ai','w');switchView('view-game')}
+        function startQuickGame(id){startGame(id)}
+
+        // ---- 盤面 ----
+        function drawBoard(el,g,o){el.innerHTML='';const b=g.board();for(let r=0;r<8;r++)for(let c=0;c<8;c++){const rr=o.flip?7-r:r,cc=o.flip?7-c:c,sq=String.fromCharCode(97+cc)+(8-rr),d=document.createElement('div');d.className='chess-square '+((rr+cc)%2?'dark':'light');if(o.sel===sq)d.classList.add('selected');const m=(o.vm||[]).find(x=>x.to===sq);if(m)d.classList.add(m.captured?'capture-highlight':'highlight');const p=b[rr][cc];if(p){const sp=document.createElement('span');sp.className='piece-symbol';sp.textContent=PIECE_SYMBOLS[p.color==='w'?p.type.toUpperCase():p.type];sp.style.color=p.color==='w'?'#FFF':'#000';if(p.color==='w')sp.style.textShadow='0 0 3px #000, 0 0 1px #000';d.appendChild(sp)}d.onclick=()=>o.click(sq);el.appendChild(d)}}
+        function draw(){drawBoard($('chessboard'),game,{sel,vm,flip:myColor==='b',click:sqClick})}
+
+        function initGame(id,m,color,oppObj){mode=m||'ai';myColor=color||'w';currentOpponent=oppObj||OPPONENTS[id]||OPPONENTS.england472x600;game=new Chess();sel=null;vm=[];over=false;recorded=false;aiBusy=false;t0=Date.now();t1=0;evs=[];sans=[];resType='';resText='';
+            const o=currentOpponent;setBallFace($('game-pb-img'),o.dirName,'normal');$('game-pb-name').textContent=o.name;$('game-pb-title').textContent=o.title;
+            $('game-pb-diff').textContent=(o.id==='england472x600'&&mode==='ai')?'推論Lv.'+LV[lvl][0]:o.diffText;$('game-pb-speech').textContent=`「${o.speeches.normal}」`;$('move-history').textContent=`${o.name} との対局が始まりました。`;
+            $('undo-btn').style.display=mode==='ai'?'':'none';$('teach-card').style.display=mode==='ai'?'':'none';$('teach-msg').textContent='指した手をイギリス先生が評価し、最善手を教えます。';
+            setBallFace($('side-img'),o.dirName,'normal');$('side-sub').textContent=o.name+'に質問できます';
+            mkChat($('side-chat'),asst,['いまの状況は？','勝つには？','今のログ','経過時間','負けた理由を教えて','試合結果'],`${o.speeches.normal}\n状況や勝ち方など、何でも聞いてください。`);
+            draw();updateStatus()}
+
+        function sqClick(s){if(!game||over||game.game_over()||game.turn()!==myColor||aiBusy)return;
+            if(sel&&sel!==s){const f=sel,fen=game.fen(),mv=game.move({from:f,to:s,promotion:'q'});if(mv){sel=null;vm=[];if(mode==='online'&&conn)conn.send({t:'mv',from:mv.from,to:mv.to});afterMove(mv,fen,true);return}}
+            const p=game.get(s);if(p&&p.color===myColor){sel=s;vm=game.moves({square:s,verbose:true})}else{sel=null;vm=[]}draw()}
+        function afterMove(mv,fen,mine){sans.push(mv.san);evs.push(-evaluateBoard(game.board()));draw();updateStatus();
+            if(mine&&mode==='ai'&&!over){if(mv.captured)setBallFace($('game-pb-img'),currentOpponent.dirName,'surprise');if($('teach-on').checked)teach(fen,mv);setTimeout(makeAIMove,400)}}
+
+        function makeAIMove(){if(game.game_over()||over)return;const uk=currentOpponent.id==='england472x600',img=$('game-pb-img');aiBusy=true;
+            if(uk){$('deepthinking-modal').classList.add('active');$('deepthinking-subtext').textContent=`推論レベル「${LV[lvl][0]}」：${LV[lvl][1]}`;setBallFace(img,currentOpponent.dirName,'plot');$('game-pb-speech').textContent=`「${currentOpponent.speeches.thinking}」`}
+            setTimeout(()=>{let m;const L=currentOpponent.level;if(L===1){const a=game.moves({verbose:true});m=a[Math.floor(Math.random()*a.length)]}else if(L<=4)m=getBestMoveDepth1();else m=minimaxRoot(uk?lvl:2,game,true);
+                if(m){const mv=game.move(m);sans.push(mv.san);evs.push(-evaluateBoard(game.board()))}aiBusy=false;$('deepthinking-modal').classList.remove('active');draw();updateStatus()},uk?900:300)}
+
+        // 1手読み (簡単な評価)
+        function getBestMoveDepth1() {
+            const moves = game.moves({ verbose: true });
+            let bestMove = null;
+            let bestValue = -9999;
+
+            moves.forEach(m => {
+                game.move(m);
+                let boardValue = evaluateBoard(game.board());
+                game.undo();
+
+                if (boardValue > bestValue) {
+                    bestValue = boardValue;
+                    bestMove = m;
+                }
+            });
+            return bestMove || moves[Math.floor(Math.random() * moves.length)];
+        }
+
+        // Minimax Root
+        function minimaxRoot(depth, game, isMaximizing) {
+            const moves = game.moves({ verbose: true });
+            let bestMove = null;
+            let bestValue = -99999;
+
+            for (let i = 0; i < moves.length; i++) {
+                const move = moves[i];
+                game.move(move);
+                let value = minimax(depth - 1, game, -100000, 100000, !isMaximizing);
+                game.undo();
+
+                if (value >= bestValue) {
+                    bestValue = value;
+                    bestMove = move;
+                }
+            }
+            return bestMove || moves[Math.floor(Math.random() * moves.length)];
+        }
+
+        function minimax(depth, game, alpha, beta, isMaximizing) {
+            if (depth === 0) return evaluateBoard(game.board());
+
+            const moves = game.moves({ verbose: true });
+
+            if (isMaximizing) {
+                let bestValue = -99999;
+                for (let i = 0; i < moves.length; i++) {
+                    game.move(moves[i]);
+                    bestValue = Math.max(bestValue, minimax(depth - 1, game, alpha, beta, !isMaximizing));
+                    game.undo();
+                    alpha = Math.max(alpha, bestValue);
+                    if (beta <= alpha) break;
+                }
+                return bestValue;
+            } else {
+                let bestValue = 99999;
+                for (let i = 0; i < moves.length; i++) {
+                    game.move(moves[i]);
+                    bestValue = Math.min(bestValue, minimax(depth - 1, game, alpha, beta, !isMaximizing));
+                    game.undo();
+                    beta = Math.min(beta, bestValue);
+                    if (beta <= alpha) break;
+                }
+                return bestValue;
+            }
+        }
+
+        // 駒の価値評価関数 (黒視点)
+        function evaluateBoard(board) {
+            let totalEvaluation = 0;
+            const pieceValues = { p: 10, r: 50, n: 30, b: 35, q: 90, k: 900 };
+
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    const piece = board[r][c];
+                    if (piece) {
+                        const val = pieceValues[piece.type] || 0;
+                        if (piece.color === 'b') {
+                            totalEvaluation += val;
+                        } else {
+                            totalEvaluation -= val;
+                        }
+                    }
+                }
+            }
+            return totalEvaluation;
+        }
+
+        function finish(r,txt){if(recorded)return;recorded=true;over=true;t1=Date.now();resType=r;resText=txt;stats[r]++;stats.xp+=50;LS.s('pbc_stats',stats);refreshMe();showToast('対局終了 +50 XP');if(mode==='online')setTimeout(closePeer,3000)}
+        function updateStatus(){const st=$('status-indicator'),sp=$('game-pb-speech'),img=$('game-pb-img'),o=currentOpponent,d=o.dirName,myTurn=game.turn()===myColor;
+            $('turn-indicator').textContent=myTurn?`${me?me.name:'あなた'} (${myColor==='w'?'白':'黒'})`:o.name;
+            if(game.in_checkmate()){const w=!myTurn;st.textContent=`チェックメイト！ (${w?(me?me.name:'あなた'):o.name}の勝利)`;setBallFace(img,d,w?'anger':'happy');sp.textContent=`「${w?o.speeches.lose:o.speeches.win}」`;finish(w?'w':'l',w?'チェックメイトであなたの勝ちです。':'チェックメイトであなたの負けです。')}
+            else if(game.in_draw()){st.textContent='引き分け (Draw)';setBallFace(img,d,'normal');finish('d','引き分けでした。')}
+            else if(game.in_check()){st.textContent='チェック！';if(myTurn){setBallFace(img,d,'lol');sp.textContent=`「${o.speeches.check}」`}else setBallFace(img,d,'surprise')}
+            else{st.textContent=over?st.textContent:'対局中';if(!aiBusy&&!over)setBallFace(img,d,'normal')}
+            if(sans.length)$('move-history').textContent=`手数: ${sans.length} | 直前の手: ${sans[sans.length-1]}`}
+        function undoMove(){if(!game||over||aiBusy||game.history().length<2)return;game.undo();game.undo();sans.length-=2;evs.length-=2;sel=null;vm=[];draw();updateStatus();showToast('1手戻しました')}
+        function resignGame(){if(!game||over||game.game_over())return;if(!confirm('本当に投了しますか？'))return;if(mode==='online'&&conn)conn.send({t:'rs'});setBallFace($('game-pb-img'),currentOpponent.dirName,'happy');$('status-indicator').textContent='投了 (あなたの負け)';$('game-pb-speech').textContent=`「${currentOpponent.speeches.win}」`;finish('l','あなたが投了しました。')}
+        function restartGame(){if(mode==='online')return showToast('オンライン対戦ではやり直せません');initGame(currentOpponent.id,'ai','w');showToast('ゲームを初期化しました')}
+
+        // ---- DeepTeaching ----
+        function scoreMoves(fen){const g=new Chess(fen);return g.moves({verbose:true}).map(m=>{g.move(m);const v=minimax(1,g,-1e5,1e5,true);g.undo();return{m,v}}).sort((a,b)=>a.v-b.v)}
+        function teach(fen,mv){if(game.game_over())return typeInto($('teach-msg'),'見事です。決着がつきましたね！');const r=scoreMoves(fen),b=r[0],mine=r.find(x=>x.m.from===mv.from&&x.m.to===mv.to&&(x.m.promotion||'')===(mv.promotion||''));if(!mine)return;const l=mine.v-b.v;
+            typeInto($('teach-msg'),l<=0?`${mv.san}：最善手です！エレガントですな。`:l<=10?`${mv.san}：良い手です。（最善は ${b.m.san} でした）`:l<=30?`${mv.san}：やや損な手です。${b.m.san} の方が良かったでしょう。`:`${mv.san}：悪手です！駒を失う恐れがあります。${b.m.san} を検討すべきでした。`)}
+        function hint(){if(!game||over||mode!=='ai'||game.turn()!=='w'||aiBusy)return;const b=scoreMoves(game.fen())[0];typeInto($('teach-msg'),`ヒント：${b.m.san}（${b.m.from}→${b.m.to}）がお勧めです。`)}
+
+        // ---- Chess assistant ----
+        function toggleSide(){$('side').classList.toggle('open')}
+        function mat(){const v={p:1,n:3,b:3,r:5,q:9,k:0},r={w:0,b:0};game.board().forEach(a=>a.forEach(p=>{if(p)r[p.color]+=v[p.type]}));return r}
+        function loseReason(){if(!over)return 'まだ負けていませんよ。諦めずに駒の安全を確認しましょう。';if(resType!=='l')return resType==='w'?'あなたの勝ちです！負けていませんよ。':'引き分けでした。負けではありません。';
+            let bi=-1,bd=0;for(let i=0;i<sans.length;i++){if((i%2===0)!==(myColor==='w'))continue;const f=k=>k<0?0:(myColor==='w'?evs[k]:-evs[k]);const d=f(i-1)-f(i);if(d>bd){bd=d;bi=i}}
+            const a=bd>=10?`最大の痛手は${bi+1}手目の ${sans[bi]} です（駒の価値で約${bd/10}ポイント損失）。`:'駒の損得に大きな差はなく、詰み筋の見落とし（読み負け）が原因のようです。';
+            return `${resText}\n${a}\n次回は動かす前に「取られる駒はないか？」「相手のチェックはないか？」を確認しましょう。`}
+        function asst(t){if(!game)return '対局を始めてから聞いてくださいね。';const n=t.replace(/[\s　?？!！。、,.]/g,'').toLowerCase(),m=mat(),dm=myColor==='w'?m.w-m.b:m.b-m.w,st=dm>=3?'あなたが優勢':dm<=-3?'あなたが劣勢':'ほぼ互角',el=Math.floor(((t1||Date.now())-t0)/1000);
+            if(/ログ|履歴|棋譜|手順|今までの手|指し手|何手/.test(n))return sans.length?`ここまで${sans.length}手：`+sans.map((x,i)=>(i%2?'':((i/2|0)+1)+'.')+x).join(' ').slice(-220):'まだ誰も指していません。';
+            if(/結果|勝敗|決着|どっちが勝|誰が勝/.test(n))return over?resText:'まだ対局中です。結果は出ていません。';
+            if(/時間|経過|何分|どれくらい|いつから|所要/.test(n))return `${over?'対局時間':'経過時間'}は ${Math.floor(el/60)}分${el%60}秒 です。`;
+            if(/負け|敗|やられ|なぜ|なんで|理由|原因/.test(n))return loseReason();
+            if(/ヒント|おすすめ|次の手|どこに|最善|指せば|どう指/.test(n)){if(mode!=='ai')return 'オンライン対戦ではヒントは使えません。フェアプレーで！';if(over||game.turn()!=='w')return '今はヒントを出せる局面ではありません。';const b=scoreMoves(game.fen())[0];return `私なら ${b.m.san}（${b.m.from}→${b.m.to}）を検討しますね。`}
+            if(/勝つ|勝て|勝利|コツ|アドバイス|作戦|攻略|どうすれば|どうしたら/.test(n)){let a=dm>=3?'リードしています。駒を交換して単純化し、キングの安全を保ちながら確実に詰ませましょう。':dm<=-3?'駒損しています。相手の守りが甘い駒（無防備な駒）を探し、フォークなどで取り返しましょう。':'互角です。中央のマスを押さえ、駒を活発に展開し、キャスリングでキングを安全に。';if(mode==='ai'&&!over&&game.turn()==='w'){const b=scoreMoves(game.fen())[0];a+=`\n候補手：${b.m.san}`}return `現在は${st}です。${a}`}
+            if(/手番|誰の番|次は誰|どっちの番/.test(n))return over?'対局は終了しています。':(game.turn()===myColor?'あなたの番です。':'相手の番です。');
+            if(/状況|感じ|どうなって|局面|優勢|劣勢|形勢|今は|いま|現在/.test(n))return `${st}です。\n手数：${sans.length}／${game.turn()===myColor?'あなた':'相手'}の番\n駒の価値：あなた ${myColor==='w'?m.w:m.b} 対 相手 ${myColor==='w'?m.b:m.w}${game.in_check()?'\nチェックがかかっています！':''}${over?'\n（対局終了：'+resText+'）':''}`;
+            if(/駒|取られ|取った|損|得|ポイント|点/.test(n))return `駒の価値は あなた ${myColor==='w'?m.w:m.b} 対 相手 ${myColor==='w'?m.b:m.w} です（ポーン1・ナイト/ビショップ3・ルーク5・クイーン9）。`;
+            if(/こんにちは|こんばんは|やあ|はじめまして|hello|^hi/.test(n))return 'どうも、よろしくお願いします。';
+            if(/ありがと|サンキュ|thx|thanks/.test(n))return 'どういたしまして。';
+            return 'すみません、分かりませんでした。「状況は？」「勝つには？」「今のログ」「経過時間」「負けた理由」「試合結果」などを聞いてください。'}
+
+        // ---- オンライン (PeerJS・ワンタイム) ----
+        const CH='ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+        function closePeer(){const c=conn,p=peer;conn=peer=null;try{c&&c.close()}catch(e){}try{p&&p.destroy()}catch(e){}}
+        const rs=h=>$('room-st').innerHTML=h;
+        function hostRoom(){if(typeof Peer==='undefined')return showToast('PeerJSを読み込めません');closePeer();const code=Array.from({length:6},()=>CH[Math.random()*CH.length|0]).join('');peer=new Peer('pbchess-'+code);
+            peer.on('open',()=>rs(`部屋コード：<b class="code">${code}</b><br>友達に伝えてください。参加を待っています…`));peer.on('connection',c=>{if(conn){c.on('open',()=>c.close());return}conn=c;link(c,'w')});peer.on('error',e=>rs('エラー：'+e.type))}
+        function joinRoom(){if(typeof Peer==='undefined')return showToast('PeerJSを読み込めません');const code=$('join-code').value.trim().toUpperCase();if(!code)return;closePeer();rs('接続中…');peer=new Peer();
+            peer.on('open',()=>{conn=peer.connect('pbchess-'+code,{reliable:true});link(conn,'b')});peer.on('error',e=>rs(e.type==='peer-unavailable'?'その部屋は存在しないか、使用済みです。':'エラー：'+e.type))}
+        function link(c,color){let started=false;const go=()=>c.send({t:'hi',name:me.name,icon:me.icon});c.on('open',go);if(c.open)go();
+            c.on('data',d=>{if(d.t==='hi'&&!started){started=true;const o={id:'online',name:d.name||'フレンド',title:'オンライン対戦',diffText:'フレンド',level:0,dirName:OPPONENTS[d.icon]?d.icon:'poland',speeches:{normal:'よろしく！',win:'GG！勝ちました！',lose:'GG！負けました…',thinking:'',check:'チェック！'}};initGame(null,'online',color,o);switchView('view-game');rs('接続しました。この部屋コードは使用済みになります。')}
+                else if(d.t==='mv'&&game&&!over&&game.turn()!==myColor){const fen=game.fen(),mv=game.move({from:d.from,to:d.to,promotion:'q'});if(mv)afterMove(mv,fen,false)}
+                else if(d.t==='rs'&&!over){$('status-indicator').textContent='相手が投了 (あなたの勝ち)';finish('w','相手が投了しました。あなたの勝ちです。')}});
+            c.on('close',()=>{if(game&&mode==='online'&&!over){finish('w','相手が切断しました。');showToast('相手が切断しました')}closePeer()})}
+
+        // ---- 講座 ----
+        const M=(f,q,a,x,h)=>({f,q,a,x,h}),Q=(q,o,c,x,h)=>({q,o,c,x,h}),SP='rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+        const UNITS=[
+        {t:'SECTION 1 ・ UNIT 1',n:'駒の動かし方',L:[
+         {n:'ポーン',i:'♙',s:[Q('ポーンはどちらへ進む？',['前へ','後ろへ','どこでも'],0,'ポーンは前にしか進めません。'),M('4k3/8/8/8/8/8/4P3/4K3 w - - 0 1','最初の一歩は2マス進めます。e4へ！','e2e4','最初の一回だけ2マス進めます。'),M('4k3/8/8/3p4/4P3/8/8/4K3 w - - 0 1','ポーンは斜め前の駒を取れます。d5を取ろう！','e4d5','取る時だけ斜めに進みます。')]},
+         {n:'ルーク',i:'♖',s:[M('4k3/8/8/8/8/8/8/R3K3 w - - 0 1','ルークは縦横にまっすぐ。a5へ進めましょう。','a1a5','縦横どこまでも動けます。')]},
+         {n:'ビショップ',i:'♗',s:[M('4k3/8/8/8/8/8/8/2B1K3 w - - 0 1','ビショップは斜めに動きます。g5へ！','c1g5','斜めのみ。最初のマスの色から一生出られません。')]},
+         {n:'ナイト',i:'♘',s:[M('4k3/8/8/8/8/8/8/1N2K3 w - - 0 1','ナイトはL字。c3へ跳ぼう！','b1c3','縦2横1（または縦1横2）で、他の駒を飛び越えられます。'),M('4k3/8/8/3p4/8/2N5/8/4K3 w - - 0 1','ポーン(d5)を取ってみよう！','c3d5','跳んだ先の敵駒を取れます。')]},
+         {n:'クイーン',i:'♕',s:[M('4k3/8/8/8/8/8/8/3QK3 w - - 0 1','クイーンは最強。斜めにh5へ！','d1h5','ルークとビショップを合わせた動きです。')]},
+         {n:'キング',i:'♔',s:[M('4k3/8/8/8/8/8/8/4K3 w - - 0 1','キングは全方向に1マス。e2へ。','e1e2','1マスずつ。取られるマスには行けません。'),Q('キングが取られそうなことを何と言う？',['チェック','キャスリング','フォーク'],0,'王手＝チェックです。')]}]},
+        {t:'SECTION 1 ・ UNIT 2',n:'特別ルール',L:[
+         {n:'キャスリング',i:'♜',s:[M('r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1','キングを2マス動かして短側キャスリング！(e1→g1)','e1g1','キングとルークを同時に動かす特別な手です。')]},
+         {n:'アンパッサン',i:'⚔',s:[M('4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1','黒が d7→d5 と進みました。e5のポーンで d6 へ斜めに取ろう！','e5d6','2マス進んだポーンを、1マス進んだ扱いで取れる特別ルールです。')]},
+         {n:'プロモーション',i:'♛',s:[M('6k1/4P3/8/8/8/8/8/4K3 w - - 0 1','奥まで届いたポーンは昇格！e8へ。','e7e8','最奥段に着いたポーンはクイーン等に昇格できます。')]},
+         {n:'勝ち・引き分け',i:'⚖',s:[Q('逃げ場のないチェックを何という？',['チェックメイト','ステイルメイト','パス'],0,'チェックメイトで勝敗が決まります。'),Q('チェックされていないのに動ける手が無い状態は？',['ステイルメイト','チェックメイト','ゼロ手'],0,'ステイルメイトは引き分けです。'),Q('次のうち引き分けにならないのは？',['クイーンを取られた','千日手','50手ルール'],0,'駒損しても引き分けにはなりません。')]}]},
+        {t:'SECTION 2 ・ UNIT 3',n:'戦術の基本',L:[
+         {n:'駒の価値',i:'💎',s:[Q('ルークの価値は？',['5','3','9'],0,'ポーン1・ナイト3・ビショップ3・ルーク5・クイーン9。'),Q('ナイト1つと等価なのは？',['ビショップ','ルーク','ポーン2つ'],0,'ナイトとビショップは約3です。')]},
+         {n:'バックランクメイト',i:'♖',s:[M('6k1/5ppp/8/8/8/8/8/R3K3 w - - 0 1','黒キングは自分のポーンで塞がれています。ルークで詰ませよう！','a1a8','自陣の最後列が弱い時に狙う、定番の詰み形です。','a1のルークを一番上へ！')]},
+         {n:'ナイトフォーク',i:'♞',s:[M('r3k3/8/4N3/8/8/8/8/4K3 w - - 0 1','1手でキングとルークを同時に狙えるマスは？','e6c7','キングを守るためルークを取られます。これがフォーク（両取り）です。')]},
+         {n:'スカラーメイト',i:'☠',s:[M('r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 4 4','4手詰め！ f7を狙って詰ませよう。','h5f7','ビショップに守られたクイーンがf7で詰み。初心者がよく狙う筋です。')]}]},
+        {t:'SECTION 3 ・ UNIT 4',n:'チェスコード（記法）',L:[
+         {n:'マスの名前',i:'🔤',s:[Q('列(file)は何で表す？',['a〜h','1〜8','A〜Z全て'],0,'縦の列は a〜h、横の段は 1〜8 です。'),Q('白のキングが最初にいるマスは？',['e1','d1','e8'],0,'白のキングは e1、クイーンは d1 です。')]},
+         {n:'棋譜の記号',i:'📜',s:[Q('N は何の駒？',['ナイト','ノーマル','キング'],0,'K=キング Q=クイーン R=ルーク B=ビショップ N=ナイト（ポーンは記号なし）。'),Q('Qxf7# の「x」と「#」の意味は？',['取る／チェックメイト','動く／チェック','交換／引き分け'],0,'x は駒を取る、+ はチェック、# はチェックメイトです。'),Q('O-O は何を表す？',['キングサイドキャスリング','オープン','投了'],0,'O-O は短側、O-O-O は長側のキャスリング。')]},
+         {n:'棋譜を指す',i:'♘',s:[M(SP,'「Nf3」を指してみよう。','g1f3','Nf3 は「ナイトが f3 へ」の意味です。')]}]},
+        {t:'SECTION 3 ・ UNIT 5',n:'定跡マスター',L:[
+         {n:'序盤の3原則',i:'1️⃣',s:[Q('序盤の原則でないものは？',['クイーンを早く出す','中央を取る','駒を展開する'],0,'クイーンの早出しは、攻撃されやすく損です。'),Q('キングの安全のためにすべきことは？',['早めにキャスリング','前に出す','動かさない'],0,'')]},
+         {n:'イタリアン',i:'🍝',s:[M('r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3','1.e4 e5 2.Nf3 Nc6 3.Bc4！ ビショップを c4 へ。','f1c4','f7を狙うイタリアン・ゲームです。')]},
+         {n:'ルイロペス',i:'♗',s:[M('r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3','3.Bb5！ ナイトにプレッシャーをかける定跡です。','f1b5','e5を守るナイトを牽制する、最も有名な定跡の一つ。')]},
+         {n:'Qギャンビット',i:'👑',s:[M('rnbqkbnr/ppp1pppp/8/3p4/3P4/8/PPP1PPPP/RNBQKBNR w KQkq - 0 2','1.d4 d5 の後、2.c4！ ポーンを差し出し中央を狙う。','c2c4','クイーンズ・ギャンビット。取られても中央を取り返せます。')]},
+         {n:'シチリアン',i:'🌋',s:[Q('1.e4 c5 の名前は？',['シチリアン・ディフェンス','フレンチ・ディフェンス','ロンドン・システム'],0,'黒が最も多く選ぶ、勝ちを狙う戦法です。')]},
+         {n:'終盤の基本',i:'🏁',s:[Q('K+Qで詰ませる時、まず相手を何に追い込む？',['盤の端','中央','自陣'],0,'盤の端へ追い込み、キングと協力して詰ませます。'),Q('ポーンの昇格先で通常最強なのは？',['クイーン','ルーク','ナイト'],0,'ほとんどの場合クイーンです。')]}]}];
+        function renderPath(){const el=$('lesson-list');el.innerHTML='';let tot=0,done=0;UNITS.forEach((u,ui)=>{const h=document.createElement('div');h.className='unit-h';h.innerHTML=`<small>${u.t}</small><b>${u.n}</b>`;el.appendChild(h);u.L.forEach((l,li)=>{const st=prog[ui+'-'+li]||0;tot++;if(st)done++;const d=document.createElement('div');d.className='node-w';d.style.transform=`translateX(${[0,36,56,36,0,-36,-56,-36][li%8]}px)`;d.innerHTML=`<div class="node ${st?'done':''}"><span>${l.i}</span></div><div class="stars">${'★'.repeat(st)}${'☆'.repeat(3-st)}</div><div class="node-n">${l.n}</div>`;d.onclick=()=>openLesson(ui,li);el.appendChild(d)})});$('lesson-prog').textContent=`${done}/${tot} 完了`}
+        let LU=null;
+        const KB=[[/ポーン/,'ポーンは前に1マス（最初だけ2マス）、取るときは斜め前。最奥段で昇格します。'],[/ルーク/,'ルークは縦横に何マスでも進めます。価値は5。キャスリングにも使います。'],[/ビショップ|ビショ/,'ビショップは斜めに何マスでも。同じ色のマスしか進めません。価値は3。'],[/ナイト|騎士/,'ナイトはL字（縦2横1）に跳び、駒を飛び越えられます。価値は3。'],[/クイーン|女王/,'クイーンは縦横斜めに何マスでも動ける最強の駒。価値は9です。'],[/キング|王/,'キングは全方向に1マス。取られると負けなので最も大切にしましょう。'],[/キャスリング/,'キングを2マス横に動かし、ルークをその内側へ。キングもルークも未移動で、間に駒がなく、チェック中・通過中でないことが条件です。'],[/アンパッサン/,'相手のポーンが2マス進んで横に並んだ直後だけ、1マス進んだ扱いで斜めに取れます。'],[/プロモ|昇格|成り/,'ポーンが最奥段に着くと、クイーン・ルーク・ビショップ・ナイトのどれかに昇格できます。'],[/ステイル/,'ステイルメイトは、チェックされていないが合法手がない状態。引き分けです。'],[/チェックメイト|詰み/,'チェックを防げない状態です。ここで試合が終わります。'],[/チェック|王手/,'キングが攻撃されている状態。受ける・逃げる・ブロックのどれかで対応します。'],[/フォーク|両取り/,'1つの駒で2つ以上の駒を同時に攻撃する技。ナイトが得意です。'],[/ピン/,'動かすと背後のより大事な駒が取られる状態に釘付けにする技です。'],[/定跡|オープニング/,'序盤の研究された手順。イタリアン、ルイロペス、シチリアンなどがあります。'],[/棋譜|記法|コード/,'駒の記号(K/Q/R/B/N)＋マス名で書きます。x=取る、+=チェック、#=メイト、O-O=キャスリング。'],[/価値/,'ポーン1・ナイト3・ビショップ3・ルーク5・クイーン9です。'],[/中央|センター/,'e4・d4・e5・d5を取ると駒が活躍しやすくなります。'],[/ありがと/,'どういたしまして！その調子です。']];
+        function lessonBot(t){const n=t.replace(/\s/g,''),s=LU.L.s[LU.i];
+            if(/ヒント|わから|分から|助け|ひんと/.test(n))return s.h||(s.f?`動かす駒は ${s.a.slice(0,2)} のマスにいます。行き先を盤面でよく探してみましょう。`:'選択肢をよく読んで、ルールを思い出してみましょう。');
+            if(/なぜ|理由|解説|どうして|説明/.test(n)&&!/キャスリング|アンパッサン/.test(n))return LU.ok?s.x:'まず自分で考えてみましょう。答えたあとで解説しますよ。';
+            for(const[r,a]of KB)if(r.test(n))return a;return 'いい質問ですね。駒の名前、キャスリング、アンパッサン、チェックメイト、定跡、棋譜などについて聞いてください。「ヒント」も出せますよ。'}
+        function openLesson(ui,li){LU={ui,li,L:UNITS[ui].L[li],i:0,h:5,mis:0,ok:false};setBallFace($('lp-uk'),'england472x600','normal');$('lp').classList.add('on');mkChat($('lp-chat'),lessonBot,['ヒント','なぜ？','キャスリングとは','ナイトの動き'],`「${LU.L.n}」のレッスンです。質問があればどうぞ。`);showStep()}
+        function setBtn(t,fn){const b=$('lp-btn');b.style.display='';b.textContent=t;b.onclick=fn}
+        function showStep(){const s=LU.L.s[LU.i];LU.ok=false;LU.sel=null;LU.vm=[];LU.g=s.f?new Chess(s.f):null;$('lp-fill').style.width=(LU.i/LU.L.s.length*100)+'%';$('lp-hearts').textContent='❤ '+LU.h;typeInto($('lp-q'),s.q,null,18);$('lp-foot').className='lp-foot';$('lp-fmsg').textContent='';$('lp-btn').style.display='none';
+            $('lp-board').style.display=s.f?'':'none';const o=$('lp-opts');o.innerHTML='';if(s.f)lpDraw();else s.o.forEach((t,k)=>{const x=document.createElement('button');x.className='opt';x.textContent=t;x.onclick=()=>answer(k===s.c,x);o.appendChild(x)})}
+        function lpDraw(){drawBoard($('lp-board'),LU.g,{sel:LU.sel,vm:LU.vm,click:lpClick})}
+        function lpClick(sq){if(LU.ok)return;const s=LU.L.s[LU.i];
+            if(LU.sel&&LU.sel!==sq){const mv=LU.g.move({from:LU.sel,to:sq,promotion:'q'});if(mv){const ok=mv.from+mv.to===s.a;if(!ok)LU.g.undo();LU.sel=null;LU.vm=[];lpDraw();answer(ok);return}}
+            const p=LU.g.get(sq);if(p&&p.color==='w'){LU.sel=sq;LU.vm=LU.g.moves({square:sq,verbose:true})}else{LU.sel=null;LU.vm=[]}lpDraw()}
+        function answer(ok,btn){const s=LU.L.s[LU.i],f=$('lp-foot');
+            if(ok){LU.ok=true;f.className='lp-foot good';$('lp-fmsg').innerHTML='<b>正解です！</b><br>'+(s.x||'');setBtn('CONTINUE',nextStep);if(btn)btn.classList.add('good');if(s.o)[...$('lp-opts').children].forEach(x=>x.disabled=true)}
+            else{LU.h--;LU.mis++;$('lp-hearts').textContent='❤ '+Math.max(LU.h,0);f.className='lp-foot bad';$('lp-fmsg').innerHTML='<b>惜しい！</b><br>'+(s.h||'もう一度考えてみましょう。');if(btn)btn.classList.add('bad');
+                if(LU.h<=0)setBtn('最初からやり直す',()=>openLesson(LU.ui,LU.li));else setBtn('もう一度',()=>{if(s.f){LU.sel=null;LU.vm=[];lpDraw();f.className='lp-foot';$('lp-fmsg').textContent='';$('lp-btn').style.display='none'}else showStep()})}}
+        function nextStep(){LU.i++;if(LU.i>=LU.L.s.length)return finishLesson();showStep()}
+        function finishLesson(){const st=LU.mis===0?3:LU.mis<=2?2:1,k=LU.ui+'-'+LU.li;prog[k]=Math.max(prog[k]||0,st);LS.s('pbc_les',prog);stats.xp+=20;LS.s('pbc_stats',stats);refreshMe();
+            $('lp-fill').style.width='100%';$('lp-board').style.display='none';$('lp-opts').innerHTML='';typeInto($('lp-q'),`レッスン完了！ ${'★'.repeat(st)}${'☆'.repeat(3-st)}  +20XP\nいつでも受け直せます。`);$('lp-foot').className='lp-foot good';$('lp-fmsg').innerHTML='<b>お見事です！</b>';setBtn('閉じる',closeLesson)}
+        function closeLesson(){$('lp').classList.remove('on');renderPath()}
+
+        function switchView(viewId) {
+            const navItems = document.querySelectorAll('.nav-item');
+            const views = document.querySelectorAll('.view');
+
+            navItems.forEach(n => {
+                n.classList.remove('active');
+                if (n.getAttribute('data-view') === viewId) {
+                    n.classList.add('active');
+                }
+            });
+
+            views.forEach(v => {
+                v.classList.remove('active');
+                if (v.id === viewId) {
+                    v.classList.add('active');
+                }
+            });
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast-message');
+            toast.textContent = msg;
+            toast.classList.add('active');
+            setTimeout(() => {
+                toast.classList.remove('active');
+            }, 2300);
+        }
+
+        // --- PTZ プリセット切り替え ---
+        function loadPreset(key) {
+            const root = document.documentElement;
+            if (key === 'sharpPurple') {
+                root.style.setProperty('--accent-primary', '#8B5CF6');
+                root.style.setProperty('--ptz-card-radius', '0px');
+            } else if (key === 'chunkyRose') {
+                root.style.setProperty('--accent-primary', '#E11D48');
+                root.style.setProperty('--ptz-card-radius', '32px');
+            } else if (key === 'minimalGray') {
+                root.style.setProperty('--accent-primary', '#555555');
+                root.style.setProperty('--ptz-card-radius', '12px');
+            } else {
+                root.style.setProperty('--accent-primary', '#3381FF');
+                root.style.setProperty('--ptz-card-radius', '24px');
+            }
+            showToast('PTZテーマを適用しました');
+        }
+
+        // テーマ切替
+        const themeBtn = document.getElementById('theme-btn');
+        themeBtn.addEventListener('click', () => {
+            document.body.classList.toggle('dark-mode');
+            themeBtn.querySelector('span').textContent = document.body.classList.contains('dark-mode') ? 'dark_mode' : 'light_mode';
+        });
+
+
+        // ================= v2 拡張 =================
+        const PN={p:'ポーン',n:'ナイト',b:'ビショップ',r:'ルーク',q:'クイーン',k:'キング'},PV={p:1,n:3,b:3,r:5,q:9,k:0};
+        const TN={blunder:'大きなミス(悪手)',nocastle:'キャスリング忘れ',earlyqueen:'クイーンの早出し',backrank:'バックランクメイト負け'},RECO={backrank:[2,1],blunder:[2,0],nocastle:[1,0],earlyqueen:[4,0]};
+        const DRILLS=[{n:'K+Q vs K 詰ませ方',i:'♕',d:'クイーンで詰ませる',f:'4k3/8/8/8/8/8/3Q4/3K4 w - - 0 1'},{n:'K+R vs K 詰ませ方',i:'♖',d:'ルークで詰ませる',f:'4k3/8/8/8/8/8/8/R3K3 w - - 0 1'},{n:'K+P vs K 昇格',i:'♙',d:'オポジションで昇格を目指す',f:'8/8/8/4k3/8/4K3/4P3/8 w - - 0 1'},{n:'イタリアン壁打ち',i:'♗',d:'1.e4 e5 2.Nf3 Nc6 から実戦',f:'r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3'},{n:'シチリアン壁打ち',i:'🌋',d:'1.e4 c5 から実戦',f:'rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2'},{n:'Qギャンビット壁打ち',i:'♕',d:'1.d4 d5 から実戦',f:'rnbqkbnr/ppp1pppp/8/3p4/3P4/8/PPP1PPPP/RNBQKBNR w KQkq - 0 2'}];
+        const PR={'イタリアン':'分かりやすく攻撃的。早い展開と f7 への攻撃が好きな人向き。','ルイロペス':'長期戦でじわじわ優位を築く、堅実で戦略的な人向き。','Qギャンビット':'中央を重視し、局面の主導権を握りたい堅実派向き。','シチリアン':'黒で勝ちにいきたい攻撃派向き。'};
+        const TERMS=['バックランクメイト','スカラーメイト','スモザードメイト','ツークツワング','ステイルメイト','チェックメイト','アンパッサン','プロモーション','キャスリング','ギャンビット','ディフェンス','フォーク','チェック','定跡','ピン'];
+        KB.unshift([/ツークツワング/,'ツークツワングは「動かせるのに、動くと必ず損をする」状態。パスができないチェス特有の苦しい局面です。'],[/スモザード/,'スモザードメイトは、キングが自分の駒で囲まれた所にナイトでチェックをかける詰みの形。'],[/ギャンビット/,'ギャンビットは、ポーンなどをわざと差し出して、展開や中央支配で見返りを狙う序盤戦法です。'],[/バックランク/,'バックランクメイトは、最後列のキングが自分のポーンで塞がれ、ルークなどの横からのチェックで詰む形です。'],[/スカラー/,'スカラーメイトは、クイーンとビショップで f7(f2)を狙う4手詰め。初心者がよく狙います。'],[/ディフェンス/,'ディフェンスは主に黒側の序盤の受け方（戦法）の名前です。']);
+        const rnd=n=>{const a=new Uint32Array(1);crypto.getRandomValues(a);return a[0]%n};
+        const lvLabel=k=>k==='R'?'Real':({2:'名人',3:'達人',4:'超人'}[k]||'')+(k<=4?`(${k}手)`:`${k}手先`);
+        let ply=[],hintLv=0,startFen=null,drill=false,RPg=null,RPi=0,RPt=null,REC_=[];
+
+        // ---- IndexedDB ----
+        const DB={db:null,open(){return new Promise((res,rej)=>{if(this.db)return res(this.db);if(!window.indexedDB)return rej();const r=indexedDB.open('pbchess',1);r.onupgradeneeded=()=>r.result.createObjectStore('games',{keyPath:'id',autoIncrement:true});r.onsuccess=()=>{this.db=r.result;res(this.db)};r.onerror=()=>rej(r.error)})},
+            async all(){try{const db=await this.open();return await new Promise(res=>{const q=db.transaction('games').objectStore('games').getAll();q.onsuccess=()=>res(q.result||[]);q.onerror=()=>res([])})}catch(e){return[]}},
+            async put(g){try{const db=await this.open();return await new Promise(res=>{const t=db.transaction('games','readwrite');t.objectStore('games').put(g);t.oncomplete=()=>res()})}catch(e){}}};
+        function weakTop(all){const c={};all.forEach(g=>(g.tags||[]).forEach(t=>c[t]=(c[t]||0)+1));const e=Object.entries(c).sort((a,b)=>b[1]-a[1]);return e.length?e[0][0]:null}
+        function trend(all){const a=[...all].sort((x,y)=>y.id-x.id),r=a.slice(0,3),p=a.slice(3,6);if(r.length<2||p.length<2)return '';const f=x=>x.reduce((t,g)=>t+(g.bl||0),0)/x.length;return f(r)<f(p)?'最近はミスが減ってきましたね。その調子です！':f(r)>f(p)?'最近ミスが増え気味です。落ち着いて一手ずつ確認しましょう。':''}
+        function login(){const d=new Date().toDateString(),l=LS.g('pbc_login',{d:'',n:0});if(l.d!==d){l.n=l.d===new Date(Date.now()-864e5).toDateString()?l.n+1:1;l.d=d;LS.s('pbc_login',l)}return l.n}
+        async function saveGame(r,txt){try{const ls=ply.filter((p,i)=>(i%2===0)===(myColor==='w')&&p.loss!=null).map(p=>p.loss),tags=[],bl=ls.filter(l=>l>=30).length,mine=sans.filter((x,i)=>(i%2===0)===(myColor==='w'));
+            if(bl>=2)tags.push('blunder');if(mine.length>=12&&!mine.some(x=>x.startsWith('O-O')))tags.push('nocastle');if(mine.slice(0,6).filter(x=>x[0]==='Q').length>=2)tags.push('earlyqueen');
+            if(r==='l'&&/#$/.test(sans[sans.length-1]||'')){let k=-1;game.board().forEach((row,ri)=>row.forEach(p=>{if(p&&p.type==='k'&&p.color===myColor)k=ri}));if(k===(myColor==='w'?7:0))tags.push('backrank')}
+            await DB.put({date:Date.now(),opp:currentOpponent.name,mode,color:myColor,result:r,text:txt,sans:[...sans],ts:ply.map(p=>p.t),tags,bl,avg:ls.length?ls.reduce((a,b)=>a+b,0)/ls.length:0});
+            const all=(await DB.all()).sort((a,b)=>b.id-a.id);for(const g of all.slice(10))if(g.ts){delete g.ts;delete g.text;await DB.put(g)}}catch(e){}}
+        function finish(r,txt){if(recorded)return;recorded=true;over=true;t1=Date.now();resType=r;resText=txt;if(drill){showToast('特訓終了：'+txt);return}stats[r]++;stats.xp+=50;LS.s('pbc_stats',stats);refreshMe();saveGame(r,txt);showToast('対局終了');if(mode==='online')setTimeout(closePeer,3000)}
+
+        // ---- 記録タブ ----
+        async function renderRec(){const all=(await DB.all()).sort((a,b)=>b.id-a.id);REC_=all;const n=all.length,w=all.filter(g=>g.result==='w').length,tc={};all.forEach(g=>(g.tags||[]).forEach(t=>tc[t]=(tc[t]||0)+1));
+            const top=Object.entries(tc).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`・${TN[k]}：${v}回`).join('\n'),avg=n?(all.reduce((a,g)=>a+(g.avg||0),0)/n/10).toFixed(2):'-';
+            $('analysis').textContent=n?`保存局数 ${n}／勝率 ${Math.round(w/n*100)}%／1手あたり平均損失 ${avg}ポイント\n${top||'目立つ弱点はまだありません。'}\n${trend(all)}`:'まだ対局記録がありません。対局が終わるとここで分析します。';
+            const L=$('rec-list');L.innerHTML='';all.forEach((g,i)=>{const d=document.createElement('div');d.className='list-item';d.innerHTML=`<div><div class="list-item-title">${g.opp} <span class="badge">${{w:'勝ち',l:'負け',d:'引分'}[g.result]}</span></div><div class="list-item-desc">${new Date(g.date).toLocaleString('ja-JP')} ・ ${g.sans.length}手 ・ ${g.ts?'リプレイ可':'ログのみ'}</div></div><span class="material-symbols-outlined" style="color:var(--accent-primary)">${g.ts?'play_circle':'article'}</span>`;d.onclick=()=>replay(i);L.appendChild(d)})}
+        function replay(i){RPg=REC_[i];clearTimeout(RPt);RPt=null;$('replay-card').style.display='block';const ok=!!RPg.ts;$('rp-ctl').style.display=ok?'flex':'none';$('rp-board').style.display=ok?'':'none';$('rp-note').textContent=ok?'':'10局より古い記録のため、手順ログのみ保存されています。';$('rp-log').textContent=RPg.sans.map((x,k)=>(k%2?'':((k/2|0)+1)+'.')+x).join(' ');$('rp-play').textContent='▶ 再生';if(ok)rpTo(0);$('replay-card').scrollIntoView({behavior:'smooth'})}
+        function rpTo(n){RPi=n;const c=new Chess();for(let k=0;k<n;k++)c.move(RPg.sans[k]);drawBoard($('rp-board'),c,{flip:RPg.color==='b',click:()=>{}});$('rp-slider').max=RPg.sans.length;$('rp-slider').value=n}
+        function rpStep(){if(RPi>=RPg.sans.length){RPt=null;$('rp-play').textContent='▶ 再生';return}const real=$('rp-mode').value==='real',dt=real?Math.min(Math.max((RPg.ts[RPi]||0)-(RPg.ts[RPi-1]||0),300),20000):700;RPt=setTimeout(()=>{rpTo(RPi+1);rpStep()},dt)}
+        function rpToggle(){if(RPt){clearTimeout(RPt);RPt=null;$('rp-play').textContent='▶ 再生';return}if(RPi>=RPg.sans.length)rpTo(0);$('rp-play').textContent='⏸ 停止';rpStep()}
+
+        // ---- Play タブ / 探索 ----
+        function updatePlay(){const o=OPPONENTS[selOpp];setBallFace($('play-img'),o.dirName,'normal');$('play-sub').textContent=`${o.name} との対局 ― ${o.title}`;const t=stats.w+stats.l+stats.d;
+            ['w','d','l'].forEach(k=>$('rb-'+k).style.width=(t?stats[k]/t*100:0)+'%');$('rec-txt').textContent=`${stats.w}勝 ${stats.l}敗 ${stats.d}分 ／ 勝率 ${t?Math.round(stats.w/t*100):0}%`;
+            $('lvl-box').style.display=selOpp==='england472x600'?'':'none';const ch=$('lvl-chips');ch.innerHTML='';[2,3,4,5,6,7,8,9,10,'R'].forEach(k=>{const b=document.createElement('button');b.className='chip'+(k===lvl?' on':'');b.textContent=k==='R'?'Real':k+'手';b.onclick=()=>{lvl=k;updatePlay()};ch.appendChild(b)});
+            $('lvl-desc').textContent=lvl==='R'?'Realバトル：局面に応じて、毎手ランダムに予測手数が変わります。':`${lvLabel(lvl)}まで予測。深いほど強く、時間がかかります（時間切れ時は到達した深さで指します）。`;renderOpponentSelectList();refreshMe()}
+        function startGame(id,fen){initGame(id,'ai','w',null,fen);switchView('view-game')}
+        function realDepth(){let pc=0;game.board().forEach(r=>r.forEach(p=>{if(p)pc++}));const mx=pc>24?5:pc>12?7:10,b=(game.in_check()||game.moves({verbose:true}).some(m=>m.captured))?1:0;return Math.min(10,2+rnd(mx-1)+b)}
+        function searchBest(maxD,ms){const end=Date.now()+ms,ord=()=>game.moves({verbose:true}).sort((a,b)=>(b.captured?PV[b.captured]:0)-(a.captured?PV[a.captured]:0));
+            const mm=(d,a,b,mx)=>{if(Date.now()>end)throw 0;if(!d)return evaluateBoard(game.board());const L=ord();if(!L.length)return game.in_check()?(mx?-9e4-d:9e4+d):0;let v=mx?-1e9:1e9;for(const m of L){game.move(m);try{const x=mm(d-1,a,b,!mx);if(mx){v=Math.max(v,x);a=Math.max(a,v)}else{v=Math.min(v,x);b=Math.min(b,v)}}finally{game.undo()}if(b<=a)break}return v};
+            let best=null,done=0;for(let d=1;d<=maxD;d++){try{let bm=null,bv=-1e9,a=-1e9;const R=ord();if(best)R.sort((x,y)=>(y.san===best.san)-(x.san===best.san));for(const m of R){game.move(m);let v;try{v=mm(d-1,a,1e9,false)}finally{game.undo()}if(v>bv||(v===bv&&Math.random()<.3)){bv=v;bm=m}a=Math.max(a,bv)}best=bm;done=d}catch(e){if(e!==0)throw e;break}}
+            return{m:best||game.moves({verbose:true})[0],d:done}}
+        function initGame(id,m,color,oppObj,fen){mode=m||'ai';myColor=color||'w';currentOpponent=oppObj||OPPONENTS[id]||OPPONENTS.england472x600;startFen=fen||null;drill=!!fen;game=fen?new Chess(fen):new Chess();sel=null;vm=[];over=false;recorded=false;aiBusy=false;t0=Date.now();t1=0;evs=[];sans=[];ply=[];hintLv=0;resType='';resText='';
+            const o=currentOpponent;setBallFace($('game-pb-img'),o.dirName,'normal');$('game-pb-name').textContent=o.name;$('game-pb-title').textContent=drill?'特訓モード（何度でも再挑戦できます）':o.title;
+            $('game-pb-diff').textContent=(o.id==='england472x600'&&mode==='ai')?(drill?'特訓':'予測 '+(lvl==='R'?'Real':lvl+'手')):o.diffText;$('game-pb-speech').textContent=`「${o.speeches.normal}」`;$('move-history').textContent=`${o.name} との対局が始まりました。`;
+            $('undo-btn').style.display=mode==='ai'?'':'none';$('teach-card').style.display=mode==='ai'?'':'none';$('teach-msg').textContent='指した手をイギリス先生が評価し、最善手を教えます。';
+            setBallFace($('side-img'),o.dirName,'normal');$('side-sub').textContent=o.name+'に質問できます（開いて聞くだけのヘルプデスク）';
+            mkChat($('side-chat'),asst,['いまの状況は？','ヒントちょうだい','相手の狙いは？','なぜその手を指した？','さっきのミスは？','チャンスある？','形勢は？','投了すべき？','もしルークを取っていたら？','今のログ','経過時間','負けた理由を教えて','試合結果','私の弱点は？','あと何手で詰む？','相手のスタイルは？'],`${o.speeches.normal}\n気になった時に聞いてください。「Nf3どう？」のように手を書くと評価します。`);
+            draw();updateStatus()}
+        function restartGame(){if(mode==='online')return showToast('オンライン対戦ではやり直せません');initGame(currentOpponent.id,'ai','w',null,startFen);showToast('最初からやり直します')}
+        function makeAIMove(){if(game.game_over()||over)return;const uk=currentOpponent.id==='england472x600',img=$('game-pb-img'),d=drill?3:lvl==='R'?realDepth():lvl;aiBusy=true;
+            if(uk){$('deepthinking-modal').classList.add('active');$('deepthinking-subtext').textContent=lvl==='R'&&!drill?`Realバトル：今回は ${d} 手先を予測`:`${lvLabel(d)}まで予測中`;setBallFace(img,currentOpponent.dirName,'plot');$('game-pb-speech').textContent=`「${currentOpponent.speeches.thinking}」`}
+            setTimeout(()=>{let m,dd=0;const L=currentOpponent.level;if(L===1){const a=game.moves({verbose:true});m=a[Math.floor(Math.random()*a.length)]}else if(L<=4)m=getBestMoveDepth1();else if(uk){const r=searchBest(d,1200+d*500);m=r.m;dd=r.d}else m=minimaxRoot(2,game,true);
+                const fen=game.fen();if(m){const mv=game.move(m);sans.push(mv.san);evs.push(-evaluateBoard(game.board()));ply.push({fen,t:Date.now()-t0});if(uk&&!drill)$('game-pb-diff').textContent=`予測 ${lvl==='R'?'Real ':''}${d}手${dd&&dd<d?`(到達${dd})`:''}`}
+                aiBusy=false;$('deepthinking-modal').classList.remove('active');hintLv=0;draw();updateStatus()},uk?900:300)}
+        function scoreMoves(fen){const g=new Chess(fen),w=g.turn()==='w',r=g.moves({verbose:true}).map(m=>{g.move(m);const v=minimax(1,g,-1e5,1e5,w);g.undo();return{m,v}});return r.sort((a,b)=>w?a.v-b.v:b.v-a.v)}
+        function afterMove(mv,fen,mine){sans.push(mv.san);evs.push(-evaluateBoard(game.board()));const p={fen,t:Date.now()-t0};ply.push(p);hintLv=0;
+            if(mine)try{const r=scoreMoves(fen),b=r[0],x=r.find(y=>y.m.from===mv.from&&y.m.to===mv.to&&(y.m.promotion||'')===(mv.promotion||''));if(b&&x){p.loss=Math.abs(x.v-b.v);p.best=b.m.san}}catch(e){}
+            draw();updateStatus();
+            if(mine&&mode==='ai'&&!over){if(mv.captured)setBallFace($('game-pb-img'),currentOpponent.dirName,'surprise');if($('teach-on').checked&&p.loss!=null){const l=p.loss;typeInto($('teach-msg'),l<=0?`${mv.san}：最善手です！`:l<=10?`${mv.san}：良い手です。（最善は ${p.best}）`:l<=30?`${mv.san}：やや損な手です。${p.best} が良かったでしょう。`:`${mv.san}：悪手です！${p.best} を検討すべきでした。`)}setTimeout(makeAIMove,400)}}
+
+        // ---- Chat ----
+        function mkChat(root,fn,chips,hello){root.innerHTML='<div class="chat-log"></div><div class="chips"></div><div class="chat-in"><input placeholder="メッセージを入力…"><button class="ai-btn">送信</button></div>';const log=root.children[0],ch=root.children[1],inp=root.querySelector('input');
+            const add=(c,t,ty)=>{const d=document.createElement('div');d.className='msg '+c;log.appendChild(d);if(ty)typeInto(d,t);else d.textContent=t;log.scrollTop=log.scrollHeight;return d};
+            const send=t=>{t=(typeof t==='string'?t:inp.value).trim();if(!t)return;inp.value='';add('u',t);const th=add('b','考え中…');th.classList.add('think');const s0=Date.now();
+                Promise.resolve().then(()=>fn(t)).catch(()=>'うまく答えられませんでした。聞き方を変えてみてください。').then(a=>setTimeout(()=>{th.classList.remove('think');typeInto(th,a)},Math.max(0,500+Math.random()*500-(Date.now()-s0))))};
+            root.querySelector('button.ai-btn').onclick=()=>send();inp.onkeydown=e=>{if(e.key==='Enter'&&!e.isComposing)send()};
+            chips.forEach(c=>{const b=document.createElement('button');b.textContent=c;b.onclick=()=>send(c);ch.appendChild(b)});if(hello)add('b',hello,1);return{send}}
+        function parseMove(t,g){const tk=t.match(/O-O-O|O-O|[KQRBN][a-h]?[1-8]?x?[a-h][1-8][+#]?|[a-h][1-8]-?[a-h][1-8]|[a-h]x[a-h][1-8]|[a-h][1-8]/g)||[];
+            for(const k of tk){const m=g.move(k.replace('-',''),{sloppy:true});if(m){g.undo();return m}}
+            const pm=t.match(/(ポーン|ナイト|ビショップ|ルーク|クイーン)を取/);if(pm){const ty=Object.keys(PN).find(k=>PN[k]===pm[1]);const m=g.moves({verbose:true}).find(x=>x.captured===ty);if(m)return m}return null}
+        const matOf=g=>{const r={w:0,b:0};g.board().forEach(a=>a.forEach(p=>{if(p)r[p.color]+=PV[p.type]}));return r};
+        function showSim(g,t){$('sim').classList.add('on');drawBoard($('sim-board'),g,{flip:myColor==='b',click:()=>{}});$('sim-txt').textContent=t}
+        function threatsText(){const f=game.fen().split(' ');f[1]=f[1]==='w'?'b':'w';f[3]='-';const g=new Chess(f.join(' ')),mineTurn=game.turn()===myColor,L=g.moves({verbose:true}),c=L.filter(m=>m.captured).sort((a,b)=>PV[b.captured]-PV[a.captured]).slice(0,3),ck=L.filter(m=>/[+#]/.test(m.san)).length;
+            const sub=mineTurn?'相手':'あなた';const a=c.map(m=>`${PN[m.piece]}(${m.from})が${m.to}の${PN[m.captured]}を狙っています`);if(ck)a.push(`${ck}通りのチェックの手があります`);
+            return a.length?`${mineTurn?'相手の':'あなたの'}狙い：\n`+a.join('\n'):`${sub}側に目立った脅威はありません。`}
+        function explainAI(){const h=game.history({verbose:true}),mv=h[h.length-1];if(!mv||mv.color===myColor)return 'まだ相手は指していません。';const p=[];if(mv.captured)p.push(`${PN[mv.captured]}を取って駒得を狙いました`);if(/[+#]/.test(mv.san))p.push('チェックで主導権を握る狙いです');if(/^O-O/.test(mv.san))p.push('キングを安全にしてルークを活用する狙いです');
+            const f=game.fen().split(' ');f[1]=mv.color;f[3]='-';const g=new Chess(f.join(' ')),T=g.moves({square:mv.to,verbose:true}).filter(m=>m.captured);if(T.length>=2)p.push(`${T.map(m=>PN[m.captured]).join('と')}を同時に狙うフォークの危険があります`);else if(T.length===1)p.push(`次に ${T[0].to} の${PN[T[0].captured]}を狙っています`);
+            if(!p.length){if('nb'.includes(mv.piece))p.push('駒を展開して戦力を働かせる手です');else if(mv.piece==='p'&&'de'.includes(mv.to[0]))p.push('中央を取りにいく手です');else p.push('陣形を整える手です')}return `${mv.san}の意図：\n`+p.join('。\n')+'。'}
+        function selfCheck(m){const fen=game.fen(),r=scoreMoves(fen),b=r[0],x=r.find(y=>y.m.san===m.san);if(!x)return '評価できませんでした。';const l=Math.abs(x.v-b.v),h=new Chess(fen);h.move(m.san);const rep=h.moves({verbose:true}).filter(y=>y.captured).sort((p,q)=>PV[q.captured]-PV[p.captured])[0];
+            return `${m.san}：${l<=0?'最善手です。':l<=10?'悪手ではありません。':l<=30?'少し損です。':'悪手の可能性が高いです。'}${l>10?`最善は ${b.m.san}。`:''}${rep&&PV[rep.captured]>=3?`\nただし ${rep.san} で${PN[rep.captured]}を取られる恐れがあります。`:''}`}
+        function asst(t){if(!game)return '対局を始めてから聞いてくださいね。';const n=t.replace(/[\s　?？!！。、,.]/g,'').toLowerCase(),m=matOf(game),dm=myColor==='w'?m.w-m.b:m.b-m.w,st=dm>=3?'あなたが優勢':dm<=-3?'あなたが劣勢':'ほぼ互角',el=Math.floor(((t1||Date.now())-t0)/1000),myTurn=game.turn()===myColor;
+            if(/ログ|履歴|棋譜|手順|今までの手|指し手|何手/.test(n))return sans.length?`ここまで${sans.length}手：`+sans.map((x,i)=>(i%2?'':((i/2|0)+1)+'.')+x).join(' ').slice(-220):'まだ誰も指していません。';
+            if(/結果|勝敗|決着|どっちが勝|誰が勝/.test(n))return over?resText:'まだ対局中です。結果は出ていません。';
+            if(/時間|経過|何分|どれくらい|いつから|所要/.test(n))return `${over?'対局時間':'経過時間'}は ${Math.floor(el/60)}分${el%60}秒 です。`;
+            if(/弱点|苦手|傾向|癖|分析/.test(n))return DB.all().then(a=>{const w=weakTop(a);return a.length?`過去${a.length}局では「${w?TN[w]:'目立つ弱点なし'}」が目立ちます。${trend(a)}`:'まだ記録がありません。対局を重ねると分析できます。'});
+            if(/もし|だったら|してたら|していたら|指したら|取っていたら/.test(n)){const mv=parseMove(t,game);if(!mv)return '「もしNf3を指したら？」「もしルークを取っていたら？」のように聞いてください。';const g=new Chess(game.fen());g.move(mv.san);const rep=g.game_over()?null:scoreMoves(g.fen())[0],mm=matOf(g);showSim(g,`${mv.san} の分岐。${rep?`相手の最善手は ${rep.m.san} と読みます。`:'ここで対局が終わります。'}駒の価値は 白${mm.w} 対 黒${mm.b}。`);return `${mv.san}を指した場合の盤面をポップアップに出しました。`}
+            if(/なぜ|どうして|なんで|何で/.test(n)&&/その手|指した|意図/.test(n))return explainAI();
+            if(/狙い|脅威|何を狙|危ない/.test(n))return threatsText();
+            if(/さっき|ミス|失敗|ダメだった|前の手|[23]手前/.test(n)&&!/負け/.test(n)){const mine=ply.map((p,i)=>({p,i})).filter(o=>(o.i%2===0)===(myColor==='w')&&o.p.loss!=null).slice(-3);if(!mine.length)return 'まだ振り返る手がありません。';const w=mine.sort((a,b)=>b.p.loss-a.p.loss)[0];return w.p.loss>=20?`直近3手で一番痛いのは ${w.i+1}手目 ${sans[w.i]} です。最善は ${w.p.best}（約${(w.p.loss/10).toFixed(1)}ポイント損）。`:'直近3手は大きなミスなしです。自信を持ってOK！'}
+            if(/チャンス|タクティクス|見逃|隠れて|ある\?*$/.test(n)&&/チャンス|タクティクス|隠れ/.test(n)){if(!myTurn||over)return '自分の番の時に聞いてください。';const r=scoreMoves(game.fen());return r.length>1&&Math.abs(r[1].v-r[0].v)>=20&&(r[0].m.captured||/[+#]/.test(r[0].m.san))?'盤面にチャンスが隠れています！取れる駒・チェックの手を順番に探してみてください。':'大きなチャンスは見当たりません。駒の展開と安全確認を優先しましょう。'}
+            if(/負け|敗|やられ|なぜ|なんで|理由|原因/.test(n))return loseReason();
+            if(/投了|ギブアップ|諦め|もう勝てない/.test(n))return dm<=-8?'かなり不利です。無理に粘るより、どう詰まされたかを記録タブで振り返るのも勉強になります。':dm<=-4?'苦しいですが、相手のミスを待つ手もあります。詰み筋だけは警戒して粘りましょう。':'まだ投了する局面ではありません。逆転のチャンスはあります！';
+            if(/ヒント|おすすめ|次の手|次の一手|どこに|最善|指せば|どう指/.test(n)){if(mode!=='ai')return 'オンライン対戦ではヒントは使えません。フェアプレーで！';if(over||!myTurn)return '今はヒントを出せる局面ではありません。';const b=scoreMoves(game.fen())[0].m;hintLv++;if(hintLv===1)return `ヒント①：${PN[b.piece]}を動かすと良さそうです。（もう一度聞くと次の段階）`;if(hintLv===2)return `ヒント②：${b.to[0]}列の ${b.to} 付近に注目してください。`;hintLv=3;return `ヒント③：答えは ${b.san}（${b.from}→${b.to}）です。`}
+            const mv=parseMove(t,game);if(mv&&myTurn&&!over&&/どう|いい|悪手|大丈夫|指して|この手|ぶっちゃけ/.test(n))return selfCheck(mv);
+            if(/勝つ|勝て|勝利|コツ|アドバイス|作戦|攻略|どうすれば|どうしたら/.test(n)){let a=dm>=3?'リードしています。駒を交換して単純化し、キングの安全を保ちながら詰ませましょう。':dm<=-3?'駒損しています。相手の守りが甘い駒を探し、フォークなどで取り返しましょう。':'互角です。中央を押さえ、駒を展開し、キャスリングでキングを安全に。';if(mode==='ai'&&!over&&myTurn)a+=`\n候補手：${scoreMoves(game.fen())[0].m.san}`;return `現在は${st}です。${a}`}
+            if(/手番|誰の番|次は誰|どっちの番/.test(n))return over?'対局は終了しています。':(myTurn?'あなたの番です。':'相手の番です。');
+            if(/状況|感じ|どうなって|局面|優勢|劣勢|形勢|今は|いま|現在|有利/.test(n)){let k='';const kk=(()=>{let r=null;game.board().forEach((row,ri)=>row.forEach((p,ci)=>{if(p&&p.type==='k'&&p.color===myColor)r=String.fromCharCode(97+ci)+(8-ri)}));return r})();if(sans.length>=12&&(kk==='e1'||kk==='e8'))k='\nただしキングが中央に残っていて危険です。キャスリングを検討しましょう。';return `${st}です。\n手数：${sans.length}／${myTurn?'あなた':'相手'}の番\n駒の価値：あなた ${myColor==='w'?m.w:m.b} 対 相手 ${myColor==='w'?m.b:m.w}${game.in_check()?'\nチェックがかかっています！':''}${k}${over?'\n（対局終了：'+resText+'）':''}`}
+            if(/駒|取られ|取った|損|得|ポイント|点/.test(n))return `駒の価値は あなた ${myColor==='w'?m.w:m.b} 対 相手 ${myColor==='w'?m.b:m.w} です（ポーン1・ナイト/ビショップ3・ルーク5・クイーン9）。`;
+            for(const[r,a]of KB)if(r.test(n))return a;
+            if(/こんにちは|こんばんは|やあ|はじめまして|hello|^hi/.test(n))return 'どうも、よろしくお願いします。';
+            return 'すみません、分かりませんでした。「状況は？」「ヒント」「相手の狙いは？」「Nf3どう？」「もしルークを取っていたら？」などを聞いてください。'}
+
+        // ---- 講座 ----
+        async function renderCoach(){const all=await DB.all(),w=weakTop(all),n=window._streak||1;let t=`${n}日連続ログイン${n>=3?'、すごい継続力です！':'です。'}\n`,go=null;
+            if(w){t+=`過去の対局から、あなたは「${TN[w]}」が目立ちます。今日は「${UNITS[RECO[w][0]].L[RECO[w][1]].n}」がおすすめ。`;go=RECO[w]}else{UNITS.some((u,ui)=>u.L.some((l,li)=>{if(!prog[ui+'-'+li]){go=[ui,li];return true}}));t+=go?`今日のおすすめは「${UNITS[go[0]].L[go[1]].n}」です。`:'全レッスン修了！特訓・壁打ちに挑戦しましょう。'}
+            t+=trend(all)?'\n'+trend(all):'';$('coach-card').innerHTML=`<div style="font-size:13px;white-space:pre-wrap;margin-bottom:${go?10:0}px">${t}</div>`+(go?`<button class="ai-btn" onclick="openLesson(${go[0]},${go[1]})">レッスンを開く</button>`:'')}
+        function renderPath(){const el=$('lesson-list');el.innerHTML='';let tot=0,done=0;UNITS.forEach((u,ui)=>{const h=document.createElement('h2');h.style.margin='20px 0 8px';h.innerHTML=`${u.n} <span class="badge">${u.t}</span>`;el.appendChild(h);u.L.forEach((l,li)=>{const r=prog[ui+'-'+li]||0;tot++;if(r)done++;const d=document.createElement('div');d.className='les-card';d.innerHTML=`<div class="les-i">${l.i}</div><div style="flex:1"><div class="list-item-title">${l.n}</div><div class="list-item-desc">${l.s.length}問 ・ ${r?'習熟度 '+['','B','A','S'][r]:'未受講'}</div></div><span class="material-symbols-outlined" style="color:var(--accent-primary)">${r?'replay':'chevron_right'}</span>`;d.onclick=()=>openLesson(ui,li);el.appendChild(d)})});
+            $('lesson-prog').textContent=`${done}/${tot} 完了`;const D=$('drill-list');D.innerHTML='';DRILLS.forEach(x=>{const d=document.createElement('div');d.className='les-card';d.innerHTML=`<div class="les-i">${x.i}</div><div style="flex:1"><div class="list-item-title">${x.n}</div><div class="list-item-desc">${x.d}</div></div><span class="material-symbols-outlined" style="color:var(--accent-primary)">play_arrow</span>`;d.onclick=()=>startGame('england472x600',x.f);D.appendChild(d)});renderCoach()}
+        function linkTerms(el){const re=new RegExp(TERMS.join('|'),'g');el.innerHTML=el.textContent.replace(re,m=>`<span class="term" onclick="LU.chat.send('${m}って何？')">${m}</span>`)}
+        function openLesson(ui,li){LU={ui,li,L:UNITS[ui].L[li],i:0,mis:0,ok:false};setBallFace($('lp-uk'),'england472x600','normal');$('lp').classList.add('on');LU.chat=mkChat($('lp-chat'),lessonBot,['ヒント','なぜこの手が正解？','実戦でどう使う？','おすすめは？','もっと練習問題','3か月でレーティング100上げたい','初心者です'],`「${LU.L.n}」のレッスンです。用語は青い文字をタップ、または質問してください。`);showStep()}
+        function showStep(){const s=LU.L.s[LU.i];LU.ok=false;LU.sel=null;LU.vm=[];LU.g=s.f?new Chess(s.f):null;$('lp-fill').style.width=(LU.i/LU.L.s.length*100)+'%';$('lp-hearts').textContent='ミス '+LU.mis;typeInto($('lp-q'),s.q,()=>linkTerms($('lp-q')),18);$('lp-foot').className='lp-foot';$('lp-fmsg').textContent='';$('lp-btn').style.display='none';
+            $('lp-board').style.display=s.f?'':'none';const o=$('lp-opts');o.innerHTML='';if(s.f)lpDraw();else s.o.forEach((t,k)=>{const x=document.createElement('button');x.className='opt';x.textContent=t;x.onclick=()=>answer(k===s.c,x);o.appendChild(x)})}
+        function answer(ok,btn){const s=LU.L.s[LU.i],f=$('lp-foot');
+            if(ok){LU.ok=true;f.className='lp-foot good';$('lp-fmsg').innerHTML='<b>正解です。</b><br>'+(s.x||'');setBtn('次へ',nextStep);if(btn)btn.classList.add('good');if(s.o)[...$('lp-opts').children].forEach(x=>x.disabled=true)}
+            else{LU.mis++;$('lp-hearts').textContent='ミス '+LU.mis;f.className='lp-foot bad';$('lp-fmsg').innerHTML='<b>惜しい。</b><br>'+(s.h||'もう一度考えてみましょう。');if(btn)btn.classList.add('bad');setBtn('もう一度',()=>{if(s.f){LU.sel=null;LU.vm=[];lpDraw();f.className='lp-foot';$('lp-fmsg').textContent='';$('lp-btn').style.display='none'}else showStep()})}}
+        function finishLesson(){const st=LU.mis===0?3:LU.mis<=2?2:1,k=LU.ui+'-'+LU.li;prog[k]=Math.max(prog[k]||0,st);LS.s('pbc_les',prog);stats.xp+=20;LS.s('pbc_stats',stats);refreshMe();$('lp-fill').style.width='100%';$('lp-board').style.display='none';$('lp-opts').innerHTML='';
+            typeInto($('lp-q'),`レッスン完了。習熟度 ${['','B','A','S'][st]}（+20ポイント）\n${st===3?'ノーミスです、お見事！':'何度でも受け直せます。'}${(window._streak||1)>=3?`\n${window._streak}日連続の学習、素晴らしい継続力です。`:''}`);$('lp-foot').className='lp-foot good';$('lp-fmsg').innerHTML='<b>お疲れさまでした。</b>';setBtn('閉じる',closeLesson)}
+        function altMove(s,t){const g=new Chess(s.f),m=parseMove(t,g);if(!m)return null;const r=scoreMoves(s.f),x=r.find(y=>y.m.san===m.san),c=r.find(y=>y.m.from+y.m.to===s.a);if(!x||!c)return null;const h=new Chess(s.f);h.move(m.san);return{m,l:Math.abs(x.v-c.v)/10,g:h,same:m.from+m.to===s.a}}
+        function pickOther(){const a=[];UNITS.forEach((u,ui)=>u.L.forEach((l,li)=>{if(!(ui===LU.ui&&li===LU.li))a.push([ui,li])}));return a[rnd(a.length)]}
+        function plan(n){const mo=+(n.match(/(\d+)(ヶ月|か月|ヵ月)/)||[])[1]||0,up=+(n.match(/(\d+)(上げ|アップ)/)||[])[1]||0,todo=[];UNITS.forEach((u,ui)=>u.L.forEach((l,li)=>{if(!prog[ui+'-'+li])todo.push(l.n)}));const be=/初心者/.test(n),list=be?todo.slice(0,10):todo;if(!list.length)return '全レッスン修了済みです。特訓・壁打ちと実戦を重ねましょう。';
+            const w=Math.max(1,mo?mo*4:4),per=Math.ceil(list.length/Math.min(w,6));let o=`【${be?'基本習得':'目標'}プラン】${mo?mo+'か月':''}${up?`でレーティング+${up}`:''}\n`;for(let i=0;i<Math.min(w,6);i++){const c=list.slice(i*per,(i+1)*per);if(c.length)o+=`第${i+1}週：${c.join('・')}\n`}return o+'毎週3局の対局と、記録タブでの振り返りも続けましょう。'}
+        async function recText(){const a=await DB.all(),w=weakTop(a);if(w)return `対局記録から「${TN[w]}」が多いので、「${UNITS[RECO[w][0]].L[RECO[w][1]].n}」がおすすめです。`;let g=null;UNITS.some((u,ui)=>u.L.some((l,li)=>{if(!prog[ui+'-'+li]){g=l.n;return true}}));return g?`次は「${g}」に進みましょう。`:'全修了！特訓・壁打ちがおすすめです。'}
+        function lessonBot(t){const n=t.replace(/\s/g,''),s=LU.L.s[LU.i];
+            if(/ヒント|ひんと|わから|分から/.test(n))return s.h||(s.f?`動かす駒は ${s.a.slice(0,2)} のマスにいます。行き先を探してみましょう。`:'選択肢をよく読んで、ルールを思い出してみましょう。');
+            if(/カリキュラム|計画|プラン|ヶ月|か月|ヵ月|レーティング|初心者/.test(n))return plan(n);
+            if(/おすすめ|次に|何から|ルート|レベル/.test(n))return recText();
+            if(/練習問題|もっと|追加|特訓/.test(n)){const c=pickOther();setTimeout(()=>{LU.chat=null;openLesson(c[0],c[1])},1800);return `「${UNITS[c[0]].L[c[1]].n}」の問題を用意しました。まもなく開きます。`}
+            if(/実戦|どう使う|向いて|スタイル|活か/.test(n))return PR[LU.L.n]||'実戦では「駒の安全・中央・展開」を意識しつつ、この形が現れたら迷わず使いましょう。';
+            if(s.f){const a=altMove(s,t);if(a&&/他の手|じゃダメ|ではなく|じゃなく|どうなる|だったら|なぜ|どうして/.test(n)){if(a.same)return 'それが正解の手です。';showSim(a.g,`${a.m.san} の場合の盤面です。`);return a.l>0?`${a.m.san}だと、正解より約${a.l.toFixed(1)}ポイント見劣りします。盤面をポップアップに出しました。`:`評価値の差はありませんが、このレッスンの狙い（${s.x}）に合うのは ${s.a} です。`}}
+            if(/なぜ|理由|解説|どうして|説明/.test(n)&&!KB.some(([r])=>r.test(n)))return LU.ok?s.x:'まず自分で考えてみましょう。答えたあとに解説します。「ヒント」も出せます。';
+            for(const[r,a]of KB)if(r.test(n))return a;return 'いい質問ですね。用語（ピン・フォーク・アンパッサン等）、「なぜこの手が正解？」「実戦でどう使う？」「おすすめは？」などを聞いてください。'}
+
+
+        // ================= v3: Record assistant / 追加アシスト =================
+        const nrm=t=>t.replace(/[\s　?？!！。、,.]/g,'').toLowerCase();
+        const evW=p=>p>=5?'大きく優勢':p>=2?'優勢':p>=.7?'やや優勢':p>-.7?'ほぼ互角':p>-2?'やや劣勢':p>-5?'劣勢':'大きく劣勢';
+        const sg=x=>(x>=0?'+':'')+x.toFixed(1);
+        const sansBy=(l,c)=>l.filter((x,i)=>(i%2===0)===(c==='w'));
+        function parseMove(t,g){const tk=t.match(/O-O-O|O-O|[KQRBN][a-h]?[1-8]?x?[a-h][1-8][+#]?|[a-h][1-8]-?[a-h][1-8]|[a-h]x[a-h][1-8]|[a-h][1-8]/g)||[];
+            for(const k of tk){const m=g.move(k.replace('-',''),{sloppy:true});if(m){g.undo();return m}}
+            const pm=t.match(/(ポーン|ナイト|ビショップ|ルーク|クイーン)を取/);if(pm){const ty=Object.keys(PN).find(k=>PN[k]===pm[1]);const m=g.moves({verbose:true}).find(x=>x.captured===ty);if(m)return m}
+            const mp=t.match(/(ポーン|ナイト|ビショップ|ルーク|クイーン|キング)を(動か|指|進め|出)/);if(mp||/交換しなかっ|取らなかっ|取らずに/.test(t)){const ty=mp&&Object.keys(PN).find(k=>PN[k]===mp[1]),r=scoreMoves(g.fen()).filter(x=>mp?x.m.piece===ty:!x.m.captured);if(r.length)return r[0].m}return null}
+        function moveWhy(mv,g){const p=[];if(mv.captured)p.push(`${PN[mv.captured]}を取る`);if(/[+#]/.test(mv.san))p.push('チェックをかける');if(/^O-O/.test(mv.san))p.push('キングを安全にする');const f=g.fen().split(' ');f[1]=mv.color;f[3]='-';let T=[];try{T=new Chess(f.join(' ')).moves({square:mv.to,verbose:true}).filter(m=>m.captured)}catch(e){}
+            if(T.length>=2)p.push(`${T.map(m=>PN[m.captured]).join('と')}を同時に狙う（フォーク）`);else if(T.length===1)p.push(`${T[0].to}の${PN[T[0].captured]}を狙う`);if(!p.length)p.push('駒を働かせる');return p}
+        function lineFrom(fen,first,n){const g=new Chess(fen),out=[],m=g.move(first,{sloppy:true});if(!m)return{g,out};out.push(m.san);for(let k=1;k<n&&!g.game_over();k++){const b=scoreMoves(g.fen())[0];if(!b)break;g.move(b.m.san);out.push(b.m.san)}return{g,out}}
+        function styleOf(l,label){if(l.length<3)return `${label}の手がまだ少なく、判断できません。`;const cap=l.filter(x=>x.includes('x')).length,chk=l.filter(x=>/[+#]/.test(x)).length,cas=l.some(x=>x.startsWith('O-O')),q=l.slice(0,8).some(x=>x[0]==='Q'),d={};
+            l.forEach(x=>{const m=x.replace(/[+#]/g,'').match(/[a-h][1-8]$/);if(m&&(x.includes('x')||/[+#]/.test(x)||/^[NBRQ]/.test(x)))d[m[0]]=(d[m[0]]||0)+1});const top=Object.entries(d).sort((a,b)=>b[1]-a[1])[0],ag=(cap+chk)/l.length;
+            return `${label}は${ag>=.35?'かなり攻撃的':ag>=.2?'攻撃と守りのバランス型':'堅実で慎重'}（取る手${cap}・チェック${chk}／${l.length}手）。${top&&top[1]>=2?`特に ${top[0]} のマスをよく狙っています。`:''}${cas?'キャスリング済みで安全重視。':'まだキャスリングしていません。'}${q?'クイーンを早めに動かす傾向あり。':''}`}
+        function mateSearch(){const end=Date.now()+2500,cm=(g,d,att)=>{if(Date.now()>end)throw 0;if(g.in_checkmate())return g.turn()!==att;if(d===0||g.game_over())return false;const L=g.moves({verbose:true});
+                if(g.turn()===att){for(const m of(d>2?L.filter(m=>/[+#]/.test(m.san)):L)){g.move(m);let r;try{r=cm(g,d-1,att)}finally{g.undo()}if(r)return true}return false}
+                if(!L.length)return false;for(const m of L){g.move(m);let r;try{r=cm(g,d-1,att)}finally{g.undo()}if(!r)return false}return true},g=new Chess(game.fen());
+            try{for(let d=1;d<=9;d++)for(const att of[myColor,myColor==='w'?'b':'w'])if(cm(g,d,att))return{att,k:Math.ceil(d/2)}}catch(e){if(e!==0)throw e;return{to:1}}return null}
+        function whatIfNow(mv){const g=new Chess(game.fen());g.move(mv.san);const rep=g.game_over()?null:scoreMoves(g.fen())[0],mm=matOf(g);showSim(g,`${mv.san} の分岐。${rep?`相手の最善手は ${rep.m.san} と読みます。`:'ここで対局が終わります。'}駒の価値は 白${mm.w} 対 黒${mm.b}。`);return `${mv.san}を指した場合の盤面をポップアップに出しました。`}
+        const _asst=asst;
+        asst=function(t){const n=nrm(t);if(game&&!over){
+                if(/あと何手|何手で|詰むまで|メイトまで|いつ詰|いつ負け|いつ勝/.test(n)){const r=mateSearch();return !r?'9手（プライ）以内の強制メイトは見つかりません。まだ勝負は続きます。':r.to?'時間内に結論が出ませんでした。局面が複雑です。':r.att===myColor?`チェックを使った強制手順で、あと約${r.k}手であなたが詰ませられます！`:`相手がチェックを使って、あと約${r.k}手で詰ませる手順があります。注意してください！`}
+                if(/スタイル|タイプ|性格|どんな(相手|人)|どんな感じの/.test(n)){const oc=myColor==='w'?'b':'w';return styleOf(sansBy(sans,oc),'相手')}
+                if(/もし|たら|れば|なら|だと|てたら/.test(n)){const mv=parseMove(t,new Chess(game.fen()));if(mv)return whatIfNow(mv)}}
+            return _asst(t)};
+        // ---- Record assistant ----
+        async function analyzeGame(g){if(g._an)return g._an;const c=g.startFen?new Chess(g.startFen):new Chess(),an=[];for(let i=0;i<g.sans.length;i++){const fen=c.fen(),col=c.turn(),r=scoreMoves(fen),mv=c.move(g.sans[i]);if(!mv)break;const x=r.find(y=>y.m.san===mv.san)||r[0],b=r[0];an.push({fen,san:mv.san,col,loss:b&&x?Math.abs(x.v-b.v):0,best:b?b.m.san:null,bestM:b?b.m:null,ev:-evaluateBoard(c.board())});if(i%2)await new Promise(r=>setTimeout(r))}g._an=an;return an}
+        function scoreText(g,an){const m=an.filter(a=>a.col===g.color);if(!m.length)return '手が少なく採点できません。';const avg=m.reduce((t,a)=>t+a.loss,0)/m.length/10,acc=Math.max(0,Math.round(100-avg*18)),bl=m.filter(a=>a.loss>=30).length,att=Math.round(m.filter(a=>a.san.includes('x')||/[+#]/.test(a.san)).length/m.length*100),def=Math.max(0,100-bl*20-Math.round(avg*5));let tm='データなし（古い記録）';
+            if(g.ts){const d=[];g.ts.forEach((t,i)=>{if((i%2===0)===(g.color==='w'))d.push((t-(g.ts[i-1]||0))/1000)});if(d.length){const a=d.reduce((x,y)=>x+y,0)/d.length;tm=`平均${a.toFixed(1)}秒/手（相手の思考待ち含む）`}}
+            return `精度 ${acc}点／攻撃性 ${att}%／守りの堅さ ${def}点／時間：${tm}\n${acc>=80?'とても正確です！':acc>=60?`安定しています。悪手(${bl}回)を減らせばさらに伸びます。`:'ミスが目立ちます。動かす前に「取られる駒はないか」を確認する習慣を。'}`}
+        async function makeQuiz(){const an=await analyzeGame(RPg),w=an.map((a,i)=>({a,i})).filter(o=>o.a.col===RPg.color&&o.a.loss>=10&&o.a.bestM).sort((x,y)=>y.a.loss-x.a.loss).slice(0,3);if(!w.length)return null;
+            return{n:'復習：この試合のミス',i:'',s:w.map(o=>{const g=new Chess(o.a.fen),mv=g.move(o.a.best);return M(o.a.fen,`${o.i+1}手目の局面です。あなたの番。最善手を探そう（実戦では ${o.a.san} でした）。`,o.a.bestM.from+o.a.bestM.to,`最善は ${o.a.best}。${moveWhy(mv,g).join('、')}。`,`${PN[o.a.bestM.piece]}を動かします。`)})}}
+        async function revBot(t){const n=nrm(t);if(!REC_.length)REC_=(await DB.all()).sort((a,b)=>b.id-a.id);const all=REC_;
+            if(!RPg&&/前回|続き|止め|どこまで/.test(n)){const sv=LS.g('pbc_rp',null),i=sv?all.findIndex(g=>g.id===sv.id):-1;if(i<0)return '前回止めた記録が見つかりません。';replay(i);if(RPg.ts)rpTo(Math.min(sv.i,RPg.sans.length));return `前回は ${all[i].opp} 戦の ${sv.i}手目で止めていました。その位置を開きました。`}
+            if(/戦績|勝率|何局|成績|最近|直近/.test(n)&&!/試合|この/.test(n))return all.length?`保存${all.length}局：${all.filter(g=>g.result==='w').length}勝${all.filter(g=>g.result==='l').length}敗${all.filter(g=>g.result==='d').length}分。直近：${all.slice(0,3).map(g=>g.opp+'に'+{w:'勝ち',l:'負け',d:'引分'}[g.result]).join('、')}。${trend(all)}`:'まだ記録がありません。';
+            if(/弱点|苦手|癖/.test(n)){const w=weakTop(all);return all.length?(w?`多いのは「${TN[w]}」です。講座タブのコーチカードから対策レッスンを開けます。`:'目立つ弱点はありません。'):'まだ記録がありません。'}
+            if(!RPg)return '下の対局記録から1局選んでリプレイを開くと、その試合について質問できます。（戦績・弱点・前回止めた場所は、そのまま聞けます）';
+            const g=RPg,an=await analyzeGame(g);if(!an.length)return 'この記録には手がありません。';
+            const me_=a=>g.color==='w'?a.ev/10:-a.ev/10,mine=a=>a.col===g.color,bef=i=>i?me_(an[i-1]):0,worst=()=>{let b=0,l=-1;an.forEach((a,i)=>{if(mine(a)&&a.loss>l){l=a.loss;b=i}});return b},
+                idx=()=>{const m=n.match(/(\d+)手目/);if(m)return Math.min(an.length-1,Math.max(0,+m[1]-1));if(/ここ|いま|今の/.test(n)&&RPi<an.length)return RPi;return worst()};
+            if(/もし|たら|れば|なら|だと|しなかった/.test(n)){const i=idx(),a=an[i],mv=parseMove(t,new Chess(a.fen));if(!mv)return `${i+1}手目の局面で「どう指すか」を書いてください。例：「20手目でNf3を指していたら」「ルークを取っていたら」「クイーンを交換しなかったら」`;
+                const L=lineFrom(a.fen,mv.san,3),ev=(g.color==='w'?1:-1)*(-evaluateBoard(L.g.board())/10),act=me_(an[Math.min(i+2,an.length-1)]);showSim(L.g,`${i+1}手目で ${mv.san}：読み筋 ${L.out.join(' ')}`);
+                return `${i+1}手目で ${mv.san} を指した場合：読み筋 ${L.out.join(' → ')}。\n形勢（あなた視点）は 実際 ${sg(act)} → if ${sg(ev)}（${evW(ev)}）。${ev>act+1?'こちらの方が良かった可能性があります。':ev<act-1?'実戦の方が良かったようです。':'大差はありません。'}分岐の盤面をポップアップに出しました。`}
+            if(/練習|問題|クイズ|テスト|復習/.test(n)){const Z=await makeQuiz();if(!Z)return 'この試合には復習が必要なミスがありません。素晴らしい内容です！';setTimeout(()=>openLesson(0,0,Z),1500);return `この試合のミスから${Z.s.length}問を作りました。まもなく開きます。`}
+            if(/採点|点数|アキュラシー|精度|スタイル|タイプ/.test(n))return scoreText(g,an)+'\n'+styleOf(sansBy(g.sans,g.color),'あなた')+'\n'+styleOf(sansBy(g.sans,g.color==='w'?'b':'w'),'相手');
+            if(/罠|ハメ|返せば|どう返|対策|崩せ|相手のこの手/.test(n)){let i=/(\d+)手目/.test(n)?idx():Math.max(0,worst()-1);if(mine(an[i])&&i>0)i--;const a=an[i],c=new Chess(a.fen),mv=c.move(a.san),nx=an[i+1];return `${i+1}手目 ${a.san}（相手）の狙い：${moveWhy(mv,c).join('、')}。${nx?`\n返し方：${nx.best}が最善でした（実戦は ${nx.san}）。`:''}`}
+            if(/ダメ|3手先|三手先/.test(n)){const i=idx(),a=an[i],L=lineFrom(a.fen,a.san,4);showSim(L.g,`${i+1}手目 ${a.san} の読み筋：${L.out.join(' ')}`);return `${i+1}手目 ${a.san} の後、お互い最善だと ${L.out.join(' → ')} と進みます。形勢は ${sg(me_(a))}（${evW(me_(a))}）付近。${a.loss>=10?`最善の ${a.best} より約${(a.loss/10).toFixed(1)}ポイント損です。`:'大きな損はありません。'}`}
+            if(/最善|正解|どう指|どうすれば|改善|良かった|ミス|ブランダー/.test(n)){const i=/(\d+)手目/.test(n)?idx():(RPi>0&&mine(an[RPi-1])&&an[RPi-1].loss>=10?RPi-1:worst()),a=an[i];if(!a.best)return '最善手を計算できませんでした。';const L=lineFrom(a.fen,a.best,3);showSim(L.g,`${i+1}手目の最善 ${a.best} の読み筋：${L.out.join(' ')}`);return `${i+1}手目（${a.san}）の最善は ${a.best} でした${a.loss>=10?`（実戦は約${(a.loss/10).toFixed(1)}ポイント損）`:'（実戦も近い手です）'}。\n読み筋：${L.out.join(' → ')}。理由：${moveWhy(new Chess(a.fen).move(a.best)&&(()=>{const c=new Chess(a.fen);return c.move(a.best)})(),(()=>{const c=new Chess(a.fen);c.move(a.best);return c})()).join('、')}。`}
+            if(/敗因|勝因|流れ|ターニング|分かれ目|変わった|原因/.test(n)){let b=0,d=-9e9;const win=g.result==='w';an.forEach((a,i)=>{const x=win?me_(a)-bef(i):bef(i)-me_(a);if(x>d){d=x;b=i}});const a=an[b];return `${win?'勝因':'敗因'}（流れが変わった1手）は ${b+1}手目 ${a.san}（${mine(a)?'あなた':'相手'}の手）です。形勢が ${sg(bef(b))} → ${sg(me_(a))} に動きました。${mine(a)?`最善は ${a.best} でした。`:`この手は ${moveWhy(...(()=>{const c=new Chess(a.fen);return[c.move(a.san),c]})()).join('、')} 狙いでした。`}`}
+            const i=RPi;if(i===0)return '今はまだ開始局面です。スライダーで手を進めてください。';const a=an[i-1];return `${i}手目 ${a.san}（${mine(a)?'あなた':'相手'}）まで進んだ位置です。形勢はあなた視点で ${evW(me_(a))}（${sg(me_(a))}）。${an[i]?`次に実戦で指された手は ${an[i].san}${an[i].loss>=10?`、最善は ${an[i].best}`:''}。`:'ここで対局終了です。'}`}
+        function rpTo(n){RPi=n;const c=new Chess();for(let k=0;k<n;k++)c.move(RPg.sans[k]);drawBoard($('rp-board'),c,{flip:RPg.color==='b',click:()=>{}});$('rp-slider').max=RPg.sans.length;$('rp-slider').value=n;if(RPg.id)LS.s('pbc_rp',{id:RPg.id,i:n})}
+        const _rr=renderRec;renderRec=async function(){await _rr();if(!window._rc)window._rc=mkChat($('rec-chat'),revBot,['前回止めた場所は？','ここでの形勢は？','この試合の最大の敗因は？','最善手は何だった？','相手のこの手、罠だった？','なんでこの手はダメ？','この試合を採点して','もし20手目でクイーンを交換しなかったら？','練習問題を3問ちょうだい','戦績を教えて'],'記録について何でも聞いてください。リプレイを開いた試合なら、止めた位置を基準に答えます。')};
+        // ---- 復習レッスン(カスタム) ----
+        function openLesson(ui,li,custom){LU={ui,li,L:custom||UNITS[ui].L[li],i:0,mis:0,ok:false,custom:!!custom};setBallFace($('lp-uk'),'england472x600','normal');$('lp').classList.add('on');LU.chat=mkChat($('lp-chat'),lessonBot,['ヒント','なぜこの手が正解？','実戦でどう使う？','おすすめは？','もっと練習問題','3か月でレーティング100上げたい','初心者です'],`「${LU.L.n}」です。用語は青い文字をタップ、または質問してください。`);showStep()}
+        const _fl=finishLesson;finishLesson=function(){if(!LU.custom)return _fl();$('lp-fill').style.width='100%';$('lp-board').style.display='none';typeInto($('lp-q'),`復習完了。ミス ${LU.mis}回。同じ形を実戦で見つけられるようにしましょう。`);$('lp-foot').className='lp-foot good';$('lp-fmsg').innerHTML='<b>お疲れさまでした。</b>';setBtn('閉じる',closeLesson)};
+        function lpDraw(){drawBoard($('lp-board'),LU.g,{sel:LU.sel,vm:LU.vm,flip:LU.L.s[LU.i].f.split(' ')[1]==='b',click:lpClick})}
+        function lpClick(sq){if(LU.ok)return;const s=LU.L.s[LU.i],T=s.f.split(' ')[1];
+            if(LU.sel&&LU.sel!==sq){const mv=LU.g.move({from:LU.sel,to:sq,promotion:'q'});if(mv){const ok=mv.from+mv.to===s.a;if(!ok)LU.g.undo();LU.sel=null;LU.vm=[];lpDraw();answer(ok);return}}
+            const p=LU.g.get(sq);if(p&&p.color===T){LU.sel=sq;LU.vm=LU.g.moves({square:sq,verbose:true})}else{LU.sel=null;LU.vm=[]}lpDraw()}
+
+        const _sv=switchView;
+        switchView=function(id){_sv(id);$('chat-btn').style.display=id==='view-game'?'flex':'none';if(id!=='view-game')$('side').classList.remove('open');if(id==='view-play')updatePlay();if(id==='view-lessons')renderPath();if(id==='view-user')refreshMe();if(id==='view-rec')renderRec()};
+        window.onload = () => {
+            setBallFace($('sp-uk'),'england472x600','normal');setBallFace($('les-uk'),'england472x600','normal');
+            if(!me)me={name:'プレイヤー',icon:'poland'},window._first=true;
+            window._streak=login();updatePlay();renderPath();initGame('england472x600','ai','w');
+            setTimeout(()=>{$('splash').classList.add('out');if(window._first)openSetup()},1800);
+        };
+    </script>
+</body>
+</html>
