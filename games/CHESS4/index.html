@@ -534,6 +534,17 @@
 .les-i{font-size:24px;width:44px;height:44px;border-radius:12px;background:var(--glass-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .term{color:var(--accent-primary);border-bottom:1px dashed var(--accent-primary);cursor:pointer}
 .think{opacity:.55}.rp-ctl{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px}
+
+.chat-btn,.chat-in .ai-btn{background:linear-gradient(135deg,#5679F0,#D2B5CD,#EB9968)!important;color:#fff!important;border:0!important}
+.chat-btn .material-symbols-outlined{color:#fff!important}
+.msg.u{background:linear-gradient(135deg,#5679F0,#D2B5CD,#EB9968)}
+#clock{justify-content:space-between;margin:8px 0;font-weight:700;font-size:14px;font-variant-numeric:tabular-nums}
+
+#sim .box{width:min(92vw,380px)}
+#sim .chessboard-wrapper,#sim-board{width:min(76vw,320px)!important;max-width:none!important;height:min(76vw,320px)!important;margin:0 auto!important;display:grid!important;grid-template-columns:repeat(8,1fr)!important;grid-template-rows:repeat(8,1fr)!important;overflow:hidden;border-radius:10px}
+#sim .chess-square{width:auto!important;height:auto!important;min-width:0!important;min-height:0!important;aspect-ratio:1}
+#sim .piece-symbol{font-size:min(7.5vw,30px)!important;line-height:1!important}
+#sim-txt{text-align:left;font-size:13px;white-space:pre-wrap}
     </style>
 </head>
 <body>
@@ -542,6 +553,7 @@
         <!-- ヘッダー -->
         <header>
             <div class="hdr-me" id="hdr-me" onclick="switchView('view-user')"><div class="pb-avatar"><img id="hdr-img" alt=""></div></div>
+            <button class="theme-toggle" id="fs-btn" style="right:120px" onclick="toggleFS()" title="全画面"><span class="material-symbols-outlined" id="fs-ico">fullscreen</span></button>
             <button class="theme-toggle chat-btn" id="chat-btn" onclick="toggleSide()" title="Chess assistant"><span class="material-symbols-outlined">chat</span></button>
             <div class="logo">
                 <span>PBChess</span>
@@ -580,11 +592,11 @@
             <!-- PLAY -->
             <section id="view-play" class="view">
                 <div class="glass-card play-hero">
-                    <div class="pb-avatar big"><img id="play-img" alt=""></div>
+                    <div class="pb-avatar big" style="cursor:pointer" onclick="toggleExt()" title="タップで11〜20手を解放"><img id="play-img" alt=""></div>
                     <h1>Play</h1><p id="play-sub"></p>
-                    <div id="lvl-box" style="display:none"><p style="font-size:12px;margin:0">DeepTeankingAI 推論レベル</p><div id="lvl-chips"></div><p id="lvl-desc" style="font-size:12px"></p></div>
+                    <div id="lvl-box" style="display:none"><p style="font-size:12px;margin:0">DeepTeankingAI 推論レベル（上のイギリス画像をタップで11〜20手）</p><div id="lvl-chips"></div><p id="lvl-desc" style="font-size:12px"></p></div>
                     <div class="rec-bar"><i id="rb-w"></i><i id="rb-d"></i><i id="rb-l"></i></div><div id="rec-txt"></div>
-                    <button class="ai-btn" style="width:100%" onclick="startGame(selOpp)">対局を始める</button>
+                    <div id="opt-box" style="margin:14px 0;text-align:left"></div><button class="ai-btn" style="width:100%" onclick="startGame(selOpp)">対局を始める</button>
                 </div>
                 <div class="glass-card">
                     <h2>友達とオンライン対戦（ワンタイム）</h2>
@@ -615,7 +627,7 @@
                     </div>
 
                     <!-- チェス盤 -->
-                    <div class="chessboard-wrapper" id="chessboard">
+                    <div id="clock" style="display:none"><span id="clk-o"></span><span id="clk-m"></span></div><div id="lt-live" style="display:none;font-size:12px;color:var(--text-sub);margin-bottom:6px"></div><div class="chessboard-wrapper" id="chessboard">
                         <!-- 8x8 マス目をJSで生成 -->
                     </div>
 
@@ -667,7 +679,7 @@
                 <div class="glass-card">
                     <div style="display:flex;align-items:center;gap:16px"><div class="pb-avatar"><img class="uk-crop" id="les-uk" alt="UK"></div>
                     <div><h2 style="margin:0">イギリス紳士のチェス講座</h2><p style="margin:4px 0 0;font-size:12px">「基礎から定跡まで、ここでチェスの全てを。」<b id="lesson-prog" style="margin-left:6px"></b></p></div></div>
-                    <div id="coach-card" class="glass-card" style="background:var(--bg-secondary);padding:16px"></div><div id="lesson-list"></div><h2 style="margin-top:24px">特訓・壁打ち</h2><div id="drill-list"></div>
+                    <div class="glass-card" style="margin-bottom:12px"><h2>チェスレベル測定</h2><p>持ち時間30分・チャットとヒントは使えません。DeepTeankingAI（推論レベル8）が、あなたの指し手をリアルタイムで分析しながら、今の実力（Elo）を測定します。結果はユーザータブに残ります。</p><button class="ai-btn" onclick="startLevelTest()"><span class="material-symbols-outlined">speed</span>測定を始める</button></div><div id="coach-card" class="glass-card" style="background:var(--bg-secondary);padding:16px"></div><div id="lesson-list"></div><h2 style="margin-top:24px">特訓・壁打ち</h2><div id="drill-list"></div>
                 </div>
             </section>
 
@@ -677,6 +689,8 @@
                     <h2 id="user-name" style="margin-top:12px"></h2><p>PBポイント: <b id="user-xp">0</b> ／ 戦績 <span id="user-rec"></span></p>
                     <button class="ai-btn" onclick="openSetup()"><span class="material-symbols-outlined">edit</span>名前・アイコンを変更</button> <button class="ai-btn ai-btn-secondary" onclick="switchView('view-ptz')">設定・ライセンス</button>
                 </div>
+            <div class="glass-card"><h2>チェスレベル</h2><div id="user-lv"></div></div>
+            <div class="glass-card"><h2>目標と継続</h2><p id="streak-txt"></p><div id="cal" style="display:flex;gap:4px;flex-wrap:wrap;margin:8px 0"></div><div id="goal-box"></div></div>
             </section>
 
             <section id="view-rec" class="view">
@@ -693,6 +707,22 @@
 
             <!-- 4. PTZ設定ビュー -->
             <section id="view-ptz" class="view">
+                <div class="glass-card"><h2>レベルインポート</h2>
+                    <p>お使いのチェスアプリのセクションを選ぶか、Eloを直接入力してください。<b>※AI分析が変わります</b>（悪手・好手の判定の厳しさ、おすすめ推論レベルがこのレベルに合わせて変化します）。</p>
+                    <select class="inp" id="elo-sec" onchange="secPick()"></select>
+                    <input class="inp" id="elo-in" type="number" min="0" max="3000" placeholder="Elo（0〜3000）" style="margin-top:8px">
+                    <button class="ai-btn" style="margin-top:10px" onclick="saveElo()">レベルを反映</button> <button class="ai-btn ai-btn-secondary" style="margin-top:10px" onclick="clearElo()">解除</button>
+                    <p id="elo-now" style="margin-top:10px;font-size:13px"></p></div>
+                <div class="glass-card"><h2>Webアシスタント</h2>
+                    <p>ONにすると、チャットが内蔵の辞典で答えられない「〇〇とは？」を、Wikipedia（概要）で調べます。<b>内蔵のチャットを優先</b>し、初期設定はOFFです。※ONの間は、調べる用語がWikipediaに送信されます。使いすぎると休憩を求められます。</p>
+                    <label style="font-size:14px"><input type="checkbox" id="web-on" onchange="setWeb(this.checked)"> Webアシスタントを有効にする</label></div>
+                <div class="glass-card"><h2>データ移行（端末から端末へ）</h2>
+                    <p>古い端末で「移行する」を押し、新しい端末で「受け取る」。アプリデータ・対戦データ・講座データがすべて移り、完了後に<b>古い端末のPB-chessはリセット</b>されます。</p>
+                    <button class="ai-btn" onclick="migSend()"><span class="material-symbols-outlined">upload</span>古い端末：移行する</button>
+                    <div style="margin-top:14px"><input class="inp" id="mig-name" placeholder="ユーザー名（古い端末のもの）"><input class="inp" id="mig-code" maxlength="19" placeholder="古い端末に表示された15文字のコード" style="margin-top:8px"><button class="ai-btn ai-btn-secondary" style="margin-top:10px" onclick="migRecv()"><span class="material-symbols-outlined">download</span>新しい端末：受け取る</button></div>
+                    <div id="mig-st" style="margin-top:12px;font-size:13px"></div>
+                    <details style="margin-top:12px"><summary><b>Q. なぜバックアップファイルではないの？</b></summary><p>A. 悪用があるからです。ファイルは流出・複製・改ざんされると、他人が自分のデータとして読み込めてしまいます。この方式は、ユーザー名とコードの両方が一致し、古い端末で承認した端末にだけ、一度限りで送ります。</p></details>
+                    <details><summary><b>Q. 転送される仕組みは？</b></summary><p>A. PeerJSによるP2P通信のため、データはサーバーに保存・転送されません。安全なネットワークで転送してください。（接続の仲介にのみPeerJSの公開サーバーを使い、データ本体は端末間で直接送られます。）</p></details></div>
                 <div class="glass-card">
                     <h2>Open source LICENSE</h2>
                     <p>Powered by chess.js
@@ -759,6 +789,8 @@ POSSIBILITY OF SUCH DAMAGE.
     <div id="splash"><div class="pb-avatar big"><img class="uk-crop" id="sp-uk" alt=""></div><h1>PB-chess</h1></div>
 
     <div class="modal" id="sim" onclick="this.classList.remove('on')"><div class="box"><h2>もしも分岐</h2><div class="chessboard-wrapper" id="sim-board" style="max-width:320px"></div><p id="sim-txt" style="margin-top:12px"></p></div></div>
+    <div class="modal" id="rpt" onclick="if(event.target===this)this.classList.remove('on')"><div class="box"><h2>測定レポート</h2><div id="rpt-body" style="white-space:pre-wrap;font-size:13px;margin-bottom:14px"></div><button class="ai-btn" id="rpt-apply">このレベルを反映</button> <button class="ai-btn ai-btn-secondary" onclick="$('rpt').classList.remove('on')">閉じる</button></div></div>
+    <div class="modal" id="msgm" onclick="if(event.target===this)this.classList.remove('on')"><div class="box"><h2 id="msgm-t"></h2><p id="msgm-b" style="white-space:pre-wrap;margin:10px 0 16px"></p><button class="ai-btn" onclick="$('msgm').classList.remove('on')">OK</button></div></div>
     <!-- トースト通知 -->
     <div class="toast" id="toast-message">トーストメッセージ</div>
 
@@ -1102,7 +1134,7 @@ POSSIBILITY OF SUCH DAMAGE.
         // ---- DeepTeaching ----
         function scoreMoves(fen){const g=new Chess(fen);return g.moves({verbose:true}).map(m=>{g.move(m);const v=minimax(1,g,-1e5,1e5,true);g.undo();return{m,v}}).sort((a,b)=>a.v-b.v)}
         function teach(fen,mv){if(game.game_over())return typeInto($('teach-msg'),'見事です。決着がつきましたね！');const r=scoreMoves(fen),b=r[0],mine=r.find(x=>x.m.from===mv.from&&x.m.to===mv.to&&(x.m.promotion||'')===(mv.promotion||''));if(!mine)return;const l=mine.v-b.v;
-            typeInto($('teach-msg'),l<=0?`${mv.san}：最善手です！エレガントですな。`:l<=10?`${mv.san}：良い手です。（最善は ${b.m.san} でした）`:l<=30?`${mv.san}：やや損な手です。${b.m.san} の方が良かったでしょう。`:`${mv.san}：悪手です！駒を失う恐れがあります。${b.m.san} を検討すべきでした。`)}
+            typeInto($('teach-msg'),l<=0?`${mv.san}：最善手です！エレガントですな。`:l<=TH.ok?`${mv.san}：良い手です。（最善は ${b.m.san} でした）`:l<=TH.mid?`${mv.san}：やや損な手です。${b.m.san} の方が良かったでしょう。`:`${mv.san}：悪手です！駒を失う恐れがあります。${b.m.san} を検討すべきでした。`)}
         function hint(){if(!game||over||mode!=='ai'||game.turn()!=='w'||aiBusy)return;const b=scoreMoves(game.fen())[0];typeInto($('teach-msg'),`ヒント：${b.m.san}（${b.m.from}→${b.m.to}）がお勧めです。`)}
 
         // ---- Chess assistant ----
@@ -1268,12 +1300,12 @@ POSSIBILITY OF SUCH DAMAGE.
         function weakTop(all){const c={};all.forEach(g=>(g.tags||[]).forEach(t=>c[t]=(c[t]||0)+1));const e=Object.entries(c).sort((a,b)=>b[1]-a[1]);return e.length?e[0][0]:null}
         function trend(all){const a=[...all].sort((x,y)=>y.id-x.id),r=a.slice(0,3),p=a.slice(3,6);if(r.length<2||p.length<2)return '';const f=x=>x.reduce((t,g)=>t+(g.bl||0),0)/x.length;return f(r)<f(p)?'最近はミスが減ってきましたね。その調子です！':f(r)>f(p)?'最近ミスが増え気味です。落ち着いて一手ずつ確認しましょう。':''}
         function login(){const d=new Date().toDateString(),l=LS.g('pbc_login',{d:'',n:0});if(l.d!==d){l.n=l.d===new Date(Date.now()-864e5).toDateString()?l.n+1:1;l.d=d;LS.s('pbc_login',l)}return l.n}
-        async function saveGame(r,txt){try{const ls=ply.filter((p,i)=>(i%2===0)===(myColor==='w')&&p.loss!=null).map(p=>p.loss),tags=[],bl=ls.filter(l=>l>=30).length,mine=sans.filter((x,i)=>(i%2===0)===(myColor==='w'));
+        async function saveGame(r,txt){try{const ls=ply.filter((p,i)=>(i%2===0)===(myColor==='w')&&p.loss!=null).map(p=>p.loss),tags=[],bl=ls.filter(l=>l>=TH.bad).length,mine=sans.filter((x,i)=>(i%2===0)===(myColor==='w'));
             if(bl>=2)tags.push('blunder');if(mine.length>=12&&!mine.some(x=>x.startsWith('O-O')))tags.push('nocastle');if(mine.slice(0,6).filter(x=>x[0]==='Q').length>=2)tags.push('earlyqueen');
             if(r==='l'&&/#$/.test(sans[sans.length-1]||'')){let k=-1;game.board().forEach((row,ri)=>row.forEach(p=>{if(p&&p.type==='k'&&p.color===myColor)k=ri}));if(k===(myColor==='w'?7:0))tags.push('backrank')}
             await DB.put({date:Date.now(),opp:currentOpponent.name,mode,color:myColor,result:r,text:txt,sans:[...sans],ts:ply.map(p=>p.t),tags,bl,avg:ls.length?ls.reduce((a,b)=>a+b,0)/ls.length:0});
             const all=(await DB.all()).sort((a,b)=>b.id-a.id);for(const g of all.slice(10))if(g.ts){delete g.ts;delete g.text;await DB.put(g)}}catch(e){}}
-        function finish(r,txt){if(recorded)return;recorded=true;over=true;t1=Date.now();resType=r;resText=txt;if(drill){showToast('特訓終了：'+txt);return}stats[r]++;stats.xp+=50;LS.s('pbc_stats',stats);refreshMe();saveGame(r,txt);showToast('対局終了');if(mode==='online')setTimeout(closePeer,3000)}
+        function finish(r,txt){if(recorded)return;recorded=true;over=true;t1=Date.now();resType=r;resText=txt;if(drill||studyMode){showToast('特訓終了：'+txt);return}stats[r]++;stats.xp+=50;LS.s('pbc_stats',stats);refreshMe();saveGame(r,txt);showToast('対局終了');if(mode==='online')setTimeout(closePeer,3000)}
 
         // ---- 記録タブ ----
         async function renderRec(){const all=(await DB.all()).sort((a,b)=>b.id-a.id);REC_=all;const n=all.length,w=all.filter(g=>g.result==='w').length,tc={};all.forEach(g=>(g.tags||[]).forEach(t=>tc[t]=(tc[t]||0)+1));
@@ -1288,8 +1320,8 @@ POSSIBILITY OF SUCH DAMAGE.
         // ---- Play タブ / 探索 ----
         function updatePlay(){const o=OPPONENTS[selOpp];setBallFace($('play-img'),o.dirName,'normal');$('play-sub').textContent=`${o.name} との対局 ― ${o.title}`;const t=stats.w+stats.l+stats.d;
             ['w','d','l'].forEach(k=>$('rb-'+k).style.width=(t?stats[k]/t*100:0)+'%');$('rec-txt').textContent=`${stats.w}勝 ${stats.l}敗 ${stats.d}分 ／ 勝率 ${t?Math.round(stats.w/t*100):0}%`;
-            $('lvl-box').style.display=selOpp==='england472x600'?'':'none';const ch=$('lvl-chips');ch.innerHTML='';[2,3,4,5,6,7,8,9,10,'R'].forEach(k=>{const b=document.createElement('button');b.className='chip'+(k===lvl?' on':'');b.textContent=k==='R'?'Real':k+'手';b.onclick=()=>{lvl=k;updatePlay()};ch.appendChild(b)});
-            $('lvl-desc').textContent=lvl==='R'?'Realバトル：局面に応じて、毎手ランダムに予測手数が変わります。':`${lvLabel(lvl)}まで予測。深いほど強く、時間がかかります（時間切れ時は到達した深さで指します）。`;renderOpponentSelectList();refreshMe()}
+            $('lvl-box').style.display=selOpp==='england472x600'?'':'none';const ch=$('lvl-chips');ch.innerHTML='';[2,3,4,5,6,7,8,9,10,...(extDeep?[11,12,13,14,15,16,17,18,19,20]:[]),'R'].forEach(k=>{const b=document.createElement('button');b.className='chip'+(k===lvl?' on':'');b.textContent=k==='R'?'Real':k+'手';b.onclick=()=>{lvl=k;updatePlay()};ch.appendChild(b)});
+            $('lvl-desc').textContent=lvl==='R'?'Realバトル：局面に応じて、毎手ランダムに予測手数が変わります。':`${lvLabel(lvl)}まで予測。深いほど強く、時間がかかります（時間切れ時は到達した深さで指します）。${lvl>10?' ⚠ 11手以上はデバイスの性能によりAIの動作が変わります（応答が非常に遅くなる・固まる場合があります）。':''}`;renderOpponentSelectList();refreshMe()}
         function startGame(id,fen){initGame(id,'ai','w',null,fen);switchView('view-game')}
         function realDepth(){let pc=0;game.board().forEach(r=>r.forEach(p=>{if(p)pc++}));const mx=pc>24?5:pc>12?7:10,b=(game.in_check()||game.moves({verbose:true}).some(m=>m.captured))?1:0;return Math.min(10,2+rnd(mx-1)+b)}
         function searchBest(maxD,ms){const end=Date.now()+ms,ord=()=>game.moves({verbose:true}).sort((a,b)=>(b.captured?PV[b.captured]:0)-(a.captured?PV[a.captured]:0));
@@ -1313,7 +1345,7 @@ POSSIBILITY OF SUCH DAMAGE.
         function afterMove(mv,fen,mine){sans.push(mv.san);evs.push(-evaluateBoard(game.board()));const p={fen,t:Date.now()-t0};ply.push(p);hintLv=0;
             if(mine)try{const r=scoreMoves(fen),b=r[0],x=r.find(y=>y.m.from===mv.from&&y.m.to===mv.to&&(y.m.promotion||'')===(mv.promotion||''));if(b&&x){p.loss=Math.abs(x.v-b.v);p.best=b.m.san}}catch(e){}
             draw();updateStatus();
-            if(mine&&mode==='ai'&&!over){if(mv.captured)setBallFace($('game-pb-img'),currentOpponent.dirName,'surprise');if($('teach-on').checked&&p.loss!=null){const l=p.loss;typeInto($('teach-msg'),l<=0?`${mv.san}：最善手です！`:l<=10?`${mv.san}：良い手です。（最善は ${p.best}）`:l<=30?`${mv.san}：やや損な手です。${p.best} が良かったでしょう。`:`${mv.san}：悪手です！${p.best} を検討すべきでした。`)}setTimeout(makeAIMove,400)}}
+            if(mine&&mode==='ai'&&!over){if(mv.captured)setBallFace($('game-pb-img'),currentOpponent.dirName,'surprise');if($('teach-on').checked&&p.loss!=null){const l=p.loss;typeInto($('teach-msg'),l<=0?`${mv.san}：最善手です！`:l<=TH.ok?`${mv.san}：良い手です。（最善は ${p.best}）`:l<=TH.mid?`${mv.san}：やや損な手です。${p.best} が良かったでしょう。`:`${mv.san}：悪手です！${p.best} を検討すべきでした。`)}setTimeout(makeAIMove,400)}}
 
         // ---- Chat ----
         function mkChat(root,fn,chips,hello){root.innerHTML='<div class="chat-log"></div><div class="chips"></div><div class="chat-in"><input placeholder="メッセージを入力…"><button class="ai-btn">送信</button></div>';const log=root.children[0],ch=root.children[1],inp=root.querySelector('input');
@@ -1334,13 +1366,13 @@ POSSIBILITY OF SUCH DAMAGE.
             const f=game.fen().split(' ');f[1]=mv.color;f[3]='-';const g=new Chess(f.join(' ')),T=g.moves({square:mv.to,verbose:true}).filter(m=>m.captured);if(T.length>=2)p.push(`${T.map(m=>PN[m.captured]).join('と')}を同時に狙うフォークの危険があります`);else if(T.length===1)p.push(`次に ${T[0].to} の${PN[T[0].captured]}を狙っています`);
             if(!p.length){if('nb'.includes(mv.piece))p.push('駒を展開して戦力を働かせる手です');else if(mv.piece==='p'&&'de'.includes(mv.to[0]))p.push('中央を取りにいく手です');else p.push('陣形を整える手です')}return `${mv.san}の意図：\n`+p.join('。\n')+'。'}
         function selfCheck(m){const fen=game.fen(),r=scoreMoves(fen),b=r[0],x=r.find(y=>y.m.san===m.san);if(!x)return '評価できませんでした。';const l=Math.abs(x.v-b.v),h=new Chess(fen);h.move(m.san);const rep=h.moves({verbose:true}).filter(y=>y.captured).sort((p,q)=>PV[q.captured]-PV[p.captured])[0];
-            return `${m.san}：${l<=0?'最善手です。':l<=10?'悪手ではありません。':l<=30?'少し損です。':'悪手の可能性が高いです。'}${l>10?`最善は ${b.m.san}。`:''}${rep&&PV[rep.captured]>=3?`\nただし ${rep.san} で${PN[rep.captured]}を取られる恐れがあります。`:''}`}
+            return `${m.san}：${l<=0?'最善手です。':l<=TH.ok?'悪手ではありません。':l<=TH.mid?'少し損です。':'悪手の可能性が高いです。'}${l>10?`最善は ${b.m.san}。`:''}${rep&&PV[rep.captured]>=3?`\nただし ${rep.san} で${PN[rep.captured]}を取られる恐れがあります。`:''}`}
         function asst(t){if(!game)return '対局を始めてから聞いてくださいね。';const n=t.replace(/[\s　?？!！。、,.]/g,'').toLowerCase(),m=matOf(game),dm=myColor==='w'?m.w-m.b:m.b-m.w,st=dm>=3?'あなたが優勢':dm<=-3?'あなたが劣勢':'ほぼ互角',el=Math.floor(((t1||Date.now())-t0)/1000),myTurn=game.turn()===myColor;
             if(/ログ|履歴|棋譜|手順|今までの手|指し手|何手/.test(n))return sans.length?`ここまで${sans.length}手：`+sans.map((x,i)=>(i%2?'':((i/2|0)+1)+'.')+x).join(' ').slice(-220):'まだ誰も指していません。';
             if(/結果|勝敗|決着|どっちが勝|誰が勝/.test(n))return over?resText:'まだ対局中です。結果は出ていません。';
             if(/時間|経過|何分|どれくらい|いつから|所要/.test(n))return `${over?'対局時間':'経過時間'}は ${Math.floor(el/60)}分${el%60}秒 です。`;
             if(/弱点|苦手|傾向|癖|分析/.test(n))return DB.all().then(a=>{const w=weakTop(a);return a.length?`過去${a.length}局では「${w?TN[w]:'目立つ弱点なし'}」が目立ちます。${trend(a)}`:'まだ記録がありません。対局を重ねると分析できます。'});
-            if(/もし|だったら|してたら|していたら|指したら|取っていたら/.test(n)){const mv=parseMove(t,game);if(!mv)return '「もしNf3を指したら？」「もしルークを取っていたら？」のように聞いてください。';const g=new Chess(game.fen());g.move(mv.san);const rep=g.game_over()?null:scoreMoves(g.fen())[0],mm=matOf(g);showSim(g,`${mv.san} の分岐。${rep?`相手の最善手は ${rep.m.san} と読みます。`:'ここで対局が終わります。'}駒の価値は 白${mm.w} 対 黒${mm.b}。`);return `${mv.san}を指した場合の盤面をポップアップに出しました。`}
+            if(/もし|だったら|してたら|していたら|指したら|取っていたら/.test(n)){const mv=parseMove(t,game);if(!mv)return 'もしも分岐は、学習プレイ中の自分の番に使えます。例：「もしNf3を指したら？」';const g=new Chess(game.fen());g.move(mv.san);const rep=g.game_over()?null:scoreMoves(g.fen())[0],mm=matOf(g);showSim(g,`${mv.san} の分岐。${rep?`相手の最善手は ${rep.m.san} と読みます。`:'ここで対局が終わります。'}駒の価値は 白${mm.w} 対 黒${mm.b}。`);return `${mv.san}を指した場合の盤面をポップアップに出しました。`}
             if(/なぜ|どうして|なんで|何で/.test(n)&&/その手|指した|意図/.test(n))return explainAI();
             if(/狙い|脅威|何を狙|危ない/.test(n))return threatsText();
             if(/さっき|ミス|失敗|ダメだった|前の手|[23]手前/.test(n)&&!/負け/.test(n)){const mine=ply.map((p,i)=>({p,i})).filter(o=>(o.i%2===0)===(myColor==='w')&&o.p.loss!=null).slice(-3);if(!mine.length)return 'まだ振り返る手がありません。';const w=mine.sort((a,b)=>b.p.loss-a.p.loss)[0];return w.p.loss>=20?`直近3手で一番痛いのは ${w.i+1}手目 ${sans[w.i]} です。最善は ${w.p.best}（約${(w.p.loss/10).toFixed(1)}ポイント損）。`:'直近3手は大きなミスなしです。自信を持ってOK！'}
@@ -1381,7 +1413,7 @@ POSSIBILITY OF SUCH DAMAGE.
             if(/ヒント|ひんと|わから|分から/.test(n))return s.h||(s.f?`動かす駒は ${s.a.slice(0,2)} のマスにいます。行き先を探してみましょう。`:'選択肢をよく読んで、ルールを思い出してみましょう。');
             if(/カリキュラム|計画|プラン|ヶ月|か月|ヵ月|レーティング|初心者/.test(n))return plan(n);
             if(/おすすめ|次に|何から|ルート|レベル/.test(n))return recText();
-            if(/練習問題|もっと|追加|特訓/.test(n)){const c=pickOther();setTimeout(()=>{LU.chat=null;openLesson(c[0],c[1])},1800);return `「${UNITS[c[0]].L[c[1]].n}」の問題を用意しました。まもなく開きます。`}
+            if(/練習問題|もっと|追加|特訓/.test(n)){const c=pickOther();setTimeout(()=>{openLesson(c[0],c[1])},1800);return `「${UNITS[c[0]].L[c[1]].n}」の問題を用意しました。まもなく開きます。`}
             if(/実戦|どう使う|向いて|スタイル|活か/.test(n))return PR[LU.L.n]||'実戦では「駒の安全・中央・展開」を意識しつつ、この形が現れたら迷わず使いましょう。';
             if(s.f){const a=altMove(s,t);if(a&&/他の手|じゃダメ|ではなく|じゃなく|どうなる|だったら|なぜ|どうして/.test(n)){if(a.same)return 'それが正解の手です。';showSim(a.g,`${a.m.san} の場合の盤面です。`);return a.l>0?`${a.m.san}だと、正解より約${a.l.toFixed(1)}ポイント見劣りします。盤面をポップアップに出しました。`:`評価値の差はありませんが、このレッスンの狙い（${s.x}）に合うのは ${s.a} です。`}}
             if(/なぜ|理由|解説|どうして|説明/.test(n)&&!KB.some(([r])=>r.test(n)))return LU.ok?s.x:'まず自分で考えてみましょう。答えたあとに解説します。「ヒント」も出せます。';
@@ -1416,11 +1448,11 @@ POSSIBILITY OF SUCH DAMAGE.
             return _asst(t)};
         // ---- Record assistant ----
         async function analyzeGame(g){if(g._an)return g._an;const c=g.startFen?new Chess(g.startFen):new Chess(),an=[];for(let i=0;i<g.sans.length;i++){const fen=c.fen(),col=c.turn(),r=scoreMoves(fen),mv=c.move(g.sans[i]);if(!mv)break;const x=r.find(y=>y.m.san===mv.san)||r[0],b=r[0];an.push({fen,san:mv.san,col,loss:b&&x?Math.abs(x.v-b.v):0,best:b?b.m.san:null,bestM:b?b.m:null,ev:-evaluateBoard(c.board())});if(i%2)await new Promise(r=>setTimeout(r))}g._an=an;return an}
-        function scoreText(g,an){const m=an.filter(a=>a.col===g.color);if(!m.length)return '手が少なく採点できません。';const avg=m.reduce((t,a)=>t+a.loss,0)/m.length/10,acc=Math.max(0,Math.round(100-avg*18)),bl=m.filter(a=>a.loss>=30).length,att=Math.round(m.filter(a=>a.san.includes('x')||/[+#]/.test(a.san)).length/m.length*100),def=Math.max(0,100-bl*20-Math.round(avg*5));let tm='データなし（古い記録）';
+        function scoreText(g,an){const m=an.filter(a=>a.col===g.color);if(!m.length)return '手が少なく採点できません。';const avg=m.reduce((t,a)=>t+a.loss,0)/m.length/10,acc=Math.max(0,Math.round(100-avg*18)),bl=m.filter(a=>a.loss>=TH.bad).length,att=Math.round(m.filter(a=>a.san.includes('x')||/[+#]/.test(a.san)).length/m.length*100),def=Math.max(0,100-bl*20-Math.round(avg*5));let tm='データなし（古い記録）';
             if(g.ts){const d=[];g.ts.forEach((t,i)=>{if((i%2===0)===(g.color==='w'))d.push((t-(g.ts[i-1]||0))/1000)});if(d.length){const a=d.reduce((x,y)=>x+y,0)/d.length;tm=`平均${a.toFixed(1)}秒/手（相手の思考待ち含む）`}}
             return `精度 ${acc}点／攻撃性 ${att}%／守りの堅さ ${def}点／時間：${tm}\n${acc>=80?'とても正確です！':acc>=60?`安定しています。悪手(${bl}回)を減らせばさらに伸びます。`:'ミスが目立ちます。動かす前に「取られる駒はないか」を確認する習慣を。'}`}
         async function makeQuiz(){const an=await analyzeGame(RPg),w=an.map((a,i)=>({a,i})).filter(o=>o.a.col===RPg.color&&o.a.loss>=10&&o.a.bestM).sort((x,y)=>y.a.loss-x.a.loss).slice(0,3);if(!w.length)return null;
-            return{n:'復習：この試合のミス',i:'',s:w.map(o=>{const g=new Chess(o.a.fen),mv=g.move(o.a.best);return M(o.a.fen,`${o.i+1}手目の局面です。あなたの番。最善手を探そう（実戦では ${o.a.san} でした）。`,o.a.bestM.from+o.a.bestM.to,`最善は ${o.a.best}。${moveWhy(mv,g).join('、')}。`,`${PN[o.a.bestM.piece]}を動かします。`)})}}
+            return{n:'復習：この試合のミス',i:'🧩',s:w.map(o=>{const g=new Chess(o.a.fen),mv=g.move(o.a.best);return M(o.a.fen,`${o.i+1}手目の局面です。あなたの番。最善手を探そう（実戦では ${o.a.san} でした）。`,o.a.bestM.from+o.a.bestM.to,`最善は ${o.a.best}。${moveWhy(mv,g).join('、')}。`,`${PN[o.a.bestM.piece]}を動かします。`)})}}
         async function revBot(t){const n=nrm(t);if(!REC_.length)REC_=(await DB.all()).sort((a,b)=>b.id-a.id);const all=REC_;
             if(!RPg&&/前回|続き|止め|どこまで/.test(n)){const sv=LS.g('pbc_rp',null),i=sv?all.findIndex(g=>g.id===sv.id):-1;if(i<0)return '前回止めた記録が見つかりません。';replay(i);if(RPg.ts)rpTo(Math.min(sv.i,RPg.sans.length));return `前回は ${all[i].opp} 戦の ${sv.i}手目で止めていました。その位置を開きました。`}
             if(/戦績|勝率|何局|成績|最近|直近/.test(n)&&!/試合|この/.test(n))return all.length?`保存${all.length}局：${all.filter(g=>g.result==='w').length}勝${all.filter(g=>g.result==='l').length}敗${all.filter(g=>g.result==='d').length}分。直近：${all.slice(0,3).map(g=>g.opp+'に'+{w:'勝ち',l:'負け',d:'引分'}[g.result]).join('、')}。${trend(all)}`:'まだ記録がありません。';
@@ -1451,6 +1483,240 @@ POSSIBILITY OF SUCH DAMAGE.
 
         const _sv=switchView;
         switchView=function(id){_sv(id);$('chat-btn').style.display=id==='view-game'?'flex':'none';if(id!=='view-game')$('side').classList.remove('open');if(id==='view-play')updatePlay();if(id==='view-lessons')renderPath();if(id==='view-user')refreshMe();if(id==='view-rec')renderRec()};
+
+        // ================= v4: 学習プレイ / 持ち時間 / レベル測定 / レベルインポート =================
+        const SEC=[[0,200],[200,500],[500,800],[800,1000],[1000,1100],[1100,1200],[1200,1500]];
+        let userElo=LS.g('pbc_elo',null),ptype='match',clkOpt=0,studyMode=false,lt=false,ltPending=false,lvBak=null,clockOn=false,clk={w:0,b:0},clkLast=0;
+        const secOf=e=>{let k=0;SEC.forEach((r,i)=>{if(e>=r[0])k=i});return k+1},recDepth=e=>e<500?2:e<800?3:e<1000?4:e<1200?5:e<1500?6:7;
+        const TH={get ok(){const e=userElo;return e==null?10:e<500?20:e<1000?15:e<1200?10:6},get mid(){const e=userElo;return e==null?30:e<500?50:e<1000?40:e<1200?30:20},get bad(){return this.mid}};
+        // ---- レベルインポート ----
+        function renderElo(){const sel=$('elo-sec');if(!sel)return;if(!sel.children.length)SEC.forEach((r,i)=>{const o=document.createElement('option');o.value=i;o.textContent=`セクション${i+1}：${r[0]}〜${r[1]}${i===6?'+':''} Elo${i===0?'（完全初心者向け）':i===6?'（中上級者向け）':''}`;sel.appendChild(o)});
+            if(userElo!=null){sel.value=secOf(userElo)-1;$('elo-in').value=userElo}$('elo-now').textContent=userElo!=null?`現在：Elo ${userElo}（セクション${secOf(userElo)}）／おすすめ推論レベル ${recDepth(userElo)}手`:'現在：未設定（標準の判定）'}
+        function secPick(){const i=+$('elo-sec').value;$('elo-in').value=Math.round((SEC[i][0]+SEC[i][1])/2)}
+        function saveElo(){const v=parseInt($('elo-in').value);if(isNaN(v)||v<0||v>3000)return showToast('Eloは0〜3000で入力してください');userElo=v;LS.s('pbc_elo',v);lvl=recDepth(v);renderElo();updatePlay();showToast('AI分析をレベルに合わせました')}
+        function clearElo(){userElo=null;LS.s('pbc_elo',null);renderElo();updatePlay()}
+        // ---- Play オプション ----
+        function renderOpts(){const b=$('opt-box');if(!b)return;b.innerHTML='';const row=(lab,items,cur,fn)=>{const d=document.createElement('div');d.innerHTML=`<div style="font-size:12px;color:var(--text-sub)">${lab}</div>`;items.forEach(([k,t])=>{const c=document.createElement('button');c.className='chip'+(k===cur?' on':'');c.textContent=t;c.onclick=()=>{fn(k);renderOpts()};d.appendChild(c)});b.appendChild(d)};
+            row('対局タイプ',[['match','試合'],['study','学習プレイ']],ptype,k=>ptype=k);const p=document.createElement('p');p.style.cssText='font-size:12px;margin:4px 0 10px';p.textContent=ptype==='study'?'学習プレイ：「もしNf3を指したら？」「どう詰める？」「相手の思考は？」「10手読んで」などをチャットで使えます。戦績・弱点分析には記録されません。':'試合：チャットは状況や傾向の確認のみ。もしも分岐や相手の思考を聞くと「ズル」になります。';b.appendChild(p);
+            row('持ち時間',[[0,'OFF'],[5,'5分'],[10,'10分'],[15,'15分'],[30,'30分']],clkOpt,k=>clkOpt=k);
+            if(userElo!=null){const q=document.createElement('p');q.style.cssText='font-size:12px;margin-top:10px';q.textContent=`あなたのレベル：Elo ${userElo}（セクション${secOf(userElo)}）→ おすすめ推論レベル ${recDepth(userElo)}手`;b.appendChild(q)}}
+        const _up=updatePlay;updatePlay=function(){_up();renderOpts()};
+        // ---- 持ち時間 ----
+        const fmt=ms=>{ms=Math.max(0,Math.ceil(ms/1000));return Math.floor(ms/60)+':'+String(ms%60).padStart(2,'0')};
+        function renderClock(){if(!clockOn||!game)return;const oc=myColor==='w'?'b':'w',t=game.turn();$('clk-o').textContent=`${t===oc?'▶ ':''}${currentOpponent.name}　${fmt(clk[oc])}`;$('clk-m').textContent=`${t===myColor?'▶ ':''}あなた　${fmt(clk[myColor])}`;$('clk-m').style.color=clk[myColor]<30000?'#e53935':'';$('clk-o').style.color=clk[oc]<30000?'#e53935':''}
+        setInterval(()=>{if(!clockOn||!game||over)return;const now=Date.now(),dt=now-clkLast;clkLast=now;const t=game.turn();clk[t]-=dt;if(clk[t]<=0){clk[t]=0;renderClock();const m=t===myColor;$('status-indicator').textContent=m?'時間切れ (あなたの負け)':'相手の時間切れ (あなたの勝ち)';finish(m?'l':'w',m?'持ち時間切れで負けました。':'相手が時間切れで、あなたの勝ちです。');return}renderClock()},250);
+        // ---- initGame 拡張 ----
+        const _ig=initGame;
+        initGame=function(id,m,color,opp,fen){_ig(id,m,color,opp,fen);setupExtras(m||'ai',fen)};
+        function setupExtras(m,fen){lt=ltPending;ltPending=false;if(!lt&&lvBak!=null){lvl=lvBak;lvBak=null}studyMode=m==='ai'&&!lt&&(ptype==='study'||!!fen);
+            const mins=lt?30:(m==='ai'&&!fen?clkOpt:0);clockOn=mins>0;clk={w:mins*6e4,b:mins*6e4};clkLast=Date.now();$('clock').style.display=clockOn?'flex':'none';renderClock();
+            $('lt-live').style.display=lt?'block':'none';$('lt-live').textContent='リアルタイム分析：数手指すと推定が始まります。';
+            if(lt){$('teach-card').style.display='none';$('undo-btn').style.display='none';$('teach-on').checked=false;$('side').classList.remove('open');$('game-pb-title').textContent='レベル測定（持ち時間30分・チャット不可）'}
+            else if(studyMode){$('game-pb-title').textContent=($('game-pb-title').textContent||'')+' ／ 学習プレイ';mkChat($('side-chat'),asst,['もしNf3を指したら？','どう詰める？','相手の思考は？','10手読んで','Nf3について教えて','あと何手で詰む？','いまの状況は？','ヒントちょうだい'],'学習プレイです。もしも分岐、相手の思考、DeepTeanking（自分用）、手の解説が使えます。')}}
+        // ---- チャット制御（試合＝ズル禁止 / 学習プレイ＝解放） ----
+        function cmFn(end){const cm=(g,d,att)=>{if(Date.now()>end)throw 0;if(g.in_checkmate())return g.turn()!==att;if(d===0||g.game_over())return false;const L=g.moves({verbose:true});
+                if(g.turn()===att){for(const m of(d>2?L.filter(m=>/[+#]/.test(m.san)):L)){g.move(m);let r;try{r=cm(g,d-1,att)}finally{g.undo()}if(r)return true}return false}
+                if(!L.length)return false;for(const m of L){g.move(m);let r;try{r=cm(g,d-1,att)}finally{g.undo()}if(!r)return false}return true};return cm}
+        function mateLine(){if(game.turn()!==myColor)return '自分の番のときに聞いてください。';const end=Date.now()+3000,cm=cmFn(end),g=new Chess(game.fen());
+            try{for(let d=1;d<=9;d+=2)for(const m of g.moves({verbose:true}).filter(m=>d<=2||/[+#]/.test(m.san))){g.move(m);let ok;try{ok=cm(g,d-1,myColor)}finally{g.undo()}if(ok){const h=new Chess(game.fen());h.move(m.san);showSim(h,`詰み筋の1手目：${m.san}`);return `詰み筋あり！まず ${m.san}。その後は相手がどう応じても、約${Math.ceil(d/2)}手で詰ませられます。盤面をポップアップに出しました。`}}}catch(e){if(e!==0)throw e;return '時間内に結論が出ませんでした。'}return '9手以内に、チェックを使った詰み筋は見つかりません。'}
+        function deepSearch(g,maxD,ms){const end=Date.now()+ms,ev=()=>(g.turn()==='b'?1:-1)*evaluateBoard(g.board()),ord=()=>g.moves({verbose:true}).sort((a,b)=>(b.captured?PV[b.captured]:0)-(a.captured?PV[a.captured]:0));
+            const nm=(d,a,b)=>{if(Date.now()>end)throw 0;if(!d)return ev();const L=ord();if(!L.length)return g.in_check()?-9e4-d:0;let v=-1e9;for(const m of L){g.move(m);let x;try{x=-nm(d-1,-b,-a)}finally{g.undo()}if(x>v)v=x;if(v>a)a=v;if(a>=b)break}return v};
+            let best=null,done=0,bv=0;for(let d=1;d<=maxD;d++){try{let bm=null,v0=-1e9,a=-1e9;const R=ord();if(best)R.sort((x,y)=>(y.san===best.san)-(x.san===best.san));for(const m of R){g.move(m);let x;try{x=-nm(d-1,-1e9,-a)}finally{g.undo()}if(x>v0){v0=x;bm=m}if(v0>a)a=v0}best=bm;bv=v0;done=d}catch(e){if(e!==0)throw e;break}}return{m:best||g.moves({verbose:true})[0],d:done,v:bv/10}}
+        function oppThink(){const f=game.fen().split(' ');if(game.turn()===myColor){f[1]=myColor==='w'?'b':'w';f[3]='-'}let r=[];try{r=scoreMoves(f.join(' '))}catch(e){}const o=currentOpponent,d=o.id==='england472x600'?(drill?3:lvl==='R'?null:lvl):(o.level<=4?1:2);
+            return `相手（${o.name}）は${d?d+'手先まで':'毎手ランダムな深さで'}読むタイプです。今の局面で有力と見ている手：${r.slice(0,3).map(x=>x.m.san).join('、')||'なし'}。\n${threatsText()}`}
+        const CHEAT=/もし|したら|いたら|してたら|どう詰|詰め方|詰ませ方|相手の(思考|考え)|相手は(何|どう)|次に何を指す|深読み|ディープ|deepteanking|\d+手(先)?(まで)?読/;
+        const _asst3=asst;
+        asst=function(t){const n=nrm(t);if(lt&&!over)return 'レベル測定中はチャットボットを使えません。集中して指しましょう！';
+            if(game&&!over){
+                if(!studyMode){if(CHEAT.test(n))return 'いまはズルになってしまいますよ！ 学習プレイならもしも分岐や相手の思考を使えます。'}
+                else{
+                    if(/どう詰|詰め方|詰ませ方|詰み筋/.test(n))return mateLine();
+                    if(/相手の(思考|考え)|相手は(何|どう)|次に何を指す|相手ならどう/.test(n))return oppThink();
+                    if(/deepteanking|ディープ|深読み|手(先)?(まで)?読/.test(n)){if(game.turn()!==myColor)return '自分の番のときに使えます。';const d=Math.min(10,Math.max(2,+(n.match(/(\d+)手/)||[])[1]||6)),r=deepSearch(new Chess(game.fen()),d,1000+d*400);return `DeepTeanking ${d}手読み（到達${r.d}手）：最善は ${r.m.san}。形勢 ${Math.abs(r.v)>5000?(r.v>0?'詰みを読み切り':'詰まされる読み'):sg(r.v)}（あなた視点）。`}
+                    if(!/もし|たら|れば|なら|だと/.test(n)&&game.turn()===myColor){const mv=parseMove(t,new Chess(game.fen()));if(mv){const g=new Chess(game.fen());g.move(mv.san);showSim(g,`${mv.san} を指した盤面`);return `${selfCheck(mv)}\n狙い：${moveWhy(mv,g).join('、')}。（盤面をポップアップに出しました）`}}}}
+            return _asst3(t)};
+        // ---- レベル測定 ----
+        function startLevelTest(){if(!confirm('持ち時間30分・チャット/ヒント不可。DeepTeankingAI（推論レベル8）との真剣勝負で実力を測定します。始めますか？'))return;lvBak=lvl;lvl=8;ltPending=true;startGame('england472x600')}
+        function eloFrom(){const ls=ply.filter((p,i)=>(i%2===0)===(myColor==='w')&&p.loss!=null).map(p=>p.loss/10);if(!ls.length)return null;const L=ls.reduce((a,b)=>a+b,0)/ls.length,bl=ls.filter(x=>x>=3).length;return Math.max(100,Math.min(2000,Math.round(1900-380*Math.min(L,4)-30*bl)))}
+        const _am=afterMove;afterMove=function(mv,fen,mine){_am(mv,fen,mine);if(lt&&mine&&!over){const e=eloFrom();if(e!=null)$('lt-live').textContent=`リアルタイム分析：現在の推定Elo ≈ ${e}（セクション${secOf(e)}）`}};
+        const _fin=finish;finish=function(r,t){const was=recorded;_fin(r,t);if(!was&&lt)ltFinish(r,t)};
+        function ltFinish(r,t){const ls=ply.filter((p,i)=>(i%2===0)===(myColor==='w')&&p.loss!=null).map(p=>p.loss/10),n=ls.length;let elo=n?eloFrom():300;if(n)elo=Math.min(2000,elo+(r==='w'?150:r==='d'?50:0));
+            const avg=n?ls.reduce((a,b)=>a+b,0)/n:0,bl=ls.filter(x=>x>=3).length,acc=Math.max(0,Math.round(100-avg*18)),mv=sansBy(sans,myColor),att=mv.length?Math.round(mv.filter(x=>x.includes('x')||/[+#]/.test(x)).length/mv.length*100):0,cas=mv.some(x=>x.startsWith('O-O')),used=Math.round((1800000-clk[myColor])/60000),sec=secOf(elo),weak=[];
+            if(bl>=2)weak.push('悪手が多い（駒の安全確認）');if(mv.length>=12&&!cas)weak.push('キャスリングをしていない');if(mv.slice(0,6).filter(x=>x[0]==='Q').length>=2)weak.push('クイーンの早出し');if(used<5&&mv.length>=10)weak.push('時間をほとんど使っていない（もっと読めます）');
+            const rec=sec<=2?['駒の動かし方','駒の価値']:sec<=4?['戦術の基本','特別ルール']:['定跡マスター','特訓・壁打ち（終盤）'];
+            const rep=`【チェスレベル測定レポート】\n結果：${{w:'勝ち',l:'負け',d:'引き分け'}[r]}（${t}）\n推定Elo：${elo}（セクション${sec}：${SEC[sec-1][0]}〜${SEC[sec-1][1]}${sec===7?'+':''}）\n精度：${acc}点／1手あたり平均損失：${avg.toFixed(2)}ポイント／悪手：${bl}回\n攻撃性：${att}%／キャスリング：${cas?'済':'未'}／使用時間：約${used}分（30分中）\n相手：DeepTeankingAI 推論レベル8\n\n【強み】${acc>=70?'安定した精度で指せています。':'最後まで粘り強く指しました。'}${att>=30?'攻撃的な手を積極的に使えています。':''}\n【課題】${weak.length?weak.join('、'):'目立つ課題はありません。'}\n【おすすめ】${rec.join('、')}\n※測定は浅い読みに基づく目安です。`;
+            const a=LS.g('pbc_lv',[]);a.unshift({d:Date.now(),elo,sec,r,rep});LS.s('pbc_lv',a.slice(0,20));if(lvBak!=null){lvl=lvBak;lvBak=null}refreshMe();setTimeout(()=>openRpt(0),1500)}
+        function openRpt(i){const a=LS.g('pbc_lv',[]);if(!a[i])return;$('rpt-body').textContent=a[i].rep;$('rpt-apply').onclick=()=>{userElo=a[i].elo;LS.s('pbc_elo',userElo);lvl=recDepth(userElo);renderElo();updatePlay();showToast('このレベルを反映しました');$('rpt').classList.remove('on')};$('rpt').classList.add('on')}
+        function renderUserLv(){const el=$('user-lv');if(!el)return;const a=LS.g('pbc_lv',[]);el.innerHTML=(userElo!=null?`<p>現在のレベル設定：<b>Elo ${userElo}</b>（セクション${secOf(userElo)}）</p>`:'<p>レベル未設定（設定から入力、または講座タブで測定）</p>')+(a.length?`<p>最新の測定：<b>Elo ${a[0].elo}</b>（セクション${a[0].sec}）</p>`:'');a.forEach((x,i)=>{const d=document.createElement('div');d.className='list-item';d.innerHTML=`<div><div class="list-item-title">Elo ${x.elo} ・ セクション${x.sec}</div><div class="list-item-desc">${new Date(x.d).toLocaleDateString('ja-JP')} ・ 詳細レポートを見る</div></div>`;d.onclick=()=>openRpt(i);el.appendChild(d)})}
+        const _rm=refreshMe;refreshMe=function(){_rm();try{renderUserLv()}catch(e){}};
+        const _sv3=switchView;switchView=function(id){_sv3(id);if(id==='view-game'&&lt)$('chat-btn').style.display='none';if(id==='view-ptz')renderElo()};
+        function hint(){if(lt&&!over)return;if(!game||over||mode!=='ai'||game.turn()!=='w'||aiBusy)return;const b=scoreMoves(game.fen())[0];typeInto($('teach-msg'),`ヒント：${b.m.san}（${b.m.from}→${b.m.to}）がお勧めです。`)}
+
+
+        // ================= v5 =================
+        // ---- 評価関数の高品質化（駒の価値＋位置・構造・キングの安全・オープンファイル等）----
+        function evaluateBoard(b){const V={p:10,n:32,b:33,r:50,q:90,k:0},pf={w:Array(8).fill(0),b:Array(8).fill(0)},bis={w:0,b:0},rooks=[],kings={};let s=0,big=0;
+            for(let r=0;r<8;r++)for(let c=0;c<8;c++){const p=b[r][c];if(!p)continue;const t=p.type,col=p.color,sg=col==='b'?1:-1,rel=col==='b'?r:7-r,cd=3.5-Math.abs(c-3.5),rd=3.5-Math.abs(r-3.5);let v=V[t];
+                if(t==='p'){v+=rel*rel*.2+cd*.4;pf[col][c]++}else if(t==='n'){v+=cd+rd;if(rel===0)v-=3;big++}else if(t==='b'){v+=(cd+rd)*.5;if(rel===0)v-=3;bis[col]++;big++}else if(t==='r'){rooks.push([col,c]);big++}else if(t==='q')big+=2;else kings[col]=[r,c];s+=sg*v}
+            rooks.forEach(([col,c])=>{const sg=col==='b'?1:-1,o=col==='b'?'w':'b';if(!pf[col][c])s+=sg*(pf[o][c]?2:4)});
+            ['w','b'].forEach(col=>{const sg=col==='b'?1:-1;if(bis[col]>=2)s+=sg*3;for(let c=0;c<8;c++){if(pf[col][c]>1)s-=sg*3*(pf[col][c]-1);if(pf[col][c]&&!(c>0&&pf[col][c-1])&&!(c<7&&pf[col][c+1]))s-=sg*3*pf[col][c]}
+                const k=kings[col];if(!k)return;const cd=3.5-Math.abs(k[1]-3.5),rd=3.5-Math.abs(k[0]-3.5);
+                if(big>=6){s-=sg*(cd+rd)*1.2;const dir=col==='b'?1:-1;let sh=0;for(let dc=-1;dc<=1;dc++){const cc=k[1]+dc;if(cc<0||cc>7)continue;for(let dr=1;dr<=2;dr++){const rr=k[0]+dir*dr;if(rr<0||rr>7)continue;const q=b[rr][cc];if(q&&q.type==='p'&&q.color===col)sh++}}s+=sg*sh*1.5}else s+=sg*(cd+rd)*1.2});
+            return s}
+        // ---- Elo推定モデル ----
+        const myLoss=p=>p.loss3!=null?p.loss3:(p.loss||0)/10;
+        function eloModel(ls,r){if(!ls.length)return null;const acpl=ls.reduce((a,b)=>a+Math.min(b,3),0)/ls.length*100,best=ls.filter(x=>x<=.05).length/ls.length,bl=ls.filter(x=>x>=2).length;let e=500+1700*Math.exp(-acpl/110)+250*(best-.35)-20*bl;if(r==='w')e+=100;else if(r==='d')e+=30;return Math.round(Math.max(100,Math.min(2200,e)))}
+        function eloFrom(){const ls=ply.filter((p,i)=>(i%2===0)===(myColor==='w')&&(p.loss!=null||p.loss3!=null)).map(myLoss);return eloModel(ls)}
+        const _am5=afterMove;afterMove=function(mv,fen,mine){_am5(mv,fen,mine);if(lt&&mine){try{const p=ply[ply.length-1],b=deepSearch(new Chess(fen),3,1500),g1=new Chess(fen);g1.move(mv.san);const vp=g1.in_checkmate()?999:g1.game_over()?0:-deepSearch(g1,2,1500).v;p.loss3=Math.max(0,b.v-vp);const e=eloFrom();if(e!=null&&!over)$('lt-live').textContent=`リアルタイム分析（深読み）：現在の推定Elo ≈ ${e}（セクション${secOf(e)}）`}catch(e){}}};
+        function ltFinish(r,t){const arr=[];ply.forEach((p,i)=>{if((i%2===0)===(myColor==='w')&&(p.loss!=null||p.loss3!=null)){const pc=(p.fen.split(' ')[0].match(/[a-zA-Z]/g)||[]).length;arr.push({l:myLoss(p),ph:i<20?0:pc<=12?2:1,san:sans[i],best:p.best})}});
+            const n=arr.length,ls=arr.map(a=>a.l);let elo=n?eloModel(ls,r):300;const band=n?Math.round(700/Math.sqrt(n)):500,acpl=x=>x.length?Math.round(x.reduce((a,b)=>a+Math.min(b.l,3),0)/x.length*100):null,ph=[0,1,2].map(k=>acpl(arr.filter(a=>a.ph===k))),all=acpl(arr)||0,acc=Math.round(100*Math.exp(-all/160)),bl=ls.filter(x=>x>=2).length,br=n?Math.round(ls.filter(x=>x<=.05).length/n*100):0,missed=arr.filter(a=>a.best&&a.best.includes('x')&&!(a.san||'').includes('x')&&a.l>=1).length,
+                mv=sansBy(sans,myColor),att=mv.length?Math.round(mv.filter(x=>x.includes('x')||/[+#]/.test(x)).length/mv.length*100):0,cas=mv.some(x=>x.startsWith('O-O')),used=Math.round((1800000-clk[myColor])/60000),sec=secOf(elo),weak=[];
+            if(bl>=2)weak.push('悪手が多い（動かす前に取られる駒を確認）');if(missed>=2)weak.push(`取れる駒の取り逃し ${missed}回`);if(mv.length>=12&&!cas)weak.push('キャスリングをしていない');if(mv.slice(0,6).filter(x=>x[0]==='Q').length>=2)weak.push('クイーンの早出し');if(used<5&&mv.length>=10)weak.push('時間をほとんど使っていない');
+            if(ph[0]!=null&&ph[2]!=null&&ph[2]>ph[0]*1.5+30)weak.push('終盤の精度が序盤より低い');
+            const rec=sec<=2?['駒の動かし方','駒の価値','用語をマスター']:sec<=4?['戦術の基本','戦術トレーニング','特別ルール']:['定跡マスター','終盤の特訓'];
+            const rep=`【チェスレベル測定レポート】\n結果：${{w:'勝ち',l:'負け',d:'引き分け'}[r]}（${t}）\n推定Elo：${elo}（目安 ${Math.max(0,elo-band)}〜${elo+band}）／セクション${sec}（${SEC[sec-1][0]}〜${SEC[sec-1][1]}${sec===7?'+':''}）\n分析した自分の手：${n}手${n<15?'（手数が少ないため誤差が大きめです）':''}\n\n【精度】総合 ${acc}点／平均損失(ACPL) ${all}（小さいほど正確）／最善手率 ${br}%／悪手 ${bl}回\n序盤 ${ph[0]??'-'}／中盤 ${ph[1]??'-'}／終盤 ${ph[2]??'-'}（ACPL）\n【スタイル】攻撃性 ${att}%／キャスリング ${cas?'済':'未'}／使用時間 約${used}分（30分中）\n相手：DeepTeankingAI 推論レベル8\n\n【強み】${acc>=70?'安定した精度で指せています。':'最後まで粘り強く指しました。'}${att>=30?'攻撃的な手を積極的に使えています。':''}${br>=40?'最善手を多く選べています。':''}\n【課題】${weak.length?weak.join('、'):'目立つ課題はありません。'}\n【おすすめ】${rec.join('、')}\n※浅い〜中程度の読みに基づく推定です。複数回の測定の平均が実力に近づきます。`;
+            const a=LS.g('pbc_lv',[]);a.unshift({d:Date.now(),elo,sec,r,rep});LS.s('pbc_lv',a.slice(0,20));if(lvBak!=null){lvl=lvBak;lvBak=null}refreshMe();setTimeout(()=>openRpt(0),1500)}
+        // ---- 追加レッスン ----
+        const T=(n,i,qs)=>({n,i,s:qs.map(q=>Q(...q))});
+        UNITS.push({t:'SECTION 4 ・ UNIT 6',n:'用語をマスター',L:[
+         T('ボードの用語','🧭',[['縦の列（a〜h）を何と呼ぶ？',['ファイル','ランク','ダイアゴナル'],0,'縦の列がファイル、横の段がランク、斜めの並びがダイアゴナルです。'],['横の段（1〜8）を何と呼ぶ？',['ランク','ファイル','センター'],0,'ランクは1〜8の横の段です。'],['センター（中央4マス）はどれ？',['d4・e4・d5・e5','a1・h1・a8・h8','c3・f6のみ'],0,'中央を押さえると駒が活躍しやすくなります。'],['白のクイーンが最初にいるマスは？',['d1','e1','c1'],0,'クイーンは自分の色のマス（白はd1・黒はd8）です。']]),
+         T('ポーンの用語','♟',[['同じファイルにポーンが2枚並ぶ形は？',['倍ポーン','孤立ポーン','パスポーン'],0,'倍ポーン（ダブルポーン）は動きにくく弱点になりがちです。'],['隣のファイルに味方ポーンがいないポーンは？',['孤立ポーン','倍ポーン','パスポーン'],0,'守る味方がいないので狙われやすいです。'],['前方に相手のポーンがなく昇格しやすいポーンは？',['パスポーン','孤立ポーン','ブロックポーン'],0,'パスポーンは終盤の強力な武器です。']]),
+         T('線の用語','📏',[['自分も相手もポーンがいないファイルは？',['開放線（オープンファイル）','半開放線','閉鎖線'],0,'ルークを置くと大活躍します。'],['自分のポーンだけがいないファイルは？',['半開放線','開放線','ピン'],0,'相手のポーンを攻撃しやすい線です。'],['ビショップを g2 や b2 に置く配置は？',['フィアンケット','キャスリング','ピン'],0,'長い対角線を使うための定番の形です。']]),
+         T('戦術の用語','⚔',[['動かすと後ろの大切な駒を取られるため動けない状態は？',['ピン','フォーク','スキュワー'],0,'後ろがキングなら動かせません（絶対ピン）。'],['前の価値の高い駒が逃げると、後ろの駒を取れる技は？',['スキュワー','ピン','フォーク'],0,'ピンの逆で、価値の高い駒が前にいる形です。'],['駒を動かして、後ろの味方の駒の攻撃を通す技は？',['ディスカバードアタック','デコイ','ツークツワング'],0,'動かした駒でも別の脅威を作れると強力です。'],['2つの駒から同時にチェックされる状態は？',['ダブルチェック','ツインチェック','スキュワー'],0,'ダブルチェックはキングが動くしか受けられません。']]),
+         T('局面の用語','🧩',[['キング同士が1マス空けて向かい合う関係は？',['オポジション','ピン','フィアンケット'],0,'終盤のキング＆ポーンで重要です。'],['同じ局面が3回現れて成立する引き分けは？',['千日手','ステイルメイト','50手ルール'],0,'3回同じ局面が繰り返されると引き分けを請求できます。'],['ポーンの動きも駒取りもなく50手続くと？',['引き分けを請求できる','負け','白の勝ち'],0,'50手ルールです。'],['動かせるのに、動くほど損をする状態は？',['ツークツワング','ステイルメイト','オポジション'],0,'パスができないチェスならではの局面です。']]),
+         T('序盤の用語','🚪',[['ポーンなどを差し出して見返りを狙う戦法は？',['ギャンビット','フィアンケット','キャスリング'],0,'クイーンズ・ギャンビットが代表例です。'],['「テンポ」とは？',['1手分の時間的な得','持ち時間','駒の価値'],0,'相手に無駄な手を指させるとテンポを稼げます。'],['駒を初期位置から働く位置へ動かすことは？',['展開（デベロップ）','昇格','交換'],0,'序盤は展開を優先しましょう。'],['違う手順で同じ局面になることは？',['トランスポジション','ブランダー','スキュワー'],0,'手順前後を使って、狙いの形に持ち込む技術です。']]),
+         T('終盤の用語','🏁',[['ルークの終盤の基本は？',['ポーンの後ろからルークを使う','ルークを動かさない','ルークを最初に交換する'],0,'ポーンを後ろから支えると有利です。'],['終盤でのキングは？',['積極的に前へ出す','隅に隠す','動かさない'],0,'駒が減るとキングも立派な戦力です。'],['終盤の大きな目標は？',['パスポーンを作って昇格させる','ポーンを全部交換する','クイーンを捨てる'],0,'昇格できれば一気に有利になります。']]),
+         T('実戦と評価の用語','📊',[['「ブランダー」とは？',['大きなミス（悪手）','好手','定跡'],0,'一手で形勢が大きく傾くミスです。'],['「Elo（レーティング）」とは？',['強さを数値で表す指標','持ち時間','駒の価値'],0,'数字が高いほど強いことを表します。'],['「ブリッツ」とは？',['持ち時間が短い早指し','持ち時間なしの対局','長時間の対局'],0,'3〜5分程度が目安で、10分以上はラピッドと呼ばれます。'],['「サクリファイス」とは？',['駒を犠牲にして見返りを得ること','駒の交換','駒を守ること'],0,'攻撃や詰みのための戦術です。'],['「ハンギング・ピース」とは？',['守られていない駒','動けない駒','昇格した駒'],0,'守られていない駒は取られやすいので注意です。']])]},
+        {t:'SECTION 4 ・ UNIT 7',n:'戦術トレーニング',L:[
+         {n:'ピンをかける',i:'📌',s:[M('3qk3/8/5n2/8/8/8/8/2B1K3 w - - 0 1','ビショップでナイトをピンしよう（後ろにクイーン）。g5へ！','c1g5','ナイトが動くとクイーンを取られるため、動きにくくなります。','c1のビショップを斜めに動かします。')]},
+         {n:'スキュワー',i:'🍢',s:[M('8/8/8/2qk4/8/8/7R/4K3 w - - 0 1','ルークでキングにチェック！ 後ろのクイーンを狙おう。h5へ！','h2h5','キングが逃げると、後ろのクイーンを取れます。')]},
+         {n:'浮き駒を取る',i:'🎯',s:[M('4k3/8/8/3b4/8/8/8/3QK3 w - - 0 1','守られていない駒を取ろう！','d1d5','守られていない駒（ハンギングピース）は無料で取れます。')]},
+         {n:'クイーンで詰ます',i:'👑',s:[M('7k/5K2/8/8/8/8/8/6Q1 w - - 0 1','自分のキングに守られたクイーンで詰まそう。g7へ！','g1g7','キングの支えがあるクイーンは取られません。')]},
+         {n:'ルークで閉じ込める',i:'🧱',s:[M('4k3/8/8/8/8/8/R7/4K3 w - - 0 1','ルークで黒キングを7段目から閉じ込めよう。a7へ！','a2a7','終盤の詰ませ方（ラダーメイト）の第一歩です。')]},
+         {n:'センターをとる',i:'🎯',s:[M(SP,'e4以外の定番の初手、d4で中央を取ろう。','d2d4','d4・e4は中央を取る代表的な初手です。')]},
+         {n:'ナイトを展開',i:'🐴',s:[M('rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2','2手目はナイトを展開。f3へ！','g1f3','e5のポーンを攻撃しつつ展開できる手です。')]},
+         {n:'ビショップ・オープニング',i:'♗',s:[M('rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2','2手目にビショップをc4へ展開しよう。','f1c4','f7を狙う柔軟な序盤です。')]},
+         {n:'スコッチ',i:'🏴',s:[M('r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3','3.d4！ 中央で勝負しよう。','d2d4','スコッチ・ゲーム：すぐに中央を開いて勝負する定跡です。')]}]});
+        UNITS.forEach(u=>u.L.forEach(l=>l.s.forEach(x=>{if(x.o){const a=x.o[x.c],b=[...x.o].sort(()=>Math.random()-.5);x.o=b;x.c=b.indexOf(a)}})));
+        // ---- 用語辞典（チャット／講座の青字タップ）----
+        const TERMDB=[['ランク|段とは|ファイル|ダイアゴナル','ファイルは縦の列(a〜h)、ランクは横の段(1〜8)、ダイアゴナルは斜めの並びです。'],['孤立ポーン','隣のファイルに味方ポーンがいないポーン。守りにくく弱点になりがちです。'],['倍ポーン|ダブルポーン','同じファイルに2枚並んだポーン。動きにくく弱点になりがちです。'],['パスポーン','前方に相手のポーンがいない、昇格しやすいポーン。終盤の武器です。'],['ポーンアイランド','ポーンの塊（島）のこと。島が少ないほど構造が健全です。'],['開放線|オープンファイル','両者のポーンがいないファイル。ルークを置くと強力です。'],['半開放線','自分のポーンだけがいないファイル。相手のポーンを狙いやすい線です。'],['フィアンケット','ビショップを g2/b2 などに置き、長い対角線を使う配置です。'],['スキュワー','価値の高い駒を前に釘付けにし、逃げると後ろの駒を取る技。ピンの逆です。'],['ディスカバード|発見攻撃','駒を動かして、後ろの味方の駒の攻撃を通す技。動かした駒でも別の脅威を作れると強力です。'],['ダブルチェック|両王手','2つの駒から同時にチェックされる状態。キングが動くしか受けられません。'],['デコイ|おとり','相手の駒をおびき寄せて、守りを崩す戦術です。'],['デフレクション|そらし','相手の駒を重要な役割から引き離す戦術です。'],['X線|エックス線','駒を貫通して、後ろのマスや駒に効いている状態です。'],['オポジション','キング同士が1マス空けて向かい合う関係。終盤のポーン昇格で重要です。'],['千日手|スリーフォールド|3回同形','同じ局面が3回現れると引き分けを請求できます。'],['50手ルール','ポーンの動きも駒取りもなく50手続くと引き分けを請求できます。'],['テンポ','1手分の時間的な得。無駄な手が多いとテンポを失います。'],['展開|デベロップ','駒を初期位置から働く位置へ動かすこと。序盤の最優先事項です。'],['トランスポジション','違う手順で同じ局面になること。'],['ブランダー|大悪手','一手で形勢が大きく傾く大きなミスです。'],['サクリファイス|犠牲','駒を犠牲にして、攻撃や詰みなどの見返りを得ることです。'],['ハンギング|浮き駒','守られていない駒。取られやすいので注意です。'],['トレード|駒の交換','同じ価値の駒を取り合うこと。リード時は交換で単純化が有効です。'],['エクスチェンジ','ルーク(5)を、ナイトやビショップ(3)と交換して損をすること。'],['アキュラシー|精度','指した手が最善にどれだけ近いかを表す指標です。'],['ACPL|平均損失','1手あたり平均でどれだけ損をしたか。小さいほど正確です。'],['Elo|レーティング','強さを数値で表す指標。高いほど強いです。'],['ブリッツ|ラピッド|ブレット|クラシカル','持ち時間による種類。ブレットは1分前後、ブリッツは3〜5分、ラピッドは10分以上、クラシカルは長時間です。'],['パーペチュアル|連続王手','チェックを繰り返して引き分けにする手。不利な時の救いになります。'],['ブック','序盤の定跡手順の知識（オープニングブック）です。'],['先手|後手|白番|黒番','先に指すのが白（先手）、後に指すのが黒（後手）です。'],['ステイルメイト','チェックされていないのに合法手がない状態。引き分けです。']];
+        TERMDB.forEach(([k,v])=>KB.push([new RegExp(k),v]));
+        TERMS.push('ダブルチェック','ディスカバードアタック','スキュワー','フィアンケット','オポジション','孤立ポーン','倍ポーン','パスポーン','開放線','半開放線','テンポ','トランスポジション','ブランダー','サクリファイス','デコイ','デフレクション','千日手','アキュラシー');TERMS.sort((a,b)=>b.length-a.length);
+        // ---- 継続・目標 ----
+        const dk=d=>d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();
+        function login(){const d=new Date().toDateString(),l=LS.g('pbc_login',{d:'',n:0,b:0});if(l.d!==d){l.n=l.d===new Date(Date.now()-864e5).toDateString()?l.n+1:1;l.d=d;l.b=Math.max(l.b||0,l.n);LS.s('pbc_login',l)}const a=LS.g('pbc_days',{}),k=dk(new Date());a[k]=a[k]||{};a[k].in=1;LS.s('pbc_days',a);return l.n}
+        function week(){const a=LS.g('pbc_days',{});let g=0,l=0;for(let i=0;i<7;i++){const x=a[dk(new Date(Date.now()-i*864e5))]||{};g+=x.g||0;l+=x.l||0}return{g,l}}
+        function bump(k){const a=LS.g('pbc_days',{}),d=dk(new Date());a[d]=a[d]||{};a[d][k]=(a[d][k]||0)+1;LS.s('pbc_days',a);const G=LS.g('pbc_goal',{g:3,l:3,s:7}),w=week();if(k==='g'&&w.g===G.g)showToast('今週の対局目標を達成しました！');if(k==='l'&&w.l===G.l)showToast('今週のレッスン目標を達成しました！')}
+        function saveGoal(){LS.s('pbc_goal',{g:+$('gl-g').value||1,l:+$('gl-l').value||1,s:+$('gl-s').value||1});renderGoals()}
+        function renderGoals(){if(!$('goal-box'))return;const l=LS.g('pbc_login',{n:0,b:0}),G=LS.g('pbc_goal',{g:3,l:3,s:7}),w=week(),a=LS.g('pbc_days',{});$('streak-txt').innerHTML=`連続ログイン：<b>${l.n}日</b>（最長 ${l.b||l.n}日）`;
+            $('cal').innerHTML='';for(let i=13;i>=0;i--){const dt=new Date(Date.now()-i*864e5),x=a[dk(dt)]||{},e=document.createElement('div');e.title=`${dt.getMonth()+1}/${dt.getDate()}　対局${x.g||0}・レッスン${x.l||0}`;e.style.cssText=`width:20px;height:20px;border-radius:6px;background:${x.in?'var(--accent-primary)':'var(--bg-secondary)'};opacity:${x.in?(x.g||x.l?1:.55):1}`;$('cal').appendChild(e)}
+            const bar=(t,v,m)=>`<div style="font-size:12px;margin-top:8px">${t}：${Math.min(v,m)}/${m}${v>=m?' ✔':''}</div><div class="rec-bar" style="margin:4px 0"><i style="width:${Math.min(100,v/m*100)}%;background:var(--accent-primary)"></i></div>`;
+            $('goal-box').innerHTML=bar('今週の対局',w.g,G.g)+bar('今週のレッスン',w.l,G.l)+bar('連続ログイン',l.n,G.s)+`<div style="display:flex;gap:6px;margin-top:10px;font-size:12px;align-items:center">目標：対局<input class="inp" id="gl-g" type="number" min="1" value="${G.g}" style="width:56px;padding:6px"> レッスン<input class="inp" id="gl-l" type="number" min="1" value="${G.l}" style="width:56px;padding:6px"> ログイン<input class="inp" id="gl-s" type="number" min="1" value="${G.s}" style="width:56px;padding:6px"><button class="ai-btn ai-btn-secondary" style="padding:6px 12px" onclick="saveGoal()">保存</button></div>`}
+        const _fin5=finish;finish=function(r,t){const was=recorded;_fin5(r,t);if(!was&&!drill&&!studyMode)bump('g')};
+        const _fl5=finishLesson;finishLesson=function(){_fl5();bump('l')};
+        const _rm5=refreshMe;refreshMe=function(){_rm5();try{renderGoals()}catch(e){}};
+        // ---- データ移行（PeerJS・P2P）----
+        DB.clear=async function(){try{const db=await this.open();await new Promise(r=>{const t=db.transaction('games','readwrite');t.objectStore('games').clear();t.oncomplete=()=>r()})}catch(e){}};
+        const ALN='ABCDEFGHJKLMNPQRSTUVWXYZ23456789',ms_=h=>$('mig-st').innerHTML=h;let mpeer=null;
+        const mclose=()=>{const p=mpeer;mpeer=null;try{p&&p.destroy()}catch(e){}};
+        async function collectAll(){const ls={};try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k.startsWith('pbc_'))ls[k]=localStorage.getItem(k)}}catch(e){}const g=(await DB.all()).map(x=>{const c={...x};delete c._an;return c});return JSON.stringify({v:1,ls,g})}
+        async function resetAll(){try{Object.keys(localStorage).filter(k=>k.startsWith('pbc_')).forEach(k=>localStorage.removeItem(k))}catch(e){}await DB.clear()}
+        function migSend(){if(typeof Peer==='undefined')return showToast('PeerJSを読み込めません');if(!confirm('この端末のデータを新しい端末へ移行します。完了後、この端末のPB-chessはリセットされます。よろしいですか？'))return;mclose();
+            const code=Array.from({length:15},()=>ALN[rnd(ALN.length)]).join('');let fails=0,busy=false;mpeer=new Peer('pbmig-'+code);
+            mpeer.on('open',()=>ms_(`移行コード：<b class="code" style="font-size:20px">${code.match(/.{5}/g).join(' ')}</b><br>新しい端末で「受け取る」を押し、<b>ユーザー名「${me.name}」</b>とこのコードを入力してください。この画面は開いたままにしてください。`));
+            mpeer.on('connection',c=>{c.on('data',async d=>{if(d.t==='hello'){if(busy){c.send({t:'deny'});return}
+                    if(d.name!==me.name){fails++;c.send({t:'deny'});setTimeout(()=>c.close(),300);if(fails>=3){ms_('不正な試行が3回ありました。移行を中止しました。');mclose()}return}
+                    if(!confirm('新しい端末から接続されました。データを送信しますか？（送信後、この端末はリセットされます）')){c.send({t:'deny'});return}
+                    busy=true;ms_('送信中…');const str=await collectAll(),N=12000,n=Math.ceil(str.length/N);for(let i=0;i<n;i++)c.send({t:'chunk',i,n,d:str.slice(i*N,(i+1)*N)})}
+                else if(d.t==='ok'){ms_('移行完了。この端末をリセットします…');await resetAll();setTimeout(()=>location.reload(),1500)}})});
+            mpeer.on('error',e=>ms_('エラー：'+e.type))}
+        function migRecv(){if(typeof Peer==='undefined')return showToast('PeerJSを読み込めません');const name=$('mig-name').value.trim(),code=$('mig-code').value.replace(/\s/g,'').toUpperCase();if(!name||code.length!==15)return ms_('ユーザー名と15文字のコードを入力してください。');
+            if(!confirm('この端末の既存データは上書きされます。続けますか？'))return;mclose();ms_('接続中…');const parts=[];let got=0;mpeer=new Peer();
+            mpeer.on('open',()=>{const c=mpeer.connect('pbmig-'+code,{reliable:true});c.on('open',()=>c.send({t:'hello',name}));
+                c.on('data',async d=>{if(d.t==='deny')ms_('接続が拒否されました。ユーザー名とコードを確認してください。');
+                    else if(d.t==='chunk'){if(parts[d.i]===undefined){parts[d.i]=d.d;got++}ms_(`受信中… ${got}/${d.n}`);if(got===d.n){try{const o=JSON.parse(parts.join(''));await resetAll();Object.entries(o.ls).forEach(([k,v])=>{try{localStorage.setItem(k,v)}catch(e){}});for(const g of o.g)await DB.put(g);c.send({t:'ok'});ms_('移行が完了しました。再読み込みします…');setTimeout(()=>location.reload(),1800)}catch(e){ms_('データの読み込みに失敗しました。')}}}});c.on('error',()=>ms_('接続エラー'))});
+            mpeer.on('error',e=>ms_(e.type==='peer-unavailable'?'コードが見つかりません。':'エラー：'+e.type))}
+
+
+        // ================= v6: もしも分岐の解析強化 / 11〜20手 =================
+        let extDeep=false,parseNote='';
+        function toggleExt(){if(selOpp!=='england472x600')return showToast('イギリスを選ぶと、画像タップで11〜20手の推論を選べます');
+            if(!extDeep){if(!confirm('⚠ 警告：11〜20手の推論は、デバイスの性能によってAIの動作が変わります（応答が非常に遅くなる、固まる場合があります）。有効にしますか？'))return;extDeep=true;showToast('11〜20手を解放しました')}
+            else{extDeep=false;if(lvl>10)lvl=10;showToast('11〜20手を非表示にしました')}updatePlay()}
+        function parseMove(t,g){parseNote='';t=t.normalize('NFKC');const legal=g.moves({verbose:true}),tryMv=k=>{const m=g.move(k,{sloppy:true});if(m){g.undo();return m}return null},ty=nm=>Object.keys(PN).find(k=>PN[k]===nm),pj=Object.values(PN).join('|');
+            const ft=t.match(/([a-h][1-8])\s*から\s*([a-h][1-8])/);if(ft){const m=legal.find(x=>x.from===ft[1]&&x.to===ft[2]);if(m)return m;parseNote=`${ft[1]}→${ft[2]} は今の局面では指せません。`}
+            const a=t.match(new RegExp(`(${pj})[をがは]?\\s*([a-h][1-8])\\s*(?:へ|に|まで)`)),b=t.match(new RegExp(`([a-h][1-8])\\s*(?:へ|に)\\s*(${pj})`));
+            if(a||b){const pc=ty(a?a[1]:b[2]),sq=a?a[2]:b[1],m=legal.find(x=>x.piece===pc&&x.to===sq);if(m)return m;parseNote=`${PN[pc]}を${sq}へ動かす手は今の局面では指せません。`}
+            const tk=t.match(/O-O-O|O-O|0-0-0|0-0|[KQRBNkqrn]?[a-h]?[1-8]?x?[a-h][1-8](?:=[QRBN])?[+#]?|[a-h][1-8]-?[a-h][1-8]/g)||[];
+            for(const k0 of tk){const k=k0.replace(/0/g,'O').replace('-','').replace(/^O{2,3}$/,x=>x);const c=[k0,k0.replace('-',''),k0.replace(/0/g,'O')];if(/^[kqrn]/.test(k0))c.push(k0[0].toUpperCase()+k0.slice(1));if(/^O-?O(-?O)?$/i.test(k0.replace(/0/g,'O')))c.push(k0.replace(/0/g,'O'));for(const x of c){const m=tryMv(x);if(m)return m}if(!parseNote)parseNote=`${k0} は今の局面では指せません。`}
+            const pm=t.match(/(ポーン|ナイト|ビショップ|ルーク|クイーン)を取/);if(pm){const m=legal.find(x=>x.captured===ty(pm[1]));if(m)return m;parseNote=`${pm[1]}を取れる手は今の局面にはありません。`}
+            const mp=t.match(/(ポーン|ナイト|ビショップ|ルーク|クイーン|キング)を(動か|指|進め|出)/);if(mp||/交換しなかっ|取らなかっ|取らずに/.test(t)){const p=mp&&ty(mp[1]),r=scoreMoves(g.fen()).filter(x=>mp?x.m.piece===p:!x.m.captured);if(r.length)return r[0].m}
+            return null}
+        function meChess(){const f=game.fen().split(' ');let note='';if(game.turn()!==myColor){f[1]=myColor;f[3]='-';note='（今は相手の番なので、あなたの番だった場合として読みます）\n'}return{g:new Chess(f.join(' ')),note}}
+        function whatIfFrom(g,mv,note){const fen=g.fen(),L=lineFrom(fen,mv.san,3),b=scoreMoves(fen)[0],my=(myColor==='w'?1:-1)*(-evaluateBoard(L.g.board())/10);showSim(L.g,`${mv.san} の読み筋：${L.out.join(' ')}`);
+            return `${note}${mv.san}を指した場合の読み筋：${L.out.join(' → ')}。\n形勢（あなた視点）：${sg(my)}（${evW(my)}）。${b&&b.m.san!==mv.san?`ちなみに今の最善は ${b.m.san} です。`:'これが今の最善手です。'}\n分岐の盤面をポップアップに出しました。`}
+        const _asst6=asst;
+        asst=function(t){const n=nrm(t);if(game&&!over&&studyMode&&!lt&&/もし|たら|れば|なら|だと|してた|いたら/.test(n)){const{g,note}=meChess(),mv=parseMove(t,g);if(mv)return whatIfFrom(g,mv,note);
+                if(/もし/.test(n)||parseNote)return `${parseNote||'指し手を読み取れませんでした。'}\n${note}今の局面で指せる手の例：${g.moves().slice(0,14).join(' ')}\n「もしNf3を指したら？」「ナイトをf3に動かしたら？」「もしルークを取っていたら？」のように、指し手を含めて聞いてください。`}
+            return _asst6(t)};
+
+
+        // ================= v7: 全画面 / 1日3講座 / アシスタント拡張 / Webアシスタント =================
+        const showMsg=(t,b)=>{$('msgm-t').textContent=t;$('msgm-b').textContent=b;$('msgm').classList.add('on')};
+        function toggleFS(){const d=document,e=d.documentElement;if(!d.fullscreenElement&&!d.webkitFullscreenElement){const f=e.requestFullscreen||e.webkitRequestFullscreen;if(!f)return showMsg('全画面表示','このブラウザは全画面表示に対応していません。（iPhoneではSafariの共有メニューから「ホーム画面に追加」すると全画面で使えます）');Promise.resolve(f.call(e)).catch(()=>showToast('全画面にできませんでした'))}else(d.exitFullscreen||d.webkitExitFullscreen).call(d)}
+        ['fullscreenchange','webkitfullscreenchange'].forEach(ev=>document.addEventListener(ev,()=>{$('fs-ico').textContent=(document.fullscreenElement||document.webkitFullscreenElement)?'fullscreen_exit':'fullscreen'}));
+        // ---- 1日3講座（新規）。受講済みの復習は無制限 ----
+        const newToday=()=>((LS.g('pbc_days',{})[dk(new Date())]||{}).ns||[]);
+        const _ol7=openLesson;
+        openLesson=function(ui,li,custom){if(!custom){const k=ui+'-'+li;if(!prog[k]){const a=LS.g('pbc_days',{}),d=dk(new Date());a[d]=a[d]||{};const ns=a[d].ns||[];if(!ns.includes(k)){if(ns.length>=3)return showMsg('今日の新しいレッスンは3つまでです','分かった気になって、続けて進めてしまう人が多いため、新しいレッスンは1日3つまでにしています。時間を置くほうが記憶に定着します。\n\n受講済みのレッスンの復習は、何度でも自由です。続きは明日、また新しいレッスンに進みましょう。');ns.push(k);a[d].ns=ns;LS.s('pbc_days',a)}}}_ol7(ui,li,custom)};
+        const _rp7=renderPath;renderPath=function(){_rp7();$('lesson-prog').textContent+=` ・ 本日の新規 ${newToday().length}/3（復習は無制限）`};
+        // ---- Webアシスタント ----
+        let webOn=LS.g('pbc_web',false);const wlog=[],pick=a=>a[rnd(a.length)];
+        function setWeb(v){webOn=!!v;LS.s('pbc_web',webOn);showToast(v?'Webアシスタントを有効にしました':'Webアシスタントを無効にしました')}
+        const _sv7=switchView;switchView=function(id){_sv7(id);if(id==='view-ptz')$('web-on').checked=webOn};
+        async function webLookup(term){const now=Date.now();while(wlog.length&&now-wlog[0]>3e5)wlog.shift();const day=LS.g('pbc_webday',{d:'',n:0}),ds=new Date().toDateString();if(day.d!==ds){day.d=ds;day.n=0}
+            if(wlog.length>=5||day.n>=30)return 'チェスのこと調べてるんよ！ちょっと休憩させて〜。少し待ってからまた聞いてね。';wlog.push(now);day.n++;LS.s('pbc_webday',day);
+            const get=async u=>{const r=await fetch(u);if(!r.ok)throw 0;return r.json()};
+            try{let title=null;try{const q=await get('https://ja.wikipedia.org/w/api.php?action=query&list=search&srlimit=1&format=json&origin=*&srsearch='+encodeURIComponent(term+' チェス'));title=q.query.search[0].title}catch(e){}
+                let sm=null;try{sm=await get('https://ja.wikipedia.org/api/rest_v1/page/summary/'+encodeURIComponent(title||term))}catch(e){}
+                if(!sm||!sm.extract)return `「${term}」はWikipediaでも見つかりませんでした。`;let ex=sm.extract;if(ex.length>260)ex=ex.slice(0,260)+'…';return `【Webアシスタント／Wikipedia】${sm.title}\n${ex}\n（出典：Wikipedia, CC BY-SA）`}catch(e){return '調べられませんでした。通信状況を確認してください。'}}
+        const webOrHint=term=>webOn?webLookup(term):`「${term}」は内蔵の辞典にありません。設定で「Webアシスタント」をONにすると、Wikipediaで調べられます。`;
+        const termOf=t=>{const m=t.normalize('NFKC').trim().match(/^(.{1,30}?)\s*(?:とは|って何|ってなに|ってなん|って、?何|の意味|とは何|ってどういう)/);return m?m[1].replace(/[「」『』?？]/g,'').trim():null};
+        const kbFind=t=>{const n=t.replace(/\s/g,'');for(const[r,a]of KB)if(r.test(n))return a;return null};
+        const FB={game:['チェスのことなら何でも聞けますよ。局面のこと、駒やマス（「a1はどうですか？」）、用語（「ピンとは？」）、定跡など、気軽にどうぞ。「できることを教えて」もおすすめです。','うーん、その聞き方だとうまく読み取れませんでした。チェスに関することなら何でも聞けます。駒の位置や直前の手、用語などを聞いてみてください。','チェスのことなら何でもどうぞ。たとえば「いまの手は？」「ルークはどこ？」「オポジションとは？」など。'],lesson:['チェスのことなら何でも聞いてください。用語や駒の動き、「ヒント」「なぜこの手が正解？」「実戦でどう使う？」などが得意です。','その聞き方だと読み取れませんでした。用語（ピン・フォーク等）や、このレッスンの内容を聞いてみてください。']};
+        function fixFb(t,r,ctx){if(r&&typeof r.then==='function')return r.then(x=>fixFb(t,x,ctx));
+            if(typeof r==='string'&&/^(すみません、分かりませんでした|いい質問ですね。用語)/.test(r)){const term=termOf(t);if(term)return webOrHint(term);const bare=t.trim().replace(/[?？!！。]/g,'');if(webOn&&bare.length>=2&&bare.length<=15&&!/\s/.test(bare))return webLookup(bare);return pick(FB[ctx]||FB.game)}return r}
+        // ---- あいさつ・できること ----
+        const SMALL=[[/よろしく|宜しく/,['よろしくお願いします。いい対局にしましょう！','こちらこそ、よろしくお願いします！']],[/おはよう/,['おはようございます！今日も一局いきましょう。']],[/こんにちは|こんにちわ|はじめまして|^やあ|^hi$|hello/,['こんにちは！チェスのことなら何でも聞いてくださいね。','やあ、こんにちは。']],[/こんばんは/,['こんばんは！夜のチェスも楽しいですね。']],[/ありがと|サンキュ|thx|thanks/,['どういたしまして。','いつでも聞いてくださいね。']],[/お疲れ|おつかれ/,['お疲れさまです。ひと息つきながら進めましょう。']],[/ごめん|すみません/,['気にしないでください。何でも聞いてくださいね。']],[/がんばる|頑張る|がんばろう/,['その意気です！一手ずつ、落ち着いていきましょう。']],[/ナイス|やった|嬉しい|うれしい|いい手|好手/,['いいですね！その調子です。','お見事です！']],[/悔しい|くやしい|つらい|へこむ/,['悔しいのは成長のしるしです。負けた試合ほど学べます。記録タブで振り返ってみましょう。']],[/強い|すごい|うまい|上手/,['ありがとうございます。あなたも着実に上達していますよ。']],[/ばいばい|さようなら|またね|おやすみ/,['お疲れさまでした。また一局やりましょう！']]];
+        function capText(ctx){const base={game:'【できること】\n・状況・形勢・駒の価値（「いまの状況は？」）\n・直前の手の解説（「いまの手は？」）\n・マスや駒の確認（「a1はどうですか？」「ルークはどこ？」）\n・指せる手／取れる手／チェックできる手の一覧\n・ログ・経過時間・試合結果・負けた理由・ヒント・相手の傾向\n・用語や定跡（「ピンとは？」）\n・あいさつや雑談',lesson:'【できること】\n・用語や駒の動きの質問（青い文字のタップでも）\n・「ヒント」「なぜこの手が正解？」「他の手じゃダメ？」\n・「実戦でどう使う？」「おすすめは？」「もっと練習問題」\n・「3か月でレーティング100上げたい」などのカリキュラム作成',rec:'【できること】\n・前回止めた場所／戦績／弱点\n・敗因・勝因、ミスの最善手、罠の検証、採点\n・「もし20手目で〜していたら？」の分岐\n・この試合から復習問題の作成\n・用語の質問'}[ctx];let a=base;
+            if(ctx==='game')a+=studyMode?'\n・学習プレイ限定：もしも分岐／どう詰める／相手の思考／10手読んで／手の解説（「Nf3どう？」）':(game&&mode==='ai'&&!drill?'\n・試合中は「もしも分岐」や相手の思考はズルになるため使えません（学習プレイで解放）':'');return a+'\n・内蔵で答えられない用語は、設定で「Webアシスタント」をONにするとWikipediaで調べます'}
+        function common(t,ctx){const n=nrm(t);if(/できること|何ができ|なにができ|何が出来|どのようなこと|どんなこと|できる事|使い方|ヘルプ|help/.test(n))return capText(ctx);if(n.length<=22)for(const[r,a]of SMALL)if(r.test(n))return pick(a);return null}
+        // ---- マス・駒・直前の手など ----
+        function attackers(g0,sq,color){const g=new Chess(g0.fen()),p=g.get(sq),o=color==='w'?'b':'w';if(p&&p.color===color){g.remove(sq);g.put({type:p.type==='k'?'q':p.type,color:o},sq)}else if(!p)g.put({type:'n',color:o},sq);const f=g.fen().split(' ');f[1]=color;f[3]='-';try{return new Chess(f.join(' ')).moves({verbose:true}).filter(m=>m.to===sq)}catch(e){return[]}}
+        function sqInfo(sq){const g=game,p=g.get(sq),C={w:'白',b:'黒'},fx=c=>attackers(g,sq,c).map(m=>`${PN[m.piece]}(${m.from})`);
+            if(!p){const a=fx('w'),b=fx('b');return `${sq}：空きマスです。\n白の利き：${a.join('、')||'なし'}／黒の利き：${b.join('、')||'なし'}`}
+            const o=p.color==='w'?'b':'w',df=fx(p.color),at=fx(o);let t=`${sq}：${C[p.color]}の${PN[p.type]}がいます（${p.color===myColor?'あなたの駒':'相手の駒'}）。\n守っている駒：${df.join('、')||'なし'}／攻撃している駒：${at.join('、')||'なし'}`;
+            if(at.length&&!df.length)t+='\n 守られていない駒が狙われています。';else if(at.length)t+='\n狙われていますが、守りもあります（交換の損得を確認）。';
+            const f=g.fen().split(' ');if(g.turn()!==p.color){f[1]=p.color;f[3]='-'}let mv=[];try{mv=new Chess(f.join(' ')).moves({square:sq,verbose:true}).map(m=>m.san)}catch(e){}return t+`\n動ける先：${mv.join(' ')||'なし'}`}
+        function pieceLoc(ty){const r={w:[],b:[]};game.board().forEach((row,ri)=>row.forEach((p,ci)=>{if(p&&p.type===ty)r[p.color].push(String.fromCharCode(97+ci)+(8-ri))}));const op=myColor==='w'?'b':'w';return `${PN[ty]}の位置\nあなた：${r[myColor].join(' ')||'なし'}\n相手：${r[op].join(' ')||'なし'}`}
+        function lastMoveText(){const h=game.history({verbose:true});if(!h.length)return 'まだ誰も指していません。';const mv=h[h.length-1],g=startFen?new Chess(startFen):new Chess();h.slice(0,-1).forEach(x=>g.move(x.san));g.move(mv.san);return `直前の手は${mv.color===myColor?'あなた':'相手'}の ${mv.san}（${PN[mv.piece]} ${mv.from}→${mv.to}）。\n狙い：${moveWhy(mv,g).join('、')}。`}
+        const myMoves=()=>{const f=game.fen().split(' ');if(game.turn()!==myColor){f[1]=myColor;f[3]='-'}return new Chess(f.join(' '))};
+        const _a7=asst;
+        asst=function(t){const n=nrm(t);if(lt&&!over)return _a7(t);const c=common(t,'game');if(c)return c;
+            if(game){const tx=t.normalize('NFKC'),sq=tx.match(/[a-h][1-8]/g);
+                if(sq&&sq.length===1&&!/[KQRBNkqrn][a-h]?[1-8]?x?[a-h][1-8]/.test(tx)&&!/もし|指|動|行|進|取|たら|れば/.test(n))return sqInfo(sq[0]);
+                const pl=n.match(/(ポーン|ナイト|ビショップ|ルーク|クイーン|キング)(は|が)?(どこ|位置|場所)|(ポーン|ナイト|ビショップ|ルーク|クイーン|キング)の(位置|場所)/);if(pl){const nm=pl[1]||pl[4];return pieceLoc(Object.keys(PN).find(k=>PN[k]===nm))}
+                if(/(いま|今|直前|最後|さっき|前)の?(一?手)(は|って|を|について|\?|$)/.test(n)&&!/ミス|失敗|ダメ|もし|ヒント|おすすめ/.test(n))return lastMoveText();
+                if(!over){if(/指せる手|合法手|動かせる駒|どこに動かせ|動ける/.test(n)){const m=myMoves().moves();return `指せる手は${m.length}通りです：\n${m.slice(0,30).join(' ')}${m.length>30?' …':''}`}
+                    if(/取れる(駒|手)|取れるもの/.test(n)){const m=myMoves().moves({verbose:true}).filter(x=>x.captured);return m.length?'取れる駒：\n'+m.map(x=>`${PN[x.piece]} ${x.from}→${x.to}（${PN[x.captured]}）`).join('\n'):'今、取れる駒はありません。'}
+                    if(/王手できる|チェックできる|チェックをかけ|王手をかけ|チェックの手/.test(n)){const m=myMoves().moves().filter(x=>/[+#]/.test(x));return m.length?'チェックになる手：'+m.join(' '):'今、チェックをかけられる手はありません。'}
+                    if(/キャスリング(できる|可能|していい|は)/.test(n)){const m=myMoves().moves();return m.includes('O-O')||m.includes('O-O-O')?`今キャスリングできます：${m.filter(x=>x.startsWith('O-O')).join(' ')}`:'今はキャスリングできません（駒が間にある、動かした、チェック中、通過マスが攻撃されている等）。'}}
+                if(/何色|どっち(の色|が白)|白ですか|黒ですか/.test(n))return `あなたは${myColor==='w'?'白（先手）':'黒（後手）'}です。`;
+                if(/チェック(されて|かかって|なの|ですか)/.test(n))return game.in_check()?(game.turn()===myColor?'あなたがチェックされています！':'相手がチェックされています。'):'今、チェックはかかっていません。'}
+            return fixFb(t,_a7(t),'game')};
+        const _lb7=lessonBot;lessonBot=function(t){const c=common(t,'lesson');if(c)return c;return fixFb(t,_lb7(t),'lesson')};
+        const _rb7=revBot;revBot=async function(t){const c=common(t,'rec');if(c)return c;const term=termOf(t);if(term)return kbFind(t)||webOrHint(term);return _rb7(t)};
+
         window.onload = () => {
             setBallFace($('sp-uk'),'england472x600','normal');setBallFace($('les-uk'),'england472x600','normal');
             if(!me)me={name:'プレイヤー',icon:'poland'},window._first=true;
