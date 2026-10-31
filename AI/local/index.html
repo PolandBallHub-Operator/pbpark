@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Local AI in Browser</title>
+</head>
+<body>
+  <h1>Local AI in Browser</h1>
+  <p>Gemma 3 270M 日本語モデル / WebLLM / WebGPU</p>
+
+  <p>
+    <button id="load">モデルを読み込む</button>
+    <button id="stop" disabled>推論を停止</button>
+  </p>
+  <p id="status">未初期化</p>
+  <progress id="progress" max="1" value="0" hidden></progress>
+  <form id="chat">
+    <p><label for="prompt">入力</label></p>
+    <p><textarea id="prompt" rows="4" cols="60" required placeholder="メッセージを入力"></textarea></p>
+    <p><button id="send" type="submit" disabled>送信</button></p>
+  </form>
+  <h2>応答</h2>
+  <pre id="output" style="white-space: pre-wrap;"></pre>
+  <p>モデルは初回のみダウンロードされ、ブラウザのキャッシュに保存されます。約150MBの重みに加えて関連ファイルも取得します。HTTPSまたはlocalhostで開いてください。</p>
+
+  <script type="module">
+    const CDN = "https://esm.sh/@mlc-ai/web-llm@0.2.85";
+    const MODEL_ID = "gemma3-270m-japanese";
+    const MODEL_URL = "https://huggingface.co/UMASHIKA/gemma3-270m-japanese-webllm-01";
+    const MODEL_LIB = MODEL_URL + "/resolve/main/gemma3-270m-japanese-q4f32_1-ctx4k-webgpu.wasm";
+
+    const $ = (id) => document.getElementById(id);
+    const status = $("status");
+    const progress = $("progress");
+    const sendButton = $("send");
+    const stopButton = $("stop");
+    const output = $("output");
+    let engine;
+    let worker;
+    let busy = false;
+
+    function setStatus(message) {
+      status.textContent = message;
+    }
+
+    $("load").addEventListener("click", async () => {
+      if (engine) return;
+      $("load").disabled = true;
+      progress.hidden = false;
+      progress.value = 0;
+      try {
+        if (!window.isSecureContext) {
+          throw new Error("HTTPSまたはlocalhostで開いてください（WebGPUにはセキュアコンテキストが必要です）。");
+        }
+        if (!navigator.gpu) {
+          throw new Error("このブラウザではWebGPUを利用できません。");
+        }
+
+        setStatus("WebGPUを確認中…");
+        const adapter = await navigator.gpu.requestAdapter();
+        if (!adapter) throw new Error("WebGPUアダプターを取得できませんでした。");
+
+        const { CreateWebWorkerMLCEngine, prebuiltAppConfig } = await import(CDN);
+        const customModel = {
+          model: MODEL_URL,
+          model_id: MODEL_ID,
+          model_lib: MODEL_LIB,
+        };
+        const appConfig = {
+          ...prebuiltAppConfig,
+          model_list: [...prebuiltAppConfig.model_list, customModel],
+        };
+
+        // 単一HTMLのためWorkerコードをBlobとして作成。推論処理はUIスレッドから分離します。
+        const workerSource = `
+          import { WebWorkerMLCEngineHandler } from "${CDN}";
+          const handler = new WebWorkerMLCEngineHandler();
+          self.onmessage = (event) => handler.onmessage(event);
+        `;
+        const workerURL = URL.createObjectURL(
+          new Blob([workerSource], { type: "text/javascript" })
+        );
+        worker = new Worker(workerURL, { type: "module" });
+        URL.revokeObjectURL(workerURL);
+        worker.addEventListener("error", (event) => {
+          console.error("推論Workerエラー", event);
+          setStatus("Workerエラーが発生しました。ページを再読み込みして再試行してください。");
+          sendButton.disabled = true;
+        });
+
+        engine = await CreateWebWorkerMLCEngine(worker, MODEL_ID, {
+          appConfig,
+          initProgressCallback: (report) => {
+            const text = report?.text || "モデルを読み込んでいます…";
+            const pct = typeof report?.progress === "number" ? report.progress : 0;
+            progress.value = Math.max(0, Math.min(1, pct));
+            setStatus(text);
+          },
+        });
+        setStatus("準備完了。入力して送信できます。");
+        sendButton.disabled = false;
+        progress.value = 1;
+      } catch (error) {
+        console.error(error);
+        setStatus("読み込みに失敗しました: " + (error?.message || String(error)));
+        $("load").disabled = false;
+        if (worker) worker.terminate();
+        worker = undefined;
+      }
+    });
+
+    $("chat").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      if (!engine || busy) return;
+      const text = $("prompt").value.trim();
+      if (!text) return;
+      busy = true;
+      sendButton.disabled = true;
+      stopButton.disabled = false;
+      output.textContent = "";
+      setStatus("推論中…");
+      try {
+        const chunks = await engine.chat.completions.create({
+          messages: [
+            { role: "system", content: "あなたは簡潔で親切な日本語アシスタントです。" },
+            { role: "user", content: text },
+          ],
+          stream: true,
+          temperature: 0.7,
+          max_tokens: 256,
+        });
+        for await (const chunk of chunks) {
+          const token = chunk.choices?.[0]?.delta?.content;
+          if (token) output.textContent += token;
+        }
+        setStatus("完了");
+      } catch (error) {
+        console.error(error);
+        setStatus("推論エラー: " + (error?.message || String(error)));
+      } finally {
+        busy = false;
+        sendButton.disabled = false;
+        stopButton.disabled = true;
+      }
+    });
+
+    $("stop").addEventListener("click", async () => {
+      if (!busy || !engine) return;
+      stopButton.disabled = true;
+      setStatus("停止しています…");
+      try {
+        await engine.interruptGenerate();
+      } catch (error) {
+        console.warn("中断要求に失敗しました", error);
+      }
+    });
+  </script>
+</body>
+</html>
