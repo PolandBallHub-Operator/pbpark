@@ -1,1696 +1,598 @@
 <!DOCTYPE html>
-<html lang="ja" class="h-full select-none">
+<html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PB Building Dash - ハンブルクダッシュ</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- PeerJS for P2P Multiplayer -->
-    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
-
-    <style>
-        /* iOS-style custom scrollbars and backdrop filters */
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
-            touch-action: manipulation;
-            overflow: hidden;
-            background-color: #000;
-        }
-
-        .ios-blur {
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-        }
-
-        .ios-card {
-            background: rgba(255, 255, 255, 0.75);
-            border-radius: 16px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.4);
-        }
-
-        .dark .ios-card {
-            background: rgba(30, 30, 35, 0.75);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        /* Segmented Control Styling */
-        .segmented-control {
-            display: flex;
-            background: rgba(120, 120, 128, 0.16);
-            border-radius: 9px;
-            padding: 2px;
-            position: relative;
-        }
-
-        .segmented-btn {
-            flex: 1;
-            text-align: center;
-            padding: 6px 12px;
-            font-size: 13px;
-            font-weight: 600;
-            border-radius: 7px;
-            transition: all 0.2s ease;
-            color: #3a3a3c;
-            cursor: pointer;
-            z-index: 1;
-        }
-
-        .dark .segmented-btn {
-            color: #ebebf5;
-        }
-
-        .segmented-btn.active {
-            background: #ffffff;
-            color: #000000;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.12);
-        }
-
-        .dark .segmented-btn.active {
-            background: #636366;
-            color: #ffffff;
-        }
-
-        /* Toggle Switch */
-        .ios-switch {
-            position: relative;
-            display: inline-block;
-            width: 51px;
-            height: 31px;
-        }
-
-        .ios-switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-
-        .ios-slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background-color: #e9e9ea;
-            transition: .3s;
-            border-radius: 34px;
-        }
-
-        .dark .ios-slider {
-            background-color: #39393d;
-        }
-
-        .ios-slider:before {
-            position: absolute;
-            content: "";
-            height: 27px;
-            width: 27px;
-            left: 2px;
-            bottom: 2px;
-            background-color: white;
-            transition: .3s;
-            border-radius: 50%;
-            box-shadow: 0 3px 8px rgba(0,0,0,0.15);
-        }
-
-        input:checked + .ios-slider {
-            background-color: #34c759;
-        }
-
-        input:checked + .ios-slider:before {
-            transform: translateX(20px);
-        }
-
-        /* Pulse Animations */
-        @keyframes pulse-subtle {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-        }
-        .pulse-btn {
-            animation: pulse-subtle 2s infinite ease-in-out;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>ハンブルクダッシュ - ドイツのランナー</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+html,body{margin:0;height:100%;overflow:hidden;font-family:"Hiragino Maru Gothic ProN","Rounded Mplus 1c","Yu Gothic",system-ui,sans-serif;font-weight:800;color:#fff;touch-action:manipulation}
+body{background:linear-gradient(#38bdf8,#e0f2fe)}
+body[data-t=morning]{background:linear-gradient(#fdba74,#f472b6 60%,#38bdf8)}
+body[data-t=night]{background:radial-gradient(2px 2px at 20% 15%,#fff,transparent),radial-gradient(2px 2px at 62% 24%,#fff,transparent),radial-gradient(1.5px 1.5px at 82% 10%,#fff,transparent),radial-gradient(1.5px 1.5px at 38% 34%,#fff,transparent),radial-gradient(2px 2px at 92% 38%,#fff,transparent),radial-gradient(1.5px 1.5px at 8% 40%,#fff,transparent),linear-gradient(#090d16,#0f172a 70%,#1e1b4b)}
+#c{position:fixed;inset:0;width:100%;height:100%}
+.s{position:fixed;inset:0;display:none;flex-direction:column;padding:max(10px,env(safe-area-inset-top)) 14px max(10px,env(safe-area-inset-bottom))}
+.s.on{display:flex}
+.mid{justify-content:center;align-items:center;text-align:center}
+.dim{background:rgba(0,0,0,.55)}
+.btn{border:0;border-radius:18px;font:inherit;color:#fff;padding:13px 20px;font-size:18px;background:#2563eb;box-shadow:0 5px 0 #1e3a8a;cursor:pointer}
+.btn:active{transform:translateY(4px);box-shadow:0 1px 0 #1e3a8a}
+.btn.g{background:#16a34a;box-shadow:0 5px 0 #14532d}.btn.g:active{box-shadow:0 1px 0 #14532d}
+.btn.o{background:#f59e0b;box-shadow:0 5px 0 #92400e}.btn.o:active{box-shadow:0 1px 0 #92400e}
+.btn.d{background:#475569;box-shadow:0 5px 0 #1e293b}.btn.d:active{box-shadow:0 1px 0 #1e293b}
+.btn.big{font-size:26px;padding:16px 20px;width:100%;max-width:360px;letter-spacing:2px}
+.btn.sm{font-size:13px;padding:8px 12px;border-radius:12px}
+.pill{background:rgba(15,23,42,.6);border-radius:99px;padding:6px 13px;font-size:15px;display:inline-block;white-space:nowrap}
+.card{background:rgba(15,23,42,.66);border-radius:18px;padding:12px 14px;width:100%;max-width:420px;text-align:left}
+.card b{color:#fbbf24;font-size:14px}.card p{margin:4px 0 0;font-size:12px;font-weight:700;color:#e2e8f0;line-height:1.4}
+.logo{margin:6px 0 0;font-size:clamp(40px,12vw,68px);line-height:1.05;letter-spacing:2px;color:#fde047;-webkit-text-stroke:2px #7c2d12;paint-order:stroke fill;text-shadow:0 5px 0 #b91c1c,0 9px 0 rgba(0,0,0,.35)}
+.ribbon{background:linear-gradient(#000 33%,#dc2626 33% 66%,#facc15 66%);padding:3px 18px;border-radius:6px;font-size:13px;letter-spacing:3px;text-shadow:0 1px 2px #000}
+.sub{font-size:18px;margin:8px 0 14px;color:#fff;text-shadow:0 2px 4px rgba(0,0,0,.6)}
+.ball{width:130px;height:130px;border-radius:50%;background:rgba(255,255,255,.25);border:4px solid rgba(255,255,255,.7);display:flex;align-items:center;justify-content:center;animation:bob 1.6s ease-in-out infinite}
+.ball img{width:100px;height:100px;object-fit:contain}
+@keyframes bob{50%{transform:translateY(-10px)}}
+.tap{margin-top:26px;font-size:20px;letter-spacing:3px;text-shadow:0 2px 6px #000;animation:blink 1.2s infinite}
+@keyframes blink{50%{opacity:.25}}
+.ver{position:absolute;bottom:max(10px,env(safe-area-inset-bottom));opacity:.7;font-size:11px}
+.top{display:flex;gap:8px;align-items:center;padding-top:6px}
+.panel{display:none;flex:1;flex-direction:column;align-items:center;gap:12px;overflow:auto;padding:12px 0;min-height:0}
+.panel.on{display:flex}
+#p-home{justify-content:center}
+.nm{margin-top:8px;font-size:22px;text-align:center;text-shadow:0 2px 4px #000}
+.how{font-size:11px;font-weight:700;text-align:center;max-width:340px;color:#fff;background:rgba(15,23,42,.5);border-radius:12px;padding:8px 12px;line-height:1.5}
+.lbl{align-self:flex-start;font-size:13px;color:#fde68a;text-shadow:0 1px 3px #000}
+.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;width:100%;max-width:420px}
+.grid button,.chips button,.seg button{border:2px solid transparent;border-radius:14px;background:rgba(15,23,42,.62);color:#fff;font:inherit;font-size:11px;padding:8px 2px;cursor:pointer}
+.grid span{display:block;font-size:26px}
+.grid .on,.chips .on,.seg .on{border-color:#fbbf24;background:#b45309}
+.chips{display:flex;flex-wrap:wrap;gap:6px;width:100%;max-width:420px}.chips button{padding:7px 11px;font-size:12px}
+.seg{display:flex;gap:6px;width:100%;max-width:420px}.seg button{flex:1;font-size:14px;padding:10px 2px}
+.row{display:flex;justify-content:space-between;align-items:center;width:100%;max-width:420px;font-size:15px}
+.sw{width:56px;height:32px;accent-color:#16a34a}
+.inp{flex:1;min-width:0;padding:12px;border-radius:12px;border:0;font:inherit;font-size:16px;background:#fff;color:#0f172a;text-transform:uppercase}
+nav{display:flex;gap:6px;background:rgba(15,23,42,.8);border-radius:20px;padding:6px}
+nav button{flex:1;border:0;border-radius:15px;background:transparent;color:#cbd5e1;font:inherit;font-size:11px;padding:8px 0;cursor:pointer}
+nav button i{display:block;font-style:normal;font-size:22px}
+nav .on{background:#2563eb;color:#fff}
+.hrow{display:flex;justify-content:space-between;align-items:flex-start;padding-top:6px}
+.col{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+#hud{pointer-events:none}#hud button{pointer-events:auto}
+.round{width:48px;height:48px;border-radius:50%;padding:0;font-size:16px}
+.pill.big{font-size:20px;font-family:ui-monospace,monospace}
+.pill.sk{font-size:11px;color:#fde68a}.pill.mg{display:none;color:#c7d2fe}
+.pop{background:#1e293b;border-radius:24px;padding:22px;width:100%;max-width:340px;display:flex;flex-direction:column;gap:12px;align-items:center;box-shadow:0 8px 0 #0f172a}
+.pop h2{margin:0;font-size:26px}
+.stat{width:100%;background:rgba(255,255,255,.08);border-radius:14px;padding:10px 14px;font-size:15px;display:flex;justify-content:space-between}
+.rec{color:#fde047;display:none;font-size:18px}
+.pop .btn{width:100%}
+</style>
 </head>
-<body class="h-full w-full relative flex flex-col justify-center items-center text-gray-900 dark:text-gray-100">
+<body data-t="day">
+<canvas id="c"></canvas>
 
-    <!-- Main Fullscreen Game Canvas -->
-    <canvas id="gameCanvas" class="w-full h-full block absolute inset-0 z-0 cursor-pointer"></canvas>
+<!-- TITLE -->
+<section id="title" class="s on mid">
+  <div class="ribbon">HAMBURG DASH</div>
+  <h1 class="logo">ハンブルク<br>ダッシュ</h1>
+  <div class="sub">ドイツのランナー</div>
+  <div class="ball"><img id="tImg" alt=""></div>
+  <div class="tap">TAP TO START</div>
+  <small class="ver">PB Building Dash</small>
+</section>
 
-    <!-- In-Game HUD -->
-    <div id="hud" class="absolute top-4 left-4 right-4 z-10 flex justify-between items-start pointer-events-none hidden">
-        <div class="flex flex-col gap-2">
-            <!-- Score & Distance -->
-            <div class="ios-card ios-blur p-3 px-4 flex items-center gap-3">
-                <i class="fa-solid me-1 fa-flag-checkered text-blue-500 text-lg"></i>
-                <div>
-                    <div class="text-xs uppercase tracking-wider text-gray-500 font-semibold">距離</div>
-                    <div id="scoreText" class="text-xl font-black font-mono">0 m</div>
-                </div>
-            </div>
-            <!-- Coins & Multiplier -->
-            <div class="ios-card ios-blur p-2 px-4 flex items-center gap-3">
-                <i class="fa-solid fa-coins text-amber-500 text-lg"></i>
-                <span id="coinText" class="text-lg font-bold font-mono">0</span>
-            </div>
-            <!-- Active Skill Badge -->
-            <div id="hudSkillBadge" class="ios-card ios-blur p-2 px-3 flex items-center gap-2 text-xs font-bold text-blue-600 dark:text-blue-400">
-                <i class="fa-solid fa-bolt text-amber-400"></i>
-                <span id="hudSkillText">スキル発動中</span>
-            </div>
-        </div>
+<!-- HOME -->
+<section id="home" class="s">
+  <div class="top">
+    <span class="pill">🏆 <span id="hBest">0</span> m</span>
+    <span class="pill">🪙 <span id="hCoin">0</span></span>
+    <i style="flex:1"></i>
+    <button class="btn d sm" id="toTitle">タイトル</button>
+  </div>
 
-        <!-- Status Buff Indicators & Pause Button -->
-        <div class="flex flex-col items-end gap-2">
-            <button id="pauseBtn" class="pointer-events-auto ios-card ios-blur w-12 h-12 flex items-center justify-center text-xl text-gray-700 dark:text-gray-200 active:scale-95 transition-transform">
-                <i class="fa-solid fa-pause"></i>
-            </button>
-            <div id="lifeContainer" class="ios-card ios-blur p-2 px-3 flex items-center gap-1.5 text-red-500 text-lg">
-                <i class="fa-solid fa-heart"></i>
-                <span id="lifeText" class="font-bold text-sm text-gray-800 dark:text-gray-200">x 1</span>
-            </div>
-            <div id="magnetBadge" class="ios-card ios-blur p-2 px-3 flex items-center gap-2 text-indigo-500 text-xs font-bold hidden animate-bounce">
-                <i class="fa-solid fa-magnet text-sm"></i>
-                <span id="magnetTimerText">10s</span>
-            </div>
-        </div>
+  <div class="panel on" id="p-home">
+    <div><div class="ball" style="margin:0 auto"><img id="hImg" alt=""></div><div class="nm" id="hName"></div></div>
+    <div class="card"><b id="sName"></b><p id="sDesc"></p></div>
+    <button class="btn g big" id="play">▶ プレイ</button>
+    <div class="how">タップ：ジャンプ（空中でもう一度で二段ジャンプ）／長押し：回転しながら超ゆっくり滑空／ビルの壁はすり抜け不可！</div>
+  </div>
+
+  <div class="panel" id="p-chara">
+    <div class="lbl">キャラクター</div><div class="grid" id="cGrid"></div>
+    <div class="lbl">表情</div><div class="chips" id="eChips"></div>
+    <div class="card"><b id="sName2"></b><p id="sDesc2"></p></div>
+  </div>
+
+  <div class="panel" id="p-vs">
+    <div class="card"><b>2人プレイ (PeerJS)</b><p>どちらかがホストになってRoom IDを伝え、相手はそのIDで接続します。同じステージで対戦できます。</p></div>
+    <div class="card"><b>あなたの Room ID</b>
+      <div class="row" style="margin-top:6px"><span id="myId" style="font-family:ui-monospace,monospace">未接続</span><button class="btn sm" id="copyId">コピー</button></div></div>
+    <div class="row" style="gap:8px"><input class="inp" id="joinId" placeholder="相手のRoom ID"><button class="btn g sm" id="joinBtn" style="padding:13px 16px;font-size:15px">接続</button></div>
+    <button class="btn o" id="peerStart">ルームを作る</button>
+    <div id="peerSt" style="font-size:13px;color:#fde68a;text-align:center">未接続</div>
+  </div>
+
+  <div class="panel" id="p-set">
+    <div class="lbl">時間帯 (背景テーマ)</div>
+    <div class="seg" id="segT"><button data-v="morning">🌅 朝</button><button data-v="day">☀️ 昼</button><button data-v="night">🌙 夜</button></div>
+    <div class="lbl">初期スピード</div>
+    <div class="seg" id="segS"><button data-v="slow">ゆっくり</button><button data-v="normal">普通</button><button data-v="fast">はやめ</button></div>
+    <div class="row card"><span>効果音 &amp; BGM</span><input type="checkbox" class="sw" id="snd"></div>
+  </div>
+
+  <nav id="nav">
+    <button data-p="home" class="on"><i>🏠</i>ホーム</button>
+    <button data-p="chara"><i>🧑</i>キャラ</button>
+    <button data-p="vs"><i>👥</i>対戦</button>
+    <button data-p="set"><i>⚙️</i>設定</button>
+  </nav>
+</section>
+
+<!-- HUD -->
+<section id="hud" class="s">
+  <div class="hrow">
+    <div class="col">
+      <span class="pill big">🏁 <span id="hs">0 m</span></span>
+      <span class="pill">🪙 <span id="hc">0</span></span>
+      <span class="pill">❤️ <span id="hl">x 1</span></span>
+      <span class="pill sk" id="hsk"></span>
+      <span class="pill mg" id="hm">🧲 <span id="hmt"></span></span>
     </div>
-
-    <!-- MAIN MENU OVERLAY -->
-    <div id="mainMenu" class="absolute inset-0 z-20 flex flex-col justify-between p-6 bg-gradient-to-b from-sky-400/30 via-slate-900/60 to-slate-950/90 ios-blur">
-        <!-- Top Header -->
-        <div class="flex justify-between items-center w-full max-w-md mx-auto pt-4">
-            <div class="flex items-center gap-2">
-                <div class="w-10 h-10 rounded-2xl bg-blue-600 flex items-center justify-center text-white text-xl shadow-lg font-black">
-                    PB
-                </div>
-                <div>
-                    <h1 class="text-xl font-extrabold text-white tracking-tight">ハンブルクダッシュ</h1>
-                    <p class="text-xs text-sky-200 font-medium">ドイツのランナー</p>
-                </div>
-            </div>
-            <button id="openSettingsBtn" class="w-11 h-11 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center text-lg backdrop-blur-md transition-all active:scale-90">
-                <i class="fa-solid fa-gear"></i>
-            </button>
-        </div>
-
-        <!-- Center Character Preview / Title -->
-        <div class="flex flex-col items-center justify-center my-auto w-full max-w-md mx-auto text-center">
-            <div class="relative mb-4 group cursor-pointer" id="quickCharSelect">
-                <div class="w-36 h-36 rounded-full bg-white/10 border-4 border-white/30 backdrop-blur-md flex items-center justify-center shadow-2xl relative overflow-hidden group-hover:scale-105 transition-all">
-                    <img id="menuCharPreview" src="" alt="PB Preview" class="w-28 h-28 object-contain drop-shadow-xl">
-                </div>
-                <div class="absolute -bottom-2 bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md flex items-center gap-1">
-                    <span id="menuCharName">Germany</span> <i class="fa-solid fa-arrows-rotate text-[10px]"></i>
-                </div>
-            </div>
-
-            <!-- Character Skill Description Card -->
-            <div class="w-full ios-card ios-blur p-3 mb-5 text-left flex items-start gap-3 border border-amber-400/30">
-                <div class="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0 font-black text-lg">
-                    <i class="fa-solid fa-bolt"></i>
-                </div>
-                <div class="flex-1 min-w-0">
-                    <div class="flex justify-between items-center">
-                        <span id="skillNameText" class="font-extrabold text-sm text-gray-900 dark:text-white truncate">スキル名</span>
-                        <span class="text-[10px] font-bold text-amber-500 uppercase tracking-wider">キャラスキル</span>
-                    </div>
-                    <p id="skillDescText" class="text-xs text-gray-600 dark:text-gray-300 mt-0.5 leading-snug">固有能力の説明</p>
-                </div>
-            </div>
-
-            <!-- Start Buttons -->
-            <div class="w-full flex flex-col gap-3">
-                <button id="singleStartBtn" class="w-full py-4 rounded-2xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-extrabold text-lg shadow-xl hover:brightness-110 active:scale-98 transition-all flex items-center justify-center gap-3 pulse-btn">
-                    <i class="fa-solid fa-play"></i> 1人でプレイ (ランダム)
-                </button>
-                <button id="multiStartBtn" class="w-full py-3.5 rounded-2xl bg-white/20 hover:bg-white/30 border border-white/30 text-white font-bold text-md shadow-lg backdrop-blur-md active:scale-98 transition-all flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-users"></i> 2人プレイ (PeerJS通信)
-                </button>
-            </div>
-        </div>
-
-        <!-- Bottom Guidance / How to Play -->
-        <div class="w-full max-w-md mx-auto ios-card ios-blur p-4 mb-4 text-xs text-gray-700 dark:text-gray-300">
-            <div class="font-bold text-gray-900 dark:text-white mb-1 flex items-center gap-1.5">
-                <i class="fa-solid fa-gamepad text-blue-500"></i> 操作方法
-            </div>
-            <ul class="space-y-1 pl-1">
-                <li>• <b>タップ/画面押す</b>: ジャンプ（空中でもう一度タップで<b>二段ジャンプ</b>）</li>
-                <li>• <b>長押し</b>: ぐるぐる回転しながら<b>一定の超遅スピードで滑空</b></li>
-                <li>• <b>ビルの壁</b>: 横衝突はすり抜け不可！二段ジャンプで壁を乗り越えよう</li>
-            </ul>
-        </div>
-    </div>
-
-    <!-- SETTINGS MODAL (iOS Style UI) -->
-    <div id="settingsModal" class="absolute inset-0 z-30 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md hidden">
-        <div class="w-full max-w-md ios-card p-6 flex flex-col max-h-[90vh] overflow-y-auto space-y-5 shadow-2xl">
-            <!-- Modal Header -->
-            <div class="flex justify-between items-center border-b border-gray-200 dark:border-gray-700 pb-3">
-                <h2 class="text-xl font-extrabold text-gray-900 dark:text-white">設定 (iOS Style)</h2>
-                <button id="closeSettingsBtn" class="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 flex items-center justify-center font-bold hover:bg-gray-300">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
-
-            <!-- Character Selection Section -->
-            <div class="space-y-2">
-                <label class="text-xs font-bold uppercase tracking-wider text-gray-500">キャラクター選択</label>
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <span class="text-xs font-semibold text-gray-600 dark:text-gray-400">国 (Country)</span>
-                        <select id="countrySelect" class="mt-1 w-full p-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-semibold">
-                            <option value="germany">germany (ドイツ)</option>
-                            <option value="japan">japan (日本)</option>
-                            <option value="france">france (フランス)</option>
-                            <option value="italy">italy (イタリア)</option>
-                            <option value="china">china (中国)</option>
-                            <option value="sierraleone">sierraleone (シエラレオネ)</option>
-                            <option value="russia">russia (ロシア)</option>
-                            <option value="poland">poland (ポーランド)</option>
-                            <option value="england472x600">england (イギリス)</option>
-                            <option value="usa">usa (アメリカ)</option>
-                        </select>
-                    </div>
-                    <div>
-                        <span class="text-xs font-semibold text-gray-600 dark:text-gray-400">表情 (Emotion)</span>
-                        <select id="emotionSelect" class="mt-1 w-full p-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-semibold">
-                            <option value="lol.png">lol</option>
-                            <option value="normal.png">normal</option>
-                            <option value="happy.png">happy</option>
-                            <option value="smile.png">smile</option>
-                            <option value="surprise.png">surprise</option>
-                            <option value="anger.png">anger</option>
-                            <option value="dissatisfaction.png">dissatisfaction</option>
-                            <option value="itome.png">itome</option>
-                            <option value="plot.png">plot</option>
-                        </select>
-                    </div>
-                </div>
-                <!-- Settings Skill Preview -->
-                <div class="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-xs space-y-1">
-                    <div class="font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1">
-                        <i class="fa-solid fa-bolt"></i> <span id="settingsSkillName">スキル名</span>
-                    </div>
-                    <div id="settingsSkillDesc" class="text-gray-600 dark:text-gray-300 leading-tight">スキル効果の説明</div>
-                </div>
-            </div>
-
-            <!-- Time of Day (Theme) Segmented Control -->
-            <div class="space-y-2">
-                <label class="text-xs font-bold uppercase tracking-wider text-gray-500">時間帯 (背景テーマ)</label>
-                <div class="segmented-control" id="timeOfDaySegment">
-                    <div class="segmented-btn" data-value="morning"><i class="fa-solid fa-sun text-amber-500 mr-1"></i>朝</div>
-                    <div class="segmented-btn active" data-value="day"><i class="fa-solid fa-cloud-sun text-sky-500 mr-1"></i>昼</div>
-                    <div class="segmented-btn" data-value="night"><i class="fa-solid fa-moon text-indigo-400 mr-1"></i>夜</div>
-                </div>
-            </div>
-
-            <!-- Initial Speed Segmented Control -->
-            <div class="space-y-2">
-                <label class="text-xs font-bold uppercase tracking-wider text-gray-500">初期スピード</label>
-                <div class="segmented-control" id="speedSegment">
-                    <div class="segmented-btn" data-value="slow">ゆっくり</div>
-                    <div class="segmented-btn active" data-value="normal">普通</div>
-                    <div class="segmented-btn" data-value="fast">スピード早め</div>
-                </div>
-            </div>
-
-            <!-- Sound Switch -->
-            <div class="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-gray-700">
-                <span class="text-sm font-bold text-gray-800 dark:text-gray-200">効果音 & BGM</span>
-                <label class="ios-switch">
-                    <input type="checkbox" id="soundToggle" checked>
-                    <span class="ios-slider"></span>
-                </label>
-            </div>
-
-            <button id="saveSettingsBtn" class="w-full py-3 rounded-xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 active:scale-98 transition-all">
-                設定を保存
-            </button>
-        </div>
-    </div>
-
-    <!-- PEER.JS MULTIPLAYER MODAL -->
-    <div id="peerModal" class="absolute inset-0 z-30 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md hidden">
-        <div class="w-full max-w-md ios-card p-6 flex flex-col space-y-5 shadow-2xl">
-            <div class="flex justify-between items-center border-b border-gray-200 dark:border-gray-700 pb-3">
-                <h2 class="text-xl font-extrabold text-gray-900 dark:text-white"><i class="fa-solid fa-network-wired text-blue-500 mr-2"></i>2人プレイ (PeerJS)</h2>
-                <button id="closePeerBtn" class="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 flex items-center justify-center font-bold">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
-
-            <p class="text-xs text-gray-600 dark:text-gray-300">
-                PeerJS経由で友達と通信接続します。どちらかがホストになってRoom IDを発行するか、相手のRoom IDに入力して参加してください。<b>同じシードのビルステージ</b>で対戦できます！
-            </p>
-
-            <!-- My Peer ID Display -->
-            <div class="p-3 bg-gray-100 dark:bg-gray-800/80 rounded-xl flex flex-col gap-1">
-                <span class="text-[10px] font-bold text-gray-500 uppercase">あなたの Room ID:</span>
-                <div class="flex items-center justify-between">
-                    <span id="myPeerIdDisplay" class="font-mono text-sm font-bold text-blue-600 dark:text-blue-400">接続中...</span>
-                    <button id="copyPeerIdBtn" class="text-xs bg-white dark:bg-gray-700 px-2 py-1 rounded-lg border text-gray-700 dark:text-gray-200 hover:bg-gray-50">
-                        <i class="fa-solid fa-copy"></i> コピー
-                    </button>
-                </div>
-            </div>
-
-            <!-- Join Input -->
-            <div class="space-y-2">
-                <label class="text-xs font-bold uppercase tracking-wider text-gray-500">相手の Room ID に参加</label>
-                <div class="flex gap-2">
-                    <input type="text" id="joinPeerIdInput" placeholder="Room IDを入力..." class="flex-1 p-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-mono uppercase">
-                    <button id="connectPeerBtn" class="px-4 py-2.5 rounded-xl bg-green-600 hover:bg-green-700 text-white font-bold text-sm">
-                        接続
-                    </button>
-                </div>
-            </div>
-
-            <div id="peerStatusText" class="text-xs font-bold text-center text-amber-500">
-                接続待機中...
-            </div>
-        </div>
-    </div>
-
-    <!-- GAME OVER OVERLAY -->
-    <div id="gameOverModal" class="absolute inset-0 z-20 flex flex-col items-center justify-center p-6 bg-black/70 backdrop-blur-md hidden">
-        <div class="w-full max-w-sm ios-card p-6 flex flex-col items-center text-center space-y-4 shadow-2xl animate-scale-up">
-            <div class="w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/40 text-red-500 flex items-center justify-center text-3xl font-black">
-                <i class="fa-solid fa-skull"></i>
-            </div>
-            <h2 class="text-2xl font-black text-gray-900 dark:text-white">ゲームオーバー</h2>
-            
-            <div class="w-full bg-gray-100 dark:bg-gray-800/60 p-4 rounded-xl space-y-2 font-mono">
-                <div class="flex justify-between text-sm">
-                    <span class="text-gray-500">走行距離:</span>
-                    <span id="finalScoreText" class="font-bold text-gray-900 dark:text-white">0 m</span>
-                </div>
-                <div class="flex justify-between text-sm">
-                    <span class="text-gray-500">獲得コイン:</span>
-                    <span id="finalCoinsText" class="font-bold text-amber-500">0</span>
-                </div>
-            </div>
-
-            <div class="w-full flex gap-3 pt-2">
-                <button id="restartBtn" class="flex-1 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-md active:scale-95 transition-all">
-                    もう一度プレイ
-                </button>
-                <button id="exitMenuBtn" class="px-4 py-3 rounded-xl bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 font-bold text-sm hover:bg-gray-300 active:scale-95 transition-all">
-                    メニュー
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- PAUSE MODAL -->
-    <div id="pauseModal" class="absolute inset-0 z-20 flex flex-col items-center justify-center p-6 bg-black/60 backdrop-blur-md hidden">
-        <div class="w-full max-w-xs ios-card p-6 flex flex-col items-center text-center space-y-4 shadow-2xl">
-            <h2 class="text-xl font-black text-gray-900 dark:text-white">一時停止</h2>
-            <div class="w-full space-y-2">
-                <button id="resumeBtn" class="w-full py-3 rounded-xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 active:scale-95 transition-all">
-                    再開する
-                </button>
-                <button id="pauseExitBtn" class="w-full py-3 rounded-xl bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 font-bold text-sm hover:bg-gray-300 active:scale-95 transition-all">
-                    メニューに戻る
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // Global Game Configuration & State
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-
-        // BGM Audio Element
-        const bgmAudio = new Audio('https://raw.githubusercontent.com/PolandBallHub-Operator/pbpark/refs/heads/main/games/HamburgDash/hamburg.mp3');
-        bgmAudio.loop = true;
-        bgmAudio.volume = 0.45;
-
-        // Character Skills Dictionary
-        const CHARACTER_SKILLS = {
-            germany: {
-                name: 'ゲルマン工学 (磁石ブースト)',
-                desc: '磁石パワーアップの効果時間が1.5倍(15秒)に延長',
-                magnetMultiplier: 1.5,
-                speedMult: 1.0,
-                jumpMult: 1.0,
-                extraLives: 0,
-                glideDivisor: 10,
-                maxJumps: 2
-            },
-            japan: {
-                name: '新幹線ターボ (高機動)',
-                desc: '走行速度+15% & ジャンプ力1.1倍アップ',
-                magnetMultiplier: 1.0,
-                speedMult: 1.15,
-                jumpMult: 1.1,
-                extraLives: 0,
-                glideDivisor: 10,
-                maxJumps: 2
-            },
-            china: {
-                name: '幸運のマネー (磁界&ライフ)',
-                desc: '初期ライフ+1 & アイテムなしで周囲のコインを緩やかにひきつける',
-                magnetMultiplier: 1.0,
-                speedMult: 1.0,
-                jumpMult: 1.0,
-                extraLives: 1,
-                passiveMagnetRange: 130,
-                glideDivisor: 10,
-                maxJumps: 2
-            },
-            italy: {
-                name: 'ピッツァ・グライド (超滞空力)',
-                desc: '長押し回転時の落下速度が超超低速化 (通常の1/15)',
-                magnetMultiplier: 1.0,
-                speedMult: 1.0,
-                jumpMult: 1.0,
-                extraLives: 0,
-                glideDivisor: 15,
-                maxJumps: 2
-            },
-            sierraleone: {
-                name: 'ダイヤモンド・マグネット (ウルトラ磁力)',
-                desc: '磁石パワーアップの効果時間が2倍(20秒)',
-                magnetMultiplier: 2.0,
-                speedMult: 1.0,
-                jumpMult: 1.0,
-                extraLives: 0,
-                glideDivisor: 10,
-                maxJumps: 2
-            },
-            russia: {
-                name: 'フォートレス・ボディ (ライフ4個)',
-                desc: '圧倒的耐久力！初期ライフ【4個】でスタート！',
-                magnetMultiplier: 1.0,
-                speedMult: 0.95,
-                jumpMult: 1.0,
-                extraLives: 3,
-                glideDivisor: 10,
-                maxJumps: 2
-            },
-            france: {
-                name: 'ハイ・エラガンス (大ジャンプ)',
-                desc: 'ジャンプ力が1.25倍に大幅アップ！高層ビルもラクラク飛び越える',
-                magnetMultiplier: 1.0,
-                speedMult: 1.0,
-                jumpMult: 1.25,
-                extraLives: 0,
-                glideDivisor: 10,
-                maxJumps: 2
-            },
-            poland: {
-                name: 'Poland Can Into Space! (3段ジャンプ)',
-                desc: '宇宙へ届く跳躍！【3段ジャンプ】が可能！',
-                magnetMultiplier: 1.0,
-                speedMult: 1.0,
-                jumpMult: 1.0,
-                extraLives: 0,
-                glideDivisor: 10,
-                maxJumps: 3
-            },
-            england472x600: {
-                name: 'ロイヤル・ペース (安定走行)',
-                desc: '走行スピードが少しゆったり(-15%)になりミスを回避しやすい',
-                magnetMultiplier: 1.0,
-                speedMult: 0.85,
-                jumpMult: 1.0,
-                extraLives: 0,
-                glideDivisor: 10,
-                maxJumps: 2
-            },
-            usa: {
-                name: 'フリーダム・バフ (スピード&ライフ)',
-                desc: 'スピード+10% & 初期ライフ+1',
-                magnetMultiplier: 1.0,
-                speedMult: 1.10,
-                jumpMult: 1.0,
-                extraLives: 1,
-                glideDivisor: 10,
-                maxJumps: 2
-            }
-        };
-
-        // Game State Variables
-        let gameState = 'MENU'; // MENU, PLAYING, PAUSED, GAMEOVER
-        let gameMode = 'SINGLE'; // SINGLE, MULTI
-        let currentTheme = 'day'; // morning, day, night
-        let initialSpeedSetting = 'normal'; // slow, normal, fast
-        let soundEnabled = true;
-
-        // Player Customization
-        let playerCountry = 'germany';
-        let playerEmotion = 'lol.png';
-        const loadedImages = {};
-
-        // Canvas Responsive Resize
-        function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            initBackgroundObjects();
-        }
-        window.addEventListener('resize', resizeCanvas);
-
-        // Background Parallax Elements (Clouds & Distant Buildings)
-        let clouds = [];
-        let distantBuildings = [];
-
-        function initBackgroundObjects() {
-            // Clouds
-            clouds = [];
-            for (let i = 0; i < 6; i++) {
-                clouds.push({
-                    x: Math.random() * canvas.width,
-                    y: Math.random() * (canvas.height * 0.35) + 20,
-                    width: Math.random() * 80 + 90,
-                    height: Math.random() * 25 + 25,
-                    speed: Math.random() * 0.3 + 0.2
-                });
-            }
-
-            // Distant Silhouetted Buildings (Background Layer)
-            distantBuildings = [];
-            let bgX = 0;
-            while (bgX < canvas.width * 2) {
-                const bgW = Math.floor(Math.random() * 100) + 120;
-                const bgH = Math.floor(Math.random() * 200) + 180;
-                distantBuildings.push({
-                    x: bgX,
-                    width: bgW,
-                    height: bgH
-                });
-                bgX += bgW + Math.floor(Math.random() * 30);
-            }
-        }
-
-        // BGM Play/Pause Controller
-        function startBGM() {
-            if (soundEnabled) {
-                bgmAudio.play().catch(err => console.log("Audio autoplay prevented: ", err));
-            }
-        }
-
-        function stopBGM() {
-            bgmAudio.pause();
-            bgmAudio.currentTime = 0;
-        }
-
-        function pauseBGM() {
-            bgmAudio.pause();
-        }
-
-        // Audio System (Web Audio API Synthesizer)
-        const AudioCtx = window.AudioContext || window.webkitAudioContext;
-        let audioCtx = null;
-
-        function initAudio() {
-            if (!audioCtx) audioCtx = new AudioCtx();
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-        }
-
-        function playSound(type) {
-            if (!soundEnabled) return;
-            initAudio();
-            if (!audioCtx) return;
-
-            const now = audioCtx.currentTime;
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-
-            if (type === 'jump') {
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(250, now);
-                osc.frequency.exponentialRampToValueAtTime(600, now + 0.15);
-                gain.gain.setValueAtTime(0.3, now);
-                gain.gain.linearRampToValueAtTime(0.01, now + 0.15);
-                osc.start(now);
-                osc.stop(now + 0.15);
-            } else if (type === 'coin') {
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(987.77, now); // B5
-                osc.frequency.setValueAtTime(1318.51, now + 0.08); // E6
-                gain.gain.setValueAtTime(0.2, now);
-                gain.gain.linearRampToValueAtTime(0.01, now + 0.2);
-                osc.start(now);
-                osc.stop(now + 0.2);
-            } else if (type === 'powerup') {
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(400, now);
-                osc.frequency.exponentialRampToValueAtTime(1200, now + 0.3);
-                gain.gain.setValueAtTime(0.3, now);
-                gain.gain.linearRampToValueAtTime(0.01, now + 0.3);
-                osc.start(now);
-                osc.stop(now + 0.3);
-            } else if (type === 'hit') {
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(150, now);
-                osc.frequency.exponentialRampToValueAtTime(40, now + 0.25);
-                gain.gain.setValueAtTime(0.4, now);
-                gain.gain.linearRampToValueAtTime(0.01, now + 0.25);
-                osc.start(now);
-                osc.stop(now + 0.25);
-            }
-        }
-
-        // Get Ball Image URL helper
-        function getBallImageUrl(country, emotion) {
-            return `https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/${country}/${emotion}`;
-        }
-
-        function loadBallImage(country, emotion) {
-            const url = getBallImageUrl(country, emotion);
-            if (loadedImages[url]) return loadedImages[url];
-
-            const img = new Image();
-            img.crossOrigin = "anonymous";
-            img.src = url;
-            loadedImages[url] = img;
-            return img;
-        }
-
-        // Seeded PRNG (Mulberry32) for deterministic 2-player multiplayer stage generation
-        let currentSeed = 12345;
-        function seedPRNG(seed) {
-            currentSeed = seed;
-        }
-        function random() {
-            if (gameMode === 'SINGLE') {
-                return Math.random();
-            }
-            // Seeded PRNG logic for synced multiplayer
-            let t = currentSeed += 0x6D2B79F5;
-            t = Math.imul(t ^ (t >>> 15), t | 1);
-            t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-            return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-        }
-
-        // Player Entity Class
-        class Player {
-            constructor() {
-                this.radius = 28;
-                this.x = canvas.width * 0.2;
-                this.y = canvas.height * 0.5;
-                this.vx = 0;
-                this.vy = 0;
-                this.gravity = 0.45;
-                this.baseJumpForce = -11.5;
-                this.jumpForce = -11.5;
-                this.jumpCount = 0;
-                this.maxJumps = 2;
-                this.isGrounded = false;
-                this.isHolding = false;
-                this.spinAngle = 0;
-                this.lives = 1;
-                this.magnetTimer = 0;
-                this.glideDivisor = 10; // Default slow fall divisor (1/10th speed)
-                this.skill = CHARACTER_SKILLS['germany'];
-            }
-
-            applySkill(country) {
-                const skill = CHARACTER_SKILLS[country] || CHARACTER_SKILLS['germany'];
-                this.skill = skill;
-                this.maxJumps = skill.maxJumps || 2;
-                this.lives = 1 + (skill.extraLives || 0);
-                this.jumpForce = this.baseJumpForce * (skill.jumpMult || 1.0);
-                this.glideDivisor = skill.glideDivisor || 10;
-            }
-
-            reset() {
-                this.radius = 28;
-                this.x = canvas.width * 0.2;
-                this.y = canvas.height * 0.3;
-                this.vx = 0;
-                this.vy = 0;
-                this.jumpCount = 0;
-                this.isGrounded = false;
-                this.isHolding = false;
-                this.spinAngle = 0;
-                this.applySkill(playerCountry);
-                this.magnetTimer = 0;
-            }
-
-            jump() {
-                if (this.jumpCount < this.maxJumps) {
-                    this.vy = this.jumpForce;
-                    this.jumpCount++;
-                    this.isGrounded = false;
-                    playSound('jump');
-                }
-            }
-
-            update() {
-                // Gravity handling with constant slow-fall glide on long-press hold
-                if (this.isHolding && this.vy > 0) {
-                    // 一定かつ従来より低速な滑空速度（重力加速度を受けない一定値）
-                    const baseGlideSpeed = 0.8;
-                    this.vy = baseGlideSpeed * (10 / this.glideDivisor);
-                    this.spinAngle += 0.22; // 回転アニメーション
-                } else {
-                    this.vy += this.gravity;
-                    // 接地・非滞空時の回転補正
-                    if (this.isGrounded) {
-                        this.spinAngle = 0;
-                    } else {
-                        this.spinAngle += 0.05;
-                    }
-                }
-
-                this.y += this.vy;
-
-                // Decrease magnet power-up timer
-                if (this.magnetTimer > 0) {
-                    this.magnetTimer -= 1 / 60;
-                }
-            }
-
-            draw(ctx, country, emotion, isGhost = false) {
-                const img = loadBallImage(country, emotion);
-                ctx.save();
-                ctx.translate(this.x, this.y);
-                ctx.rotate(this.spinAngle);
-
-                if (isGhost) {
-                    ctx.globalAlpha = 0.55;
-                }
-
-                // Draw Magnet Aura
-                if (this.magnetTimer > 0) {
-                    ctx.beginPath();
-                    ctx.arc(0, 0, this.radius + 10, 0, Math.PI * 2);
-                    ctx.strokeStyle = 'rgba(99, 102, 241, 0.6)';
-                    ctx.lineWidth = 4;
-                    ctx.stroke();
-                }
-
-                // Handling UK (england472x600) special 472x472 top crop
-                if (img.complete && img.naturalWidth > 0) {
-                    if (country === 'england472x600') {
-                        // Crop top 472x472 from 472x600
-                        ctx.drawImage(img, 0, 0, 472, 472, -this.radius, -this.radius, this.radius * 2, this.radius * 2);
-                    } else {
-                        ctx.drawImage(img, -this.radius, -this.radius, this.radius * 2, this.radius * 2);
-                    }
-                } else {
-                    // Fallback ball shape while loading
-                    ctx.beginPath();
-                    ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
-                    ctx.fillStyle = '#3b82f6';
-                    ctx.fill();
-                }
-
-                ctx.restore();
-            }
-        }
-
-        // Stage Environment Generators (Buildings, Coins, Power-ups)
-        class Building {
-            constructor(x, width, height, color) {
-                this.x = x;
-                this.width = width;
-                this.height = height;
-                this.color = color;
-                this.windows = [];
-
-                // German Building Styles: 'fachwerk' (Half-timbered), 'brick' (Speicherstadt Brick), 'classic' (Altstadt Pastel)
-                const styles = ['fachwerk', 'brick', 'classic'];
-                this.style = styles[Math.floor(random() * styles.length)];
-
-                // Color themes depending on style
-                if (this.style === 'fachwerk') {
-                    const fachwerkWalls = ['#fef3c7', '#fde68a', '#f3f4f6', '#fed7aa'];
-                    this.wallColor = fachwerkWalls[Math.floor(random() * fachwerkWalls.length)];
-                    this.beamColor = '#451a03'; // Dark wooden beams
-                } else if (this.style === 'brick') {
-                    const brickColors = ['#9a3412', '#7c2d12', '#b45309', '#881337'];
-                    this.wallColor = brickColors[Math.floor(random() * brickColors.length)];
-                    this.beamColor = '#451a03';
-                } else {
-                    const classicColors = ['#bae6fd', '#fef08a', '#fbcfe8', '#cbd5e1', '#a7f3d0'];
-                    this.wallColor = classicColors[Math.floor(random() * classicColors.length)];
-                    this.beamColor = '#ffffff';
-                }
-
-                // Roof decoration (Gable Roof / Decorative Ledge)
-                this.hasGableRoof = random() > 0.3;
-                this.roofColor = ['#991b1b', '#7f1d1d', '#374151', '#854d0e'][Math.floor(random() * 4)];
-
-                // Generate window grid details
-                const rows = Math.floor((height - 30) / 40);
-                const cols = Math.floor((width - 20) / 32);
-                for (let r = 0; r < rows; r++) {
-                    for (let c = 0; c < cols; c++) {
-                        if (random() > 0.25) {
-                            this.windows.push({
-                                x: 12 + c * 30,
-                                y: 30 + r * 38,
-                                lit: random() > 0.35,
-                                arched: this.style === 'brick' || random() > 0.5
-                            });
-                        }
-                    }
-                }
-            }
-
-            draw(ctx, theme) {
-                ctx.save();
-                const bTop = canvas.height - this.height;
-
-                // 1. Base Wall Background
-                ctx.fillStyle = this.wallColor;
-                ctx.fillRect(this.x, bTop, this.width, this.height);
-
-                // 2. Brick Pattern Overlay for Speicherstadt style
-                if (this.style === 'brick') {
-                    ctx.fillStyle = 'rgba(0, 0, 0, 0.08)';
-                    for (let y = bTop; y < canvas.height; y += 8) {
-                        ctx.fillRect(this.x, y, this.width, 1);
-                    }
-                }
-
-                // 3. Half-timbered (Fachwerk) Wooden Beams Overlay
-                if (this.style === 'fachwerk') {
-                    ctx.strokeStyle = this.beamColor;
-                    ctx.lineWidth = 3.5;
-                    ctx.beginPath();
-                    
-                    // Outer Frame Beams
-                    ctx.strokeRect(this.x + 2, bTop + 2, this.width - 4, this.height - 4);
-
-                    // Horizontal & Diagonal Cross Beams
-                    const floorHeight = 45;
-                    for (let y = bTop + floorHeight; y < canvas.height; y += floorHeight) {
-                        ctx.moveTo(this.x, y);
-                        ctx.lineTo(this.x + this.width, y);
-
-                        // Diagonal Braces X-patterns
-                        for (let bx = this.x; bx < this.x + this.width - 30; bx += 60) {
-                            ctx.moveTo(bx, y - floorHeight);
-                            ctx.lineTo(bx + 30, y);
-                            ctx.moveTo(bx + 30, y - floorHeight);
-                            ctx.lineTo(bx, y);
-                        }
-                    }
-                    ctx.stroke();
-                }
-
-                // 4. Windows (German Traditional / Arched Windows)
-                this.windows.forEach(w => {
-                    const wx = this.x + w.x;
-                    const wy = bTop + w.y;
-                    if (wx + 16 < this.x + this.width && wy + 22 < canvas.height) {
-                        // Window Frame
-                        ctx.fillStyle = this.style === 'brick' ? '#fef3c7' : '#1e293b';
-                        ctx.fillRect(wx - 1, wy - 1, 16, 22);
-
-                        // Glass Inner
-                        ctx.fillStyle = w.lit ? (theme === 'night' ? '#fef08a' : '#e0f2fe') : (theme === 'night' ? '#1e1b4b' : '#334155');
-                        
-                        if (w.arched) {
-                            ctx.beginPath();
-                            ctx.arc(wx + 7, wy + 6, 7, Math.PI, 0);
-                            ctx.rect(wx, wy + 6, 14, 13);
-                            ctx.fill();
-                        } else {
-                            ctx.fillRect(wx + 1, wy + 1, 12, 18);
-                        }
-
-                        // Window Pane Cross Lines
-                        ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
-                        ctx.lineWidth = 1;
-                        ctx.beginPath();
-                        ctx.moveTo(wx + 7, wy + 1); ctx.lineTo(wx + 7, wy + 19);
-                        ctx.moveTo(wx + 1, wy + 10); ctx.lineTo(wx + 13, wy + 10);
-                        ctx.stroke();
-                    }
-                });
-
-                // 5. Roof / Top Edge Design (Gable Roof & Trim)
-                if (this.hasGableRoof) {
-                    ctx.fillStyle = this.roofColor;
-                    // Steep German Triangular Gable Accent at Top Center
-                    ctx.beginPath();
-                    ctx.moveTo(this.x - 4, bTop + 2);
-                    ctx.lineTo(this.x + this.width / 2, bTop - 22);
-                    ctx.lineTo(this.x + this.width + 4, bTop + 2);
-                    ctx.closePath();
-                    ctx.fill();
-
-                    // Roof Border Trim
-                    ctx.strokeStyle = '#451a03';
-                    ctx.lineWidth = 3;
-                    ctx.stroke();
-                }
-
-                // Roof Landing Ledge
-                ctx.fillStyle = '#475569';
-                ctx.fillRect(this.x - 2, bTop, this.width + 4, 6);
-                ctx.fillStyle = '#94a3b8';
-                ctx.fillRect(this.x - 2, bTop, this.width + 4, 2);
-
-                ctx.restore();
-            }
-        }
-
-        class Item {
-            constructor(x, y, type) {
-                this.x = x;
-                this.y = y;
-                this.type = type; // 'coin', 'heart', 'magnet'
-                this.radius = type === 'coin' ? 10 : 14;
-                this.collected = false;
-                this.baseY = y;
-                this.floatOffset = random() * Math.PI * 2;
-            }
-
-            update(speed) {
-                this.x -= speed;
-                this.floatOffset += 0.08;
-                this.y = this.baseY + Math.sin(this.floatOffset) * 4;
-            }
-
-            draw(ctx) {
-                if (this.collected) return;
-                ctx.save();
-                ctx.translate(this.x, this.y);
-
-                if (this.type === 'coin') {
-                    ctx.beginPath();
-                    ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
-                    ctx.fillStyle = '#f59e0b';
-                    ctx.fill();
-                    ctx.lineWidth = 2;
-                    ctx.strokeStyle = '#fef08a';
-                    ctx.stroke();
-                    ctx.fillStyle = '#fef08a';
-                    ctx.font = 'bold 10px sans-serif';
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    ctx.fillText('$', 0, 1);
-                } else if (this.type === 'heart') {
-                    ctx.fillStyle = '#ef4444';
-                    ctx.font = '18px "Font Awesome 6 Free"';
-                    ctx.font = 'bold 16px sans-serif';
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    ctx.fillText('❤️', 0, 0);
-                } else if (this.type === 'magnet') {
-                    ctx.fillStyle = '#6366f1';
-                    ctx.font = 'bold 16px sans-serif';
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    ctx.fillText('🧲', 0, 0);
-                }
-
-                ctx.restore();
-            }
-        }
-
-        // Game Engine Variables
-        const player = new Player();
-        const ghostPlayer = new Player(); // For multiplayer opponent
-        let buildings = [];
-        let items = [];
-        let distanceTraveled = 0;
-        let coinsCollected = 0;
-        let gameSpeed = 5;
-        let baseSpeed = 5;
-
-        // Colors Palette based on Theme
-        function getBuildingColor(theme) {
-            const palettes = {
-                morning: ['#fef3c7', '#fdba74', '#9a3412', '#f3f4f6'],
-                day: ['#fef3c7', '#bae6fd', '#7c2d12', '#a7f3d0'],
-                night: ['#1e1b4b', '#312e81', '#0f172a', '#451a03']
-            };
-            const list = palettes[theme] || palettes.day;
-            return list[Math.floor(random() * list.length)];
-        }
-
-        // Spawns a building with procedural coin grids, hearts, and magnets
-        function spawnBuilding(startX) {
-            const gap = Math.floor(random() * 80) + 70; // Safe gap distance
-            const width = Math.floor(random() * 200) + 200;
-
-            // Prevent abrupt impossible height spikes (Limit max height increase from previous building)
-            const prevHeight = buildings.length > 0 ? buildings[buildings.length - 1].height : 250;
-            const maxJumpIncrease = 110; // Max reachable height step with double-jump
-            const maxDrop = 170; // Safe downward drop limit
-
-            const minH = Math.max(140, prevHeight - maxDrop);
-            const maxH = Math.min(canvas.height - 180, prevHeight + maxJumpIncrease);
-
-            const height = Math.floor(random() * (maxH - minH + 1)) + minH;
-            const color = getBuildingColor(currentTheme);
-
-            const bX = startX + gap;
-            const newBuilding = new Building(bX, width, height, color);
-            buildings.push(newBuilding);
-
-            const roofY = canvas.height - height;
-
-            // Spawn items (coins, magnets, hearts) on top of building
-            const itemRand = random();
-            if (itemRand < 0.85) {
-                const formationType = Math.floor(random() * 3);
-                
-                if (formationType === 0) {
-                    // Grid formation (e.g., 5x7 or 3x5)
-                    const rows = Math.floor(random() * 3) + 2;
-                    const cols = Math.min(Math.floor((width - 40) / 28), Math.floor(random() * 3) + 4);
-                    const startCoinX = bX + (width - cols * 28) / 2 + 14;
-                    const startCoinY = roofY - (rows * 28) - 15;
-
-                    for (let r = 0; r < rows; r++) {
-                        for (let c = 0; c < cols; c++) {
-                            items.push(new Item(startCoinX + c * 28, startCoinY + r * 28, 'coin'));
-                        }
-                    }
-                } else if (formationType === 1) {
-                    // Row formation (1x7)
-                    const cols = Math.min(Math.floor((width - 40) / 28), 7);
-                    const startCoinX = bX + (width - cols * 28) / 2 + 14;
-                    const coinY = roofY - 30;
-
-                    for (let c = 0; c < cols; c++) {
-                        items.push(new Item(startCoinX + c * 28, coinY, 'coin'));
-                    }
-                } else {
-                    // Arc formation
-                    const count = Math.floor(random() * 4) + 3;
-                    const step = (width - 40) / (count + 1);
-                    for (let i = 0; i < count; i++) {
-                        const cx = bX + 20 + step * (i + 1);
-                        const cy = roofY - 25 - Math.sin((i / (count - 1)) * Math.PI) * 40;
-                        items.push(new Item(cx, cy, 'coin'));
-                    }
-                }
-            }
-
-            // Chance for Power-up (Magnet or Extra Life Heart)
-            const powerupRand = random();
-            if (powerupRand < 0.15) {
-                items.push(new Item(bX + width / 2, roofY - 45, 'magnet'));
-            } else if (powerupRand < 0.25) {
-                items.push(new Item(bX + width / 2, roofY - 45, 'heart'));
-            }
-
-            return bX + width;
-        }
-
-        function initGame() {
-            // Speed settings mapping
-            const speeds = { slow: 3.5, normal: 5.0, fast: 7.5 };
-            const baseSettingSpeed = speeds[initialSpeedSetting] || 5.0;
-            
-            // Apply Character Speed Skill Modifier
-            const skill = CHARACTER_SKILLS[playerCountry] || CHARACTER_SKILLS['germany'];
-            baseSpeed = baseSettingSpeed * (skill.speedMult || 1.0);
-            gameSpeed = baseSpeed;
-
-            distanceTraveled = 0;
-            coinsCollected = 0;
-            buildings = [];
-            items = [];
-            player.reset();
-
-            // Spawn first flat starting building
-            const startBuilding = new Building(0, canvas.width * 0.8, 250, getBuildingColor(currentTheme));
-            buildings.push(startBuilding);
-
-            // Generate initial batch of buildings
-            let currentX = startBuilding.width;
-            while (currentX < canvas.width * 2) {
-                currentX = spawnBuilding(currentX);
-            }
-
-            initBackgroundObjects();
-            updateHUD();
-            startBGM();
-        }
-
-        function updatePhysics() {
-            if (gameState !== 'PLAYING') return;
-
-            // Increment game speed gradually over distance
-            gameSpeed = baseSpeed + (distanceTraveled / 1000);
-            distanceTraveled += gameSpeed * 0.05;
-
-            // Scroll Parallax Background Objects (Clouds and Distant Buildings)
-            clouds.forEach(c => {
-                c.x -= c.speed + (gameSpeed * 0.08);
-                if (c.x + c.width < 0) {
-                    c.x = canvas.width + Math.random() * 50;
-                    c.y = Math.random() * (canvas.height * 0.35) + 20;
-                }
-            });
-
-            const bgSpeed = gameSpeed * 0.3; // Distant buildings move at ~30% foreground speed
-            distantBuildings.forEach(bgB => {
-                bgB.x -= bgSpeed;
-            });
-            // Recycle background buildings
-            if (distantBuildings.length > 0 && distantBuildings[0].x + distantBuildings[0].width < -50) {
-                const removed = distantBuildings.shift();
-                const lastX = distantBuildings[distantBuildings.length - 1].x + distantBuildings[distantBuildings.length - 1].width;
-                removed.x = lastX + Math.floor(Math.random() * 30);
-                removed.width = Math.floor(Math.random() * 100) + 120;
-                removed.height = Math.floor(Math.random() * 200) + 180;
-                distantBuildings.push(removed);
-            }
-
-            // Move player horizontally with screen flow if pushed by walls
-            player.update();
-
-            // Building Collision Logic
-            player.isGrounded = false;
-            let onAnyBuilding = false;
-
-            for (let i = 0; i < buildings.length; i++) {
-                const b = buildings[i];
-                b.x -= gameSpeed;
-
-                const bTop = canvas.height - b.height;
-                const bLeft = b.x;
-                const bRight = b.x + b.width;
-
-                // Player Bounding Radius
-                const pLeft = player.x - player.radius;
-                const pRight = player.x + player.radius;
-                const pTop = player.y - player.radius;
-                const pBottom = player.y + player.radius;
-
-                // AABB Intersection check
-                if (pRight > bLeft && pLeft < bRight && pBottom > bTop) {
-                    // Check top roof landing collision (player fell onto top)
-                    const prevBottom = pBottom - player.vy;
-                    if (prevBottom <= bTop + 12 && player.vy >= 0) {
-                        player.y = bTop - player.radius;
-                        player.vy = 0;
-                        player.isGrounded = true;
-                        player.jumpCount = 0;
-                        onAnyBuilding = true;
-                    } 
-                    // Wall side collision (Player hit side of building wall)
-                    else if (pRight > bLeft && pLeft < bLeft && pBottom > bTop + 5) {
-                        // Push player left with the wall collision
-                        player.x = bLeft - player.radius;
-                    }
-                }
-            }
-
-            // If player was pushed too far left (off-screen) or fell into gap
-            if (player.x + player.radius < 0 || player.y - player.radius > canvas.height) {
-                handlePlayerHit();
-            }
-
-            // Return player x gradually back to default position if space allows
-            const targetX = canvas.width * 0.2;
-            if (player.x < targetX && !isCollidingSide()) {
-                player.x = Math.min(targetX, player.x + 2);
-            }
-
-            // Recycle old buildings and spawn new ones
-            buildings = buildings.filter(b => b.x + b.width > -100);
-            const lastBuilding = buildings[buildings.length - 1];
-            if (lastBuilding && lastBuilding.x + lastBuilding.width < canvas.width * 1.5) {
-                spawnBuilding(lastBuilding.x + lastBuilding.width);
-            }
-
-            // Item Collection and Magnet Pull Logic (including Passive Skill Magnets)
-            const activeSkill = player.skill;
-            const passiveMagnetRadius = activeSkill.passiveMagnetRange || 0;
-
-            items.forEach(item => {
-                item.update(gameSpeed);
-
-                // Magnet Attract Effect (Powerup Magnet or Passive Skill Magnet)
-                let magnetPullRadius = 0;
-                if (player.magnetTimer > 0) magnetPullRadius = 280;
-                else if (passiveMagnetRadius > 0) magnetPullRadius = passiveMagnetRadius;
-
-                if (magnetPullRadius > 0 && item.type === 'coin' && !item.collected) {
-                    const dx = player.x - item.x;
-                    const dy = player.y - item.y;
-                    const dist = Math.sqrt(dx * dx + dy * dy);
-                    if (dist < magnetPullRadius) {
-                        item.x += (dx / dist) * 12;
-                        item.y += (dy / dist) * 12;
-                    }
-                }
-
-                // Collection hit test
-                if (!item.collected) {
-                    const dx = player.x - item.x;
-                    const dy = player.y - item.y;
-                    const dist = Math.sqrt(dx * dx + dy * dy);
-                    if (dist < player.radius + item.radius) {
-                        item.collected = true;
-                        if (item.type === 'coin') {
-                            coinsCollected++;
-                            playSound('coin');
-                        } else if (item.type === 'heart') {
-                            player.lives++;
-                            playSound('powerup');
-                        } else if (item.type === 'magnet') {
-                            // Magnet Skill duration modifier
-                            const baseDuration = 10;
-                            const mult = activeSkill.magnetMultiplier || 1.0;
-                            player.magnetTimer = baseDuration * mult;
-                            playSound('powerup');
-                        }
-                        updateHUD();
-                    }
-                }
-            });
-
-            items = items.filter(i => i.x > -50 && !i.collected);
-
-            updateHUD();
-
-            // Multiplayer Data Syncing over PeerJS
-            if (gameMode === 'MULTI' && peerConn && peerConn.open) {
-                peerConn.send({
-                    type: 'sync',
-                    x: player.x,
-                    y: player.y,
-                    spinAngle: player.spinAngle,
-                    score: Math.floor(distanceTraveled),
-                    country: playerCountry,
-                    emotion: playerEmotion,
-                    lives: player.lives
-                });
-            }
-        }
-
-        function isCollidingSide() {
-            for (let b of buildings) {
-                const bTop = canvas.height - b.height;
-                if (player.x + player.radius + 5 > b.x && player.x - player.radius < b.x && player.y + player.radius > bTop + 5) {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        function handlePlayerHit() {
-            playSound('hit');
-            if (player.lives > 1) {
-                player.lives--;
-                // Respawn above screen
-                player.x = canvas.width * 0.2;
-                player.y = 50;
-                player.vy = 0;
-            } else {
-                gameOver();
-            }
-        }
-
-        function gameOver() {
-            gameState = 'GAMEOVER';
-            stopBGM();
-            document.getElementById('hud').classList.add('hidden');
-            document.getElementById('finalScoreText').textContent = `${Math.floor(distanceTraveled)} m`;
-            document.getElementById('finalCoinsText').textContent = coinsCollected;
-            document.getElementById('gameOverModal').classList.remove('hidden');
-        }
-
-        function render() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            // Draw Dynamic Background Sky
-            drawSkyBackground();
-
-            // Draw Background Clouds & Distant Building Silhouettes
-            drawParallaxBackground();
-
-            // Draw Foreground Buildings
-            buildings.forEach(b => b.draw(ctx, currentTheme));
-
-            // Draw Items
-            items.forEach(i => i.draw(ctx));
-
-            // Draw Ghost Opponent in Multiplayer
-            if (gameMode === 'MULTI') {
-                ghostPlayer.draw(ctx, ghostPlayer.country || 'japan', ghostPlayer.emotion || 'lol.png', true);
-            }
-
-            // Draw Player
-            if (gameState === 'PLAYING' || gameState === 'PAUSED') {
-                player.draw(ctx, playerCountry, playerEmotion);
-            }
-
-            requestAnimationFrame(renderLoop);
-        }
-
-        function drawSkyBackground() {
-            let grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
-            if (currentTheme === 'morning') {
-                grad.addColorStop(0, '#fdba74'); // Warm orange morning
-                grad.addColorStop(0.6, '#f472b6');
-                grad.addColorStop(1, '#38bdf8');
-            } else if (currentTheme === 'day') {
-                grad.addColorStop(0, '#38bdf8'); // Sunny Sky blue
-                grad.addColorStop(0.7, '#bae6fd');
-                grad.addColorStop(1, '#e0f2fe');
-            } else if (currentTheme === 'night') {
-                grad.addColorStop(0, '#090d16'); // Dark night
-                grad.addColorStop(0.7, '#0f172a');
-                grad.addColorStop(1, '#1e1b4b');
-            }
-            ctx.fillStyle = grad;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            // Draw stars if night theme
-            if (currentTheme === 'night') {
-                ctx.fillStyle = '#ffffff';
-                for (let i = 0; i < 30; i++) {
-                    const sx = (i * 137) % canvas.width;
-                    const sy = (i * 93) % (canvas.height * 0.5);
-                    ctx.fillRect(sx, sy, 2, 2);
-                }
-            }
-        }
-
-        function drawParallaxBackground() {
-            ctx.save();
-
-            // 1. Clouds
-            clouds.forEach(c => {
-                ctx.fillStyle = currentTheme === 'night' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.45)';
-                ctx.beginPath();
-                ctx.ellipse(c.x, c.y, c.width / 2, c.height / 2, 0, 0, Math.PI * 2);
-                ctx.fill();
-            });
-
-            // 2. Distant Buildings (Parallax Background Layer)
-            distantBuildings.forEach(bg => {
-                const bTop = canvas.height - bg.height;
-                if (currentTheme === 'morning') {
-                    ctx.fillStyle = 'rgba(124, 45, 18, 0.22)';
-                } else if (currentTheme === 'day') {
-                    ctx.fillStyle = 'rgba(56, 189, 248, 0.28)';
-                } else {
-                    ctx.fillStyle = 'rgba(30, 27, 75, 0.55)';
-                }
-                ctx.fillRect(bg.x, bTop, bg.width, bg.height);
-
-                // Simple subtle windows for background buildings
-                ctx.fillStyle = currentTheme === 'night' ? 'rgba(254, 240, 138, 0.25)' : 'rgba(255, 255, 255, 0.2)';
-                for (let wy = bTop + 20; wy < canvas.height - 20; wy += 35) {
-                    for (let wx = bg.x + 12; wx < bg.x + bg.width - 15; wx += 22) {
-                        ctx.fillRect(wx, wy, 8, 12);
-                    }
-                }
-            });
-
-            ctx.restore();
-        }
-
-        function renderLoop() {
-            updatePhysics();
-            render();
-        }
-
-        function setupInputs() {
-            const triggerJumpOrHold = (e) => {
-                if (gameState !== 'PLAYING') return;
-                player.isHolding = true;
-                if (!e.repeat) {
-                    player.jump();
-                }
-            };
-
-            const releaseHold = () => {
-                player.isHolding = false;
-            };
-
-            // Touch & Mouse Listeners
-            window.addEventListener('pointerdown', (e) => {
-                // Avoid triggers when clicking HUD buttons
-                if (e.target.closest('button') || e.target.closest('#settingsModal') || e.target.closest('#peerModal')) return;
-                triggerJumpOrHold(e);
-            });
-
-            window.addEventListener('pointerup', releaseHold);
-            window.addEventListener('pointercancel', releaseHold);
-
-            // Keyboard Space / ArrowUp
-            window.addEventListener('keydown', (e) => {
-                if (e.code === 'Space' || e.code === 'ArrowUp') {
-                    triggerJumpOrHold(e);
-                }
-            });
-
-            window.addEventListener('keyup', (e) => {
-                if (e.code === 'Space' || e.code === 'ArrowUp') {
-                    releaseHold();
-                }
-            });
-        }
-
-        function updateHUD() {
-            document.getElementById('scoreText').textContent = `${Math.floor(distanceTraveled)} m`;
-            document.getElementById('coinText').textContent = coinsCollected;
-            document.getElementById('lifeText').textContent = `x ${player.lives}`;
-
-            const magnetBadge = document.getElementById('magnetBadge');
-            if (player.magnetTimer > 0) {
-                magnetBadge.classList.remove('hidden');
-                document.getElementById('magnetTimerText').textContent = `${Math.ceil(player.magnetTimer)}s`;
-            } else {
-                magnetBadge.classList.add('hidden');
-            }
-        }
-
-        let peer = null;
-        let peerConn = null;
-
-        function initPeerJS() {
-            // Generate random 6-character room code
-            const randomId = 'pb-' + Math.floor(100000 + Math.random() * 900000);
-            peer = new Peer(randomId);
-
-            peer.on('open', (id) => {
-                document.getElementById('myPeerIdDisplay').textContent = id;
-                document.getElementById('peerStatusText').textContent = '接続待機中...';
-            });
-
-            peer.on('connection', (conn) => {
-                peerConn = conn;
-                setupPeerEvents();
-                document.getElementById('peerStatusText').textContent = '相手と接続されました！対戦を開始します...';
-                
-                // Host sends stage seed and settings to client
-                const sharedSeed = Math.floor(Math.random() * 1000000);
-                seedPRNG(sharedSeed);
-                gameMode = 'MULTI';
-
-                conn.send({
-                    type: 'init',
-                    seed: sharedSeed,
-                    theme: currentTheme,
-                    speed: initialSpeedSetting
-                });
-
-                setTimeout(() => {
-                    document.getElementById('peerModal').classList.add('hidden');
-                    startMultiGame();
-                }, 1000);
-            });
-
-            peer.on('error', (err) => {
-                document.getElementById('peerStatusText').textContent = `通信エラー: ${err.type}`;
-            });
-        }
-
-        function setupPeerEvents() {
-            peerConn.on('data', (data) => {
-                if (data.type === 'init') {
-                    seedPRNG(data.seed);
-                    currentTheme = data.theme;
-                    initialSpeedSetting = data.speed;
-                    gameMode = 'MULTI';
-                    document.getElementById('peerModal').classList.add('hidden');
-                    startMultiGame();
-                } else if (data.type === 'sync') {
-                    ghostPlayer.x = data.x;
-                    ghostPlayer.y = data.y;
-                    ghostPlayer.spinAngle = data.spinAngle;
-                    ghostPlayer.country = data.country;
-                    ghostPlayer.emotion = data.emotion;
-                }
-            });
-        }
-
-        function startMultiGame() {
-            document.getElementById('mainMenu').classList.add('hidden');
-            document.getElementById('hud').classList.remove('hidden');
-            initGame();
-            gameState = 'PLAYING';
-        }
-
-        function updateCharacterPreview() {
-            const previewImg = document.getElementById('menuCharPreview');
-            previewImg.src = getBallImageUrl(playerCountry, playerEmotion);
-            document.getElementById('menuCharName').textContent = playerCountry.toUpperCase();
-
-            // Skill update
-            const skill = CHARACTER_SKILLS[playerCountry] || CHARACTER_SKILLS['germany'];
-            document.getElementById('skillNameText').textContent = skill.name;
-            document.getElementById('skillDescText').textContent = skill.desc;
-
-            document.getElementById('settingsSkillName').textContent = skill.name;
-            document.getElementById('settingsSkillDesc').textContent = skill.desc;
-
-            document.getElementById('hudSkillText').textContent = skill.name;
-        }
-
-        function setupUI() {
-            // Main menu quick char select
-            document.getElementById('quickCharSelect').addEventListener('click', () => {
-                document.getElementById('settingsModal').classList.remove('hidden');
-            });
-
-            // Menu Start Buttons
-            document.getElementById('singleStartBtn').addEventListener('click', () => {
-                gameMode = 'SINGLE';
-                document.getElementById('mainMenu').classList.add('hidden');
-                document.getElementById('hud').classList.remove('hidden');
-                initGame();
-                gameState = 'PLAYING';
-            });
-
-            document.getElementById('multiStartBtn').addEventListener('click', () => {
-                document.getElementById('peerModal').classList.remove('hidden');
-                if (!peer) initPeerJS();
-            });
-
-            // Settings Modal Open/Close
-            document.getElementById('openSettingsBtn').addEventListener('click', () => {
-                document.getElementById('settingsModal').classList.remove('hidden');
-            });
-
-            document.getElementById('closeSettingsBtn').addEventListener('click', () => {
-                document.getElementById('settingsModal').classList.add('hidden');
-            });
-
-            // Country and Emotion Change
-            document.getElementById('countrySelect').addEventListener('change', (e) => {
-                playerCountry = e.target.value;
-                updateCharacterPreview();
-            });
-
-            document.getElementById('emotionSelect').addEventListener('change', (e) => {
-                playerEmotion = e.target.value;
-                updateCharacterPreview();
-            });
-
-            // Segmented Controls logic
-            const setupSegment = (containerId, callback) => {
-                const container = document.getElementById(containerId);
-                const btns = container.querySelectorAll('.segmented-btn');
-                btns.forEach(btn => {
-                    btn.addEventListener('click', () => {
-                        btns.forEach(b => b.classList.remove('active'));
-                        btn.classList.add('active');
-                        callback(btn.dataset.value);
-                    });
-                });
-            };
-
-            setupSegment('timeOfDaySegment', (val) => { currentTheme = val; });
-            setupSegment('speedSegment', (val) => { initialSpeedSetting = val; });
-
-            document.getElementById('soundToggle').addEventListener('change', (e) => {
-                soundEnabled = e.target.checked;
-                if (!soundEnabled) {
-                    stopBGM();
-                } else if (gameState === 'PLAYING') {
-                    startBGM();
-                }
-            });
-
-            document.getElementById('saveSettingsBtn').addEventListener('click', () => {
-                document.getElementById('settingsModal').classList.add('hidden');
-            });
-
-            // PeerJS Modal Buttons
-            document.getElementById('closePeerBtn').addEventListener('click', () => {
-                document.getElementById('peerModal').classList.add('hidden');
-            });
-
-            document.getElementById('copyPeerIdBtn').addEventListener('click', () => {
-                const idText = document.getElementById('myPeerIdDisplay').textContent;
-                navigator.clipboard.writeText(idText);
-                alert('Room IDをコピーしました: ' + idText);
-            });
-
-            document.getElementById('connectPeerBtn').addEventListener('click', () => {
-                const targetId = document.getElementById('joinPeerIdInput').value.trim();
-                if (!targetId || !peer) return;
-
-                document.getElementById('peerStatusText').textContent = '接続中...';
-                peerConn = peer.connect(targetId);
-
-                peerConn.on('open', () => {
-                    setupPeerEvents();
-                    document.getElementById('peerStatusText').textContent = 'ホストへ接続成功！';
-                });
-            });
-
-            // HUD Pause Button
-            document.getElementById('pauseBtn').addEventListener('click', () => {
-                if (gameState === 'PLAYING') {
-                    gameState = 'PAUSED';
-                    pauseBGM();
-                    document.getElementById('pauseModal').classList.remove('hidden');
-                }
-            });
-
-            document.getElementById('resumeBtn').addEventListener('click', () => {
-                gameState = 'PLAYING';
-                startBGM();
-                document.getElementById('pauseModal').classList.add('hidden');
-            });
-
-            document.getElementById('pauseExitBtn').addEventListener('click', () => {
-                gameState = 'MENU';
-                stopBGM();
-                document.getElementById('pauseModal').classList.add('hidden');
-                document.getElementById('hud').classList.add('hidden');
-                document.getElementById('mainMenu').classList.remove('hidden');
-            });
-
-            // Game Over Buttons
-            document.getElementById('restartBtn').addEventListener('click', () => {
-                document.getElementById('gameOverModal').classList.add('hidden');
-                document.getElementById('hud').classList.remove('hidden');
-                initGame();
-                gameState = 'PLAYING';
-            });
-
-            document.getElementById('exitMenuBtn').addEventListener('click', () => {
-                document.getElementById('gameOverModal').classList.add('hidden');
-                document.getElementById('mainMenu').classList.remove('hidden');
-                gameState = 'MENU';
-                stopBGM();
-            });
-
-            updateCharacterPreview();
-        }
-
-        // Window Load Bootstrapper
-        window.onload = function() {
-            setupInputs();
-            setupUI();
-            resizeCanvas();
-            requestAnimationFrame(renderLoop);
-        };
-    </script>
+    <button class="btn d round" id="pauseBtn">❚❚</button>
+  </div>
+</section>
+
+<!-- PAUSE -->
+<section id="pause" class="s mid dim">
+  <div class="pop"><h2>一時停止</h2>
+    <button class="btn g" id="resume">再開する</button>
+    <button class="btn d" id="pauseExit">ホームに戻る</button></div>
+</section>
+
+<!-- GAME OVER -->
+<section id="over" class="s mid dim">
+  <div class="pop"><h2>ゲームオーバー</h2>
+    <div class="rec" id="rec">🎉 NEW RECORD!</div>
+    <div class="stat"><span>走行距離</span><span id="fs">0 m</span></div>
+    <div class="stat"><span>獲得コイン</span><span id="fc">0</span></div>
+    <button class="btn g" id="retry">もう一度プレイ</button>
+    <button class="btn d" id="overHome">ホームへ</button></div>
+</section>
+
+<script>
+'use strict';
+const $=id=>document.getElementById(id),cv=$('c'),ctx=cv.getContext('2d');
+const store={g(k,d){try{const v=localStorage.getItem('hd_'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},s(k,v){try{localStorage.setItem('hd_'+k,JSON.stringify(v))}catch(e){}}};
+const cfg=Object.assign({country:'germany',emo:'lol.png',theme:'day',speed:'normal',sound:true},store.g('cfg',{}));
+const save=Object.assign({best:0,coins:0},store.g('save',{}));
+
+/* ---------- Character skills (gameplay values unchanged) ---------- */
+const D={magnetMultiplier:1,speedMult:1,jumpMult:1,extraLives:0,glideDivisor:10,maxJumps:2};
+const mk=(name,desc,o)=>Object.assign({name,desc},D,o||{});
+const SK={
+ germany:mk('ゲルマン工学 (磁石ブースト)','磁石パワーアップの効果時間が1.5倍(15秒)に延長',{magnetMultiplier:1.5}),
+ japan:mk('新幹線ターボ (高機動)','走行速度+15% & ジャンプ力1.1倍アップ',{speedMult:1.15,jumpMult:1.1}),
+ china:mk('幸運のマネー (磁界&ライフ)','初期ライフ+1 & アイテムなしで周囲のコインを緩やかにひきつける',{extraLives:1,passiveMagnetRange:130}),
+ italy:mk('ピッツァ・グライド (超滞空力)','長押し回転時の落下速度が超超低速化 (通常の1/15)',{glideDivisor:15}),
+ sierraleone:mk('ダイヤモンド・マグネット (ウルトラ磁力)','磁石パワーアップの効果時間が2倍(20秒)',{magnetMultiplier:2}),
+ russia:mk('フォートレス・ボディ (ライフ4個)','圧倒的耐久力！初期ライフ【4個】でスタート！',{speedMult:.95,extraLives:3}),
+ france:mk('ハイ・エラガンス (大ジャンプ)','ジャンプ力が1.25倍に大幅アップ！高層ビルもラクラク飛び越える',{jumpMult:1.25}),
+ poland:mk('Poland Can Into Space! (3段ジャンプ)','宇宙へ届く跳躍！【3段ジャンプ】が可能！',{maxJumps:3}),
+ england472x600:mk('ロイヤル・ペース (安定走行)','走行スピードが少しゆったり(-15%)になりミスを回避しやすい',{speedMult:.85}),
+ usa:mk('フリーダム・バフ (スピード&ライフ)','スピード+10% & 初期ライフ+1',{speedMult:1.1,extraLives:1})
+};
+const COUNTRIES=[['germany','🇩🇪','ドイツ'],['japan','🇯🇵','日本'],['france','🇫🇷','フランス'],['italy','🇮🇹','イタリア'],['china','🇨🇳','中国'],['sierraleone','🇸🇱','シエラレオネ'],['russia','🇷🇺','ロシア'],['poland','🇵🇱','ポーランド'],['england472x600','🇬🇧','イギリス'],['usa','🇺🇸','アメリカ']];
+const EMOS=['lol','normal','happy','smile','surprise','anger','dissatisfaction','itome','plot'];
+
+/* ---------- State ---------- */
+let gameState='MENU',gameMode='SINGLE',speedOv=null,soundOn=cfg.sound;
+let W=innerWidth,H=innerHeight,Q=1,dirty=true,tick=0;
+let buildings=[],items=[],distanceTraveled=0,coinsCollected=0,gameSpeed=5,baseSpeed=5;
+const mkCv=(w,h)=>{const c=document.createElement('canvas');c.width=Math.max(1,w|0);c.height=Math.max(1,h|0);return c};
+
+/* ---------- Audio ---------- */
+const bgm=new Audio('https://raw.githubusercontent.com/PolandBallHub-Operator/pbpark/refs/heads/main/games/HamburgDash/hamburg.mp3');
+bgm.loop=true;bgm.volume=.45;
+const startBGM=()=>{if(soundOn)bgm.play().catch(()=>{})};
+const stopBGM=()=>{bgm.pause();bgm.currentTime=0};
+let ac=null;
+function initAudio(){const A=window.AudioContext||window.webkitAudioContext;if(!ac&&A)ac=new A();if(ac&&ac.state==='suspended')ac.resume()}
+function playSound(t){
+ if(!soundOn)return;initAudio();if(!ac)return;
+ const n=ac.currentTime,o=ac.createOscillator(),g=ac.createGain();o.connect(g);g.connect(ac.destination);let d,v;
+ if(t==='coin'){o.type='triangle';o.frequency.setValueAtTime(987.77,n);o.frequency.setValueAtTime(1318.51,n+.08);d=.2;v=.2}
+ else{const P={jump:['sine',250,600,.15,.3],powerup:['sine',400,1200,.3,.3],hit:['sawtooth',150,40,.25,.4]}[t];
+  o.type=P[0];o.frequency.setValueAtTime(P[1],n);o.frequency.exponentialRampToValueAtTime(P[2],n+P[3]);d=P[3];v=P[4]}
+ g.gain.setValueAtTime(v,n);g.gain.linearRampToValueAtTime(.01,n+d);o.start(n);o.stop(n+d);
+}
+
+/* ---------- Seeded PRNG (multiplayer stage sync) ---------- */
+let seedV=12345;
+const seedPRNG=s=>{seedV=s};
+function random(){
+ if(gameMode!=='MULTI')return Math.random();
+ let t=seedV+=0x6D2B79F5;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return((t^(t>>>14))>>>0)/4294967296;
+}
+
+/* ---------- Sprites (everything heavy is drawn ONCE, then blitted) ---------- */
+const ballUrl=(c,e)=>`https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/${c}/${e}`;
+const ballCache={};
+function ballSprite(country,emo){
+ const u=ballUrl(country,emo);let e=ballCache[u];
+ if(!e){const img=new Image();img.crossOrigin='anonymous';img.src=u;e=ballCache[u]={img,s:null}}
+ if(!e.s&&e.img.complete&&e.img.naturalWidth){
+  const uk=country==='england472x600',sw=uk?472:e.img.naturalWidth,sh=uk?472:e.img.naturalHeight;
+  const c=mkCv(112,112);c.getContext('2d').drawImage(e.img,0,0,sw,sh,0,0,112,112);e.s=c;
+ }
+ return e.s;
+}
+const spr={};
+function mkItemSprites(){
+ for(const t of['coin','heart','magnet']){
+  const c=mkCv(32,32),g=c.getContext('2d');g.textAlign='center';g.textBaseline='middle';
+  if(t==='coin'){g.beginPath();g.arc(16,16,10,0,6.2832);g.fillStyle='#f59e0b';g.fill();g.lineWidth=2;g.strokeStyle='#fef08a';g.stroke();g.fillStyle='#fef08a';g.font='bold 11px sans-serif';g.fillText('$',16,17)}
+  else{g.font='bold 20px sans-serif';g.fillText(t==='heart'?'❤️':'🧲',16,17)}
+  spr[t]=c;
+ }
+}
+mkItemSprites();
+
+/* ---------- Background: far skyline strip + clouds (pre-rendered) ---------- */
+let far=null,farX=0,clouds=[],cloudSpr=null;
+const FAR={morning:'rgba(124,45,18,.22)',day:'rgba(56,189,248,.28)',night:'rgba(30,27,75,.55)'};
+function buildFar(){
+ const w=Math.max(W,700),h=Math.min(H,400),night=cfg.theme==='night';
+ far=mkCv(w,h);const g=far.getContext('2d');let x=0;
+ while(x<w){
+  const bw=Math.min(120+Math.random()*100|0,w-x),bh=180+Math.random()*200|0,top=h-bh;
+  g.fillStyle=FAR[cfg.theme];g.fillRect(x,top,bw,bh);
+  if(Math.random()<.2){g.beginPath();g.moveTo(x+bw/2-8,top);g.lineTo(x+bw/2,top-42);g.lineTo(x+bw/2+8,top);g.fill()}
+  g.fillStyle=night?'rgba(254,240,138,.25)':'rgba(255,255,255,.2)';
+  for(let wy=top+20;wy<h-20;wy+=35)for(let wx=x+12;wx<x+bw-15;wx+=22)g.fillRect(wx,wy,8,12);
+  x+=bw+(Math.random()*30|0);
+ }
+ cloudSpr=mkCv(160,50);const q=cloudSpr.getContext('2d');q.fillStyle=night?'rgba(255,255,255,.1)':'rgba(255,255,255,.6)';
+ for(const[cx,cy,r]of[[45,32,16],[78,24,22],[112,32,16],[80,34,18]]){q.beginPath();q.arc(cx,cy,r,0,6.2832);q.fill()}
+}
+function initClouds(){
+ clouds=[];for(let i=0;i<5;i++){const w=Math.random()*80+90;clouds.push({x:Math.random()*W,y:Math.random()*H*.35+10,w,h:w*.31,sp:Math.random()*.3+.2})}
+}
+function setQ(){cv.width=W*Q|0;cv.height=H*Q|0;ctx.setTransform(Q,0,0,Q,0,0);dirty=true}
+function resize(){W=innerWidth;H=innerHeight;setQ();buildFar();initClouds()}
+addEventListener('resize',resize);
+
+/* ---------- Player ---------- */
+class Player{
+ constructor(){this.radius=28;this.x=W*.2;this.y=H*.5;this.vy=0;this.gravity=.45;this.baseJumpForce=-11.5;this.jumpForce=-11.5;this.jumpCount=0;this.maxJumps=2;this.isGrounded=false;this.isHolding=false;this.spinAngle=0;this.lives=1;this.magnetTimer=0;this.glideDivisor=10;this.skill=SK.germany}
+ applySkill(c){const s=SK[c]||SK.germany;this.skill=s;this.maxJumps=s.maxJumps;this.lives=1+s.extraLives;this.jumpForce=this.baseJumpForce*s.jumpMult;this.glideDivisor=s.glideDivisor}
+ reset(){this.radius=28;this.x=W*.2;this.y=H*.3;this.vy=0;this.jumpCount=0;this.isGrounded=false;this.isHolding=false;this.spinAngle=0;this.applySkill(cfg.country);this.magnetTimer=0}
+ jump(){if(this.jumpCount<this.maxJumps){this.vy=this.jumpForce;this.jumpCount++;this.isGrounded=false;playSound('jump')}}
+ update(){
+  if(this.isHolding&&this.vy>0){this.vy=.8*(10/this.glideDivisor);this.spinAngle+=.22}
+  else{this.vy+=this.gravity;this.spinAngle=this.isGrounded?0:this.spinAngle+.05}
+  this.y+=this.vy;
+  if(this.magnetTimer>0)this.magnetTimer-=1/60;
+ }
+ draw(country,emo,ghost){
+  const s=ballSprite(country,emo),r=this.radius;
+  ctx.save();ctx.translate(this.x,this.y);ctx.rotate(this.spinAngle);if(ghost)ctx.globalAlpha=.55;
+  if(this.magnetTimer>0){ctx.beginPath();ctx.arc(0,0,r+10,0,6.2832);ctx.strokeStyle='rgba(99,102,241,.6)';ctx.lineWidth=4;ctx.stroke()}
+  if(s)ctx.drawImage(s,-r,-r,r*2,r*2);else{ctx.beginPath();ctx.arc(0,0,r,0,6.2832);ctx.fillStyle='#3b82f6';ctx.fill()}
+  ctx.restore();
+ }
+}
+const player=new Player(),ghost=new Player();
+
+/* ---------- Buildings: designed once into an offscreen canvas ---------- */
+const PAD=30;let _bp=null;
+function brickPat(g){
+ if(!_bp){const t=mkCv(16,16),q=t.getContext('2d');q.fillStyle='rgba(0,0,0,.16)';q.fillRect(0,0,16,1);q.fillRect(0,8,16,1);q.fillRect(0,1,1,7);q.fillRect(8,9,1,7);_bp=g.createPattern(t,'repeat')}
+ return _bp;
+}
+class Building{
+ constructor(x,w,h){
+  this.x=x;this.width=w;this.height=h;
+  const P=a=>a[random()*a.length|0],st=P(['fachwerk','brick','classic']);
+  const wall=st==='fachwerk'?P(['#fef3c7','#fde68a','#f3f4f6','#fed7aa']):st==='brick'?P(['#9a3412','#7c2d12','#b45309','#881337']):P(['#bae6fd','#fef08a','#fbcfe8','#cbd5e1','#a7f3d0']);
+  const roofC=P(['#991b1b','#7f1d1d','#374151','#854d0e']),rt=random()*3|0;
+  const c=this.cv=mkCv(w+8,h+PAD),g=c.getContext('2d'),X=4,T=PAD,night=cfg.theme==='night';
+  g.lineJoin='round';
+  // Roof: 0 gable+chimney / 1 stepped Hanseatic gable / 2 copper dome
+  if(rt===0){
+   g.fillStyle='#57534e';g.fillRect(X+w*.7,T-20,10,18);
+   g.fillStyle=roofC;g.beginPath();g.moveTo(X-4,T+2);g.lineTo(X+w/2,T-24);g.lineTo(X+w+4,T+2);g.closePath();g.fill();
+   g.strokeStyle='#451a03';g.lineWidth=3;g.stroke();
+  }else if(rt===1){
+   for(let i=0;i<4;i++){const sw=w*(1-i*.22),sx=X+(w-sw)/2;g.fillStyle=wall;g.fillRect(sx,T-6*(i+1),sw,6);g.strokeStyle='#451a03';g.lineWidth=1.5;g.strokeRect(sx,T-6*(i+1),sw,6)}
+  }else{
+   g.fillStyle='#2dd4bf';g.beginPath();g.ellipse(X+w/2,T,Math.min(w*.2,50),22,0,Math.PI,2*Math.PI);g.fill();
+   g.strokeStyle='#0f766e';g.lineWidth=2;g.stroke();g.fillStyle='#0f766e';g.fillRect(X+w/2-1,T-30,2,10);
+  }
+  // Wall
+  g.fillStyle=wall;g.fillRect(X,T,w,h);
+  if(st==='brick'){g.fillStyle=brickPat(g);g.fillRect(X,T,w,h)}
+  else if(st==='fachwerk'){
+   g.strokeStyle='#451a03';g.lineWidth=3;g.beginPath();g.strokeRect(X+2,T+2,w-4,h-4);
+   for(let y=T+45;y<T+h;y+=45){g.moveTo(X,y);g.lineTo(X+w,y);for(let bx=X;bx<X+w-30;bx+=60){g.moveTo(bx,y-45);g.lineTo(bx+30,y);g.moveTo(bx+30,y-45);g.lineTo(bx,y)}}
+   g.stroke();
+  }else{
+   g.fillStyle='rgba(255,255,255,.38)';for(let y=T+45;y<T+h;y+=45)g.fillRect(X,y,w,4);
+   g.fillRect(X,T,8,h);g.fillRect(X+w-8,T,8,h);
+  }
+  const gr=g.createLinearGradient(X,0,X+w,0);gr.addColorStop(0,'rgba(255,255,255,.14)');gr.addColorStop(1,'rgba(0,0,0,.22)');
+  g.fillStyle=gr;g.fillRect(X,T,w,h);
+  // Windows (frame, glass, cross, sill, shutters)
+  const rows=Math.floor((h-30)/40),cols=Math.floor((w-20)/32);
+  for(let r=0;r<rows;r++)for(let cc=0;cc<cols;cc++){
+   if(random()>.25){
+    const lit=random()>.35,arch=st==='brick'||random()>.5,wx=X+12+cc*30,wy=T+30+r*38;
+    if(wx+16<X+w&&wy+24<T+h-40){
+     if(night&&lit){g.fillStyle='rgba(253,224,71,.28)';g.fillRect(wx-4,wy-4,22,30)}
+     g.fillStyle=st==='brick'?'#fef3c7':'#1e293b';g.fillRect(wx-1,wy-1,16,22);
+     g.fillStyle=lit?(night?'#fde047':'#e0f2fe'):(night?'#1e1b4b':'#334155');
+     if(arch){g.beginPath();g.arc(wx+7,wy+6,7,Math.PI,0);g.rect(wx,wy+6,14,13);g.fill()}else g.fillRect(wx+1,wy+1,12,18);
+     g.fillStyle='rgba(0,0,0,.3)';g.fillRect(wx+7,wy+1,1,18);g.fillRect(wx+1,wy+10,12,1);
+     g.fillStyle='#e5e7eb';g.fillRect(wx-3,wy+21,20,3);
+     if(st==='fachwerk'){g.fillStyle='#b91c1c';g.fillRect(wx-5,wy-1,4,22);g.fillRect(wx+15,wy-1,4,22)}
+    }
+   }
+  }
+  // Door + awning + base
+  const dx=X+w/2-11,dy=T+h-34;
+  g.fillStyle='#451a03';g.beginPath();g.arc(dx+11,dy+8,11,Math.PI,0);g.rect(dx,dy+8,22,26);g.fill();
+  g.fillStyle='#fbbf24';g.fillRect(dx+16,dy+22,3,3);
+  g.fillStyle=roofC;g.fillRect(dx-6,dy-6,34,6);
+  g.fillStyle='rgba(0,0,0,.18)';g.fillRect(X,T+h-8,w,8);
+  g.strokeStyle='rgba(0,0,0,.35)';g.lineWidth=2;g.strokeRect(X,T,w,h);
+  // Roof landing ledge
+  g.fillStyle='#475569';g.fillRect(X-2,T,w+4,6);g.fillStyle='#94a3b8';g.fillRect(X-2,T,w+4,2);
+ }
+ draw(){ctx.drawImage(this.cv,Math.round(this.x)-4,H-this.height-PAD)}
+}
+
+class Item{
+ constructor(x,y,type){this.x=x;this.y=y;this.type=type;this.radius=type==='coin'?10:14;this.collected=false;this.baseY=y;this.fo=random()*6.2832}
+ update(sp){this.x-=sp;this.fo+=.08;this.y=this.baseY+Math.sin(this.fo)*4}
+ draw(){ctx.drawImage(spr[this.type],Math.round(this.x)-16,Math.round(this.y)-16)}
+}
+
+/* ---------- Stage generation (rules unchanged) ---------- */
+function spawnBuilding(startX){
+ const gap=Math.floor(random()*80)+70,width=Math.floor(random()*200)+200;
+ const prevH=buildings.length?buildings[buildings.length-1].height:250;
+ const minH=Math.max(140,prevH-170),maxH=Math.min(H-180,prevH+110);
+ const height=Math.floor(random()*(maxH-minH+1))+minH,bX=startX+gap;
+ buildings.push(new Building(bX,width,height));
+ const roofY=H-height;
+ if(random()<.85){
+  const f=Math.floor(random()*3);
+  if(f===0){
+   const rows=Math.floor(random()*3)+2,cols=Math.min(Math.floor((width-40)/28),Math.floor(random()*3)+4);
+   const sx=bX+(width-cols*28)/2+14,sy=roofY-rows*28-15;
+   for(let r=0;r<rows;r++)for(let c=0;c<cols;c++)items.push(new Item(sx+c*28,sy+r*28,'coin'));
+  }else if(f===1){
+   const cols=Math.min(Math.floor((width-40)/28),7),sx=bX+(width-cols*28)/2+14;
+   for(let c=0;c<cols;c++)items.push(new Item(sx+c*28,roofY-30,'coin'));
+  }else{
+   const n=Math.floor(random()*4)+3,st=(width-40)/(n+1);
+   for(let i=0;i<n;i++)items.push(new Item(bX+20+st*(i+1),roofY-25-Math.sin((i/(n-1))*Math.PI)*40,'coin'));
+  }
+ }
+ const pr=random();
+ if(pr<.15)items.push(new Item(bX+width/2,roofY-45,'magnet'));
+ else if(pr<.25)items.push(new Item(bX+width/2,roofY-45,'heart'));
+ return bX+width;
+}
+
+function initGame(){
+ const sp={slow:3.5,normal:5,fast:7.5}[speedOv||cfg.speed]||5;
+ baseSpeed=sp*(SK[cfg.country]||SK.germany).speedMult;gameSpeed=baseSpeed;
+ distanceTraveled=0;coinsCollected=0;buildings=[];items=[];player.reset();tick=0;fc=-30;fs=0;
+ const sb=new Building(0,W*.8,250);buildings.push(sb);
+ let cx=sb.width;while(cx<W*2)cx=spawnBuilding(cx);
+ updateHUD(true);startBGM();
+}
+
+/* ---------- Simulation (fixed 60Hz step) ---------- */
+function bgStep(){
+ const sp=gameState==='PLAYING'?gameSpeed:3;
+ for(const c of clouds){c.x-=c.sp+sp*.08;if(c.x+c.w<0){c.x=W+Math.random()*50;c.y=Math.random()*H*.35+10}}
+ farX+=sp*.3;
+}
+function isCollidingSide(){
+ for(const b of buildings){const bt=H-b.height;if(player.x+player.radius+5>b.x&&player.x-player.radius<b.x&&player.y+player.radius>bt+5)return true}
+ return false;
+}
+function handlePlayerHit(){
+ playSound('hit');
+ if(player.lives>1){player.lives--;player.x=W*.2;player.y=50;player.vy=0}else gameOver();
+}
+function physics(){
+ tick++;
+ gameSpeed=baseSpeed+distanceTraveled/1000;distanceTraveled+=gameSpeed*.05;
+ player.update();player.isGrounded=false;
+ for(const b of buildings){
+  b.x-=gameSpeed;
+  const bt=H-b.height,bl=b.x,br=b.x+b.width,pl=player.x-player.radius,pr=player.x+player.radius,pb=player.y+player.radius;
+  if(pr>bl&&pl<br&&pb>bt){
+   if(pb-player.vy<=bt+12&&player.vy>=0){player.y=bt-player.radius;player.vy=0;player.isGrounded=true;player.jumpCount=0}
+   else if(pr>bl&&pl<bl&&pb>bt+5)player.x=bl-player.radius;
+  }
+ }
+ if(player.x+player.radius<0||player.y-player.radius>H){handlePlayerHit();if(gameState!=='PLAYING')return}
+ const tx=W*.2;if(player.x<tx&&!isCollidingSide())player.x=Math.min(tx,player.x+2);
+ // recycle buildings (in place, no new arrays)
+ let k=0;for(let i=0;i<buildings.length;i++){const b=buildings[i];if(b.x+b.width>-100)buildings[k++]=b}buildings.length=k;
+ const lb=buildings[buildings.length-1];if(lb&&lb.x+lb.width<W*1.5)spawnBuilding(lb.x+lb.width);
+ // items
+ const pm=player.skill.passiveMagnetRange||0,pull=player.magnetTimer>0?280:pm;
+ let changed=false;
+ for(const it of items){
+  it.update(gameSpeed);
+  const dx=player.x-it.x,dy=player.y-it.y,dist=Math.sqrt(dx*dx+dy*dy);
+  if(pull>0&&it.type==='coin'&&!it.collected&&dist<pull&&dist>0){it.x+=dx/dist*12;it.y+=dy/dist*12}
+  if(!it.collected){
+   const d2=Math.hypot(player.x-it.x,player.y-it.y);
+   if(d2<player.radius+it.radius){
+    it.collected=true;changed=true;
+    if(it.type==='coin'){coinsCollected++;playSound('coin')}
+    else if(it.type==='heart'){player.lives++;playSound('powerup')}
+    else{player.magnetTimer=10*player.skill.magnetMultiplier;playSound('powerup')}
+   }
+  }
+ }
+ k=0;for(let i=0;i<items.length;i++){const it=items[i];if(it.x>-50&&!it.collected)items[k++]=it}items.length=k;
+ updateHUD(changed);
+ if(gameMode==='MULTI'&&conn&&conn.open&&(tick&1))conn.send({type:'sync',x:player.x,y:player.y,spinAngle:player.spinAngle,score:Math.floor(distanceTraveled),country:cfg.country,emotion:cfg.emo,lives:player.lives});
+}
+
+/* ---------- HUD (DOM touched only when a value changes) ---------- */
+const hcache={},hel={};
+function setT(id,v){if(hcache[id]===v)return;hcache[id]=v;(hel[id]||(hel[id]=$(id))).textContent=v}
+function updateHUD(){
+ setT('hs',Math.floor(distanceTraveled)+' m');setT('hc',coinsCollected);setT('hl','x '+player.lives);
+ const on=player.magnetTimer>0;
+ if(hcache.mg!==on){hcache.mg=on;$('hm').style.display=on?'inline-block':'none'}
+ if(on)setT('hmt',Math.ceil(player.magnetTimer)+'s');
+}
+
+/* ---------- Render ---------- */
+function render(){
+ ctx.clearRect(0,0,W,H);
+ for(const c of clouds)ctx.drawImage(cloudSpr,c.x|0,c.y|0,c.w,c.h);
+ const o=Math.round(farX%far.width),fy=H-far.height;
+ ctx.drawImage(far,-o,fy);ctx.drawImage(far,far.width-o,fy);
+ for(const b of buildings)if(b.x<W+8&&b.x+b.width>-8)b.draw();
+ for(const i of items)if(i.x>-20&&i.x<W+20)i.draw();
+ if(gameState==='PLAYING'||gameState==='PAUSED'){
+  if(gameMode==='MULTI')ghost.draw(ghost.country||'japan',ghost.emotion||'lol.png',true);
+  player.draw(cfg.country,cfg.emo);
+ }
+}
+let last=0,acc=0,fs=0,fc=0;const STEP=1000/60;
+function loop(t){
+ requestAnimationFrame(loop);
+ const raw=last?t-last:STEP;last=t;let n=0;
+ if(gameState==='MENU'||gameState==='PLAYING'){
+  acc+=Math.min(raw,100);
+  while(acc>=STEP&&n<4){bgStep();if(gameState==='PLAYING')physics();acc-=STEP;n++}
+  if(n===4)acc=0;
+  // auto quality: if the device is struggling, lower the internal resolution
+  if(gameState==='PLAYING'){
+   if(fc>=0)fs+=raw;
+   if(++fc>=45){if(fs/45>26&&Q>.5){Q=Math.max(.5,Q-.25);setQ()}fs=0;fc=0}
+  }
+ }else acc=0;
+ if(n||dirty){dirty=false;render()}
+}
+
+/* ---------- Flow / UI ---------- */
+const scr=(...ids)=>['title','home','hud','pause','over'].forEach(i=>$(i).classList.toggle('on',ids.includes(i)));
+function homeStats(){$('hBest').textContent=save.best;$('hCoin').textContent=save.coins}
+function startGame(mode,ov){gameMode=mode;speedOv=ov||null;initGame();gameState='PLAYING';scr('hud')}
+function toHome(){gameState='MENU';stopBGM();buildings=[];items=[];homeStats();scr('home');dirty=true}
+function gameOver(){
+ gameState='GAMEOVER';stopBGM();
+ const d=Math.floor(distanceTraveled),rec=d>save.best;
+ save.best=Math.max(save.best,d);save.coins+=coinsCollected;store.s('save',save);
+ $('fs').textContent=d+' m';$('fc').textContent=coinsCollected;$('rec').style.display=rec?'block':'none';
+ homeStats();scr('over');
+}
+function doPause(){if(gameState!=='PLAYING')return;gameState='PAUSED';bgm.pause();player.isHolding=false;scr('hud','pause')}
+function setTheme(t){cfg.theme=t;document.body.dataset.t=t;buildFar();dirty=true;store.s('cfg',cfg)}
+function updateChar(){
+ const url=ballUrl(cfg.country,cfg.emo),sk=SK[cfg.country],cn=COUNTRIES.find(c=>c[0]===cfg.country);
+ $('hImg').src=url;$('tImg').src=url;$('hName').textContent=cn[1]+' '+cn[2];
+ ['sName','sName2'].forEach(i=>$(i).textContent=sk.name);['sDesc','sDesc2'].forEach(i=>$(i).textContent=sk.desc);
+ $('hsk').textContent='⚡ '+sk.name;
+ document.querySelectorAll('#cGrid button').forEach(b=>b.classList.toggle('on',b.dataset.c===cfg.country));
+ document.querySelectorAll('#eChips button').forEach(b=>b.classList.toggle('on',b.dataset.e===cfg.emo));
+ store.s('cfg',cfg);
+}
+function seg(id,key,fn){
+ const el=$(id),mark=()=>[...el.children].forEach(b=>b.classList.toggle('on',b.dataset.v===cfg[key]));
+ el.onclick=e=>{const b=e.target.closest('button');if(!b)return;cfg[key]=b.dataset.v;mark();if(fn)fn(b.dataset.v);store.s('cfg',cfg)};
+ mark();
+}
+
+/* ---------- Multiplayer (PeerJS is loaded only when needed) ---------- */
+let peer=null,conn=null;
+function loadPeer(cb){
+ if(window.Peer)return cb();
+ const s=document.createElement('script');s.src='https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js';
+ s.onload=cb;s.onerror=()=>{$('peerSt').textContent='通信ライブラリを読み込めませんでした'};document.head.appendChild(s);
+}
+function peerEvents(){
+ conn.on('data',d=>{
+  if(d.type==='init'){seedPRNG(d.seed);if(d.theme!==cfg.theme)setTheme(d.theme);startGame('MULTI',d.speed)}
+  else if(d.type==='sync'){ghost.x=d.x;ghost.y=d.y;ghost.spinAngle=d.spinAngle;ghost.country=d.country;ghost.emotion=d.emotion}
+ });
+}
+function initPeer(){
+ if(peer)return;$('peerSt').textContent='接続準備中...';
+ loadPeer(()=>{
+  peer=new Peer('pb-'+Math.floor(1e5+Math.random()*9e5));
+  peer.on('open',id=>{$('myId').textContent=id;$('peerSt').textContent='接続待機中...'});
+  peer.on('connection',c=>{
+   conn=c;peerEvents();$('peerSt').textContent='相手と接続されました！対戦を開始します...';
+   const seed=Math.floor(Math.random()*1e6);seedPRNG(seed);gameMode='MULTI';
+   const go=()=>c.send({type:'init',seed,theme:cfg.theme,speed:cfg.speed});
+   if(c.open)go();else c.on('open',go);
+   setTimeout(()=>startGame('MULTI'),1000);
+  });
+  peer.on('error',e=>{$('peerSt').textContent='通信エラー: '+e.type});
+ });
+}
+
+/* ---------- Input ---------- */
+addEventListener('pointerdown',e=>{
+ if(gameState!=='PLAYING'||e.target.closest('button'))return;
+ player.isHolding=true;player.jump();
+});
+const release=()=>{player.isHolding=false};
+addEventListener('pointerup',release);addEventListener('pointercancel',release);
+addEventListener('keydown',e=>{if((e.code==='Space'||e.code==='ArrowUp')&&gameState==='PLAYING'){e.preventDefault();player.isHolding=true;if(!e.repeat)player.jump()}});
+addEventListener('keyup',e=>{if(e.code==='Space'||e.code==='ArrowUp')release()});
+addEventListener('contextmenu',e=>e.preventDefault());
+document.addEventListener('visibilitychange',()=>{if(document.hidden)doPause()});
+
+/* ---------- Boot ---------- */
+$('cGrid').innerHTML=COUNTRIES.map(c=>`<button data-c="${c[0]}"><span>${c[1]}</span>${c[2]}</button>`).join('');
+$('eChips').innerHTML=EMOS.map(e=>`<button data-e="${e}.png">${e}</button>`).join('');
+$('cGrid').onclick=e=>{const b=e.target.closest('button');if(b){cfg.country=b.dataset.c;updateChar()}};
+$('eChips').onclick=e=>{const b=e.target.closest('button');if(b){cfg.emo=b.dataset.e;updateChar()}};
+$('nav').onclick=e=>{
+ const b=e.target.closest('button');if(!b)return;
+ document.querySelectorAll('#nav button').forEach(x=>x.classList.toggle('on',x===b));
+ document.querySelectorAll('#home .panel').forEach(p=>p.classList.toggle('on',p.id==='p-'+b.dataset.p));
+ if(b.dataset.p==='vs')initPeer();
+};
+seg('segT','theme',setTheme);seg('segS','speed');
+$('snd').checked=soundOn;
+$('snd').onchange=e=>{soundOn=cfg.sound=e.target.checked;store.s('cfg',cfg);if(!soundOn)stopBGM();else if(gameState==='PLAYING')startBGM()};
+$('title').onclick=()=>{initAudio();homeStats();scr('home')};
+$('toTitle').onclick=()=>scr('title');
+$('play').onclick=()=>{initAudio();startGame('SINGLE')};
+$('pauseBtn').onclick=doPause;
+$('resume').onclick=()=>{gameState='PLAYING';startBGM();scr('hud')};
+$('pauseExit').onclick=toHome;
+$('retry').onclick=()=>startGame(gameMode,speedOv);
+$('overHome').onclick=toHome;
+$('peerStart').onclick=initPeer;
+$('copyId').onclick=()=>{const t=$('myId').textContent;try{navigator.clipboard.writeText(t);$('peerSt').textContent='Room IDをコピーしました'}catch(e){}};
+$('joinBtn').onclick=()=>{
+ const id=$('joinId').value.trim();if(!id)return;
+ loadPeer(()=>{
+  if(!peer)initPeer();
+  const tryConn=()=>{
+   $('peerSt').textContent='接続中...';conn=peer.connect(id);
+   conn.on('open',()=>{peerEvents();$('peerSt').textContent='ホストへ接続成功！開始を待っています...'});
+  };
+  if(peer.open)tryConn();else peer.on('open',tryConn);
+ });
+};
+document.body.dataset.t=cfg.theme;
+updateChar();resize();
+requestAnimationFrame(loop);
+</script>
 </body>
 </html>
