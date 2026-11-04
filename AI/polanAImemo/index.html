@@ -412,7 +412,7 @@ body.ai-open #aiball-fab{transform:scale(0)}
     <progress id="set-bar" max="100" value="0" style="width:100%;height:6px;display:none"></progress>
     <p id="set-ai-status" style="margin-bottom:10px">未読み込み</p>
     <label class="ui-field"><span>コンテキスト長(大きいほど長いメモを扱えますがメモリを使います)</span>
-      <select id="set-ctx" class="glass-input"><option value="0">モデル標準</option><option value="8192">8192</option><option value="16384">16384</option><option value="32768">32768</option></select></label>
+      <input type="number" id="set-ctx" class="glass-input" min="0" step="1" inputmode="numeric" placeholder="0 = モデル標準"></label>
     <div class="editor-row">
       <label class="ui-field"><span>最大生成トークン</span><input type="number" id="set-maxtok" class="glass-input" min="64" max="8192" step="64"></label>
       <label class="ui-field"><span>temperature</span><input type="number" id="set-temp" class="glass-input" min="0" max="1.5" step="0.1"></label>
@@ -1108,8 +1108,8 @@ async function toggleDarkTheme(d) {
    LocalAI (WebLLM)  ― local-ai.html の土台を拡張
    ===================================================================== */
 const PREFERRED = [
-  'Qwen2.5-1.5B-Instruct-q4f16_1-MLC', 'Qwen2.5-1.5B-Instruct-q4f32_1-MLC',
   'Qwen2.5-0.5B-Instruct-q4f16_1-MLC', 'Qwen2.5-0.5B-Instruct-q4f32_1-MLC',
+  'Qwen2.5-1.5B-Instruct-q4f16_1-MLC', 'Qwen2.5-1.5B-Instruct-q4f32_1-MLC',
   'Qwen2.5-3B-Instruct-q4f16_1-MLC', 'Llama-3.2-3B-Instruct-q4f16_1-MLC',
   'Llama-3.2-1B-Instruct-q4f16_1-MLC', 'gemma-2-2b-it-q4f16_1-MLC'
 ];
@@ -1184,11 +1184,11 @@ const clipTail = (t, n = budgetChars()) => t.length > n ? '…(前略)\n' + t.sl
 function cleanThink(t) { t = t.replace(/<think>[\s\S]*?<\/think>/g, ''); const i = t.indexOf('<think>'); return i >= 0 ? t.slice(0, i) : t; }
 
 /* ---------- AI設定 ---------- */
-async function loadAISettings() { const s = await getSetting('ai_settings'); if (s) aiSet = { ...DEFAULT_AI, ...s }; }
+async function loadAISettings() { const s = await getSetting('ai_settings'); if (s) aiSet = { ...DEFAULT_AI, ...s }; const v = Number(aiSet.ctx); aiSet.ctx = Number.isFinite(v) && v >= 0 ? Math.floor(v) : 0; }
 const persistAI = () => saveSetting('ai_settings', aiSet);
 async function populateSettingsAI() {
   $('set-maxtok').value = aiSet.max_tokens; $('set-temp').value = aiSet.temperature; $('set-system').value = aiSet.system;
-  $('set-confirm').checked = aiSet.confirm; $('set-autoload').checked = aiSet.autoLoad; $('set-ctx').value = String(aiSet.ctx);
+  $('set-confirm').checked = aiSet.confirm; $('set-autoload').checked = aiSet.autoLoad; $('set-ctx').value = aiSet.ctx ? String(aiSet.ctx) : '';
   $('darkmode-toggle').checked = isDarkMode;
   const sel = $('set-model');
   try { await ensureWebLLM(); sel.innerHTML = ''; MODELS.forEach(id => sel.add(new Option(id, id))); if (aiSet.model && MODELS.includes(aiSet.model)) sel.value = aiSet.model; else if (MODELS.length) { sel.value = MODELS[0]; aiSet.model = MODELS[0]; } }
@@ -1198,7 +1198,7 @@ async function populateSettingsAI() {
 function openSettingsDialog() { $('settings-dialog').classList.add('active'); populateSettingsAI(); }
 function closeSettingsDialog() { $('settings-dialog').classList.remove('active'); }
 $('set-model').addEventListener('change', e => { aiSet.model = e.target.value; persistAI(); });
-$('set-ctx').addEventListener('change', e => { aiSet.ctx = Number(e.target.value); persistAI(); toast('次回の読み込みから反映されます'); });
+$('set-ctx').addEventListener('change', e => { const v = Number(e.target.value); aiSet.ctx = Number.isFinite(v) && v >= 0 ? Math.floor(v) : 0; e.target.value = aiSet.ctx ? String(aiSet.ctx) : ''; persistAI(); toast('次回の読み込みから反映されます(0はモデル標準)'); });
 $('set-maxtok').addEventListener('change', e => { aiSet.max_tokens = Math.max(64, Math.min(8192, parseInt(e.target.value, 10) || 2048)); e.target.value = aiSet.max_tokens; persistAI(); });
 $('set-temp').addEventListener('change', e => { const v = parseFloat(e.target.value); aiSet.temperature = Number.isFinite(v) ? Math.max(0, Math.min(1.5, v)) : 0.6; e.target.value = aiSet.temperature; persistAI(); });
 $('set-system').addEventListener('change', e => { aiSet.system = e.target.value.trim() || DEFAULT_AI.system; persistAI(); });
@@ -1223,7 +1223,7 @@ async function loadModelUI() {
     aiSet.model = id; persistAI();
     await LocalAI.load(id, aiSet.ctx, p => { AI.progress = p; renderAIStatus(); });
     toast('AIモデルの準備ができたんよ' + (aiSet.ctx && ctxActual !== aiSet.ctx ? '(コンテキスト長は標準になりました)' : ''));
-  } catch (e) { toast('読み込み失敗: ' + (e.message || e)); botSay('モデルの読み込みに失敗したんよ: ' + (e.message || e)); }
+  } catch (e) { const raw = e?.message || String(e); const hint = /storage buffer|GPU|WebGPU|memory|buffer/i.test(raw) ? ' コンテキスト長を小さくすると改善する場合があります。' : ''; toast('読み込み失敗: ' + raw); botSay('モデルの読み込みに失敗したんよ: ' + raw + hint); }
   finally { AI.loading = false; AI.progress = null; renderAIStatus(); }
 }
 function renderAIStatus() {
@@ -1526,7 +1526,7 @@ function renderTaskCandidates(m, list, fromNote) {
     const due = /^\d{4}-\d{2}-\d{2}$/.test(t.due || '') ? t.due : ''; const pri = [1, 2, 3].includes(+t.priority) ? +t.priority : 2;
     const row = document.createElement('label'); row.className = 'cand-row';
     const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = true;
-    const sp = document.createElement('span'); sp.textContent = `${String(t.text).trim()}${due ? '  📅' + due : ''}  [優先度${pl3(pri)}]`;
+    const sp = document.createElement('span'); sp.textContent = `${String(t.text).trim()}${due ? '  ' + due : ''}  [優先度${pl3(pri)}]`;
     row.append(cb, sp); m.col.insertBefore(row, m.acts); checks.push({ cb, text: String(t.text).trim(), due, pri });
   });
   actBtn(m, '選択をタスクに追加', 'add_task', async b => {
