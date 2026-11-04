@@ -1,0 +1,1670 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+<title>ポーランのミニメモ + AIBall</title>
+<!--
+  ポーランのミニメモ v2.0 (AIBall)
+  - WebLLM(WebGPU)による端末内AI。https:// か http://localhost で開いてください。
+  - データはIndexedDB(PolandNotesDB v2)。v1のメモはそのまま引き継がれます。
+-->
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<style>
+:root{
+  --md-sys-color-primary:#3381FF;--md-sys-color-on-primary:#FFFFFF;
+  --md-sys-color-primary-container:#DCE3FF;--md-sys-color-on-primary-container:#001945;
+  --md-sys-color-secondary:#575E71;--md-sys-color-on-secondary:#FFFFFF;
+  --md-sys-color-secondary-container:#DCB8FF;--md-sys-color-on-secondary-container:#141B2C;
+  --md-sys-color-tertiary:#715573;--md-sys-color-on-tertiary:#FFFFFF;
+  --md-sys-color-tertiary-container:#FBD7FC;--md-sys-color-on-tertiary-container:#29132D;
+  --md-sys-color-background:#F8F9FF;--md-sys-color-on-background:#191C20;
+  --md-sys-color-surface:#F8F9FF;--md-sys-color-on-surface:#191C20;
+  --md-sys-color-surface-variant:#E1E2EC;--md-sys-color-on-surface-variant:#44474F;
+  --md-sys-color-outline:#757780;
+  --accent-primary:var(--md-sys-color-primary);
+  --bg-base:var(--md-sys-color-surface-variant);
+  --glass-bg:var(--md-sys-color-background);
+  --text-main:var(--md-sys-color-on-surface);
+  --text-sub:var(--md-sys-color-on-surface-variant);
+  --bg-secondary:var(--md-sys-color-surface-variant);
+  --nav-bg:var(--md-sys-color-surface);
+  --nav-icon-active:var(--md-sys-color-primary);
+  --m3-easing:cubic-bezier(0.32,0.72,0,1);
+  --transition-smooth:0.35s var(--m3-easing);
+  --card-padding:20px;--card-radius:24px;
+  --ai-grad:linear-gradient(135deg,#5679F0,#D2B5CD,#EB9968);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;padding:0;font-family:'Plus Jakarta Sans','Noto Sans JP',sans-serif;background:var(--bg-base);color:var(--text-main);transition:background-color var(--transition-smooth),color var(--transition-smooth);overflow:hidden;height:100vh;width:100vw}
+#app-viewport{height:100vh;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden}
+header{height:64px;padding:0 20px;display:flex;align-items:center;justify-content:space-between;background:var(--bg-base);flex-shrink:0;z-index:10}
+.logo{font-weight:700;font-size:18px;letter-spacing:-.5px;display:flex;align-items:center;gap:10px}
+.logo img{width:32px;height:32px;object-fit:contain;filter:drop-shadow(0 2px 4px rgba(0,0,0,.1))}
+.header-actions{display:flex;align-items:center;gap:8px}
+.icon-btn{width:40px;height:40px;border-radius:50%;border:none;background:var(--bg-secondary);color:var(--text-main);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .2s}
+.icon-btn:active{transform:scale(.92)}
+main{flex-grow:1;overflow-y:auto;padding:12px 16px 100px;max-width:720px;width:100%;margin:0 auto;-webkit-overflow-scrolling:touch;overscroll-behavior-y:none}
+#overscroll-wrapper{transform-origin:center top;transition:transform 0s linear}
+#overscroll-wrapper.spring-back{transition:transform .5s cubic-bezier(.175,.885,.32,1.275)}
+.glass-card{background:var(--glass-bg);border-radius:var(--card-radius);padding:var(--card-padding);margin-bottom:16px;box-shadow:none;border:none}
+h2{font-size:18px;margin:0 0 12px;font-weight:700;letter-spacing:-.3px}
+p{font-size:13.5px;line-height:1.55;margin:0 0 12px;color:var(--text-sub)}
+.material-symbols-outlined{font-size:22px;line-height:1}
+
+.custom-list{display:flex;flex-direction:column;gap:4px;margin-bottom:12px}
+.list-item{display:flex;align-items:center;justify-content:space-between;padding:12px 8px;cursor:pointer;border-radius:16px;transition:background-color .2s}
+.list-item:active{background:var(--bg-base)}
+.list-item-title{font-weight:600;font-size:15px;margin-bottom:2px;word-break:break-word}
+.list-item-desc{font-size:12.5px;color:var(--text-sub);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
+.pin-badge{color:var(--accent-primary);font-size:16px;vertical-align:middle}
+.note-meta-info{display:flex;align-items:center;flex-wrap:wrap;gap:8px;font-size:11px;color:var(--text-sub);margin-top:6px}
+.mini-tag{background:var(--md-sys-color-primary-container);color:var(--md-sys-color-on-primary-container);padding:1px 8px;border-radius:8px;font-weight:600}
+.mini-folder{background:var(--bg-base);padding:1px 8px;border-radius:8px}
+.item-actions{display:flex;gap:4px}
+.action-icon-btn{border:none;background:transparent;color:var(--text-sub);cursor:pointer;padding:6px;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:background .2s,color .2s}
+.action-icon-btn:hover,.action-icon-btn:active{background:var(--bg-base);color:var(--text-main)}
+.action-icon-btn.recording{color:#ef4444;animation:pulse 1s infinite}
+@keyframes pulse{50%{opacity:.4}}
+
+.ai-btn{border:none;outline:none;padding:12px 20px;border-radius:14px;font-weight:600;font-size:14px;color:var(--md-sys-color-on-primary);cursor:pointer;background:var(--accent-primary);transition:opacity .2s;display:inline-flex;align-items:center;gap:8px;justify-content:center;font-family:inherit}
+.ai-btn:active{opacity:.85}
+.ai-btn-secondary{background:var(--md-sys-color-secondary-container);color:var(--md-sys-color-on-secondary-container)}
+.glass-input-wrapper{margin-bottom:12px;position:relative;display:flex;align-items:center}
+.glass-input{width:100%;padding:12px 16px;border-radius:14px;border:none;background:var(--bg-base);color:var(--text-main);font-size:14px;font-family:inherit}
+.glass-input:focus{outline:2px solid var(--accent-primary)}
+textarea.glass-input{min-height:220px;resize:vertical;line-height:1.6}
+select.glass-input{appearance:auto}
+.search-container{position:relative;margin-bottom:12px}
+.search-container .material-symbols-outlined{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-sub);font-size:20px}
+.search-input{padding-left:44px!important}
+
+.chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;margin-bottom:4px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex-shrink:0;border:none;background:var(--bg-base);color:var(--text-main);padding:7px 14px;border-radius:999px;font-size:12.5px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:5px;font-family:inherit}
+.chip .material-symbols-outlined{font-size:16px}
+.chip small{opacity:.7}
+.chip.active{background:var(--md-sys-color-primary-container);color:var(--md-sys-color-on-primary-container)}
+.chip.tag{font-weight:500;padding:5px 12px}
+
+.badge{background:var(--accent-primary);color:var(--md-sys-color-on-primary);padding:3px 10px;border-radius:10px;font-size:11px;font-weight:700;display:inline-block}
+.empty-state{text-align:center;padding:40px 10px;display:flex;flex-direction:column;align-items:center;gap:12px}
+.empty-state img{width:80px;height:80px;opacity:.85}
+.empty-state div{color:var(--text-sub);font-size:14px;font-weight:500}
+
+/* editor */
+.toolbar{display:flex;gap:2px;flex-wrap:wrap;margin-bottom:8px;padding:2px;background:var(--bg-base);border-radius:14px;width:fit-content;max-width:100%}
+.editor-row{display:flex;gap:8px;margin-bottom:12px}
+.editor-row>*{flex:1;min-width:0}
+.preview-box{background:var(--bg-base);border-radius:14px;padding:12px 16px;min-height:220px;font-size:14px;line-height:1.7;word-break:break-word;margin-bottom:12px}
+.check-row{display:flex;align-items:flex-start;gap:10px;padding:4px 0;cursor:pointer}
+.check-row input{width:20px;height:20px;margin-top:2px;accent-color:var(--accent-primary);flex-shrink:0}
+.check-row.done span{text-decoration:line-through;opacity:.55}
+.attach-list{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.attach-item{display:flex;align-items:center;gap:10px;background:var(--bg-base);border-radius:14px;padding:8px 10px}
+.attach-item img{width:56px;height:56px;object-fit:cover;border-radius:10px}
+.attach-item audio{height:36px;flex:1;min-width:0}
+.attach-item .name{flex:1;min-width:0;font-size:12.5px;word-break:break-all}
+.attach-item a{color:var(--accent-primary);text-decoration:none;display:flex}
+
+/* tasks */
+.task-item{display:flex;align-items:flex-start;gap:10px;padding:10px 4px;border-radius:14px}
+.task-check{width:26px;height:26px;border-radius:50%;border:2px solid var(--md-sys-color-outline);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;color:var(--md-sys-color-on-primary);padding:0}
+.task-item.done .task-check{background:var(--accent-primary);border-color:var(--accent-primary)}
+.task-item.done .task-text{text-decoration:line-through;opacity:.55}
+.task-text{font-size:14.5px;font-weight:600;word-break:break-word;cursor:pointer}
+.task-meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:5px;font-size:11px}
+.pill{padding:2px 8px;border-radius:8px;background:var(--bg-base);color:var(--text-sub);font-weight:600;display:inline-flex;align-items:center;gap:3px}
+.pill.over{background:#fde2e2;color:#b91c1c}
+.pill.today{background:#fff1d6;color:#a16207}
+.pill.p3{background:#fde2e2;color:#b91c1c}.pill.p2{background:#fff1d6;color:#a16207}.pill.p1{background:#dcf5e7;color:#15803d}
+.pill.link{background:var(--md-sys-color-primary-container);color:var(--md-sys-color-on-primary-container);cursor:pointer;border:none;font-family:inherit}
+.task-add{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.task-add .full{grid-column:1/-1}
+
+/* nav */
+.bottom-nav-container{position:fixed;bottom:0;left:0;width:100%;height:72px;background:var(--nav-bg);border-top:1px solid rgba(0,0,0,.05);z-index:500;display:flex;justify-content:space-around;align-items:center;padding-bottom:env(safe-area-inset-bottom)}
+.nav-item{flex:1;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;color:var(--text-sub);position:relative;gap:4px}
+.nav-item span.material-symbols-outlined{font-size:24px;font-variation-settings:'FILL' 0,'wght' 400}
+.nav-label{font-size:11px;font-weight:600}
+.nav-item.active{color:var(--nav-icon-active)}
+.nav-item.active span.material-symbols-outlined{font-variation-settings:'FILL' 1,'wght' 700}
+.nav-badge{position:absolute;top:10px;left:calc(50% + 8px);background:#ef4444;color:#fff;font-size:10px;font-weight:700;border-radius:9px;min-width:16px;height:16px;padding:0 4px;display:none;align-items:center;justify-content:center}
+.view{display:none}
+.view.active{display:block;animation:viewIn .3s var(--m3-easing)}
+@keyframes viewIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* monet */
+.palette-grid,.preset-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-top:12px}
+.palette-chip{padding:12px;border-radius:12px;display:flex;flex-direction:column;justify-content:space-between;height:70px;font-size:11px;font-weight:700}
+.preset-btn{background:var(--bg-base);color:var(--text-main);border:none;padding:10px;border-radius:12px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px;font-family:inherit}
+.preset-dot{width:14px;height:14px;border-radius:50%;flex-shrink:0}
+.color-picker-row{display:flex;align-items:center;gap:12px;margin:12px 0}
+.native-color-picker{width:44px;height:44px;border-radius:50%;border:none;cursor:pointer;background:none;padding:0}
+.native-color-picker::-webkit-color-swatch-wrapper{padding:0}
+.native-color-picker::-webkit-color-swatch{border:2px solid var(--md-sys-color-outline);border-radius:50%}
+
+/* switch */
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;gap:12px}
+.switch{position:relative;display:inline-block;width:52px;height:30px;flex-shrink:0}
+.switch input{opacity:0;width:0;height:0}
+.slider{position:absolute;cursor:pointer;inset:0;background:var(--bg-base);transition:var(--transition-smooth);border-radius:15px}
+.slider:before{position:absolute;content:"";height:22px;width:22px;left:4px;bottom:4px;background:var(--text-sub);transition:var(--transition-smooth);border-radius:50%}
+input:checked+.slider{background:var(--accent-primary)}
+input:checked+.slider:before{transform:translateX(22px);background:var(--md-sys-color-on-primary)}
+
+/* dialogs */
+.dialog-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(4px);z-index:1000;display:flex;align-items:center;justify-content:center;opacity:0;visibility:hidden;transition:all .3s var(--m3-easing)}
+.dialog-overlay.active{opacity:1;visibility:visible}
+.dialog-overlay.top{z-index:1600}
+.glass-dialog{background:var(--glass-bg);border-radius:var(--card-radius);padding:24px;max-width:440px;width:92%;transform:scale(.9) translateY(20px);transition:all .4s var(--m3-easing);max-height:88vh;overflow-y:auto}
+.dialog-overlay.active .glass-dialog{transform:scale(1) translateY(0)}
+.sec-title{font-size:12px;font-weight:700;color:var(--accent-primary);margin:18px 0 6px;letter-spacing:.5px}
+.ui-field{display:block;margin-bottom:10px}
+.ui-field span{display:block;font-size:12px;font-weight:600;color:var(--text-sub);margin-bottom:4px}
+.dialog-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+.folder-row{display:flex;align-items:center;gap:8px;padding:8px 4px}
+.folder-row .nm{flex:1;min-width:0;font-weight:600;font-size:14px}
+.folder-row .ds{font-size:11.5px;color:var(--text-sub);font-weight:400}
+.toast{position:fixed;bottom:150px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--md-sys-color-on-surface);color:var(--md-sys-color-surface);padding:10px 20px;border-radius:12px;font-size:13px;font-weight:600;opacity:0;visibility:hidden;transition:all .3s var(--m3-easing);z-index:2000;box-shadow:0 4px 12px rgba(0,0,0,.15);max-width:88vw;text-align:center}
+.toast.active{opacity:1;visibility:visible;transform:translateX(-50%) translateY(0)}
+
+/* AIBall FAB */
+#aiball-fab{position:fixed;right:16px;bottom:88px;width:60px;height:60px;border-radius:50%;border:none;padding:3px;background:var(--ai-grad);cursor:pointer;z-index:600;box-shadow:0 4px 14px rgba(86,121,240,.4);transition:transform .25s var(--m3-easing)}
+#aiball-fab img{width:100%;height:100%;border-radius:50%;background:var(--glass-bg);object-fit:contain;padding:4px;display:block}
+#aiball-fab:active{transform:scale(.92)}
+body.ai-open #aiball-fab{transform:scale(0)}
+
+/* AI sheet */
+#ai-scrim{position:fixed;inset:0;background:rgba(0,0,0,.4);opacity:0;visibility:hidden;transition:all .3s;z-index:1100}
+#ai-scrim.active{opacity:1;visibility:visible}
+#ai-sheet{position:fixed;left:0;right:0;bottom:0;margin:0 auto;max-width:720px;height:82vh;height:82dvh;background:var(--glass-bg);border-radius:28px 28px 0 0;transform:translateY(105%);transition:transform .4s var(--m3-easing);z-index:1200;display:flex;flex-direction:column;box-shadow:0 -6px 28px rgba(0,0,0,.2)}
+#ai-sheet.dragging{transition:none}
+#ai-sheet.active{transform:translateY(0)}
+.sheet-handle-area{padding:10px 0 4px;display:flex;justify-content:center;cursor:grab;touch-action:none}
+.sheet-handle{width:40px;height:5px;border-radius:3px;background:var(--md-sys-color-outline);opacity:.5}
+.sheet-header{display:flex;align-items:center;gap:10px;padding:4px 16px 8px}
+.sheet-header img{width:38px;height:38px;object-fit:contain;border-radius:50%}
+.sheet-title{flex:1;min-width:0}
+.sheet-title b{font-size:16px;display:block}
+.sheet-title small{font-size:11.5px;color:var(--text-sub)}
+#ai-status{margin:0 16px 8px;padding:8px 12px;border-radius:14px;background:var(--bg-base);font-size:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+#ai-status .grow{flex:1;min-width:0}
+#ai-status progress{width:100%;height:6px}
+.dot-ok{width:8px;height:8px;border-radius:50%;background:#22c55e;display:inline-block;margin-right:6px}
+#ai-messages{flex:1;overflow-y:auto;padding:8px 16px;display:flex;flex-direction:column;gap:12px;overscroll-behavior:contain}
+.msg{display:flex;gap:8px;align-items:flex-start;max-width:100%}
+.msg.user{justify-content:flex-end}
+.msg-av{width:30px;height:30px;object-fit:contain;flex-shrink:0;border-radius:50%}
+.msg-col{max-width:86%;min-width:0}
+.msg-body{padding:10px 14px;border-radius:18px;font-size:14px;line-height:1.65;white-space:pre-wrap;word-break:break-word;background:var(--bg-base);color:var(--text-main);border-top-left-radius:6px}
+.msg.user .msg-body{background:var(--md-sys-color-primary-container);color:var(--md-sys-color-on-primary-container);border-radius:18px;border-top-right-radius:6px}
+.msg-body a{color:var(--accent-primary)}
+.msg-body:empty{display:none}
+.msg-acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.msg-acts:empty{display:none}
+.msg-btn{border:1.5px solid transparent;border-radius:999px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px;font-family:inherit;color:var(--text-main);background:linear-gradient(var(--glass-bg),var(--glass-bg)) padding-box,var(--ai-grad) border-box}
+.msg-btn .material-symbols-outlined{font-size:16px}
+.msg-btn.grad{background:var(--ai-grad);color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.4)}
+.msg-btn:disabled{opacity:.5}
+.cand{background:var(--bg-base);border-radius:14px;padding:10px 12px;margin-top:6px;font-size:13.5px;line-height:1.6;white-space:pre-wrap}
+.cand-row{display:flex;gap:8px;align-items:flex-start;margin-top:6px;background:var(--bg-base);border-radius:14px;padding:8px 10px;font-size:13.5px}
+.cand-row input{width:18px;height:18px;margin-top:2px;accent-color:var(--accent-primary);flex-shrink:0}
+.rel-card{display:block;width:100%;text-align:left;border:none;background:var(--bg-base);color:var(--text-main);border-radius:14px;padding:10px 12px;margin-top:6px;cursor:pointer;font-family:inherit}
+.rel-card b{font-size:13.5px;display:block}
+.rel-card small{font-size:11.5px;color:var(--text-sub)}
+.msg-divider{text-align:center;font-size:11px;color:var(--text-sub);margin:2px 0}
+.dots{display:inline-flex;gap:4px;padding:4px 0}
+.dots i{width:7px;height:7px;border-radius:50%;background:var(--text-sub);animation:bounce 1.2s infinite}
+.dots i:nth-child(2){animation-delay:.15s}.dots i:nth-child(3){animation-delay:.3s}
+@keyframes bounce{0%,60%,100%{transform:translateY(0);opacity:.4}30%{transform:translateY(-5px);opacity:1}}
+#ai-chips{display:flex;gap:8px;overflow-x:auto;padding:8px 16px 4px;scrollbar-width:none}
+#ai-chips::-webkit-scrollbar{display:none}
+#ai-chips .msg-btn{flex-shrink:0;padding:7px 13px}
+.ai-input-row{display:flex;align-items:flex-end;gap:8px;padding:8px 12px calc(12px + env(safe-area-inset-bottom))}
+#ai-input{flex:1;min-height:44px;max-height:120px;resize:none;border-radius:22px;padding:11px 16px;line-height:1.4}
+.round-btn{width:44px;height:44px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:var(--bg-base);color:var(--text-main)}
+.round-btn.recording{color:#ef4444;animation:pulse 1s infinite}
+#ai-send{background:var(--ai-grad);color:#fff;box-shadow:0 2px 8px rgba(86,121,240,.35)}
+#ai-send .material-symbols-outlined{text-shadow:0 1px 2px rgba(0,0,0,.35)}
+</style>
+</head>
+<body>
+<div id="app-viewport">
+  <header>
+    <div class="logo">
+      <img src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/poland/lol.png" alt="Poland Ball">
+      <span>ポーランのミニメモ</span>
+    </div>
+    <div class="header-actions">
+      <button class="icon-btn" onclick="openSettingsDialog()" title="設定"><span class="material-symbols-outlined">settings</span></button>
+    </div>
+  </header>
+
+  <main id="main-scroll-area">
+    <div id="overscroll-wrapper">
+
+      <!-- メモ一覧 -->
+      <section id="view-notes" class="view active">
+        <div class="glass-card">
+          <div class="search-container">
+            <span class="material-symbols-outlined">search</span>
+            <input type="text" id="search-input" class="glass-input search-input" placeholder="メモ・タグを検索..." oninput="renderNotes()">
+          </div>
+          <div id="filter-chips" class="chips"></div>
+          <div id="tag-chips" class="chips"></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin:4px 0 12px">
+            <h2 style="margin:0"><span id="list-title">メモ一覧</span> <span id="note-count-badge" class="badge">0件</span></h2>
+            <button class="ai-btn" id="btn-new" style="padding:6px 14px;font-size:13px" onclick="createNewNote()"><span class="material-symbols-outlined" style="font-size:18px">add</span>新規作成</button>
+            <button class="ai-btn ai-btn-secondary" id="btn-empty-trash" style="padding:6px 14px;font-size:13px;display:none" onclick="emptyTrash()"><span class="material-symbols-outlined" style="font-size:18px">delete_forever</span>空にする</button>
+          </div>
+          <div id="notes-list" class="custom-list"></div>
+          <div id="empty-notes-view" class="empty-state" style="display:none">
+            <img src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/poland/lol.png" alt="">
+            <div id="empty-text">まだメモがないんよ。<br>「新規作成」から書いてほしいんよ</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- エディタ -->
+      <section id="view-editor" class="view">
+        <div class="glass-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:6px">
+            <button class="ai-btn ai-btn-secondary" style="padding:6px 12px;font-size:13px" onclick="goBack()">
+              <span class="material-symbols-outlined" style="font-size:18px">arrow_back</span><span id="back-label">戻る</span>
+            </button>
+            <div class="item-actions">
+              <button class="action-icon-btn" onclick="toggleCurrentPin()" title="ピン留め"><span class="material-symbols-outlined" id="pin-icon">push_pin</span></button>
+              <button class="action-icon-btn" onclick="toggleLock()" title="ロック"><span class="material-symbols-outlined" id="lock-icon">lock_open</span></button>
+              <button class="action-icon-btn" onclick="exportCurrentMarkdown()" title="Markdownで保存"><span class="material-symbols-outlined">markdown</span></button>
+              <button class="action-icon-btn" onclick="shareCurrentNote()" title="共有"><span class="material-symbols-outlined">share</span></button>
+              <button class="action-icon-btn" onclick="deleteCurrentNote()" title="ゴミ箱へ"><span class="material-symbols-outlined" style="color:#ef4444">delete</span></button>
+            </div>
+          </div>
+          <div class="glass-input-wrapper"><input type="text" id="editor-title" class="glass-input" placeholder="タイトルを入力..." style="font-size:16px;font-weight:700"></div>
+          <div class="editor-row">
+            <select id="editor-folder" class="glass-input"></select>
+            <input type="text" id="editor-tags" class="glass-input" placeholder="タグ(カンマ区切り)">
+          </div>
+          <div class="toolbar">
+            <button class="action-icon-btn" onclick="insertChecklist()" title="チェックリスト"><span class="material-symbols-outlined">checklist</span></button>
+            <button class="action-icon-btn" id="btn-preview" onclick="togglePreview()" title="チェック表示/編集"><span class="material-symbols-outlined">visibility</span></button>
+            <button class="action-icon-btn" id="btn-voice" onclick="toggleVoice($('editor-content'),this,'\n')" title="音声入力"><span class="material-symbols-outlined">keyboard_voice</span></button>
+            <button class="action-icon-btn" onclick="$('file-image').click()" title="画像を添付"><span class="material-symbols-outlined">add_photo_alternate</span></button>
+            <button class="action-icon-btn" onclick="$('file-any').click()" title="ファイルを添付"><span class="material-symbols-outlined">attach_file</span></button>
+            <button class="action-icon-btn" id="btn-record" onclick="toggleRecord()" title="録音して添付"><span class="material-symbols-outlined">mic</span></button>
+          </div>
+          <input type="file" id="file-image" accept="image/*" multiple hidden>
+          <input type="file" id="file-any" multiple hidden>
+          <div class="glass-input-wrapper" id="editor-text-wrap"><textarea id="editor-content" class="glass-input" placeholder="ここに日記やメモを書きましょう...&#10;「- [ ] 買い物」でチェックリストになるんよ"></textarea></div>
+          <div id="editor-preview" class="preview-box" style="display:none"></div>
+          <div id="attach-list" class="attach-list"></div>
+          <div class="note-meta-info" id="editor-meta"></div>
+          <div style="margin-top:18px"><button class="ai-btn" style="width:100%" onclick="saveCurrentNote()"><span class="material-symbols-outlined">save</span>保存する</button></div>
+        </div>
+      </section>
+
+      <!-- タスク -->
+      <section id="view-tasks" class="view">
+        <div class="glass-card">
+          <h2>タスク</h2>
+          <div class="task-add">
+            <input type="text" id="task-new-text" class="glass-input full" placeholder="新しいタスク...">
+            <input type="date" id="task-new-due" class="glass-input">
+            <select id="task-new-pri" class="glass-input"><option value="3">優先度: 高</option><option value="2" selected>優先度: 中</option><option value="1">優先度: 低</option></select>
+            <button class="ai-btn full" onclick="addTaskFromForm()"><span class="material-symbols-outlined">add_task</span>追加</button>
+          </div>
+          <div id="task-chips" class="chips"></div>
+          <div class="editor-row" style="margin-bottom:6px;align-items:center">
+            <span style="flex:0 0 auto;font-size:12px;color:var(--text-sub);font-weight:600">並び替え</span>
+            <select id="task-sort" class="glass-input" style="padding:8px 12px" onchange="taskSort=this.value;renderTasks()">
+              <option value="due">期限が近い順</option><option value="priority">優先度順</option><option value="created">新しい順</option><option value="name">名前順</option>
+            </select>
+          </div>
+          <div id="task-list"></div>
+          <div id="task-empty" class="empty-state" style="display:none"><div>ここにタスクはないんよ</div></div>
+        </div>
+      </section>
+
+      <!-- Monet -->
+      <section id="view-monet" class="view">
+        <div class="glass-card">
+          <h2>Monet Dynamic Color Engine</h2>
+          <p>シードカラーを変更すると、Material 3 アルゴリズムでアプリ全体のカラーが再計算・保存されます。</p>
+          <div class="color-picker-row">
+            <input type="color" id="seed-color-input" class="native-color-picker" value="#3381FF" onchange="updateMonetTheme(this.value,true)">
+            <div><div style="font-weight:700;font-size:14px" id="seed-hex-label">#3381FF</div><div style="font-size:12px;color:var(--text-sub)">シードカラーを選択または変更</div></div>
+          </div>
+          <span style="font-size:13px;font-weight:600">プリセット・シード</span>
+          <div class="preset-grid">
+            <button class="preset-btn" onclick="updateMonetTheme('#3381FF',true)"><div class="preset-dot" style="background:#3381FF"></div>Hyperos Blue</button>
+            <button class="preset-btn" onclick="updateMonetTheme('#10B981',true)"><div class="preset-dot" style="background:#10B981"></div>Mint Emerald</button>
+            <button class="preset-btn" onclick="updateMonetTheme('#8B5CF6',true)"><div class="preset-dot" style="background:#8B5CF6"></div>Radiant Violet</button>
+            <button class="preset-btn" onclick="updateMonetTheme('#F59E0B',true)"><div class="preset-dot" style="background:#F59E0B"></div>Amber Glow</button>
+            <button class="preset-btn" onclick="updateMonetTheme('#EC4899',true)"><div class="preset-dot" style="background:#EC4899"></div>Rose Monet</button>
+            <button class="preset-btn" onclick="updateMonetTheme('#64748B',true)"><div class="preset-dot" style="background:#64748B"></div>Slate Neutral</button>
+          </div>
+        </div>
+        <div class="glass-card">
+          <h2>生成された M3 ロール</h2>
+          <div class="palette-grid">
+            <div class="palette-chip" style="background:var(--md-sys-color-primary);color:var(--md-sys-color-on-primary)"><span>Primary</span><span id="hex-primary">-</span></div>
+            <div class="palette-chip" style="background:var(--md-sys-color-primary-container);color:var(--md-sys-color-on-primary-container)"><span>Primary Container</span><span id="hex-primary-container">-</span></div>
+            <div class="palette-chip" style="background:var(--md-sys-color-secondary);color:var(--md-sys-color-on-secondary)"><span>Secondary</span><span id="hex-secondary">-</span></div>
+            <div class="palette-chip" style="background:var(--md-sys-color-tertiary);color:var(--md-sys-color-on-tertiary)"><span>Tertiary</span><span id="hex-tertiary">-</span></div>
+            <div class="palette-chip" style="background:var(--md-sys-color-surface-variant);color:var(--md-sys-color-on-surface-variant)"><span>Surface Variant</span><span id="hex-surface-variant">-</span></div>
+            <div class="palette-chip" style="background:var(--md-sys-color-background);color:var(--md-sys-color-on-background);border:1px solid var(--md-sys-color-outline)"><span>Background</span><span id="hex-background">-</span></div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div class="bottom-nav-container">
+    <div class="nav-item active" data-view="view-notes" onclick="switchView('view-notes')"><span class="material-symbols-outlined">edit_note</span><span class="nav-label">メモ</span></div>
+    <div class="nav-item" data-view="view-tasks" onclick="switchView('view-tasks')"><span class="material-symbols-outlined">task_alt</span><span class="nav-label">タスク</span><span class="nav-badge" id="task-badge">0</span></div>
+    <div class="nav-item" data-view="view-editor" onclick="createNewNote()"><span class="material-symbols-outlined">add_circle</span><span class="nav-label">新規作成</span></div>
+    <div class="nav-item" data-view="view-monet" onclick="switchView('view-monet')"><span class="material-symbols-outlined">palette</span><span class="nav-label">Monet</span></div>
+  </div>
+</div>
+
+<!-- AIBall FAB -->
+<button id="aiball-fab" onclick="openAI()" title="AIBall"><img src="https://raw.githubusercontent.com/PolandBallHub-Operator/PBscreenshot/refs/heads/main/countryball_aiball.png" alt="AIBall"></button>
+
+<!-- AIチャット(ボトムシート) -->
+<div id="ai-scrim" onclick="closeAI()"></div>
+<div id="ai-sheet">
+  <div class="sheet-handle-area" id="sheet-handle"><div class="sheet-handle"></div></div>
+  <div class="sheet-header" id="sheet-header">
+    <img src="https://raw.githubusercontent.com/PolandBallHub-Operator/PBscreenshot/refs/heads/main/countryball_aiball.png" alt="">
+    <div class="sheet-title"><b>AIBall</b><small id="ai-ctx-label">メモ一覧</small></div>
+    <button class="action-icon-btn" onclick="openSettingsDialog()" title="AI設定"><span class="material-symbols-outlined">tune</span></button>
+    <button class="action-icon-btn" onclick="clearAIChat()" title="会話をクリア"><span class="material-symbols-outlined">delete_sweep</span></button>
+    <button class="action-icon-btn" onclick="closeAI()" title="閉じる"><span class="material-symbols-outlined">keyboard_arrow_down</span></button>
+  </div>
+  <div id="ai-status"></div>
+  <div id="ai-messages"></div>
+  <div id="ai-chips"></div>
+  <div class="ai-input-row">
+    <button class="round-btn" id="ai-mic" onclick="toggleVoice($('ai-input'),this,' ')" title="音声入力"><span class="material-symbols-outlined">keyboard_voice</span></button>
+    <textarea id="ai-input" class="glass-input" rows="1" placeholder="AIBallに話しかける…"></textarea>
+    <button class="round-btn" id="ai-send" onclick="onSendClick()"><span class="material-symbols-outlined" id="ai-send-icon">arrow_upward</span></button>
+  </div>
+</div>
+
+<!-- 設定 -->
+<div class="dialog-overlay" id="settings-dialog">
+  <div class="glass-dialog">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+      <img src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/poland/lol.png" alt="" style="width:36px;height:36px">
+      <div><h2 style="margin:0;font-size:17px">アプリ設定</h2><span style="font-size:11px;color:var(--text-sub)">ポーランのミニメモ v2.0 + AIBall</span></div>
+    </div>
+    <div class="toggle-row"><span style="font-size:14px;font-weight:600">ダークテーマ</span>
+      <label class="switch"><input type="checkbox" id="darkmode-toggle" onchange="toggleDarkTheme(this.checked)"><span class="slider"></span></label></div>
+
+    <div class="sec-title">AIモデル(端末内で動作)</div>
+    <label class="ui-field"><span>モデル</span><select id="set-model" class="glass-input"></select></label>
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <button class="ai-btn" style="flex:1" id="set-load" onclick="loadModelUI()">読み込み</button>
+      <button class="ai-btn ai-btn-secondary" onclick="deleteModelCache()">キャッシュ削除</button>
+    </div>
+    <progress id="set-bar" max="100" value="0" style="width:100%;height:6px;display:none"></progress>
+    <p id="set-ai-status" style="margin-bottom:10px">未読み込み</p>
+    <label class="ui-field"><span>コンテキスト長(大きいほど長いメモを扱えますがメモリを使います)</span>
+      <select id="set-ctx" class="glass-input"><option value="0">モデル標準</option><option value="8192">8192</option><option value="16384">16384</option><option value="32768">32768</option></select></label>
+    <div class="editor-row">
+      <label class="ui-field"><span>最大生成トークン</span><input type="number" id="set-maxtok" class="glass-input" min="64" max="8192" step="64"></label>
+      <label class="ui-field"><span>temperature</span><input type="number" id="set-temp" class="glass-input" min="0" max="1.5" step="0.1"></label>
+    </div>
+    <label class="ui-field"><span>システムプロンプト</span><textarea id="set-system" class="glass-input" style="min-height:80px"></textarea></label>
+    <div class="toggle-row"><span style="font-size:13.5px;font-weight:600">AI実行前に確認する</span>
+      <label class="switch"><input type="checkbox" id="set-confirm"><span class="slider"></span></label></div>
+    <div class="toggle-row"><span style="font-size:13.5px;font-weight:600">起動時にキャッシュ済みモデルを自動読込</span>
+      <label class="switch"><input type="checkbox" id="set-autoload"><span class="slider"></span></label></div>
+
+    <div class="sec-title">データ</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button class="ai-btn ai-btn-secondary" style="justify-content:flex-start" onclick="exportAllMarkdown()"><span class="material-symbols-outlined">markdown</span>全メモをMarkdownでエクスポート</button>
+      <button class="ai-btn ai-btn-secondary" style="justify-content:flex-start" onclick="exportNotesJSON()"><span class="material-symbols-outlined">download</span>バックアップ (JSON)</button>
+      <button class="ai-btn ai-btn-secondary" style="justify-content:flex-start;color:#ef4444" onclick="confirmClearAllData()"><span class="material-symbols-outlined" style="color:#ef4444">delete_forever</span>すべてのメモとタスクを削除</button>
+    </div>
+    <div style="margin-top:18px"><button class="ai-btn" style="width:100%" onclick="closeSettingsDialog()">閉じる</button></div>
+  </div>
+</div>
+
+<!-- フォルダ管理 -->
+<div class="dialog-overlay" id="folder-dialog">
+  <div class="glass-dialog">
+    <h2>フォルダ管理</h2>
+    <p>スマートフォルダは、ジャンルの説明を書いておくとAIがメモを自動分類します。</p>
+    <div id="folder-list"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+      <button class="ai-btn ai-btn-secondary" onclick="addFolder(false)"><span class="material-symbols-outlined">create_new_folder</span>フォルダ</button>
+      <button class="ai-btn ai-btn-secondary" onclick="addFolder(true)"><span class="material-symbols-outlined">auto_awesome</span>スマート</button>
+    </div>
+    <div class="dialog-btns">
+      <button class="ai-btn ai-btn-secondary" onclick="closeFolderManager();runChip('smart')">AIで分類する</button>
+      <button class="ai-btn" onclick="closeFolderManager()">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<!-- 汎用ダイアログ -->
+<div class="dialog-overlay top" id="ui-dialog">
+  <div class="glass-dialog">
+    <h2 id="ui-title">確認</h2>
+    <p id="ui-msg" style="white-space:pre-wrap"></p>
+    <div id="ui-fields"></div>
+    <div class="dialog-btns">
+      <button class="ai-btn ai-btn-secondary" id="ui-cancel">キャンセル</button>
+      <button class="ai-btn" id="ui-ok">OK</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast-message">操作を完了しました</div>
+
+<!-- Material Color Utilities (失敗してもアプリは動く) -->
+<script type="module">
+try {
+  const m = await import('https://esm.run/@material/material-color-utilities');
+  window.M3Monet = { argbFromHex: m.argbFromHex, hexFromArgb: m.hexFromArgb, themeFromSourceColor: m.themeFromSourceColor };
+  if (window.updateMonetTheme) window.updateMonetTheme(window.currentSeedColorGetter ? window.currentSeedColorGetter() : '#3381FF', false);
+} catch (e) { console.warn('Monet engine unavailable, using fallback', e); }
+</script>
+
+<script>
+/* =====================================================================
+   ポーランのミニメモ v2.0 + AIBall
+   ===================================================================== */
+const $ = id => document.getElementById(id);
+const DB_NAME = 'PolandNotesDB', DB_VERSION = 2;
+const AIBALL_IMG = 'https://raw.githubusercontent.com/PolandBallHub-Operator/PBscreenshot/refs/heads/main/countryball_aiball.png';
+const DEFAULT_AI = {
+  model: '', ctx: 8192, max_tokens: 2048, temperature: 0.6,
+  system: 'あなたはメモアプリのAIアシスタント「AIBall」です。必ず日本語で、実用的に、分かりやすく答えてください。',
+  confirm: true, autoLoad: true
+};
+
+let db = null;
+let currentSeedColor = '#3381FF';
+window.currentSeedColorGetter = () => currentSeedColor;
+let isDarkMode = false;
+let currentThemeObj = null;
+let aiSet = { ...DEFAULT_AI };
+
+let notes = [], tasks = [], folders = [];
+let view = 'view-notes', returnView = 'view-notes';
+let listFilter = { type: 'all' };
+let taskFilter = 'open', taskSort = 'due';
+let ed = null;
+const unlocked = new Set();
+
+/* ---------- ユーティリティ ---------- */
+function escapeHtml(s) { return s == null ? '' : String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
+function pad(n) { return String(n).padStart(2, '0'); }
+function formatDate(iso) { if (!iso) return ''; const d = new Date(iso); return `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`; }
+function todayStr() { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
+function stamp() { const d = new Date(); return `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`; }
+function randHex(n) { return [...crypto.getRandomValues(new Uint8Array(n))].map(b => b.toString(16).padStart(2, '0')).join(''); }
+let toastTimer = null;
+function toast(msg) { const t = $('toast-message'); t.textContent = msg; t.classList.add('active'); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('active'), 2400); }
+function downloadBlob(blob, name) { const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); }
+function safeName(s) { return (s || 'メモ').replace(/[\\/:*?"<>|]/g, '_').slice(0, 60); }
+function copyText(text) {
+  if (navigator.clipboard?.writeText) return navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
+  fallbackCopy(text);
+}
+function fallbackCopy(text) { const t = document.createElement('textarea'); t.value = text; document.body.appendChild(t); t.select(); try { document.execCommand('copy'); } catch {} document.body.removeChild(t); }
+
+/* ---------- 汎用ダイアログ ---------- */
+function uiForm({ title = '確認', message = '', fields = [], ok = 'OK', cancel = 'キャンセル' }) {
+  return new Promise(resolve => {
+    const ov = $('ui-dialog'), box = $('ui-fields'), okB = $('ui-ok'), noB = $('ui-cancel');
+    $('ui-title').textContent = title;
+    $('ui-msg').textContent = message; $('ui-msg').style.display = message ? 'block' : 'none';
+    box.innerHTML = '';
+    fields.forEach(f => {
+      const wrap = document.createElement('label'); wrap.className = 'ui-field';
+      const lab = document.createElement('span'); lab.textContent = f.label || '';
+      let el;
+      if (f.type === 'select') { el = document.createElement('select'); (f.options || []).forEach(o => el.add(new Option(o.label, o.value))); el.value = f.value ?? ''; }
+      else if (f.type === 'textarea') { el = document.createElement('textarea'); el.rows = 3; el.style.minHeight = '80px'; el.value = f.value || ''; }
+      else { el = document.createElement('input'); el.type = f.type || 'text'; el.value = f.value || ''; }
+      el.className = 'glass-input'; if (f.placeholder) el.placeholder = f.placeholder; el.dataset.key = f.key;
+      wrap.append(lab, el); box.append(wrap);
+    });
+    okB.textContent = ok; noB.textContent = cancel || ''; noB.style.display = cancel ? '' : 'none';
+    const done = v => { ov.classList.remove('active'); okB.onclick = noB.onclick = null; box.onkeydown = null; resolve(v); };
+    okB.onclick = () => { const out = {}; box.querySelectorAll('[data-key]').forEach(e => out[e.dataset.key] = e.value); done(out); };
+    noB.onclick = () => done(null);
+    box.onkeydown = e => { if (e.key === 'Enter' && e.target.tagName === 'INPUT') { e.preventDefault(); okB.click(); } };
+    ov.classList.add('active');
+    const first = box.querySelector('input,textarea,select'); if (first) setTimeout(() => first.focus(), 80);
+  });
+}
+async function uiConfirm(message, title = '確認', ok = '実行') { return !!(await uiForm({ title, message, ok })); }
+
+/* ---------- IndexedDB ---------- */
+function openDatabase() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = e => {
+      const d = e.target.result;
+      if (!d.objectStoreNames.contains('notes')) { const s = d.createObjectStore('notes', { keyPath: 'id', autoIncrement: true }); s.createIndex('updatedAt', 'updatedAt', { unique: false }); }
+      if (!d.objectStoreNames.contains('settings')) d.createObjectStore('settings', { keyPath: 'key' });
+      if (!d.objectStoreNames.contains('tasks')) d.createObjectStore('tasks', { keyPath: 'id', autoIncrement: true });
+      if (!d.objectStoreNames.contains('folders')) d.createObjectStore('folders', { keyPath: 'id', autoIncrement: true });
+    };
+    req.onsuccess = e => { db = e.target.result; resolve(db); };
+    req.onerror = e => reject(e);
+  });
+}
+function idb(store, mode, fn) {
+  return new Promise((res, rej) => {
+    if (!db) return res(undefined);
+    const t = db.transaction(store, mode); const s = t.objectStore(store); let r;
+    try { r = fn(s); } catch (e) { rej(e); return; }
+    t.oncomplete = () => res(r?.result);
+    t.onerror = () => rej(t.error); t.onabort = () => rej(t.error);
+  });
+}
+const getSetting = async key => { const r = await idb('settings', 'readonly', s => s.get(key)); return r ? r.value : null; };
+const saveSetting = (key, value) => idb('settings', 'readwrite', s => s.put({ key, value }));
+
+/* ---------- データ読込 ---------- */
+async function refreshNotes() { notes = (await idb('notes', 'readonly', s => s.getAll())) || []; renderNotes(); }
+async function refreshFolders() { folders = (await idb('folders', 'readonly', s => s.getAll())) || []; renderNotes(); fillFolderSelect(); }
+async function refreshTasks() { tasks = (await idb('tasks', 'readonly', s => s.getAll())) || []; renderTasks(); updateTaskBadge(); }
+const isLocked = n => !!n.lock && !unlocked.has(n.id);
+
+/* =====================================================================
+   メモ一覧 / フィルタ
+   ===================================================================== */
+function sortNotes(arr) {
+  return arr.sort((a, b) => (!!a.isPinned !== !!b.isPinned) ? (b.isPinned ? 1 : -1) : new Date(b.updatedAt) - new Date(a.updatedAt));
+}
+function countChecks(text) {
+  const all = (text || '').match(/^\s*[-*]\s\[[ xX]\]/gm) || [];
+  const done = (text || '').match(/^\s*[-*]\s\[[xX]\]/gm) || [];
+  return { total: all.length, done: done.length };
+}
+function setFilter(f) { listFilter = f; renderNotes(); }
+function renderNotes() {
+  const live = notes.filter(n => !n.deletedAt), trash = notes.filter(n => n.deletedAt);
+  // chips
+  const box = $('filter-chips'); box.innerHTML = '';
+  const addChip = (label, icon, active, fn, count) => {
+    const b = document.createElement('button'); b.className = 'chip' + (active ? ' active' : '');
+    b.innerHTML = `<span class="material-symbols-outlined">${icon}</span>${escapeHtml(label)}${count != null ? ` <small>${count}</small>` : ''}`;
+    b.onclick = fn; box.append(b);
+  };
+  addChip('すべて', 'notes', listFilter.type === 'all', () => setFilter({ type: 'all' }), live.length);
+  folders.filter(f => f.kind !== 'smart').forEach(f => addChip(f.name, 'folder', listFilter.type === 'folder' && listFilter.id === f.id, () => setFilter({ type: 'folder', id: f.id }), live.filter(n => n.folderId === f.id).length));
+  folders.filter(f => f.kind === 'smart').forEach(f => addChip(f.name, 'auto_awesome', listFilter.type === 'smart' && listFilter.id === f.id, () => setFilter({ type: 'smart', id: f.id }), live.filter(n => (n.smartIds || []).includes(f.id)).length));
+  addChip('ゴミ箱', 'delete', listFilter.type === 'trash', () => setFilter({ type: 'trash' }), trash.length);
+  addChip('管理', 'tune', false, openFolderManager);
+  // tags
+  const tagBox = $('tag-chips'); tagBox.innerHTML = '';
+  const tagSet = new Set(); live.forEach(n => (n.tags || []).forEach(t => tagSet.add(t)));
+  [...tagSet].sort().forEach(t => {
+    const b = document.createElement('button'); b.className = 'chip tag' + (listFilter.type === 'tag' && listFilter.tag === t ? ' active' : '');
+    b.textContent = '#' + t; b.onclick = () => setFilter(listFilter.type === 'tag' && listFilter.tag === t ? { type: 'all' } : { type: 'tag', tag: t }); tagBox.append(b);
+  });
+  tagBox.style.display = tagSet.size ? '' : 'none';
+
+  const inTrash = listFilter.type === 'trash';
+  $('btn-new').style.display = inTrash ? 'none' : '';
+  $('btn-empty-trash').style.display = inTrash && trash.length ? '' : 'none';
+  let titleTxt = 'メモ一覧';
+  let arr = notes.filter(n => inTrash ? !!n.deletedAt : !n.deletedAt);
+  if (listFilter.type === 'folder') { arr = arr.filter(n => n.folderId === listFilter.id); titleTxt = folders.find(f => f.id === listFilter.id)?.name || titleTxt; }
+  else if (listFilter.type === 'smart') { arr = arr.filter(n => (n.smartIds || []).includes(listFilter.id)); titleTxt = (folders.find(f => f.id === listFilter.id)?.name || '') + ' (スマート)'; }
+  else if (listFilter.type === 'tag') { arr = arr.filter(n => (n.tags || []).includes(listFilter.tag)); titleTxt = '#' + listFilter.tag; }
+  else if (inTrash) titleTxt = 'ゴミ箱 (30日で自動削除)';
+  $('list-title').textContent = titleTxt;
+  const q = $('search-input').value.toLowerCase().trim();
+  if (q) arr = arr.filter(n => (n.title || '').toLowerCase().includes(q) || (n.tags || []).some(t => t.toLowerCase().includes(q)) || (!isLocked(n) && !n.lock && (n.content || '').toLowerCase().includes(q)) || (n.lock && unlocked.has(n.id) && (n.content || '').toLowerCase().includes(q)));
+  sortNotes(arr);
+
+  $('note-count-badge').textContent = arr.length + '件';
+  const list = $('notes-list'); list.innerHTML = '';
+  $('empty-notes-view').style.display = arr.length ? 'none' : 'flex';
+  $('empty-text').innerHTML = inTrash ? 'ゴミ箱は空なんよ' : (q ? '見つからなかったんよ' : 'まだメモがないんよ。<br>「新規作成」から書いてほしいんよ');
+  arr.forEach(n => {
+    const el = document.createElement('div'); el.className = 'list-item';
+    const locked = isLocked(n);
+    const title = (n.title || '').trim() || '無題のメモ';
+    const body = locked ? 'ロックされたメモです' : ((n.content || '').trim() || '（本文なし）');
+    const chk = locked ? { total: 0 } : countChecks(n.content);
+    const folder = folders.find(f => f.id === n.folderId);
+    const tagsHtml = (n.tags || []).slice(0, 4).map(t => `<span class="mini-tag">#${escapeHtml(t)}</span>`).join('');
+    el.innerHTML = `
+      <div style="flex:1;min-width:0;padding-right:10px">
+        <div class="list-item-title">${n.isPinned ? '<span class="material-symbols-outlined pin-badge">push_pin</span> ' : ''}${n.lock ? '<span class="material-symbols-outlined pin-badge" style="color:var(--text-sub)">lock</span> ' : ''}${escapeHtml(title)}</div>
+        <div class="list-item-desc">${escapeHtml(body)}</div>
+        <div class="note-meta-info"><span>${formatDate(n.updatedAt)}</span>
+          ${folder ? `<span class="mini-folder">📁 ${escapeHtml(folder.name)}</span>` : ''}
+          ${chk.total ? `<span>☑ ${chk.done}/${chk.total}</span>` : ''}
+          ${(n.attachments || []).length ? `<span>📎 ${(n.attachments || []).length}</span>` : ''}
+          ${tagsHtml}</div>
+      </div>
+      <div class="item-actions"></div>`;
+    const acts = el.querySelector('.item-actions');
+    acts.onclick = e => e.stopPropagation();
+    if (inTrash) {
+      acts.append(iconBtn('restore_from_trash', '復元', () => restoreNote(n.id)), iconBtn('delete_forever', '完全に削除', () => purgeNote(n.id), '#ef4444'));
+    } else {
+      acts.append(iconBtn('share', '共有', () => { if (locked) return toast('ロック中のメモは共有できません'); executeShare(n.title, n.content); }));
+      el.onclick = () => openNoteEditor(n.id);
+    }
+    list.append(el);
+  });
+}
+function iconBtn(icon, title, fn, color) {
+  const b = document.createElement('button'); b.className = 'action-icon-btn'; b.title = title;
+  b.innerHTML = `<span class="material-symbols-outlined" style="font-size:20px;${color ? 'color:' + color : ''}">${icon}</span>`; b.onclick = fn; return b;
+}
+async function restoreNote(id) { const n = notes.find(x => x.id === id); if (!n) return; n.deletedAt = null; await idb('notes', 'readwrite', s => s.put(n)); await refreshNotes(); toast('メモを復元しました'); }
+async function purgeNote(id) {
+  if (!(await uiConfirm('このメモを完全に削除します。元に戻せません。', '完全に削除', '削除'))) return;
+  await idb('notes', 'readwrite', s => s.delete(id)); await refreshNotes(); toast('完全に削除しました');
+}
+async function emptyTrash() {
+  const t = notes.filter(n => n.deletedAt); if (!t.length) return;
+  if (!(await uiConfirm(`ゴミ箱の${t.length}件を完全に削除します。`, 'ゴミ箱を空にする', '削除'))) return;
+  await idb('notes', 'readwrite', s => { t.forEach(n => s.delete(n.id)); return null; }); await refreshNotes(); toast('ゴミ箱を空にしました');
+}
+async function purgeOldTrash() {
+  const limit = Date.now() - 30 * 86400000;
+  const old = notes.filter(n => n.deletedAt && new Date(n.deletedAt).getTime() < limit);
+  if (old.length) { await idb('notes', 'readwrite', s => { old.forEach(n => s.delete(n.id)); return null; }); await refreshNotes(); }
+}
+
+/* =====================================================================
+   エディタ
+   ===================================================================== */
+function fillFolderSelect() {
+  const sel = $('editor-folder'); const cur = ed ? (ed.folderId ?? '') : '';
+  sel.innerHTML = ''; sel.add(new Option('📁 フォルダなし', ''));
+  folders.filter(f => f.kind !== 'smart').forEach(f => sel.add(new Option('📁 ' + f.name, f.id)));
+  sel.value = String(cur);
+}
+function loadEditor(n) {
+  ed = { id: n?.id ?? null, createdAt: n?.createdAt || null, folderId: n?.folderId ?? null, pinned: !!n?.isPinned, lock: n?.lock || null, attachments: (n?.attachments || []).map(a => ({ ...a })), preview: false, dirty: false };
+  $('editor-title').value = n?.title || ''; $('editor-content').value = n?.content || ''; $('editor-tags').value = (n?.tags || []).join(', ');
+  fillFolderSelect(); setPreview(false); updatePinStateUI(ed.pinned); updateLockUI(); renderAttachments(); updateMeta();
+  $('back-label').textContent = returnView === 'view-tasks' ? 'タスクへ' : '戻る';
+}
+function updateMeta() {
+  if (!ed) return;
+  const c = $('editor-content').value; const chk = countChecks(c);
+  const n = ed.id ? notes.find(x => x.id === ed.id) : null;
+  $('editor-meta').innerHTML = `<span>${n ? '更新: ' + formatDate(n.updatedAt) : '新規作成'}</span><span>文字数: ${c.length}</span>${chk.total ? `<span>☑ ${chk.done}/${chk.total}</span>` : ''}`;
+}
+async function createNewNote() {
+  if (view === 'view-editor' && ed?.dirty) await saveCurrentNote({ silent: true, stay: true });
+  returnView = view === 'view-editor' ? returnView : view; if (returnView === 'view-editor') returnView = 'view-notes';
+  loadEditor(null);
+  if (listFilter.type === 'folder') { ed.folderId = listFilter.id; fillFolderSelect(); }
+  switchView('view-editor');
+}
+async function openNoteEditor(id, ret) {
+  const n = notes.find(x => x.id === id); if (!n) return;
+  if (n.deletedAt) return toast('このメモはゴミ箱にあります');
+  if (isLocked(n)) {
+    const r = await uiForm({ title: '🔒 ロックされたメモ', message: 'PINを入力してください', fields: [{ key: 'pin', label: 'PIN', type: 'password' }], ok: '開く' });
+    if (!r) return;
+    if ((await hashPin(r.pin || '', n.lock.salt)) !== n.lock.hash) return toast('PINが違うんよ');
+    unlocked.add(id); renderNotes();
+  }
+  if (view === 'view-editor' && ed?.dirty) await saveCurrentNote({ silent: true, stay: true });
+  if (view !== 'view-editor') returnView = ret || view; else if (ret) returnView = ret;
+  loadEditor(n); switchView('view-editor');
+}
+function goBack() {
+  if (ed?.dirty && hasContent()) { saveCurrentNote({ silent: false }); return; }
+  switchView(returnView); returnView = 'view-notes';
+}
+function hasContent() { return !!($('editor-title').value.trim() || $('editor-content').value.trim() || (ed?.attachments || []).length); }
+function parseTags(s) { return [...new Set((s || '').split(/[,、\s]+/).map(t => t.replace(/^#/, '').trim()).filter(Boolean))]; }
+async function saveCurrentNote(opts = {}) {
+  if (!ed) return null;
+  if (!hasContent()) { if (!opts.silent) toast('タイトルか本文を入力してください'); return null; }
+  const existing = ed.id ? notes.find(n => n.id === ed.id) : null;
+  const now = new Date().toISOString();
+  const obj = {
+    ...(existing || {}),
+    title: $('editor-title').value, content: $('editor-content').value, updatedAt: now,
+    isPinned: ed.pinned, folderId: ed.folderId, tags: parseTags($('editor-tags').value),
+    attachments: ed.attachments.map(a => ({ ...a })), lock: ed.lock, deletedAt: null,
+    createdAt: existing?.createdAt || ed.createdAt || now, smartIds: existing?.smartIds || []
+  };
+  if (ed.id) obj.id = ed.id; else delete obj.id;
+  const edRef = ed;
+  const id = await idb('notes', 'readwrite', s => s.put(obj));
+  if (id != null) { edRef.id = id; if (edRef.lock) unlocked.add(id); }
+  edRef.dirty = false; edRef.createdAt = obj.createdAt;
+  await refreshNotes(); updateMeta();
+  if (!opts.silent) toast('メモを保存しました');
+  if (!opts.stay) { switchView(returnView); returnView = 'view-notes'; }
+  return edRef.id;
+}
+async function deleteCurrentNote() {
+  if (!ed) return;
+  if (ed.id) {
+    const n = notes.find(x => x.id === ed.id);
+    if (n) { n.deletedAt = new Date().toISOString(); await idb('notes', 'readwrite', s => s.put(n)); }
+    toast('ゴミ箱に移動しました(30日間は復元できます)');
+  }
+  ed = null; await refreshNotes(); switchView(returnView === 'view-editor' ? 'view-notes' : returnView); returnView = 'view-notes';
+}
+function toggleCurrentPin() { ed.pinned = !ed.pinned; ed.dirty = true; updatePinStateUI(ed.pinned); toast(ed.pinned ? 'ピン留めしました' : 'ピン留めを解除しました'); }
+function updatePinStateUI(p) { const i = $('pin-icon'); i.style.color = p ? 'var(--accent-primary)' : 'var(--text-sub)'; i.style.fontVariationSettings = p ? "'FILL' 1" : "'FILL' 0"; }
+function updateLockUI() { const i = $('lock-icon'); i.textContent = ed?.lock ? 'lock' : 'lock_open'; i.style.color = ed?.lock ? 'var(--accent-primary)' : 'var(--text-sub)'; }
+async function hashPin(pin, salt) {
+  const data = new TextEncoder().encode(salt + ':' + pin);
+  if (window.crypto?.subtle) { const buf = await crypto.subtle.digest('SHA-256', data); return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join(''); }
+  let h = 2166136261; for (const b of data) { h ^= b; h = Math.imul(h, 16777619); } return 'f' + (h >>> 0).toString(16);
+}
+async function toggleLock() {
+  if (!ed) return;
+  if (ed.lock) {
+    if (!(await uiConfirm('このメモのロックを解除しますか?', 'ロック解除', '解除する'))) return;
+    ed.lock = null; ed.dirty = true; if (ed.id) unlocked.delete(ed.id); updateLockUI(); toast('ロックを解除しました'); return;
+  }
+  const r = await uiForm({ title: 'メモをロック', message: 'PINを設定します。一覧の表示とAIへの利用を制限します。忘れると開けなくなります。\n※表示ロックで、データ自体は暗号化されません。', fields: [{ key: 'pin', label: 'PIN(4文字以上)', type: 'password' }], ok: '設定' });
+  if (!r) return;
+  if ((r.pin || '').length < 4) return toast('4文字以上で入力してください');
+  const salt = randHex(8); ed.lock = { salt, hash: await hashPin(r.pin, salt) }; ed.dirty = true; if (ed.id) unlocked.add(ed.id);
+  updateLockUI(); toast('ロックを設定しました(保存で反映)');
+}
+function shareCurrentNote() { executeShare($('editor-title').value, $('editor-content').value); }
+function executeShare(title, content) {
+  const text = `${title ? title + '\n' : ''}${content}`;
+  if (navigator.share) navigator.share({ title: title || 'ポーランのミニメモ', text }).catch(() => {});
+  else { copyText(text); toast('メモ内容をコピーしました'); }
+}
+
+/* ---- チェックリスト ---- */
+function insertChecklist() {
+  if (ed.preview) setPreview(false);
+  const ta = $('editor-content'); const pos = ta.selectionStart ?? ta.value.length;
+  const before = ta.value.slice(0, pos), after = ta.value.slice(pos);
+  const prefix = before && !before.endsWith('\n') ? '\n' : '';
+  const ins = prefix + '- [ ] ';
+  ta.value = before + ins + after; ta.focus(); ta.selectionStart = ta.selectionEnd = pos + ins.length;
+  ed.dirty = true; updateMeta();
+}
+function togglePreview() { setPreview(!ed.preview); }
+function setPreview(on) {
+  ed.preview = on;
+  $('editor-text-wrap').style.display = on ? 'none' : 'flex';
+  $('editor-preview').style.display = on ? 'block' : 'none';
+  $('btn-preview').querySelector('span').textContent = on ? 'edit' : 'visibility';
+  if (on) renderPreview();
+}
+function renderPreview() {
+  const box = $('editor-preview'); box.innerHTML = '';
+  const lines = $('editor-content').value.split('\n');
+  if (!lines.join('').trim()) { box.innerHTML = '<span style="color:var(--text-sub)">(本文なし)</span>'; return; }
+  lines.forEach((ln, i) => {
+    const m = ln.match(/^(\s*)[-*]\s\[([ xX])\]\s?(.*)$/);
+    if (m) {
+      const row = document.createElement('label'); row.className = 'check-row' + (m[2] !== ' ' ? ' done' : '');
+      row.style.paddingLeft = (m[1].length * 6) + 'px';
+      const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = m[2] !== ' ';
+      cb.onchange = () => {
+        const arr = $('editor-content').value.split('\n');
+        arr[i] = arr[i].replace(/\[([ xX])\]/, cb.checked ? '[x]' : '[ ]');
+        $('editor-content').value = arr.join('\n'); ed.dirty = true; updateMeta(); renderPreview();
+      };
+      const sp = document.createElement('span'); sp.textContent = m[3];
+      row.append(cb, sp); box.append(row);
+    } else if (!ln.trim()) { box.append(document.createElement('br')); }
+    else { const d = document.createElement('div'); d.textContent = ln; if (/^#{1,3}\s/.test(ln)) { d.textContent = ln.replace(/^#{1,3}\s/, ''); d.style.fontWeight = '700'; } box.append(d); }
+  });
+}
+
+/* ---- 添付 ---- */
+let attachUrls = [];
+function addAttachment(blob, name, type) {
+  if (!ed) return;
+  ed.attachments.push({ id: randHex(6), name, type: type || blob.type || 'application/octet-stream', size: blob.size, blob });
+  ed.dirty = true; renderAttachments();
+}
+function renderAttachments() {
+  attachUrls.forEach(u => URL.revokeObjectURL(u)); attachUrls = [];
+  const box = $('attach-list'); box.innerHTML = '';
+  (ed?.attachments || []).forEach(a => {
+    const row = document.createElement('div'); row.className = 'attach-item';
+    const url = URL.createObjectURL(a.blob); attachUrls.push(url);
+    if ((a.type || '').startsWith('image/')) { const im = document.createElement('img'); im.src = url; row.append(im); }
+    if ((a.type || '').startsWith('audio/')) { const au = document.createElement('audio'); au.controls = true; au.src = url; row.append(au); }
+    else { const nm = document.createElement('div'); nm.className = 'name'; nm.textContent = `${a.name} (${Math.max(1, Math.round(a.size / 1024))}KB)`; row.append(nm); }
+    const dl = document.createElement('a'); dl.href = url; dl.download = a.name; dl.innerHTML = '<span class="material-symbols-outlined">download</span>'; row.append(dl);
+    row.append(iconBtn('close', '削除', () => { ed.attachments = ed.attachments.filter(x => x.id !== a.id); ed.dirty = true; renderAttachments(); }));
+    box.append(row);
+  });
+}
+$('file-image').addEventListener('change', e => { [...e.target.files].forEach(f => addAttachment(f, f.name, f.type)); e.target.value = ''; });
+$('file-any').addEventListener('change', e => { [...e.target.files].forEach(f => addAttachment(f, f.name, f.type)); e.target.value = ''; });
+
+let mediaRec = null, recChunks = [], recStream = null;
+async function toggleRecord() {
+  const btn = $('btn-record');
+  if (mediaRec && mediaRec.state === 'recording') { mediaRec.stop(); return; }
+  if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) return toast('このブラウザは録音に対応していません');
+  try { recStream = await navigator.mediaDevices.getUserMedia({ audio: true }); } catch { return toast('マイクの許可が必要なんよ'); }
+  recChunks = []; mediaRec = new MediaRecorder(recStream);
+  mediaRec.ondataavailable = e => { if (e.data.size) recChunks.push(e.data); };
+  mediaRec.onstop = () => {
+    recStream.getTracks().forEach(t => t.stop());
+    const type = mediaRec.mimeType || 'audio/webm';
+    const ext = type.includes('mp4') ? 'm4a' : type.includes('ogg') ? 'ogg' : 'webm';
+    addAttachment(new Blob(recChunks, { type }), `録音_${stamp()}.${ext}`, type);
+    btn.classList.remove('recording'); toast('録音を添付しました');
+  };
+  mediaRec.start(); btn.classList.add('recording'); toast('録音中…もう一度押すと停止');
+}
+
+/* ---- 音声入力 (Web Speech API) ---- */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let rec = null, recOn = false, recBtn = null;
+function toggleVoice(target, btn, sep) {
+  if (!SR) return toast('このブラウザは音声入力に対応していません');
+  if (recOn) { stopVoice(); return; }
+  if (target.id === 'editor-content' && ed?.preview) setPreview(false);
+  rec = new SR(); rec.lang = 'ja-JP'; rec.continuous = true; rec.interimResults = false;
+  rec.onresult = e => {
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (!e.results[i].isFinal) continue;
+      const text = e.results[i][0].transcript.trim(); if (!text) continue;
+      const pos = target.selectionStart ?? target.value.length;
+      const before = target.value.slice(0, pos), after = target.value.slice(pos);
+      const ins = (before && !/[\n ]$/.test(before) ? sep : '') + text + (sep === '\n' ? '\n' : '');
+      target.value = before + ins + after; target.selectionStart = target.selectionEnd = pos + ins.length;
+      target.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  };
+  rec.onend = () => { if (recOn) { try { rec.start(); } catch { stopVoice(); } } };
+  rec.onerror = e => { if (e.error === 'not-allowed' || e.error === 'service-not-allowed') { toast('マイクの許可が必要なんよ'); stopVoice(); } };
+  recOn = true; recBtn = btn; btn.classList.add('recording');
+  try { rec.start(); toast('音声入力中…もう一度押すと停止'); } catch { stopVoice(); }
+}
+function stopVoice() { recOn = false; try { rec?.stop(); } catch {} recBtn?.classList.remove('recording'); recBtn = null; }
+
+/* ---- Markdown ---- */
+function noteToMarkdown(n) {
+  const lines = [`# ${(n.title || '').trim() || '無題のメモ'}`, ''];
+  const meta = [];
+  if ((n.tags || []).length) meta.push('タグ: ' + n.tags.map(t => '#' + t).join(' '));
+  const f = folders.find(x => x.id === n.folderId); if (f) meta.push('フォルダ: ' + f.name);
+  meta.push('作成: ' + formatDate(n.createdAt) + ' / 更新: ' + formatDate(n.updatedAt));
+  lines.push('> ' + meta.join('  \n> '), '', n.content || '');
+  if ((n.attachments || []).length) lines.push('', '添付: ' + n.attachments.map(a => a.name).join(', '));
+  return lines.join('\n') + '\n';
+}
+function exportCurrentMarkdown() {
+  const n = { title: $('editor-title').value, content: $('editor-content').value, tags: parseTags($('editor-tags').value), folderId: ed.folderId, createdAt: ed.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString(), attachments: ed.attachments };
+  downloadBlob(new Blob([noteToMarkdown(n)], { type: 'text/markdown' }), safeName(n.title) + '.md'); toast('Markdownを保存しました');
+}
+function exportAllMarkdown() {
+  const arr = notes.filter(n => !n.deletedAt && (!n.lock || unlocked.has(n.id)));
+  if (!arr.length) return toast('エクスポートするメモがないんよ');
+  sortNotes(arr);
+  downloadBlob(new Blob([arr.map(noteToMarkdown).join('\n---\n\n')], { type: 'text/markdown' }), `poland_notes_${todayStr()}.md`);
+  const skipped = notes.filter(n => !n.deletedAt && n.lock && !unlocked.has(n.id)).length;
+  toast(`${arr.length}件を出力しました` + (skipped ? `(ロック中${skipped}件は除外)` : ''));
+}
+function exportNotesJSON() {
+  if (!notes.length && !tasks.length) return toast('エクスポートするデータがないんよ');
+  const strip = n => ({ ...n, attachments: (n.attachments || []).map(a => ({ name: a.name, type: a.type, size: a.size })) });
+  const data = { exportedAt: new Date().toISOString(), notes: notes.map(strip), tasks, folders };
+  downloadBlob(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }), `poland_notes_backup_${todayStr()}.json`);
+  toast('バックアップを保存しました(添付ファイル本体は含みません)');
+}
+async function confirmClearAllData() {
+  if (!notes.length && !tasks.length) return toast('削除するデータがないんよ');
+  if (!(await uiConfirm('すべてのメモとタスクを完全に削除します。元に戻せません。', '全データ削除', '削除する'))) return;
+  await idb('notes', 'readwrite', s => s.clear()); await idb('tasks', 'readwrite', s => s.clear());
+  await refreshNotes(); await refreshTasks(); closeSettingsDialog(); toast('すべて削除しました');
+}
+
+/* ---- フォルダ管理 ---- */
+function openFolderManager() { renderFolderManager(); $('folder-dialog').classList.add('active'); }
+function closeFolderManager() { $('folder-dialog').classList.remove('active'); }
+function renderFolderManager() {
+  const box = $('folder-list'); box.innerHTML = '';
+  if (!folders.length) box.innerHTML = '<p>フォルダはまだありません。</p>';
+  folders.forEach(f => {
+    const row = document.createElement('div'); row.className = 'folder-row';
+    row.innerHTML = `<span class="material-symbols-outlined">${f.kind === 'smart' ? 'auto_awesome' : 'folder'}</span><div class="nm">${escapeHtml(f.name)}${f.desc ? `<div class="ds">${escapeHtml(f.desc)}</div>` : ''}</div>`;
+    row.append(iconBtn('edit', '編集', () => editFolder(f)), iconBtn('delete', '削除', () => deleteFolder(f), '#ef4444'));
+    box.append(row);
+  });
+}
+async function addFolder(smart) {
+  const fields = [{ key: 'name', label: smart ? 'スマートフォルダ名(例: 仕事)' : 'フォルダ名' }];
+  if (smart) fields.push({ key: 'desc', label: 'ジャンルの説明(AIが分類に使います)', type: 'textarea', placeholder: '例: 会議メモ、打ち合わせ、業務の連絡、プロジェクトの進捗' });
+  const r = await uiForm({ title: smart ? 'スマートフォルダを追加' : 'フォルダを追加', fields, ok: '追加' });
+  if (!r || !(r.name || '').trim()) return;
+  const f = { name: r.name.trim(), kind: smart ? 'smart' : 'normal', desc: (r.desc || '').trim() };
+  await idb('folders', 'readwrite', s => s.add(f)); await refreshFolders(); renderFolderManager();
+}
+async function editFolder(f) {
+  const fields = [{ key: 'name', label: '名前', value: f.name }];
+  if (f.kind === 'smart') fields.push({ key: 'desc', label: 'ジャンルの説明', type: 'textarea', value: f.desc || '' });
+  const r = await uiForm({ title: 'フォルダを編集', fields, ok: '保存' });
+  if (!r || !(r.name || '').trim()) return;
+  f.name = r.name.trim(); if (f.kind === 'smart') f.desc = (r.desc || '').trim();
+  await idb('folders', 'readwrite', s => s.put(f)); await refreshFolders(); renderFolderManager();
+}
+async function deleteFolder(f) {
+  if (!(await uiConfirm(`「${f.name}」を削除します。メモ自体は消えません。`, 'フォルダ削除', '削除'))) return;
+  const touched = notes.filter(n => n.folderId === f.id || (n.smartIds || []).includes(f.id));
+  touched.forEach(n => { if (n.folderId === f.id) n.folderId = null; n.smartIds = (n.smartIds || []).filter(x => x !== f.id); });
+  await idb('notes', 'readwrite', s => { touched.forEach(n => s.put(n)); return null; });
+  await idb('folders', 'readwrite', s => s.delete(f.id));
+  if (listFilter.id === f.id) listFilter = { type: 'all' };
+  await refreshNotes(); await refreshFolders(); renderFolderManager();
+}
+
+/* =====================================================================
+   タスク
+   ===================================================================== */
+async function addTask({ text, due = '', priority = 2, noteId = null }) {
+  const t = { text: text.trim(), done: false, due: /^\d{4}-\d{2}-\d{2}$/.test(due) ? due : '', priority: [1, 2, 3].includes(+priority) ? +priority : 2, noteId, createdAt: new Date().toISOString(), doneAt: null };
+  if (!t.text) return null;
+  t.id = await idb('tasks', 'readwrite', s => s.add(t)); return t;
+}
+async function addTaskFromForm() {
+  const text = $('task-new-text').value;
+  if (!text.trim()) return toast('タスク内容を入力してください');
+  await addTask({ text, due: $('task-new-due').value, priority: $('task-new-pri').value });
+  $('task-new-text').value = ''; $('task-new-due').value = ''; await refreshTasks(); toast('タスクを追加しました');
+}
+async function saveTask(t) { await idb('tasks', 'readwrite', s => s.put(t)); await refreshTasks(); }
+async function toggleTask(t) { t.done = !t.done; t.doneAt = t.done ? new Date().toISOString() : null; await saveTask(t); toast(t.done ? '完了にしました' : '未完了に戻しました'); }
+async function editTask(t) {
+  const r = await uiForm({ title: 'タスクを編集', fields: [
+    { key: 'text', label: '内容', value: t.text }, { key: 'due', label: '期限', type: 'date', value: t.due },
+    { key: 'pri', label: '優先度', type: 'select', value: String(t.priority), options: [{ label: '高', value: '3' }, { label: '中', value: '2' }, { label: '低', value: '1' }] }], ok: '保存' });
+  if (!r || !r.text.trim()) return;
+  t.text = r.text.trim(); t.due = r.due || ''; t.priority = +r.pri; await saveTask(t);
+}
+async function deleteTask(t) { await idb('tasks', 'readwrite', s => s.delete(t.id)); await refreshTasks(); toast('タスクを削除しました'); }
+function taskMatches(t, f) {
+  const today = todayStr();
+  if (f === 'today') return !t.done && t.due === today;
+  if (f === 'overdue') return !t.done && t.due && t.due < today;
+  if (f === 'done') return t.done;
+  return !t.done;
+}
+function updateTaskBadge() {
+  const n = tasks.filter(t => taskMatches(t, 'today') || taskMatches(t, 'overdue')).length;
+  const b = $('task-badge'); b.textContent = n; b.style.display = n ? 'flex' : 'none';
+}
+function renderTasks() {
+  const chips = $('task-chips'); chips.innerHTML = '';
+  [['today', '今日', 'today'], ['overdue', '期限切れ', 'event_busy'], ['open', '未完了', 'radio_button_unchecked'], ['done', '完了済み', 'task_alt']].forEach(([k, label, icon]) => {
+    const b = document.createElement('button'); b.className = 'chip' + (taskFilter === k ? ' active' : '');
+    b.innerHTML = `<span class="material-symbols-outlined">${icon}</span>${label} <small>${tasks.filter(t => taskMatches(t, k)).length}</small>`;
+    b.onclick = () => { taskFilter = k; renderTasks(); }; chips.append(b);
+  });
+  let arr = tasks.filter(t => taskMatches(t, taskFilter));
+  const dueKey = t => t.due || '9999-99-99';
+  if (taskSort === 'due') arr.sort((a, b) => dueKey(a).localeCompare(dueKey(b)) || b.priority - a.priority);
+  else if (taskSort === 'priority') arr.sort((a, b) => b.priority - a.priority || dueKey(a).localeCompare(dueKey(b)));
+  else if (taskSort === 'created') arr.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  else arr.sort((a, b) => a.text.localeCompare(b.text, 'ja'));
+  const list = $('task-list'); list.innerHTML = '';
+  $('task-empty').style.display = arr.length ? 'none' : 'flex';
+  const today = todayStr(); const priLabel = { 3: '高', 2: '中', 1: '低' };
+  arr.forEach(t => {
+    const row = document.createElement('div'); row.className = 'task-item' + (t.done ? ' done' : '');
+    const chk = document.createElement('button'); chk.className = 'task-check'; chk.title = t.done ? '未完了に戻す' : '完了にする';
+    chk.innerHTML = t.done ? '<span class="material-symbols-outlined" style="font-size:18px">check</span>' : ''; chk.onclick = () => toggleTask(t);
+    const mid = document.createElement('div'); mid.style.cssText = 'flex:1;min-width:0';
+    const tx = document.createElement('div'); tx.className = 'task-text'; tx.textContent = t.text; tx.onclick = () => editTask(t);
+    const meta = document.createElement('div'); meta.className = 'task-meta';
+    if (t.due) { const over = !t.done && t.due < today, isToday = t.due === today; const p = document.createElement('span'); p.className = 'pill' + (over ? ' over' : isToday ? ' today' : ''); p.textContent = '📅 ' + (isToday ? '今日' : t.due.replace(/-/g, '/')) + (over ? ' 期限切れ' : ''); meta.append(p); }
+    const pp = document.createElement('span'); pp.className = 'pill p' + t.priority; pp.textContent = '優先度 ' + priLabel[t.priority]; meta.append(pp);
+    if (t.noteId) {
+      const n = notes.find(x => x.id === t.noteId); const lk = document.createElement('button');
+      if (n && !n.deletedAt) { lk.className = 'pill link'; lk.innerHTML = `<span class="material-symbols-outlined" style="font-size:13px">description</span>${escapeHtml((n.title || '').trim() || '無題のメモ')}`; lk.onclick = () => openNoteEditor(n.id, 'view-tasks'); }
+      else { lk.className = 'pill'; lk.disabled = true; lk.textContent = '元メモは削除されました'; }
+      meta.append(lk);
+    }
+    mid.append(tx, meta);
+    row.append(chk, mid, iconBtn('delete', '削除', () => deleteTask(t)));
+    list.append(row);
+  });
+}
+
+/* =====================================================================
+   画面切り替え
+   ===================================================================== */
+function switchView(id) {
+  if (view === 'view-editor' && id !== 'view-editor') {
+    if (ed?.dirty && hasContent()) saveCurrentNote({ silent: true, stay: true });
+    stopVoice(); if (mediaRec && mediaRec.state === 'recording') mediaRec.stop();
+  }
+  view = id;
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.view === id));
+  document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === id));
+  $('main-scroll-area').scrollTop = 0;
+  if (id === 'view-tasks') renderTasks();
+  if ($('ai-sheet').classList.contains('active')) { updateAIContext(); }
+}
+['editor-title', 'editor-tags'].forEach(id => $(id).addEventListener('input', () => { if (ed) ed.dirty = true; }));
+$('editor-folder').addEventListener('change', e => { if (ed) { ed.folderId = e.target.value === '' ? null : Number(e.target.value); ed.dirty = true; } });
+$('editor-content').addEventListener('input', () => { if (ed) { ed.dirty = true; updateMeta(); } });
+
+/* =====================================================================
+   Monet
+   ===================================================================== */
+async function updateMonetTheme(hex, save = false) {
+  currentSeedColor = hex;
+  $('seed-color-input').value = hex; $('seed-hex-label').textContent = hex.toUpperCase();
+  if (save) await saveSetting('m3_seed_color', hex);
+  if (window.M3Monet) {
+    try { currentThemeObj = window.M3Monet.themeFromSourceColor(window.M3Monet.argbFromHex(hex)); applyM3Scheme(currentThemeObj); return; }
+    catch (e) { console.error(e); }
+  }
+  fallbackApplyTheme(hex);
+}
+function applyM3Scheme(theme) {
+  const s = isDarkMode ? theme.schemes.dark : theme.schemes.light; const root = document.documentElement;
+  const hx = a => window.M3Monet.hexFromArgb(a);
+  const map = { primary: 'primary', onPrimary: 'on-primary', primaryContainer: 'primary-container', onPrimaryContainer: 'on-primary-container', secondary: 'secondary', onSecondary: 'on-secondary', secondaryContainer: 'secondary-container', onSecondaryContainer: 'on-secondary-container', tertiary: 'tertiary', onTertiary: 'on-tertiary', tertiaryContainer: 'tertiary-container', onTertiaryContainer: 'on-tertiary-container', background: 'background', onBackground: 'on-background', surface: 'surface', onSurface: 'on-surface', surfaceVariant: 'surface-variant', onSurfaceVariant: 'on-surface-variant', outline: 'outline' };
+  const c = {};
+  Object.entries(map).forEach(([k, v]) => { c[k] = hx(s[k]); root.style.setProperty('--md-sys-color-' + v, c[k]); });
+  root.style.setProperty('--bg-base', isDarkMode ? c.background : c.surfaceVariant);
+  root.style.setProperty('--glass-bg', isDarkMode ? c.surfaceVariant : c.background);
+  const set = (id, v) => { const e = $(id); if (e) e.textContent = v; };
+  set('hex-primary', c.primary); set('hex-primary-container', c.primaryContainer); set('hex-secondary', c.secondary);
+  set('hex-tertiary', c.tertiary); set('hex-surface-variant', c.surfaceVariant); set('hex-background', c.background);
+}
+function fallbackApplyTheme(hex) {
+  const r = document.documentElement.style;
+  r.setProperty('--md-sys-color-primary', hex);
+  r.setProperty('--md-sys-color-background', isDarkMode ? '#121212' : '#F8F9FF');
+  r.setProperty('--md-sys-color-surface', isDarkMode ? '#121212' : '#F8F9FF');
+  r.setProperty('--md-sys-color-surface-variant', isDarkMode ? '#2C2C2E' : '#E1E2EC');
+  r.setProperty('--md-sys-color-on-surface', isDarkMode ? '#FFFFFF' : '#191C20');
+  r.setProperty('--md-sys-color-on-surface-variant', isDarkMode ? '#C4C6D0' : '#44474F');
+  r.setProperty('--md-sys-color-on-background', isDarkMode ? '#FFFFFF' : '#191C20');
+  r.setProperty('--bg-base', isDarkMode ? '#121212' : '#E1E2EC');
+  r.setProperty('--glass-bg', isDarkMode ? '#2C2C2E' : '#F8F9FF');
+}
+async function toggleDarkTheme(d) {
+  isDarkMode = d; await saveSetting('is_dark_mode', d); $('darkmode-toggle').checked = d;
+  if (currentThemeObj && window.M3Monet) applyM3Scheme(currentThemeObj); else updateMonetTheme(currentSeedColor, false);
+}
+
+/* =====================================================================
+   LocalAI (WebLLM)  ― local-ai.html の土台を拡張
+   ===================================================================== */
+const PREFERRED = [
+  'Qwen2.5-1.5B-Instruct-q4f16_1-MLC', 'Qwen2.5-1.5B-Instruct-q4f32_1-MLC',
+  'Qwen2.5-0.5B-Instruct-q4f16_1-MLC', 'Qwen2.5-0.5B-Instruct-q4f32_1-MLC',
+  'Qwen2.5-3B-Instruct-q4f16_1-MLC', 'Llama-3.2-3B-Instruct-q4f16_1-MLC',
+  'Llama-3.2-1B-Instruct-q4f16_1-MLC', 'gemma-2-2b-it-q4f16_1-MLC'
+];
+const aiListeners = { progress: [], ready: [], error: [] };
+const aiEmit = (ev, d) => (aiListeners[ev] || []).forEach(fn => { try { fn(d); } catch (e) { console.error(e); } });
+let webllm = null, appConfig = null, MODELS = [], engine = null, currentModel = null, loadingP = null, importing = null, ctxActual = 4096;
+
+async function ensureWebLLM() {
+  if (webllm) return webllm;
+  if (!importing) importing = import('https://esm.run/@mlc-ai/web-llm').then(mod => {
+    webllm = mod; appConfig = { ...webllm.prebuiltAppConfig, cacheBackend: 'indexeddb' };
+    const avail = new Set((appConfig.model_list || []).map(m => m.model_id));
+    MODELS = PREFERRED.filter(id => avail.has(id));
+    return webllm;
+  }).catch(e => { importing = null; throw e; });
+  return importing;
+}
+const LocalAI = {
+  get ready() { return !!engine; },
+  get model() { return currentModel; },
+  on(ev, fn) { aiListeners[ev].push(fn); return LocalAI; },
+  async hasCache(id) { if (!id) return false; try { await ensureWebLLM(); return await webllm.hasModelInCache(id, appConfig); } catch { return false; } },
+  async clearCache(id) {
+    await ensureWebLLM();
+    if (engine && currentModel === id) { await engine.unload(); engine = null; currentModel = null; }
+    await webllm.deleteModelAllInfoInCache(id, appConfig);
+  },
+  async load(id, ctx, onProgress) {
+    if (!navigator.gpu) throw new Error('このブラウザはWebGPUに対応していません(Chrome/Edge/Safari 18+等で開いてください)');
+    if (!(await navigator.gpu.requestAdapter())) throw new Error('互換GPUアダプタが見つかりません');
+    await ensureWebLLM();
+    if (!MODELS.includes(id)) throw new Error('利用できないモデルです: ' + id);
+    if (loadingP) return loadingP;
+    loadingP = (async () => {
+      try {
+        if (engine) { await engine.unload(); engine = null; currentModel = null; }
+        const cb = r => { const p = { progress: Number(r?.progress) || 0, text: r?.text || '' }; onProgress?.(p); aiEmit('progress', p); };
+        const make = chatOpts => webllm.CreateMLCEngine(id, { appConfig, initProgressCallback: cb }, chatOpts);
+        if (ctx) {
+          try { engine = await make({ context_window_size: ctx }); ctxActual = ctx; }
+          catch (e) { console.warn('ctx override failed, fallback', e); engine = null; engine = await make(); ctxActual = 4096; }
+        } else { engine = await make(); ctxActual = 4096; }
+        currentModel = id; aiEmit('ready', { model: id }); return engine;
+      } catch (e) { engine = null; currentModel = null; aiEmit('error', e); throw e; }
+      finally { loadingP = null; }
+    })();
+    return loadingP;
+  },
+  async *stream(input, opts = {}) {
+    if (!engine) throw new Error('AIモデルが未読み込みです');
+    const msgs = typeof input === 'string' ? [{ role: 'user', content: input }] : [...input];
+    if (opts.system && !msgs.some(m => m.role === 'system')) msgs.unshift({ role: 'system', content: opts.system });
+    const req = { messages: msgs, stream: true, temperature: Number.isFinite(opts.temperature) ? opts.temperature : 0.7, max_tokens: Number.isFinite(opts.max_tokens) ? opts.max_tokens : 512 };
+    if (opts.json) req.response_format = { type: 'json_object' };
+    const chunks = await engine.chat.completions.create(req);
+    for await (const c of chunks) { const t = c.choices?.[0]?.delta?.content; if (t) { opts.onToken?.(t); yield t; } }
+  },
+  async chat(input, opts = {}) { let out = ''; for await (const t of LocalAI.stream(input, opts)) out += t; return out; },
+  async json(input, opts = {}) {
+    const text = await LocalAI.chat(input, { ...opts, json: true });
+    try { return JSON.parse(text); }
+    catch { const m = text.match(/\{[\s\S]*\}|\[[\s\S]*\]/); if (m) return JSON.parse(m[0]); throw new Error('JSONとして解析できません'); }
+  },
+  async interrupt() { try { await engine?.interruptGenerate(); } catch {} }
+};
+window.LocalAI = LocalAI;
+
+const effMax = () => Math.max(64, Math.min(aiSet.max_tokens, Math.floor(ctxActual * 0.4)));
+const budgetChars = () => Math.max(800, Math.floor((ctxActual - effMax() - 600) * 0.9));
+const clipHead = (t, n = budgetChars()) => t.length > n ? t.slice(0, n) + '\n…(以下省略)' : t;
+const clipTail = (t, n = budgetChars()) => t.length > n ? '…(前略)\n' + t.slice(-n) : t;
+function cleanThink(t) { t = t.replace(/<think>[\s\S]*?<\/think>/g, ''); const i = t.indexOf('<think>'); return i >= 0 ? t.slice(0, i) : t; }
+
+/* ---------- AI設定 ---------- */
+async function loadAISettings() { const s = await getSetting('ai_settings'); if (s) aiSet = { ...DEFAULT_AI, ...s }; }
+const persistAI = () => saveSetting('ai_settings', aiSet);
+async function populateSettingsAI() {
+  $('set-maxtok').value = aiSet.max_tokens; $('set-temp').value = aiSet.temperature; $('set-system').value = aiSet.system;
+  $('set-confirm').checked = aiSet.confirm; $('set-autoload').checked = aiSet.autoLoad; $('set-ctx').value = String(aiSet.ctx);
+  $('darkmode-toggle').checked = isDarkMode;
+  const sel = $('set-model');
+  try { await ensureWebLLM(); sel.innerHTML = ''; MODELS.forEach(id => sel.add(new Option(id, id))); if (aiSet.model && MODELS.includes(aiSet.model)) sel.value = aiSet.model; else if (MODELS.length) { sel.value = MODELS[0]; aiSet.model = MODELS[0]; } }
+  catch { sel.innerHTML = ''; sel.add(new Option('(モデル一覧を取得できません)', '')); }
+  renderAIStatus();
+}
+function openSettingsDialog() { $('settings-dialog').classList.add('active'); populateSettingsAI(); }
+function closeSettingsDialog() { $('settings-dialog').classList.remove('active'); }
+$('set-model').addEventListener('change', e => { aiSet.model = e.target.value; persistAI(); });
+$('set-ctx').addEventListener('change', e => { aiSet.ctx = Number(e.target.value); persistAI(); toast('次回の読み込みから反映されます'); });
+$('set-maxtok').addEventListener('change', e => { aiSet.max_tokens = Math.max(64, Math.min(8192, parseInt(e.target.value, 10) || 2048)); e.target.value = aiSet.max_tokens; persistAI(); });
+$('set-temp').addEventListener('change', e => { const v = parseFloat(e.target.value); aiSet.temperature = Number.isFinite(v) ? Math.max(0, Math.min(1.5, v)) : 0.6; e.target.value = aiSet.temperature; persistAI(); });
+$('set-system').addEventListener('change', e => { aiSet.system = e.target.value.trim() || DEFAULT_AI.system; persistAI(); });
+$('set-confirm').addEventListener('change', e => { aiSet.confirm = e.target.checked; persistAI(); });
+$('set-autoload').addEventListener('change', e => { aiSet.autoLoad = e.target.checked; persistAI(); });
+async function deleteModelCache() {
+  const id = $('set-model').value; if (!id) return;
+  if (!(await uiConfirm(`「${id}」のキャッシュを削除します。次回は再ダウンロードが必要です。`, 'キャッシュ削除', '削除'))) return;
+  try { await LocalAI.clearCache(id); toast('キャッシュを削除しました'); } catch (e) { toast('削除に失敗: ' + (e.message || e)); }
+  renderAIStatus();
+}
+
+/* ---------- AIステータス ---------- */
+const AI = { generating: false, loading: false, progress: null, cancel: false, history: [], lastCtx: null };
+async function loadModelUI() {
+  if (AI.loading) return;
+  AI.loading = true; AI.progress = { progress: 0, text: '準備中…' }; renderAIStatus();
+  try {
+    await ensureWebLLM();
+    const id = aiSet.model && MODELS.includes(aiSet.model) ? aiSet.model : MODELS[0];
+    if (!id) throw new Error('利用可能なモデルがありません');
+    aiSet.model = id; persistAI();
+    await LocalAI.load(id, aiSet.ctx, p => { AI.progress = p; renderAIStatus(); });
+    toast('AIモデルの準備ができたんよ' + (aiSet.ctx && ctxActual !== aiSet.ctx ? '(コンテキスト長は標準になりました)' : ''));
+  } catch (e) { toast('読み込み失敗: ' + (e.message || e)); botSay('モデルの読み込みに失敗したんよ: ' + (e.message || e)); }
+  finally { AI.loading = false; AI.progress = null; renderAIStatus(); }
+}
+function renderAIStatus() {
+  const box = $('ai-status'); const setSt = $('set-ai-status'), setBar = $('set-bar');
+  let html = '', txt = '';
+  if (AI.loading) {
+    const p = AI.progress || { progress: 0, text: '' };
+    html = `<div class="grow"><div style="margin-bottom:4px">モデル読み込み中… ${Math.round(p.progress * 100)}%</div><progress max="100" value="${p.progress * 100}"></progress><div style="color:var(--text-sub);font-size:11px;margin-top:2px;word-break:break-all">${escapeHtml((p.text || '').slice(0, 90))}</div></div>`;
+    txt = `読み込み中 ${Math.round(p.progress * 100)}% ${(p.text || '').slice(0, 60)}`;
+  } else if (LocalAI.ready) {
+    html = `<div class="grow"><span class="dot-ok"></span>${escapeHtml(LocalAI.model)} ・ ctx ${ctxActual}</div>`;
+    txt = `準備完了: ${LocalAI.model} (ctx ${ctxActual})`;
+  } else if (!navigator.gpu) {
+    html = `<div class="grow">WebGPU非対応のためAI生成は使えません。関連メモ検索・Wikipedia概要・メモ機能は使えます。</div>`;
+    txt = 'WebGPU非対応です';
+  } else {
+    html = `<div class="grow">AIモデルが未読み込みです(初回はダウンロードが必要)</div><button class="msg-btn grad" onclick="loadModelUI()">読み込む</button>`;
+    txt = '未読み込み';
+  }
+  box.innerHTML = html;
+  if (setSt) setSt.textContent = txt;
+  if (setBar) { setBar.style.display = AI.loading ? 'block' : 'none'; setBar.value = (AI.progress?.progress || 0) * 100; }
+  const lb = $('set-load'); if (lb) lb.disabled = AI.loading;
+}
+
+/* =====================================================================
+   AIBall UI (ボトムシート)
+   ===================================================================== */
+function aiCtx() { return view === 'view-editor' ? 'editor' : view === 'view-tasks' ? 'tasks' : view === 'view-monet' ? 'monet' : 'notes'; }
+const CTX_LABEL = { notes: 'メモ一覧', editor: 'メモを編集中', tasks: 'タスク', monet: 'Monet設定' };
+const ACTION_DEF = {
+  wiki: { label: '○○について教えて', icon: 'menu_book' },
+  genmemo: { label: 'メモを作って', icon: 'note_add' },
+  related: { label: '関連メモを探して', icon: 'search' },
+  digest: { label: '最近のメモを要約', icon: 'summarize' },
+  smart: { label: 'スマートフォルダ分析', icon: 'auto_awesome' },
+  summarize: { label: '要約して', icon: 'summarize' },
+  continue: { label: '続きを考えて', icon: 'edit_note' },
+  todo: { label: 'TODOにして', icon: 'checklist' },
+  rewrite: { label: '文章を直して', icon: 'spellcheck' },
+  title: { label: 'タイトルを付けて', icon: 'title' },
+  checklist: { label: 'チェックリストにして', icon: 'format_list_bulleted' },
+  plan: { label: '今日のやること整理', icon: 'today' },
+  prio: { label: '優先度を提案して', icon: 'flag' },
+  addtask: { label: 'タスクを追加', icon: 'add_task' },
+  color: { label: '色を提案して', icon: 'palette' }
+};
+const CTX_CHIPS = {
+  notes: ['genmemo', 'related', 'digest', 'smart', 'wiki'],
+  editor: ['summarize', 'continue', 'todo', 'rewrite', 'title', 'checklist', 'related', 'wiki'],
+  tasks: ['plan', 'prio', 'addtask', 'wiki'],
+  monet: ['color', 'wiki']
+};
+function openAI() {
+  $('ai-sheet').classList.add('active'); $('ai-scrim').classList.add('active'); document.body.classList.add('ai-open');
+  renderAIStatus(); updateAIContext();
+  if (!$('ai-messages').children.length) botSay('こんにちは、AIBallなんよ！\n下のボタンから選ぶか、自由に話しかけてほしいんよ。\n「○○について教えて」でWikipediaの概要もまとめるんよ。');
+  if (!engine && !AI.loading) ensureWebLLM().catch(() => {});
+}
+function closeAI() { $('ai-sheet').classList.remove('active'); $('ai-scrim').classList.remove('active'); document.body.classList.remove('ai-open'); stopVoice(); }
+function clearAIChat() { $('ai-messages').innerHTML = ''; AI.history = []; AI.lastCtx = null; updateAIContext(); botSay('会話をクリアしたんよ。'); }
+function updateAIContext() {
+  const c = aiCtx(); $('ai-ctx-label').textContent = CTX_LABEL[c] + 'で使えるAI機能';
+  const box = $('ai-chips'); box.innerHTML = '';
+  CTX_CHIPS[c].forEach(k => { const d = ACTION_DEF[k]; const b = document.createElement('button'); b.className = 'msg-btn'; b.innerHTML = `<span class="material-symbols-outlined">${d.icon}</span>${d.label}`; b.onclick = () => runChip(k); box.append(b); });
+  if (AI.lastCtx !== null && AI.lastCtx !== c) { const d = document.createElement('div'); d.className = 'msg-divider'; d.textContent = `— ${CTX_LABEL[c]} —`; $('ai-messages').append(d); scrollMsgs(); }
+  AI.lastCtx = c;
+}
+// ドラッグで閉じる
+(() => {
+  const sheet = $('ai-sheet'); let sy = 0, dy = 0, drag = false;
+  const start = e => { drag = true; sy = e.touches[0].clientY; dy = 0; sheet.classList.add('dragging'); };
+  const move = e => { if (!drag) return; dy = Math.max(0, e.touches[0].clientY - sy); sheet.style.transform = `translateY(${dy}px)`; };
+  const end = () => { if (!drag) return; drag = false; sheet.classList.remove('dragging'); sheet.style.transform = ''; if (dy > 110) closeAI(); };
+  ['sheet-handle', 'sheet-header'].forEach(id => { const el = $(id); el.addEventListener('touchstart', start, { passive: true }); el.addEventListener('touchmove', move, { passive: true }); el.addEventListener('touchend', end); });
+  $('sheet-handle').addEventListener('click', closeAI);
+})();
+
+/* ---------- メッセージ描画 ---------- */
+const scrollMsgs = () => { const m = $('ai-messages'); m.scrollTop = m.scrollHeight; };
+function addMsg(role) {
+  const wrap = document.createElement('div'); wrap.className = 'msg ' + role;
+  if (role === 'bot') { const av = document.createElement('img'); av.src = AIBALL_IMG; av.className = 'msg-av'; wrap.append(av); }
+  const col = document.createElement('div'); col.className = 'msg-col';
+  const body = document.createElement('div'); body.className = 'msg-body';
+  const acts = document.createElement('div'); acts.className = 'msg-acts';
+  col.append(body, acts); wrap.append(col); $('ai-messages').append(wrap); scrollMsgs();
+  return { wrap, body, acts, col };
+}
+function userSay(t) { const m = addMsg('user'); m.body.textContent = t; return m; }
+function botSay(t) { const m = addMsg('bot'); m.body.textContent = t; return m; }
+function typing(m) { m.body.innerHTML = '<span class="dots"><i></i><i></i><i></i></span>'; scrollMsgs(); }
+function actBtn(m, label, icon, fn, primary = true) {
+  const b = document.createElement('button'); b.className = 'msg-btn' + (primary ? ' grad' : '');
+  b.innerHTML = `<span class="material-symbols-outlined">${icon}</span>${escapeHtml(label)}`;
+  b.onclick = async () => { try { await fn(b); } catch (e) { toast('失敗: ' + (e.message || e)); } };
+  m.acts.append(b); return b;
+}
+function setSendMode() { $('ai-send-icon').textContent = AI.generating ? 'stop' : 'arrow_upward'; }
+function onSendClick() { if (AI.generating) { AI.cancel = true; LocalAI.interrupt(); return; } handleSend(); }
+const aiInput = $('ai-input');
+aiInput.addEventListener('input', () => { aiInput.style.height = 'auto'; aiInput.style.height = Math.min(120, aiInput.scrollHeight) + 'px'; });
+aiInput.addEventListener('keydown', e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); onSendClick(); } });
+
+/* ---------- 生成ヘルパー ---------- */
+const sysFor = extra => aiSet.system + (extra ? '\n' + extra : '');
+async function genText(m, prompt, { system = '', history = null, onDone } = {}) {
+  typing(m); let acc = ''; AI.generating = true; AI.cancel = false; setSendMode();
+  try {
+    const msgs = [...(history || []), { role: 'user', content: prompt }];
+    await LocalAI.chat(msgs, { system: sysFor(system), temperature: aiSet.temperature, max_tokens: effMax(), onToken: t => { acc += t; m.body.textContent = cleanThink(acc) || '…'; scrollMsgs(); } });
+  } catch (e) {
+    const msg = String(e.message || e);
+    m.body.textContent = (cleanThink(acc).trim() ? cleanThink(acc).trim() + '\n\n' : '') + '[エラー: ' + msg + ']' + (/context|token/i.test(msg) ? '\nメモが長すぎるかも。設定でコンテキスト長を増やすか、別モデルを試してほしいんよ。' : '');
+    throw e;
+  } finally { AI.generating = false; setSendMode(); }
+  const out = cleanThink(acc).trim(); m.body.textContent = out || '(応答が空でした)'; return out;
+}
+async function genJSON(m, prompt, system = '') {
+  typing(m); AI.generating = true; AI.cancel = false; setSendMode();
+  try {
+    const o = await LocalAI.json([{ role: 'user', content: prompt }], { system: sysFor(system), temperature: 0.3, max_tokens: Math.min(effMax(), 1024) });
+    return o;
+  } catch (e) { m.body.textContent = AI.cancel ? '中断したんよ。' : 'うまく結果を作れなかったんよ。もう一度試すか、別のモデルにしてみてほしいんよ。'; throw e; }
+  finally { AI.generating = false; setSendMode(); }
+}
+function copyBtn(m, getText) { actBtn(m, 'コピー', 'content_copy', () => { copyText(getText()); toast('コピーしました'); }, false); }
+function curNote() { return { title: $('editor-title').value.trim(), content: $('editor-content').value }; }
+function appendToContent(text) {
+  const ta = $('editor-content'); if (ed?.preview) setPreview(false);
+  ta.value = ta.value + (ta.value && !ta.value.endsWith('\n') ? '\n' : '') + text; ed.dirty = true; updateMeta(); toast('メモに追記しました(保存で確定)');
+}
+
+/* ---------- チップ実行 ---------- */
+async function runChip(k) {
+  const def = ACTION_DEF[k]; if (!def) return;
+  if (!$('ai-sheet').classList.contains('active')) openAI();
+  if (AI.generating) return toast('生成中です。停止してからにしてほしいんよ');
+  const ctx = aiCtx();
+  const needsNote = ['summarize', 'continue', 'todo', 'rewrite', 'title', 'checklist'].includes(k);
+  const needsAI = !['related', 'wiki'].includes(k);
+  try {
+    if (needsNote) {
+      if (ctx !== 'editor' || !ed) return void botSay('メモを開いてから使ってほしいんよ。');
+      const n = curNote(); if (!n.content.trim() && !n.title) return void botSay('メモが空なんよ。先に何か書いてほしいんよ。');
+    }
+    if (needsAI && !LocalAI.ready) { renderAIStatus(); return void botSay(!navigator.gpu ? 'このブラウザはWebGPU非対応なので、AI生成は使えないんよ。' : 'AIモデルが未読み込みなんよ。上の「読み込む」を押してほしいんよ。'); }
+    // 入力が必要なもの
+    let input = null;
+    if (k === 'wiki') { aiInput.value = 'について教えて'; aiInput.focus(); aiInput.setSelectionRange(0, 0); return; }
+    if (k === 'genmemo') { const r = await uiForm({ title: 'メモを作って', message: '作りたいメモの内容を教えてください', fields: [{ key: 'v', label: '依頼', placeholder: '例: 旅行の持ち物リスト' }], ok: '作成' }); if (!r?.v?.trim()) return; input = r.v.trim(); }
+    if (k === 'related' && ctx !== 'editor') { const s = $('search-input').value.trim(); if (s) input = s; else { const r = await uiForm({ title: '関連メモを探す', fields: [{ key: 'v', label: 'キーワードや文章' }], ok: '探す' }); if (!r?.v?.trim()) return; input = r.v.trim(); } }
+    if (k === 'addtask') { const r = await uiForm({ title: 'タスクを追加', message: '自然な文で書いてください(AIが期限・優先度を推測)', fields: [{ key: 'v', label: '内容', placeholder: '例: 明日までにレポートを出して、金曜に歯医者の予約' }], ok: '追加' }); if (!r?.v?.trim()) return; input = r.v.trim(); }
+    if (k === 'color') { const r = await uiForm({ title: '色を提案', fields: [{ key: 'v', label: '好みの雰囲気', placeholder: '例: 落ち着いた森の中' }], ok: '提案' }); if (!r?.v?.trim()) return; input = r.v.trim(); }
+    // 確認
+    if (aiSet.confirm && needsAI) {
+      const target = ctx === 'editor' ? '開いているメモの内容' : ctx === 'tasks' ? 'タスク一覧' : k === 'digest' || k === 'smart' ? 'ロックされていないメモ' : '入力内容';
+      const modify = ['continue', 'rewrite', 'title', 'checklist', 'todo', 'prio', 'genmemo', 'addtask', 'smart'].includes(k) ? '\n結果は確認してから適用できます(勝手にはメモを書き換えません)。' : '';
+      const ok = await uiConfirm(`「${def.label}」を実行します。\n${target}を、この端末内のAIで処理します(外部送信なし)。${modify}`, 'AI実行前の確認', '実行');
+      if (!ok) return;
+    }
+    userSay(input ? `${def.label}: ${input}` : def.label);
+    await ACTIONS[k](input);
+  } catch (e) { if (!/JSON|中断|interrupt/i.test(String(e?.message || e))) console.error(e); }
+}
+
+/* ---------- アクション本体 ---------- */
+const ACTIONS = {
+  async summarize() {
+    const n = curNote(); const m = addMsg('bot');
+    const out = await genText(m, `次のメモを日本語で要約してください。重要な点を3〜5個の「・」始まりの箇条書きにし、最後に一文で結論を書いてください。\n\n【タイトル】${n.title}\n【本文】\n${clipHead(n.content)}`);
+    actBtn(m, '先頭に挿入', 'vertical_align_top', () => { const ta = $('editor-content'); if (ed.preview) setPreview(false); ta.value = '【要約】\n' + out + '\n\n' + ta.value; ed.dirty = true; updateMeta(); toast('先頭に挿入しました(保存で確定)'); });
+    copyBtn(m, () => out);
+  },
+  async continue() {
+    const n = curNote(); const m = addMsg('bot');
+    let res = null;
+    try { res = await genJSON(m, `次のメモの続きとして自然に書ける内容の候補を3つ考えてください。各候補は2〜4文。JSON形式 {"candidates":["候補1","候補2","候補3"]} で出力してください。\n\n【タイトル】${n.title}\n【本文】\n${clipTail(n.content)}`); } catch { return; }
+    const c = (Array.isArray(res) ? res : res?.candidates || []).map(x => typeof x === 'string' ? x : (x?.text || '')).filter(Boolean).slice(0, 3);
+    if (!c.length) { m.body.textContent = '候補を作れなかったんよ。'; return; }
+    m.body.textContent = '続きの候補なんよ。気に入ったものを追記できるんよ。';
+    c.forEach((t, i) => { const d = document.createElement('div'); d.className = 'cand'; d.textContent = `候補${i + 1}\n${t}`; m.col.insertBefore(d, m.acts); actBtn(m, `候補${i + 1}を追記`, 'add', () => appendToContent(t)); });
+    scrollMsgs();
+  },
+  async todo() {
+    const n = curNote(); const m = addMsg('bot');
+    let res; try { res = await genJSON(m, `次のメモから、やるべきこと(TODO)を抽出してください。JSON形式 {"tasks":[{"text":"短い行動","due":"YYYY-MM-DD または空文字","priority":3}]} で出力。今日は${todayStr()}です。期限が書かれていなければdueは空文字。priorityは3=高,2=中,1=低。メモに無いことは作らないでください。\n\n【タイトル】${n.title}\n【本文】\n${clipHead(n.content)}`); } catch { return; }
+    let list = (Array.isArray(res) ? res : res?.tasks || []);
+    if (!list.length) { list = (n.content.match(/^\s*[-*]\s\[ \]\s?(.+)$/gm) || []).map(l => ({ text: l.replace(/^\s*[-*]\s\[ \]\s?/, ''), due: '', priority: 2 })); }
+    renderTaskCandidates(m, list, true);
+  },
+  async rewrite() {
+    const ta = $('editor-content'); const s = ta.selectionStart, e = ta.selectionEnd;
+    const useSel = e > s; const src = useSel ? ta.value.slice(s, e) : ta.value; const m = addMsg('bot');
+    const out = await genText(m, `次の文章を、意味を変えずに誤字脱字・文法・読みやすさを直してください。修正後の文章だけを出力し、説明や前置きは書かないでください。\n\n${clipHead(src)}`);
+    if (!out) return;
+    actBtn(m, useSel ? '選択範囲を置き換え' : '全文を置き換え', 'find_replace', () => { if (ed.preview) setPreview(false); ta.value = useSel ? ta.value.slice(0, s) + out + ta.value.slice(e) : out; ed.dirty = true; updateMeta(); toast('置き換えました(保存で確定)'); });
+    actBtn(m, '末尾に追記', 'add', () => appendToContent(out), false); copyBtn(m, () => out);
+  },
+  async title() {
+    const n = curNote(); const m = addMsg('bot');
+    let res; try { res = await genJSON(m, `次のメモに合う短いタイトル(30文字以内)を3つ考えてください。JSON形式 {"titles":["案1","案2","案3"]} で出力してください。\n\n${clipHead(n.title + '\n' + n.content, 2500)}`); } catch { return; }
+    const t = (Array.isArray(res) ? res : res?.titles || (res?.title ? [res.title] : [])).filter(x => typeof x === 'string' && x.trim()).slice(0, 3);
+    if (!t.length) { m.body.textContent = 'タイトルを作れなかったんよ。'; return; }
+    m.body.textContent = 'タイトル案なんよ。選ぶと反映されるんよ。';
+    t.forEach(x => actBtn(m, x.trim().slice(0, 30), 'title', () => { $('editor-title').value = x.trim(); ed.dirty = true; toast('タイトルを設定しました(保存で確定)'); }));
+  },
+  async checklist() {
+    const n = curNote(); const m = addMsg('bot');
+    const out = await genText(m, `次のメモを、実行できる項目のチェックリストに変換してください。各行を「- [ ] 」で始め、1行1項目にし、他の文章は出力しないでください。\n\n${clipHead(n.title + '\n' + n.content)}`);
+    const lines = out.split('\n').map(l => l.trim()).filter(l => l).map(l => /^[-*]\s\[[ xX]\]/.test(l) ? l : '- [ ] ' + l.replace(/^[-*・\d.)]+\s*/, '')).join('\n');
+    if (!lines) return; m.body.textContent = lines;
+    actBtn(m, '末尾に追加', 'add', () => appendToContent(lines)); actBtn(m, '全文を置き換え', 'find_replace', () => { if (ed.preview) setPreview(false); $('editor-content').value = lines; ed.dirty = true; updateMeta(); toast('置き換えました(保存で確定)'); }, false);
+  },
+  async related(input) {
+    const m = addMsg('bot');
+    const query = input || (curNote().title + '\n' + curNote().content.slice(0, 2000));
+    const hits = findRelated(query, ed?.id ?? null);
+    if (!hits.length) { m.body.textContent = '関連しそうなメモは見つからなかったんよ。'; return; }
+    m.body.textContent = '関連しそうなメモなんよ(端末内の類似度検索)。';
+    hits.forEach(h => { const b = document.createElement('button'); b.className = 'rel-card'; b.innerHTML = `<b>${escapeHtml((h.n.title || '').trim() || '無題のメモ')}</b><small>${escapeHtml((h.n.content || '').replace(/\s+/g, ' ').slice(0, 60))} ・ 類似度 ${Math.round(h.score * 100)}%</small>`; b.onclick = () => { closeAI(); openNoteEditor(h.n.id); }; m.col.insertBefore(b, m.acts); });
+    scrollMsgs();
+  },
+  async genmemo(input) {
+    const m = addMsg('bot');
+    const out = await genText(m, `次の依頼でメモを作成してください。1行目にタイトルだけを書き、2行目以降に本文を書いてください(必要なら「- [ ] 」のチェックリストや箇条書きを使う)。前置きや説明は不要です。\n依頼: ${input}`);
+    if (!out) return;
+    const { title, body } = splitTitleBody(out);
+    actBtn(m, '保存して開く', 'note_add', async () => { const id = await createNoteFromAI(title, body); closeAI(); await openNoteEditor(id, 'view-notes'); toast('メモを作成しました'); });
+    copyBtn(m, () => out);
+  },
+  async digest() {
+    const arr = sortNotes(notes.filter(n => !n.deletedAt && !n.lock)).slice(0, 5);
+    const m = addMsg('bot'); if (!arr.length) { m.body.textContent = '要約できるメモがないんよ。'; return; }
+    const per = Math.floor(budgetChars() / arr.length);
+    const body = arr.map((n, i) => `■メモ${i + 1}: ${(n.title || '無題').trim()}\n${clipHead(n.content || '', per)}`).join('\n\n');
+    const out = await genText(m, `次の最近のメモ${arr.length}件を、メモごとに1〜2行で要約し、最後に全体で今やるべきことを一言添えてください。\n\n${body}`);
+    copyBtn(m, () => out);
+  },
+  async smart() {
+    const smarts = folders.filter(f => f.kind === 'smart'); const m = addMsg('bot');
+    if (!smarts.length) { m.body.textContent = 'スマートフォルダがまだないんよ。ジャンルを決めて作ってほしいんよ。'; actBtn(m, 'スマートフォルダを作る', 'auto_awesome', () => { closeAI(); openFolderManager(); }); return; }
+    const targets = notes.filter(n => !n.deletedAt && !n.lock); if (!targets.length) { m.body.textContent = '分析できるメモがないんよ。'; return; }
+    const genres = smarts.map((f, i) => `${i + 1}. ${f.name}${f.desc ? ': ' + f.desc : ''}`).join('\n');
+    AI.generating = true; AI.cancel = false; setSendMode(); let done = 0;
+    try {
+      for (const n of targets) {
+        if (AI.cancel) break;
+        m.body.textContent = `分析中… ${done + 1}/${targets.length}(停止ボタンで中断)`;
+        try {
+          const res = await LocalAI.json([{ role: 'user', content: `次のメモがどのジャンルに当てはまるか判定してください。\nジャンル一覧:\n${genres}\n\nメモ:\nタイトル: ${n.title || ''}\n本文: ${clipHead(n.content || '', 800)}\n\n当てはまるジャンルの番号を、JSON形式 {"genres":[1]} で答えてください。どれにも当てはまらなければ {"genres":[]}。` }], { system: sysFor(), temperature: 0.1, max_tokens: 64 });
+          const idx = (Array.isArray(res?.genres) ? res.genres : []).map(Number).filter(x => x >= 1 && x <= smarts.length);
+          n.smartIds = [...new Set(idx.map(x => smarts[x - 1].id))];
+          await idb('notes', 'readwrite', s => s.put(n));
+        } catch (e) { if (AI.cancel) break; }
+        done++;
+      }
+    } finally { AI.generating = false; setSendMode(); }
+    await refreshNotes();
+    m.body.textContent = AI.cancel ? `中断しました(${done}/${targets.length}件を分析済み)。` : `${targets.length}件を分析したんよ。メモ一覧のスマートフォルダで確認できるんよ。`;
+  },
+  async plan() {
+    const open = tasks.filter(t => !t.done); const m = addMsg('bot'); if (!open.length) { m.body.textContent = '未完了のタスクはないんよ。えらいんよ！'; return; }
+    const pl = { 3: '高', 2: '中', 1: '低' };
+    const list = open.slice(0, 40).map(t => `- [優先度${pl[t.priority]}] ${t.due ? '期限' + t.due : '期限なし'} ${t.text}`).join('\n');
+    const out = await genText(m, `今日は${todayStr()}です。次のタスクについて、今日やる順番とその理由を簡潔に提案してください。期限切れや今日期限のものを最優先にしてください。\n\n${list}`);
+    copyBtn(m, () => out);
+  },
+  async prio() {
+    const open = tasks.filter(t => !t.done).slice(0, 30); const m = addMsg('bot'); if (!open.length) { m.body.textContent = '未完了のタスクはないんよ。'; return; }
+    const list = open.map(t => `id=${t.id} 現在の優先度=${t.priority} 期限=${t.due || 'なし'} ${t.text}`).join('\n');
+    let res; try { res = await genJSON(m, `今日は${todayStr()}です。次のタスクの優先度を見直してください。priorityは3=高,2=中,1=低。変更が必要なものだけをJSON形式 {"updates":[{"id":1,"priority":3}]} で出力してください。\n\n${list}`); } catch { return; }
+    const ups = (Array.isArray(res) ? res : res?.updates || []).filter(u => open.some(t => t.id === +u.id) && [1, 2, 3].includes(+u.priority) && open.find(t => t.id === +u.id).priority !== +u.priority);
+    if (!ups.length) { m.body.textContent = '今の優先度で問題なさそうなんよ。'; return; }
+    m.body.textContent = '優先度の変更案なんよ:\n' + ups.map(u => `・${open.find(t => t.id === +u.id).text} → 優先度${pl3(u.priority)}`).join('\n');
+    actBtn(m, 'すべて適用', 'check', async b => { for (const u of ups) { const t = tasks.find(x => x.id === +u.id); if (t) { t.priority = +u.priority; await idb('tasks', 'readwrite', s => s.put(t)); } } await refreshTasks(); b.disabled = true; toast('優先度を更新しました'); });
+  },
+  async addtask(input) {
+    const m = addMsg('bot');
+    let res; try { res = await genJSON(m, `次の文から追加すべきタスクを抽出してください。JSON形式 {"tasks":[{"text":"短い行動","due":"YYYY-MM-DD または空文字","priority":2}]} で出力。今日は${todayStr()}(曜日は日本の暦)。priorityは3=高,2=中,1=低。\n\n${input}`); } catch { return; }
+    renderTaskCandidates(m, Array.isArray(res) ? res : res?.tasks || [], false);
+  },
+  async color(input) {
+    const m = addMsg('bot');
+    let res; try { res = await genJSON(m, `次の雰囲気に合うアプリのシードカラーを1つ提案してください。JSON形式 {"hex":"#RRGGBB","reason":"理由を一文"} で出力。\n雰囲気: ${input}`); } catch { return; }
+    const hex = String(res?.hex || '').trim();
+    if (!/^#[0-9a-fA-F]{6}$/.test(hex)) { m.body.textContent = '色をうまく決められなかったんよ。'; return; }
+    m.body.textContent = `${hex.toUpperCase()}\n${res.reason || ''}`;
+    actBtn(m, 'シードカラーに設定', 'palette', () => { updateMonetTheme(hex, true); toast('テーマを変更しました'); });
+  }
+};
+const pl3 = p => ({ 3: '高', 2: '中', 1: '低' }[+p]);
+
+function renderTaskCandidates(m, list, fromNote) {
+  list = list.map(x => typeof x === 'string' ? { text: x } : x).filter(x => x && String(x.text || '').trim()).slice(0, 12);
+  if (!list.length) { m.body.textContent = 'タスクが見つからなかったんよ。'; return; }
+  m.body.textContent = 'タスク候補なんよ。追加するものを選んでほしいんよ。';
+  const checks = [];
+  list.forEach(t => {
+    const due = /^\d{4}-\d{2}-\d{2}$/.test(t.due || '') ? t.due : ''; const pri = [1, 2, 3].includes(+t.priority) ? +t.priority : 2;
+    const row = document.createElement('label'); row.className = 'cand-row';
+    const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = true;
+    const sp = document.createElement('span'); sp.textContent = `${String(t.text).trim()}${due ? '  📅' + due : ''}  [優先度${pl3(pri)}]`;
+    row.append(cb, sp); m.col.insertBefore(row, m.acts); checks.push({ cb, text: String(t.text).trim(), due, pri });
+  });
+  actBtn(m, '選択をタスクに追加', 'add_task', async b => {
+    const sel = checks.filter(c => c.cb.checked); if (!sel.length) return toast('選択されていません');
+    let noteId = null;
+    if (fromNote) { noteId = await saveCurrentNote({ silent: true, stay: true }); if (!noteId) return toast('先にメモを保存してください'); }
+    for (const c of sel) await addTask({ text: c.text, due: c.due, priority: c.pri, noteId });
+    await refreshTasks(); b.disabled = true; toast(`${sel.length}件のタスクを追加しました`);
+  });
+  if (fromNote) actBtn(m, 'メモにチェックリストとして追記', 'checklist', () => appendToContent(checks.filter(c => c.cb.checked).map(c => '- [ ] ' + c.text).join('\n')), false);
+  scrollMsgs();
+}
+function splitTitleBody(out) {
+  const lines = out.replace(/\r/g, '').split('\n'); let i = 0; while (i < lines.length && !lines[i].trim()) i++;
+  let title = (lines[i] || 'AIメモ').replace(/^#+\s*/, '').replace(/^(タイトル|題名)[:：]\s*/, '').replace(/^[「『"*]+|[」』"*]+$/g, '').trim().slice(0, 60) || 'AIメモ';
+  const body = lines.slice(i + 1).join('\n').trim() || out.trim(); return { title, body };
+}
+async function createNoteFromAI(title, body) {
+  const now = new Date().toISOString();
+  const n = { title, content: body, createdAt: now, updatedAt: now, isPinned: false, folderId: listFilter.type === 'folder' ? listFilter.id : null, tags: [], attachments: [], lock: null, deletedAt: null, smartIds: [] };
+  const id = await idb('notes', 'readwrite', s => s.add(n)); await refreshNotes(); return id;
+}
+
+/* ---------- 関連メモ(端末内の類似度) ---------- */
+function gramSet(text) {
+  const s = (text || '').toLowerCase(); const set = new Set();
+  (s.match(/[a-z0-9]{2,}/g) || []).forEach(w => set.add(w));
+  (s.match(/[\u3040-\u30ff\u3400-\u9fff]+/g) || []).forEach(run => { if (run.length === 1) set.add(run); for (let i = 0; i < run.length - 1; i++) set.add(run.slice(i, i + 2)); });
+  return set;
+}
+function findRelated(query, excludeId) {
+  const q = gramSet(query); if (!q.size) return [];
+  return notes.filter(n => !n.deletedAt && !n.lock && n.id !== excludeId).map(n => {
+    const g = gramSet((n.title || '') + ' ' + (n.title || '') + ' ' + (n.tags || []).join(' ') + ' ' + (n.content || '').slice(0, 3000));
+    if (!g.size) return { n, score: 0 }; let inter = 0; q.forEach(x => { if (g.has(x)) inter++; });
+    return { n, score: inter / Math.sqrt(q.size * g.size) };
+  }).filter(x => x.score > 0.03).sort((a, b) => b.score - a.score).slice(0, 5);
+}
+
+/* ---------- Wikipedia ---------- */
+function wikiTopic(t) {
+  t = t.trim();
+  let m = t.match(/^(.{1,60}?)\s*(?:について|のこと|って)\s*(?:を)?\s*(?:教えて|おしえて|知りたい|説明して?|調べて)/);
+  if (!m) m = t.match(/^(.{1,40}?)とは[?？]?$/);
+  return m ? m[1].replace(/^[「『"]+|[」』"]+$/g, '').replace(/を$/, '').trim() : null;
+}
+async function wikiLookup(topic) {
+  const base = 'https://ja.wikipedia.org';
+  const summary = async title => { const r = await fetch(`${base}/api/rest_v1/page/summary/${encodeURIComponent(title)}`); if (!r.ok) return null; const j = await r.json(); if (!j.extract || j.type === 'disambiguation') return j.extract ? j : null; return j; };
+  let j = await summary(topic);
+  if (!j) {
+    const r = await fetch(`${base}/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(topic)}&srlimit=1&format=json&origin=*`);
+    if (r.ok) { const s = await r.json(); const first = s?.query?.search?.[0]?.title; if (first) j = await summary(first); }
+  }
+  if (!j || !j.extract) return null;
+  return { title: j.title, extract: j.extract, url: j.content_urls?.desktop?.page || `${base}/wiki/${encodeURIComponent(j.title)}` };
+}
+async function doWiki(topic) {
+  const m = addMsg('bot'); m.body.textContent = `Wikipediaで「${topic}」を調べています…`;
+  let info; try { info = await wikiLookup(topic); } catch (e) { m.body.textContent = 'Wikipediaに接続できなかったんよ。ネットワークを確認してほしいんよ。'; return; }
+  if (!info) { m.body.textContent = `「${topic}」の記事は見つからなかったんよ。`; return; }
+  let text;
+  if (LocalAI.ready) {
+    try { text = await genText(m, `次はWikipediaの記事「${info.title}」の概要です。これを日本語で3〜5文にやさしく要約してください。概要に無いことは書かないでください。\n\n${info.extract}`); }
+    catch { text = info.extract; m.body.textContent = '(AI要約に失敗したためWikipediaの概要をそのまま表示)\n\n' + info.extract; }
+  } else { text = info.extract; m.body.textContent = '(AI未読み込みのため、Wikipediaの概要をそのまま表示します)\n\n' + info.extract; }
+  const src = document.createElement('div'); src.className = 'cand'; src.innerHTML = `出典: <a href="${escapeHtml(info.url)}" target="_blank" rel="noopener">Wikipedia「${escapeHtml(info.title)}」</a>`; m.col.insertBefore(src, m.acts);
+  actBtn(m, 'メモとして保存', 'note_add', async () => { const id = await createNoteFromAI(info.title, `${text}\n\n出典: ${info.url} (Wikipedia)`); closeAI(); await openNoteEditor(id, 'view-notes'); toast('メモを作成しました'); });
+  copyBtn(m, () => text);
+}
+
+/* ---------- 自由チャット ---------- */
+async function handleSend() {
+  const text = aiInput.value.trim(); if (!text) return;
+  aiInput.value = ''; aiInput.style.height = 'auto'; stopVoice();
+  const topic = wikiTopic(text);
+  if (topic) { userSay(text); if (/^[○〇◯]+$/.test(topic)) return void botSay('調べたい言葉を「○○」の部分に入れてほしいんよ。'); return doWiki(topic); }
+  if (/(メモ|ノート).{0,12}(作って|作成|書いて|生成|つくって)/.test(text)) {
+    if (!LocalAI.ready) { userSay(text); return void botSay('メモ作成にはAIモデルの読み込みが必要なんよ。上の「読み込む」を押してほしいんよ。'); }
+    if (aiSet.confirm && !(await uiConfirm('AIでメモを下書きします。保存するかは結果を見てから選べます。', 'AI実行前の確認', '実行'))) { aiInput.value = text; return; }
+    userSay(text); try { await ACTIONS.genmemo(text); } catch {} return;
+  }
+  userSay(text);
+  if (!LocalAI.ready) { renderAIStatus(); return void botSay(!navigator.gpu ? 'このブラウザはWebGPU非対応なので、AIとの会話は使えないんよ。' : 'AIモデルが未読み込みなんよ。上の「読み込む」を押してほしいんよ。'); }
+  let ctxInfo = '';
+  if (aiCtx() === 'editor' && ed) { const n = curNote(); if (n.content.trim() || n.title) ctxInfo = `\n\n【ユーザーが開いているメモ】\nタイトル: ${n.title}\n${clipHead(n.content, Math.floor(budgetChars() * 0.6))}`; }
+  else if (aiCtx() === 'tasks') { const open = tasks.filter(t => !t.done).slice(0, 20); if (open.length) ctxInfo = '\n\n【未完了タスク】\n' + open.map(t => `- ${t.text}${t.due ? '(' + t.due + ')' : ''}`).join('\n'); }
+  const hist = AI.history.slice(-8);
+  const m = addMsg('bot');
+  try {
+    const out = await genText(m, text, { system: '今日は' + todayStr() + 'です。' + ctxInfo, history: hist });
+    AI.history.push({ role: 'user', content: text }, { role: 'assistant', content: out });
+    if (out) { copyBtn(m, () => out); if (aiCtx() === 'editor' && ed) actBtn(m, 'メモに追記', 'add', () => appendToContent(out), false); }
+  } catch {}
+}
+
+/* =====================================================================
+   起動
+   ===================================================================== */
+async function initApp() {
+  try {
+    await openDatabase();
+    const seed = await getSetting('m3_seed_color'), dark = await getSetting('is_dark_mode');
+    if (seed) currentSeedColor = seed; if (dark !== null) isDarkMode = dark;
+    $('darkmode-toggle').checked = isDarkMode;
+    await updateMonetTheme(currentSeedColor, false);
+    await loadAISettings();
+    await refreshNotes(); await refreshFolders(); await refreshTasks();
+    await purgeOldTrash();
+  } catch (e) { console.error('init failed', e); toast('保存領域を開けませんでした'); }
+  renderAIStatus(); updateAIContext();
+  if (aiSet.autoLoad && navigator.gpu) {
+    ensureWebLLM().then(async () => { const id = aiSet.model && MODELS.includes(aiSet.model) ? aiSet.model : MODELS[0]; if (id && await LocalAI.hasCache(id)) loadModelUI(); }).catch(() => {});
+  }
+}
+window.updateMonetTheme = updateMonetTheme;
+initApp();
+
+/* ---------- 弾性オーバースクロール ---------- */
+(() => {
+  const area = $('main-scroll-area'), wrap = $('overscroll-wrapper');
+  let startY = 0, pulling = false, wheelTimer = null, wheelSum = 0;
+  area.addEventListener('touchstart', e => { if (e.touches.length === 1) { startY = e.touches[0].clientY; wrap.classList.remove('spring-back'); } }, { passive: true });
+  area.addEventListener('touchmove', e => {
+    if (e.touches.length !== 1) return;
+    const dy = e.touches[0].clientY - startY;
+    const top = area.scrollTop <= 0, bottom = Math.abs(area.scrollHeight - area.clientHeight - area.scrollTop) < 2;
+    if ((top && dy > 0) || (bottom && dy < 0)) { const p = dy * 0.38; wrap.style.transform = `translateY(${p}px) scaleY(${1 + Math.abs(p) * 0.0003})`; pulling = true; }
+  }, { passive: true });
+  area.addEventListener('touchend', () => { if (pulling) { wrap.classList.add('spring-back'); wrap.style.transform = 'translateY(0) scaleY(1)'; pulling = false; } });
+  area.addEventListener('wheel', e => {
+    const top = area.scrollTop <= 0, bottom = Math.abs(area.scrollHeight - area.clientHeight - area.scrollTop) < 2;
+    if ((top && e.deltaY < 0) || (bottom && e.deltaY > 0)) {
+      wheelSum = Math.max(-60, Math.min(60, wheelSum - e.deltaY * 0.25)); wrap.classList.remove('spring-back'); wrap.style.transform = `translateY(${wheelSum}px)`;
+      clearTimeout(wheelTimer); wheelTimer = setTimeout(() => { wrap.classList.add('spring-back'); wrap.style.transform = 'translateY(0)'; wheelSum = 0; }, 120);
+    }
+  }, { passive: true });
+})();
+</script>
+</body>
+</html>
