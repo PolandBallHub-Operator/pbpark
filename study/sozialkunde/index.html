@@ -781,6 +781,9 @@ textarea.glass-input{width:100%;min-height:70px;resize:vertical;font-family:inhe
 .md-tbl{overflow-x:auto;margin:0 0 .6em}.msg.md table{border-collapse:collapse;font-size:.92em}
 .msg.md th,.msg.md td{border:1px solid rgba(127,127,127,.3);padding:4px 8px;text-align:left}
 .msg.md th{background:rgba(127,127,127,.15)}
+    #xiaomi-selection-menu{position:fixed;flex-wrap:wrap;justify-content:center;max-width:calc(100vw - 16px)}
+.xiaomi-menu-btn{min-width:46px;padding:7px 6px}
+@keyframes spin{to{transform:rotate(360deg)}}
     </style>
 </head>
 <body>
@@ -1452,7 +1455,7 @@ textarea.glass-input{width:100%;min-height:70px;resize:vertical;font-family:inhe
         // Live search bar implementation
         async function searchWikipedia(query) {
             if (!query.trim()) return;
-            showToast("Wikipediaで関連キーワードを探索中...");
+            showToast("思考中です…");
 
             try {
                 const url = `https://ja.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&origin=*`;
@@ -1494,11 +1497,11 @@ textarea.glass-input{width:100%;min-height:70px;resize:vertical;font-family:inhe
 
         // Load specific article content in format-preserved View
         async function loadArticleOnline(title) {
-            showToast(`「${title}」の資料をダウンロード中...`);
+            showToast("思考中です…");
             switchView('view-read');
             renderArea.innerHTML = `<div style="text-align: center; padding: 40px 0; color: var(--text-sub);">
                 <span class="material-symbols-outlined" style="font-size:32px; animation: spin 1s infinite linear;">sync</span>
-                <p>記事を解析しています...</p>
+                <p>思考中です…</p>
             </div>`;
 
             try {
@@ -2297,7 +2300,7 @@ async function toggleSaveArticle() {
         });
         return;
     }
-    showToast('画像ごと保存しています...');
+    showToast('思考中です…');
     const c = renderArea.cloneNode(true); unwrapFocus(c);
     await pool([...c.querySelectorAll('img')].slice(0, 80), 6, async img => {
         const u = img.currentSrc || img.src; const d = await toDataURL(u);
@@ -2353,7 +2356,7 @@ function handleTextSelection() {
     if (av && av.id === 'view-read' && txt && sel.rangeCount && renderArea.contains(sel.anchorNode)) {
         activeSelectionText = txt; lastRange = sel.getRangeAt(0).cloneRange();
         const r = lastRange.getBoundingClientRect();
-        showXiaomiMenu(r.left, r.top < 90 ? r.bottom + 10 : r.top - 62);
+        showXiaomiMenu(r.left, r.top, r.bottom);
     } else {
         setTimeout(() => { if (!window.getSelection().toString().trim()) hideXiaomiMenu(); }, 450);
     }
@@ -2395,6 +2398,23 @@ async function clearHighlights() {
     b.innerHTML = '<span class="material-symbols-outlined">ink_eraser</span>消去';
     xiaomiSelectionMenu.insertBefore(b, $('sel-btn-card'));
     b.addEventListener('mousedown', e => { e.preventDefault(); clearHighlights(); });
+})();
+
+// ---- 長押しメニュー: コピー / 調べる ----
+async function copyText(t) {
+    try { await navigator.clipboard.writeText(t); }
+    catch (e) { const a = document.createElement('textarea'); a.value = t; a.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(a); a.select(); try { document.execCommand('copy'); } catch (e2) {} a.remove(); }
+    showToast('コピーしました');
+}
+(function () {
+    const mk = (id, icon, label, color, fn) => {
+        const b = document.createElement('button'); b.className = 'xiaomi-menu-btn'; b.id = id;
+        b.innerHTML = `<span class="material-symbols-outlined" style="color:${color}">${icon}</span>${label}`;
+        xiaomiSelectionMenu.appendChild(b);
+        b.addEventListener('mousedown', e => { e.preventDefault(); const t = activeSelectionText; hideXiaomiMenu(); if (t) fn(t); });
+    };
+    mk('sel-btn-copy', 'content_copy', 'コピー', '#4DB6AC', t => copyText(t));
+    mk('sel-btn-lookup', 'travel_explore', '調べる', '#5679F0', t => { openChat(); ask(`「${t.replace(/[「」]/g, '').slice(0, 40)}」とは？`); });
 })();
 
 // ---- TTS（分割読み上げ・日本語ボイス選択・一時停止） ----
@@ -2539,7 +2559,7 @@ async function recQuery(q, limit) {
 async function fetchSeedRecommendations(theme) {
     if (typeof theme === 'string') curTheme = theme;
     renderThemeChips();
-    recommendedList.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-sub)">おすすめ記事を探索中...</div>';
+    recommendedList.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-sub)">思考中です…</div>';
     const all = Object.values(THEMES).flat(), jobs = [];
     if (curTheme === 'おすすめ') {
         const recent = JSON.parse(localStorage.getItem('sk_recent') || '[]');
@@ -2569,6 +2589,15 @@ function renderThemeChips() {
     bar.innerHTML = ['おすすめ', ...Object.keys(THEMES)].map(t => `<button class="chip${t === curTheme ? ' on' : ''}" data-t="${t}">${t}</button>`).join('');
 }
 
+function showXiaomiMenu(x, top, bottom) {
+    const m = xiaomiSelectionMenu, w = m.offsetWidth, h = m.offsetHeight;
+    const left = Math.max(8, Math.min(x, window.innerWidth - w - 8));
+    let t = top - h - 10;
+    if (t < 8) t = (bottom == null ? top : bottom) + 14;
+    t = Math.max(8, Math.min(t, window.innerHeight - h - 76));
+    m.style.left = left + 'px'; m.style.top = t + 'px';
+    m.classList.add('active');
+}
 // ================= v3: AI Ball =================
 const GK = 'sk_gemini_key', GM = 'sk_gemini_model';
 const gemKey = () => localStorage.getItem(GK) || '', gemModel = () => localStorage.getItem(GM) || 'gemini-3.1-flash-lite';
@@ -2651,7 +2680,18 @@ function md(src) {
     }
     return out.join('');
 }
-function renderMsg(m) {
+function typeInto(row, text) {
+    const el = row.querySelector('.msg.bot'); if (!el) return;
+    const extras = [...row.querySelectorAll('.mcol > :not(.msg)')]; extras.forEach(x => x.style.display = 'none');
+    const chars = [...text], step = Math.max(1, Math.ceil(chars.length / 260)); let i = 0;
+    el.innerHTML = ''; el.classList.add('caret');
+    const iv = setInterval(() => {
+        i = Math.min(chars.length, i + step); el.innerHTML = md(chars.slice(0, i).join(''));
+        log.scrollTop = log.scrollHeight;
+        if (i >= chars.length) { clearInterval(iv); el.classList.remove('caret'); extras.forEach(x => x.style.display = ''); log.scrollTop = log.scrollHeight; }
+    }, 28);
+}
+function renderMsg(m, anim) {
     const row = document.createElement('div'); row.className = 'mrow ' + m.role;
     const av = m.role === 'bot' ? (m.by === 'gem' ? '<span class="av gem">✦</span>' : `<img class="av" src="${AIBALL}" alt="">`) : '';
     let ex = '', x = m.extra;
@@ -2662,10 +2702,12 @@ function renderMsg(m) {
         if (x.act === 'gemset') ex = '<button class="chip on" data-act="gemset">Gemini APIを設定する</button>';
     }
     row.innerHTML = `${av}<div class="mcol">${m.text ? (m.role === 'bot' ? `<div class="msg bot md">${md(m.text)}</div>` : `<div class="msg ${m.role}">${esc(m.text)}</div>`) : ''}${ex}</div>`;
-    log.appendChild(row); log.scrollTop = log.scrollHeight; return row;
+    log.appendChild(row); log.scrollTop = log.scrollHeight;
+    if (anim && m.role === 'bot' && m.text) typeInto(row, m.text);
+    return row;
 }
 async function addMsg(role, text, by = 'ball', extra = null) {
-    const m = {role, text, by, extra}; chat.messages.push(m); renderMsg(m);
+    const m = {role, text, by, extra}; chat.messages.push(m); renderMsg(m, true);
     if (!chat.id) chat.id = Date.now();
     if (role === 'user' && !chat.title) chat.title = text.slice(0, 26);
     chat.updated = Date.now(); try { await idbPut('chats', JSON.parse(JSON.stringify(chat))); } catch (e) {}
@@ -2732,6 +2774,42 @@ function focusStep(d) {
 }
 $('focus-prev').onclick = () => focusStep(-1); $('focus-next').onclick = () => focusStep(1); $('focus-x').onclick = clearFocus;
 
+// ---- ポーランドボール口調 ----
+const STEM = {'い':'う','き':'く','ぎ':'ぐ','し':'す','ち':'つ','に':'ぬ','び':'ぶ','み':'む','り':'る'};
+function poleSentence(x) {
+    return x
+        .replace(/でありました。?$/, 'だったんよ。').replace(/であった。$/, 'だったんよ。').replace(/であり、/g, 'で、').replace(/である。$/, 'なんよ。')
+        .replace(/でした。$/, 'だったんよ。').replace(/です。$/, 'なんよ。').replace(/でしょう。$/, 'なんね。')
+        .replace(/([^\s])ました。$/, '$1たんよ。').replace(/ません。$/, 'ないんよ。')
+        .replace(/(.)ます。$/, (m, c) => (STEM[c] || (/[ぁ-ん]/.test(c) ? c : c + 'る')) + 'んよ。')
+        .replace(/ている。$/, 'てるんね。').replace(/となっている。$/, 'となってるんね。')
+        .replace(/([うくぐすつぬぶむる])。$/, '$1んね。').replace(/([たいだ])。$/, '$1んよ。');
+}
+function poleRule(t) { return t.replace(/[^。！？\n]+[。！？]?|\n/g, poleSentence); }
+async function toPoland(t) {
+    if (gemKey()) {
+        try {
+            const r = await Promise.race([
+                gemini([{text: `次の文章を、意味・固有名詞・数字・括弧内の情報を変えずに、ポーランドボール風の口調に書き換えてください。敬語や「である調」は使わず、文末は「〜なんよ。」「〜んね。」にします。例:「…連邦共和制国家である。」→「…連邦共和制国家なんよ。」「…事業者となっている。」→「…事業者となってるんね。」\n書き換えた本文のみを出力し、前置きや装飾はしないでください。\n\n${t}`}], {system: '文章を指定の口調に変換するアシスタント。内容は追加・削除しない。'}),
+                new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 9000))]);
+            if (r && r.trim().length > t.length * .4) return r.trim();
+        } catch (e) { console.warn('tone via Gemini failed', e); }
+    }
+    return poleRule(t);
+}
+const HELP = `## AIBALLにできること
+- **〇〇とは？** … Wikipediaの概要を、記事を開かずに答えるんよ
+- **「〇〇」をローカル記事から探して** … 保存した記事の全文検索
+- **〇〇を探して** … Wikipediaの記事検索
+- **記事を開いた画面で単語を入力** … 記事内の全部をグラデーションでハイライト
+- **関連記事は？** … 今開いている記事の関連記事
+- **読み上げて / 止めて** … 記事のTTS
+- **「〇〇」の暗記カードを作成して** … 自分の言葉で暗記カードを作成（問題文を聞くんよ）
+- 長押しメニューの「調べる」で、選んだ言葉をすぐ検索
+- **✦ Gemini設定後**: 要約・暗記カード自動作成・年表やグラフ・ファイル添付での質問
+- 右上の履歴ボタンで過去のチャットを再開できるんよ`;
+let pendingCard = null, pendingAsk = false;
+
 // ---- 頭脳 ----
 async function wikiSummary(term) {
     try { const r = await fetch(`https://ja.wikipedia.org/api/rest_v1/page/summary/${enc(term)}?redirect=true`); if (r.ok) { const j = await r.json(); if (j.type === 'standard') return {title: j.title, text: j.extract, thumb: j.thumbnail && j.thumbnail.source}; } } catch (e) {}
@@ -2768,9 +2846,28 @@ async function ask(text, retried) {
     text = (text || '').trim(); if (!text && !att) return;
     if (!retried) { await addMsg('user', text + (att ? `\n📎 ${att.name}` : '')); }
     const t = text, fileNow = att;
-    const thinking = renderMsg({role: 'bot', by: 'ball', text: '…'}); thinking.querySelector('.msg').classList.add('caret');
+    const thinking = renderMsg({role: 'bot', by: 'ball', text: '思考中です…'}); thinking.querySelector('.msg').classList.add('caret');
     const done = () => thinking.remove();
     try {
+        if (pendingAsk) {
+            if (/^(キャンセル|やめ|中止)/.test(t)) { pendingAsk = false; done(); return addMsg('bot', '暗記カードの作成をやめたんよ。'); }
+            pendingAsk = false; pendingCard = t; done();
+            return addMsg('bot', `「${t}」の暗記カードなんね。問題文はなんなんね？\n（解答は「${t}」になるんよ。やめるなら「キャンセル」）`);
+        }
+        if (pendingCard) {
+            if (/^(キャンセル|やめ|中止)/.test(t)) { pendingCard = null; done(); return addMsg('bot', '暗記カードの作成をやめたんよ。'); }
+            const a = pendingCard; pendingCard = null; done();
+            db.flashcards.push({id: Date.now(), question: t, answer: a, correctCount: 0, isLearned: false});
+            saveDatabase(); renderFlashcards();
+            return addMsg('bot', `暗記カードを作ったんよ！\n\n**Q.** ${t}\n**A.** ${a}`);
+        }
+        if (/何ができ|なにができ|できること|使い方|ヘルプ|機能/.test(t)) { done(); return addMsg('bot', HELP); }
+        const cm = /暗記カード|フラッシュ/.test(t) && !/この記事|記事から|ページ|これ|自動/.test(t) && (t.match(/[「『"“](.+?)[」』"”]/) || t.match(/^(.+?)の(?:暗記カード|フラッシュカード)/));
+        if (cm) { pendingCard = cm[1].trim(); done(); return addMsg('bot', `「${pendingCard}」の暗記カードなんね。問題文はなんなんね？\n（解答は「${pendingCard}」になるんよ。やめるなら「キャンセル」）`); }
+        if (!cm && !gemKey() && /暗記カード|フラッシュ/.test(t) && !/この記事|記事から|ページ|自動/.test(t)) {
+            done(); pendingAsk = true;
+            return addMsg('bot', '暗記カードを作るんね。解答にしたい言葉を教えてほしいんよ。\n（やめるなら「キャンセル」）');
+        }
         if (/^(ハイライト|強調|フォーカス).*(解除|消|オフ)|^解除$/.test(t)) { done(); clearFocus(); return addMsg('bot', 'ハイライトを解除したんよ。'); }
         if (/読み上げ|読んで|朗読/.test(t)) { done(); if (/止め|停止/.test(t)) { stopTTS(); return addMsg('bot', '読み上げを止めたんよ。'); }
             if (!hasArticle()) return addMsg('bot', '先に読み上げたい記事を閲覧画面で開いてほしいんよ。'); speakSelectedText(renderArea.innerText); closeChat(); return addMsg('bot', '読み上げ開始なんよ。'); }
@@ -2784,8 +2881,8 @@ async function ask(text, retried) {
             if (!q) return addMsg('bot', '何を探すか教えてほしいんよ。例: 「ビスマルク」をローカル記事から探して');
             const r = await localSearch(q); return addMsg('bot', r.length ? `保存記事から「${q}」が見つかったんよ。` : `保存記事に「${q}」は無かったんよ。`, 'ball', r.length ? {cards: r} : null); }
         const m = t.match(/^(.+?)(?:とは|って(?:何|なに|誰|だれ|どこ|なん)|について教えて)[?？]?$/);
-        if (m && !/この記事|これ/.test(m[1])) { const r = await wikiSummary(term(m[1]) || m[1]); done();
-            return r ? addMsg('bot', r.text, 'ball', {cards: [{title: r.title, desc: '記事を開く', thumb: r.thumb}]}) : addMsg('bot', `「${m[1]}」は見つからなかったんよ。`); }
+        if (m && !/この記事|これ/.test(m[1])) { const r = await wikiSummary(term(m[1]) || m[1]); if (r) r.pole = await toPoland(r.text); done();
+            return r ? addMsg('bot', r.pole, 'ball', {cards: [{title: r.title, desc: '記事を開く', thumb: r.thumb}]}) : addMsg('bot', `「${m[1]}」は見つからなかったんよ。`); }
         if (/探して|検索/.test(t)) { const q = term(t); const r = await wikiSearch(q); done(); return addMsg('bot', r.length ? `「${q}」の検索結果なんよ。` : '見つからなかったんよ。', 'ball', r.length ? {cards: r} : null); }
         if (/暗記カード|フラッシュ|年表|グラフ|チャート|要約|まとめ|解説|クイズ|比較|この記事|なぜ|どうして|違い/.test(t) || fileNow) {
             if (!gemKey()) { done(); pendingText = t; return gate(''); }
