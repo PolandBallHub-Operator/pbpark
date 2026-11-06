@@ -2,966 +2,854 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>OsmMaps - MD2 Navigation & Spot Manager</title>
-
-  <!-- Material Icons (Google Fonts) -->
-  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-  <!-- Roboto Font -->
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
-  <!-- Leaflet CSS for OpenStreetMap -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>OsmMaps - PTZ Navigation & Spot Manager</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Noto+Sans+JP:wght@400;500;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-
   <style>
-    :root {
-      /* Light Theme (Material 2 Baseline) */
-      --md-primary: #6200ee;
-      --md-primary-variant: #3700b3;
-      --md-secondary: #03dac6;
-      --md-secondary-variant: #018786;
-      --md-background: #f5f5f5;
-      --md-surface: #ffffff;
-      --md-error: #b00020;
-      
-      --md-on-primary: #ffffff;
-      --md-on-secondary: #000000;
-      --md-on-background: #000000;
-      --md-on-surface: #000000;
-      --md-on-error: #ffffff;
 
-      --md-surface-variant: #f1f1f1;
-      --md-on-surface-medium: rgba(0, 0, 0, 0.6);
-      --md-on-surface-disabled: rgba(0, 0, 0, 0.38);
-      --md-divider: rgba(0, 0, 0, 0.12);
-      
-      --elevation-0: none;
-      --elevation-1: 0px 2px 1px -1px rgba(0,0,0,0.2), 0px 1px 1px 0px rgba(0,0,0,0.14), 0px 1px 3px 0px rgba(0,0,0,0.12);
-      --elevation-2: 0px 3px 1px -2px rgba(0,0,0,0.2), 0px 2px 2px 0px rgba(0,0,0,0.14), 0px 1px 5px 0px rgba(0,0,0,0.12);
-      --elevation-4: 0px 2px 4px -1px rgba(0,0,0,0.2), 0px 4px 5px 0px rgba(0,0,0,0.14), 0px 1px 10px 0px rgba(0,0,0,0.12);
-      --elevation-6: 0px 3px 5px -1px rgba(0,0,0,0.2), 0px 6px 10px 0px rgba(0,0,0,0.14), 0px 1px 18px 0px rgba(0,0,0,0.12);
-      --elevation-8: 0px 5px 5px -3px rgba(0,0,0,0.2), 0px 8px 10px 1px rgba(0,0,0,0.14), 0px 3px 14px 2px rgba(0,0,0,0.12);
-      --elevation-12: 0px 7px 8px -4px rgba(0,0,0,0.2), 0px 12px 17px 2px rgba(0,0,0,0.14), 0px 5px 22px 4px rgba(0,0,0,0.12);
-      --elevation-16: 0px 8px 10px -5px rgba(0,0,0,0.2), 0px 16px 24px 2px rgba(0,0,0,0.14), 0px 6px 30px 5px rgba(0,0,0,0.12);
-      --elevation-24: 0px 11px 15px -7px rgba(0,0,0,0.2), 0px 24px 38px 3px rgba(0,0,0,0.14), 0px 9px 46px 8px rgba(0,0,0,0.12);
+        /* デフォルトテーマ（PTZ.jsonのデフォルト値と連動） */
+        :root {
+            --accent-primary: #3381FF;
+            --accent-active: #1A5FCC;
+            
+            /* PTZ 規格初期値 */
+            --ptz-theme-name: "ShowMeCSS Default Blue";
+            --ptz-card-radius: 24px;
+            --ptz-slider-height: 25px;
+            --ptz-toggle-width: 54px;
+            --ptz-toggle-height: 30px;
+            --ptz-toggle-knob-radius: 50%;
+            --ptz-toggle-knob-width: 22px;
 
-      --transition-standard: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    }
+            /* Light Mode ベースカラー */
+            --bg-base: #F7F7F7;
+            --glass-bg: #FFFFFF;
+            --text-main: #000000;
+            --text-sub: #666666;
+            --bg-secondary: #EEEEEE;
+            --nav-bg: #FFFFFF;
+            --nav-icon-active: #000000;
+            
+            --m3-easing: cubic-bezier(0.32, 0.72, 0, 1);
+            --transition-smooth: 0.35s var(--m3-easing);
+            --card-padding: 24px;
+        }
 
-    [data-theme="dark"] {
-      --md-primary: #bb86fc;
-      --md-primary-variant: #3700b3;
-      --md-secondary: #03dac6;
-      --md-secondary-variant: #03dac6;
-      --md-background: #121212;
-      --md-surface: #1e1e1e;
-      --md-error: #cf6679;
+        /* ダークモード */
+        .dark-mode {
+            
+            --glass-bg: #1E1E1E;
+            --text-main: #FFFFFF;
+            --text-sub: #A1A1A6;
+            --bg-secondary: #2C2C2E;
+            --nav-bg: #1E1E1E;
+            --nav-icon-active: #FFFFFF;
+        }
 
-      --md-on-primary: #000000;
-      --md-on-secondary: #000000;
-      --md-on-background: #ffffff;
-      --md-on-surface: #ffffff;
-      --md-on-error: #000000;
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
 
-      --md-surface-variant: #2d2d2d;
-      --md-on-surface-medium: rgba(255, 255, 255, 0.6);
-      --md-on-surface-disabled: rgba(255, 255, 255, 0.38);
-      --md-divider: rgba(255, 255, 255, 0.12);
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', 'Noto Sans JP', sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            transition: background-color var(--transition-smooth), color var(--transition-smooth);
+            overflow: hidden;
+            height: 100vh;
+            height: 100dvh;
+            width: 100%;
+        }
 
-      --elevation-1: 0px 2px 1px -1px rgba(0,0,0,0.4), 0px 1px 1px 0px rgba(0,0,0,0.3), 0px 1px 3px 0px rgba(0,0,0,0.2);
-      --elevation-2: 0px 3px 1px -2px rgba(0,0,0,0.4), 0px 2px 2px 0px rgba(0,0,0,0.3), 0px 1px 5px 0px rgba(0,0,0,0.2);
-      --elevation-4: 0px 2px 4px -1px rgba(0,0,0,0.4), 0px 4px 5px 0px rgba(0,0,0,0.3), 0px 1px 10px 0px rgba(0,0,0,0.2);
-      --elevation-8: 0px 5px 5px -3px rgba(0,0,0,0.4), 0px 8px 10px 1px rgba(0,0,0,0.3), 0px 3px 14px 2px rgba(0,0,0,0.2);
-    }
+        /* アプリ全体のコンテナ */
+        #app-viewport {
+            height: 100vh; height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow: hidden;
+        }
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      -webkit-tap-highlight-color: transparent;
-    }
+        /* ヘッダー（タイトルバーは背景色と同色） */
+        header {
+            height: 64px;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-base);
+            transition: background-color var(--transition-smooth);
+            position: relative;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+        .logo {
+            font-weight: 700;
+            font-size: 18px;
+            letter-spacing: -0.5px;
+            color: var(--text-main);
+            text-align: center;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .theme-toggle {
+            position: absolute;
+            right: 24px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: none;
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background var(--transition-smooth), transform 0.2s;
+        }
+        .theme-toggle:active {
+            transform: scale(0.92);
+        }
 
-    body {
-      font-family: 'Roboto', sans-serif;
-      background-color: var(--md-background);
-      color: var(--md-on-background);
-      transition: var(--transition-standard);
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-      overflow: hidden;
-    }
+        /* メインスクロールエリア（オーバースクロールアニメーション適用対象） */
+        main {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 12px 20px 100px;
+            max-width: 720px;
+            width: 100%;
+            margin: 0 auto;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior-y: none; /* デフォルトのブラウザ挙動を抑制してカスタムバウンドを適用 */
+            will-change: transform;
+        }
 
-    #app-container {
-      position: relative;
-      width: 100%;
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-    }
+        /* スクロール要素群を包むコンテナ（Elastic Overscroll アニメーションで伸縮・バウンド） */
+        #overscroll-wrapper {
+            transform-origin: center top;
+            transition: transform 0s linear;
+        }
+        #overscroll-wrapper.spring-back {
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
 
-    #map-container {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 56px;
-      z-index: 1;
-    }
+        /* フラットソリッドカード（枠線なし、影なし） */
+        .glass-card {
+            background: var(--glass-bg);
+            border-radius: var(--ptz-card-radius);
+            padding: var(--card-padding);
+            margin-bottom: 20px;
+            box-shadow: none !important;
+            border: none !important;
+            transition: background-color var(--transition-smooth), border-radius var(--transition-smooth);
+        }
 
-    #map {
-      width: 100%;
-      height: 100%;
-      background-color: #e5e3df;
-    }
+        h2 { 
+            font-size: 18px; 
+            margin-top: 0; 
+            margin-bottom: 12px;
+            font-weight: 700; 
+            letter-spacing: -0.3px;
+        }
+        p {
+            font-size: 13.5px;
+            line-height: 1.5;
+            margin-top: 0;
+            margin-bottom: 16px;
+            color: var(--text-sub);
+        }
 
-    /* Search Bar Layout */
-    .gmaps-search-bar {
-      position: absolute;
-      top: 12px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: calc(100% - 32px);
-      max-width: 520px;
-      height: 48px;
-      background-color: var(--md-surface);
-      border-radius: 24px;
-      box-shadow: var(--elevation-4);
-      display: flex;
-      align-items: center;
-      padding: 0 8px;
-      z-index: 10;
-      transition: var(--transition-standard);
-    }
+        /* ------------------ UIコンポーネント設計 ------------------ */
 
-    .gmaps-search-bar input {
-      flex: 1;
-      border: none;
-      outline: none;
-      background: transparent;
-      font-size: 15px;
-      color: var(--md-on-surface);
-      padding: 0 8px;
-    }
+        /* リストコンポーネント（仕切り線なし） */
+        .custom-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 16px;
+        }
+        .list-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 4px;
+            border-bottom: none !important; /* 仕切り線を完全に排除 */
+        }
+        .list-item-title {
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .list-item-desc {
+            font-size: 12px;
+            color: var(--text-sub);
+            margin-top: 2px;
+        }
 
-    .search-results-dropdown {
-      position: absolute;
-      top: 68px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: calc(100% - 32px);
-      max-width: 520px;
-      background-color: var(--md-surface);
-      border-radius: 12px;
-      box-shadow: var(--elevation-8);
-      z-index: 20;
-      max-height: 280px;
-      overflow-y: auto;
-      display: none;
-    }
+        /* 太いブルースライダー */
+        .slider-wrapper {
+            margin: 16px 0;
+        }
+        .slider-label-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        .thick-slider-container {
+            position: relative;
+            width: 100%;
+            height: var(--ptz-slider-height);
+            background: var(--bg-secondary);
+            border-radius: calc(var(--ptz-slider-height) / 2);
+            overflow: hidden;
+            cursor: pointer;
+            transition: height var(--transition-smooth);
+            display: flex;
+            align-items: center;
+        }
+        .thick-slider-fill {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 50%;
+            background: var(--accent-primary);
+            transition: background-color var(--transition-smooth), width 0.05s ease-out;
+            border-radius: calc(var(--ptz-slider-height) / 2);
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 3px;
+        }
+        .thick-slider-knob {
+            width: calc(var(--ptz-slider-height) - 6px);
+            height: calc(var(--ptz-slider-height) - 6px);
+            background: #FFFFFF;
+            border-radius: 50%;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+            flex-shrink: 0;
+            transition: width var(--transition-smooth), height var(--transition-smooth);
+        }
+        .thick-slider-input {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+            margin: 0;
+            z-index: 5;
+        }
 
-    .search-results-dropdown.active {
-      display: block;
-    }
+        /* トグルスイッチ */
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 4px;
+            border-bottom: none !important; /* 仕切り線なし */
+        }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: var(--ptz-toggle-width);
+            height: var(--ptz-toggle-height);
+            transition: width var(--transition-smooth), height var(--transition-smooth);
+        }
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--bg-secondary);
+            transition: var(--transition-smooth);
+            border-radius: calc(var(--ptz-toggle-height) / 2);
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: var(--ptz-toggle-knob-width);
+            width: var(--ptz-toggle-knob-width);
+            left: 4px;
+            bottom: calc((var(--ptz-toggle-height) - var(--ptz-toggle-knob-width)) / 2);
+            background: white;
+            transition: var(--transition-smooth);
+            border-radius: var(--ptz-toggle-knob-radius);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+        }
+        input:checked + .slider {
+            background: var(--accent-primary);
+        }
+        input:checked + .slider:before {
+            transform: translateX(calc(var(--ptz-toggle-width) - var(--ptz-toggle-knob-width) - 8px));
+        }
 
-    /* Floating Action Buttons Area */
-    .fab-column {
-      position: absolute;
-      right: 16px;
-      bottom: 72px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      z-index: 10;
-    }
+        /* アクションボタン */
+        .ai-btn {
+            border: none;
+            outline: none;
+            padding: 12px 24px;
+            border-radius: 14px;
+            font-weight: 600;
+            font-size: 14px;
+            color: white;
+            cursor: pointer;
+            background: var(--accent-primary);
+            transition: opacity 0.2s, background-color var(--transition-smooth);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            justify-content: center;
+        }
+        .ai-btn:active {
+            opacity: 0.85;
+        }
+        .ai-btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-main);
+        }
 
-    /* Navigation Turn-by-Turn HUD Banner */
-    .nav-hud-banner {
-      position: absolute;
-      top: 68px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: calc(100% - 32px);
-      max-width: 520px;
-      background-color: #1b5e20;
-      color: #ffffff;
-      border-radius: 12px;
-      box-shadow: var(--elevation-8);
-      z-index: 25;
-      padding: 14px 16px;
-      display: none;
-      align-items: center;
-      gap: 16px;
-      animation: slide-down 0.3s ease-out;
-    }
+        /* インプットテキスト */
+        .glass-input-wrapper {
+            margin-bottom: 14px;
+        }
+        .glass-input {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: none;
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            font-size: 14px;
+            font-family: inherit;
+            box-sizing: border-box;
+            transition: background var(--transition-smooth);
+        }
+        .glass-input:focus {
+            outline: 2px solid var(--accent-primary);
+        }
 
-    .nav-hud-banner.active {
-      display: flex;
-    }
+        /* ------------------ 下付き固定ナビゲーションバー ------------------ */
+        .bottom-nav-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 72px;
+            background: var(--nav-bg);
+            border-top: 1px solid var(--bg-secondary);
+            z-index: 500;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding-bottom: env(safe-area-inset-bottom);
+            transition: background-color var(--transition-smooth), border-color var(--transition-smooth);
+        }
+        .nav-item {
+            flex: 1;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-sub);
+            transition: color 0.25s var(--m3-easing);
+            position: relative;
+            gap: 4px;
+        }
+        .nav-item span.material-symbols-outlined {
+            font-size: 24px;
+            font-variation-settings: 'FILL' 0, 'wght' 400;
+            transition: font-variation-settings 0.2s, color 0.2s;
+        }
+        .nav-label {
+            font-size: 10px;
+            font-weight: 600;
+        }
+        .nav-item.active {
+            color: var(--nav-icon-active);
+        }
+        .nav-item.active span.material-symbols-outlined {
+            font-variation-settings: 'FILL' 1, 'wght' 700;
+        }
 
-    @keyframes slide-down {
-      from { transform: translate(-50%, -20px); opacity: 0; }
-      to { transform: translate(-50%, 0); opacity: 1; }
-    }
+        /* ビュー切り替え */
+        .view {
+            display: none;
+        }
+        .view.active {
+            display: block;
+            animation: viewIn 0.3s var(--m3-easing);
+        }
+        @keyframes viewIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
 
-    .nav-hud-icon {
-      font-size: 36px;
-      background: rgba(255,255,255,0.2);
-      border-radius: 50%;
-      padding: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
+        /* PTZ JSON エディタ＆ファイル操作 */
+        .ptz-dropzone {
+            border: 2px dashed var(--text-sub);
+            border-radius: var(--ptz-card-radius);
+            padding: 24px;
+            text-align: center;
+            cursor: pointer;
+            background: rgba(0, 0, 0, 0.02);
+            transition: background 0.2s, border-color 0.2s;
+            margin-bottom: 16px;
+        }
+        .dark-mode .ptz-dropzone {
+            background: rgba(255, 255, 255, 0.02);
+        }
+        .ptz-dropzone:hover {
+            background: rgba(51, 129, 255, 0.05);
+            border-color: var(--accent-primary);
+        }
+        .json-textarea {
+            width: 100%;
+            height: 220px;
+            font-family: 'Fira Code', monospace;
+            font-size: 12.5px;
+            padding: 16px;
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            border: none;
+            border-radius: var(--ptz-card-radius);
+            resize: vertical;
+            outline: none;
+            line-height: 1.4;
+            transition: background var(--transition-smooth);
+        }
+        .json-textarea:focus {
+            box-shadow: 0 0 0 2px var(--accent-primary);
+        }
 
-    .nav-hud-info {
-      flex: 1;
-    }
+        .preset-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .preset-btn {
+            background: var(--bg-secondary);
+            color: var(--text-main);
+            border: none;
+            padding: 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            transition: background 0.2s, opacity 0.1s;
+        }
+        .preset-btn:active {
+            opacity: 0.8;
+        }
 
-    .nav-hud-distance {
-      font-size: 22px;
-      font-weight: 700;
-    }
+        .code-preview {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 14px;
+            font-family: 'Fira Code', monospace;
+            font-size: 12px;
+            color: var(--text-main);
+            overflow-x: auto;
+            white-space: pre-wrap;
+            margin-bottom: 12px;
+            line-height: 1.4;
+        }
 
-    .nav-hud-instruction {
-      font-size: 14px;
-      opacity: 0.9;
-      margin-top: 2px;
-    }
+        /* トースト & ダイアログ */
+        .toast {
+            position: fixed;
+            bottom: 84px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--text-main);
+            color: var(--glass-bg);
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s var(--m3-easing);
+            z-index: 2000;
+        }
+        .toast.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0);
+        }
 
-    /* Bottom Navigation Bar */
-    .md-nav-bar {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      width: 100%;
-      height: 56px;
-      background-color: var(--md-surface);
-      border-top: 1px solid var(--md-divider);
-      display: flex;
-      justify-content: space-around;
-      align-items: center;
-      z-index: 10;
-    }
-    .md-nav-bar-item {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      flex: 1;
-      height: 100%;
-      color: var(--md-on-surface-medium);
-      cursor: pointer;
-      font-size: 11px;
-      gap: 2px;
-      transition: var(--transition-standard);
-    }
-    .md-nav-bar-item.active {
-      color: var(--md-primary);
-    }
+        .dialog-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000; display: flex; align-items: center; justify-content: center;
+            opacity: 0; visibility: hidden; transition: all 0.3s var(--m3-easing);
+        }
+        .dialog-overlay.active { opacity: 1; visibility: visible; }
+        .glass-dialog {
+            background: var(--glass-bg);
+            border-radius: var(--ptz-card-radius);
+            padding: 24px; max-width: 380px; width: 90%; text-align: center;
+            transform: scale(0.9) translateY(20px); transition: all 0.4s var(--m3-easing);
+        }
+        .dialog-overlay.active .glass-dialog { transform: scale(1) translateY(0); }
 
-    /* Base Buttons & Icons */
-    .md-btn {
-      font-family: 'Roboto', sans-serif;
-      font-size: 13px;
-      font-weight: 500;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      height: 36px;
-      padding: 0 16px;
-      border-radius: 4px;
-      border: none;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      transition: var(--transition-standard);
-      outline: none;
-    }
-    .md-btn.filled {
-      background-color: var(--md-primary);
-      color: var(--md-on-primary);
-      box-shadow: var(--elevation-2);
-    }
-    .md-btn.filled:hover {
-      box-shadow: var(--elevation-4);
-    }
-    .md-btn.outlined {
-      background-color: transparent;
-      color: var(--md-primary);
-      border: 1px solid var(--md-primary);
-    }
-    .md-btn.text {
-      background-color: transparent;
-      color: var(--md-primary);
-      padding: 0 8px;
-    }
+        .badge {
+            background: var(--accent-primary);
+            color: white;
+            padding: 3px 10px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 700;
+            display: inline-block;
+        }
 
-    .md-icon-btn {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      border: none;
-      background: transparent;
-      color: var(--md-on-surface);
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: var(--transition-standard);
-      outline: none;
-    }
-    .md-icon-btn:hover {
-      background-color: rgba(0, 0, 0, 0.06);
-    }
-    [data-theme="dark"] .md-icon-btn:hover {
-      background-color: rgba(255, 255, 255, 0.08);
-    }
-
-    .md-fab {
-      width: 56px;
-      height: 56px;
-      border-radius: 50%;
-      background-color: var(--md-surface);
-      color: var(--md-primary);
-      box-shadow: var(--elevation-6);
-      border: none;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      transition: var(--transition-standard);
-      outline: none;
-    }
-    .md-fab:hover {
-      box-shadow: var(--elevation-8);
-    }
-    .md-fab.mini {
-      width: 40px;
-      height: 40px;
-    }
-    .md-fab.gps-syncing {
-      background-color: #2e7d32;
-      color: #ffffff;
-      animation: pulse-gps 1.5s infinite;
-    }
-
-    @keyframes pulse-gps {
-      0% { box-shadow: 0 0 0 0 rgba(46, 125, 50, 0.6); }
-      70% { box-shadow: 0 0 0 12px rgba(46, 125, 50, 0); }
-      100% { box-shadow: 0 0 0 0 rgba(46, 125, 50, 0); }
-    }
-
-    /* Switch Component */
-    .md-switch-container {
-      display: inline-flex;
-      align-items: center;
-      justify-content: space-between;
-      width: 100%;
-      cursor: pointer;
-      gap: 12px;
-      padding: 12px 0;
-    }
-    .md-switch-track {
-      position: relative;
-      width: 36px;
-      height: 14px;
-      background-color: rgba(0, 0, 0, 0.26);
-      border-radius: 7px;
-      transition: var(--transition-standard);
-    }
-    [data-theme="dark"] .md-switch-track {
-      background-color: rgba(255, 255, 255, 0.3);
-    }
-    .md-switch-thumb {
-      position: absolute;
-      top: -3px;
-      left: -2px;
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      background-color: #fafafa;
-      box-shadow: var(--elevation-2);
-      transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s;
-    }
-    .md-switch-input {
-      display: none;
-    }
-    .md-switch-input:checked + .md-switch-track {
-      background-color: rgba(98, 0, 238, 0.5);
-    }
-    [data-theme="dark"] .md-switch-input:checked + .md-switch-track {
-      background-color: rgba(187, 134, 252, 0.5);
-    }
-    .md-switch-input:checked + .md-switch-track .md-switch-thumb {
-      transform: translateX(20px);
-      background-color: var(--md-primary);
-    }
-
-    /* Category Chips */
-    .chip-group {
-      display: flex;
-      gap: 8px;
-      overflow-x: auto;
-      padding: 8px 0;
-      scrollbar-width: none;
-    }
-    .chip-group::-webkit-scrollbar { display: none; }
+        .color-grid {
+            display: flex;
+            gap: 10px;
+            margin: 12px 0;
+        }
+        .color-swatch {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: opacity 0.2s, border-color 0.2s;
+        }
+        .color-swatch:active, .color-swatch.active {
+            border-color: var(--text-main);
+        }
     
-    .md-chip {
-      height: 32px;
-      border-radius: 16px;
-      padding: 0 12px;
-      background-color: var(--md-surface-variant);
-      color: var(--md-on-surface);
-      font-size: 13px;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      cursor: pointer;
-      white-space: nowrap;
-      border: 1px solid var(--md-divider);
-      transition: var(--transition-standard);
-    }
-    .md-chip.active {
-      background-color: var(--md-primary);
-      color: var(--md-on-primary);
-      border-color: var(--md-primary);
-    }
+        /* ================= OsmMaps × PTZ ================= */
+        :root{--nav-h:calc(72px + env(safe-area-inset-bottom,0px));--ai-grad:linear-gradient(135deg,#5679F0 0%,#D2B5CD 52%,#EB9968 100%)}
+        header .ball-avatar{position:absolute;left:24px}
+        .ball-avatar{width:40px;height:40px;border-radius:50%;overflow:hidden;background:#fff;flex:none;cursor:pointer;display:inline-block}
+        .ball-avatar img{width:100%;height:100%;object-fit:cover;display:block}
+        .ball-avatar.uk-ball img{object-position:top}
+        .icon-btn{border:none;background:var(--bg-secondary);color:var(--text-main);width:40px;height:40px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex:none;transition:background var(--transition-smooth),transform .2s}
+        .icon-btn:active{transform:scale(.92)}
+        .icon-btn.plain{background:transparent}
+        .bottom-nav-container{height:var(--nav-h)}
+        .nav-item.active{color:var(--text-main)}
+        .nav-item.active .material-symbols-outlined{background:var(--accent-primary);color:#fff;border-radius:16px;padding:4px 14px;box-sizing:content-box}
+        main{padding-bottom:calc(var(--nav-h) + 20px)}
+        .list-item{gap:12px}
+        .list-item-text{flex:1;min-width:0}
+        .list-item-title,.list-item-desc{display:block}
+        .custom-list{list-style:none;padding:0;margin:0 0 16px}
+        .custom-list li{list-style:none}
+        .chip-group{display:flex;gap:8px;overflow-x:auto;padding:4px 0 12px;scrollbar-width:none}
+        .chip-group::-webkit-scrollbar{display:none}
+        .preset-btn{border:none;font-family:inherit;white-space:nowrap;flex:none}
+        .preset-btn.active{background:var(--accent-primary);color:#fff}
+        .ai-btn.block{width:100%}
+        .ai-btn.rec-stop{background:#E5484D}
+        .ai-btn.big{height:52px;font-size:15px;width:100%}
+        .row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+        .row .glass-input{flex:1}
+        .badge{margin-left:6px}
+        .form{text-align:left;display:flex;flex-direction:column;gap:10px;margin-bottom:16px}
+        .form label{font-size:12px;color:var(--text-sub);font-weight:600}
+        .btn-row{display:flex;gap:8px;justify-content:flex-end}
+        .character-picker-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(76px,1fr));gap:10px;margin-top:12px}
+        .char-card{display:flex;flex-direction:column;align-items:center;padding:8px;border-radius:12px;background:var(--bg-secondary);cursor:pointer;font-size:10px;color:var(--text-sub);gap:4px}
+        .char-card.selected{outline:2px solid var(--accent-primary)}
+        .char-card img{width:48px;height:48px;object-fit:cover}
+        .char-card.uk-card img{object-position:top}
+        .trk-dot{width:14px;height:14px;border-radius:50%;flex:none}
+        #page-settings.active{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;align-items:start}
+        #page-settings .glass-card{margin:0}
+        .color-swatch{width:36px;height:36px;flex:none}
+        /* --- マップビュー --- */
+        #stage{flex:1;min-height:0;position:relative;display:flex;flex-direction:column}
+        body.on-map main{display:none}
+        body:not(.on-map) .map-view{display:none}
+        .map-view{flex:1;min-height:0;position:relative;margin:0 12px calc(var(--nav-h) + 8px)}
+        #map-wrap{position:absolute;inset:0;border-radius:var(--ptz-card-radius);overflow:hidden;background:var(--bg-secondary);transition:border-radius var(--transition-smooth)}
+        #map{width:100%;height:100%;isolation:isolate}
+        .map-search{position:absolute;top:10px;left:10px;right:10px;max-width:520px;z-index:20;display:flex;align-items:center;gap:6px;padding:6px 6px 6px 14px;background:var(--glass-bg);color:var(--text-main);border-radius:var(--ptz-card-radius)}
+        .map-search .glass-input{background:transparent;padding:8px 4px;flex:1;min-width:0}
+        .map-search .glass-input:focus{outline:none}
+        .search-results-dropdown{position:absolute;top:66px;left:10px;right:10px;max-width:520px;max-height:50%;overflow-y:auto;background:var(--glass-bg);border-radius:var(--ptz-card-radius);padding:8px 12px;z-index:21;display:none}
+        .search-results-dropdown.active{display:block}
+        .search-results-dropdown .custom-list{margin:0}
+        .search-results-dropdown .list-item{cursor:pointer}
+        .fab-column{position:absolute;right:10px;bottom:72px;display:flex;flex-direction:column;gap:10px;z-index:20}
+        .map-fab{width:48px;height:48px;border-radius:50%;border:none;background:var(--glass-bg);color:var(--text-main);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .2s,background var(--transition-smooth)}
+        .map-fab:active{transform:scale(.92)}
+        .map-fab.gps-syncing{background:var(--accent-primary);color:#fff}
+        .map-fab.recording{background:#E5484D;color:#fff;animation:pulse-rec 1.4s infinite}
+        @keyframes pulse-rec{50%{opacity:.65}}
+        .nav-hud-banner{position:absolute;top:70px;left:10px;right:10px;max-width:520px;background:var(--accent-primary);color:#fff;border-radius:var(--ptz-card-radius);z-index:22;padding:12px 14px;display:none;align-items:center;gap:14px}
+        .nav-hud-banner.active{display:flex}
+        .nav-hud-icon{background:rgba(255,255,255,.22);border-radius:50%;padding:8px;display:flex}
+        .nav-hud-icon .material-symbols-outlined{font-size:32px}
+        .nav-hud-info{flex:1}
+        .nav-hud-distance{font-size:22px;font-weight:700}
+        .nav-hud-instruction{font-size:13px;opacity:.92;margin-top:2px}
+        .nav-hud-banner .icon-btn{background:rgba(255,255,255,.22);color:#fff}
+        .run-hud{position:absolute;left:10px;bottom:10px;display:none;grid-template-columns:repeat(3,auto);gap:16px;padding:10px 18px;background:var(--glass-bg);color:var(--text-main);border-radius:var(--ptz-card-radius);z-index:20;text-align:center}
+        .run-hud b{display:block;font-size:20px;font-variant-numeric:tabular-nums}
+        .run-hud span{font-size:10px;color:var(--text-sub);font-weight:600}
+        .user-gps-marker{position:relative;width:24px;height:24px;background:var(--accent-primary);border:3px solid #fff;border-radius:50%}
+        .user-gps-heading{position:absolute;top:-12px;left:3px;width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:12px solid var(--accent-primary)}
+        .ai-pin{width:28px;height:28px;border-radius:50%;background:var(--accent-primary);color:#fff;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;border:2px solid #fff}
+        .leaflet-container{font-family:inherit;background:var(--bg-secondary)}
+        .leaflet-popup-content-wrapper{background:var(--glass-bg);color:var(--text-main);border-radius:var(--ptz-card-radius);box-shadow:none}
+        .leaflet-popup-tip{background:var(--glass-bg);box-shadow:none}
+        .leaflet-popup-close-button{color:var(--text-sub)!important}
+        .leaflet-control-attribution{background:var(--glass-bg)!important;color:var(--text-sub)!important;font-size:10px;border-radius:10px 0 0 0}
+        .leaflet-control-attribution a{color:var(--text-sub)!important}
+        .leaflet-tooltip{background:var(--glass-bg);color:var(--text-main);border:none;box-shadow:none;border-radius:10px;font-weight:600}
+        .toast{bottom:calc(var(--nav-h) + 12px)}
+        .dialog-overlay{z-index:1000}
+        /* --- AIBALL（AIBall.html 規格） --- */
+        .aiball-fab{position:fixed;right:18px;bottom:calc(88px + env(safe-area-inset-bottom));z-index:600;display:flex;align-items:center;gap:8px;padding:6px 18px 6px 8px;border:none;border-radius:30px;background:var(--ai-grad);color:#fff;font-weight:800;font-size:14px;font-family:inherit;cursor:pointer;transition:transform .2s;text-shadow:0 1px 2px rgba(0,0,0,.18);-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+        .aiball-fab:active{transform:scale(.94)}
+        .aiball-fab img{width:38px;height:38px;border-radius:50%;background:#fff;object-fit:contain;padding:2px}
+        .ai-tip{position:absolute;right:8px;bottom:calc(100% + 14px);background:var(--text-main);color:var(--glass-bg);padding:9px 16px;border-radius:16px;font-size:13px;font-weight:800;white-space:nowrap;opacity:0;transform:translateY(8px) scale(.9);transform-origin:bottom right;pointer-events:none;transition:all .3s var(--m3-easing);text-shadow:none}
+        .ai-tip:after{content:"";position:absolute;right:26px;top:100%;border:7px solid transparent;border-top-color:var(--text-main)}
+        .aiball-fab.hold .ai-tip{opacity:1;transform:none}
+        @media(hover:hover){.aiball-fab:hover .ai-tip{opacity:1;transform:none}}
+        .sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1500;opacity:0;visibility:hidden;transition:all .3s var(--m3-easing)}
+        .sheet-overlay.active{opacity:1;visibility:visible}
+        .sheet{position:fixed;left:50%;bottom:0;width:100%;max-width:720px;height:82vh;height:82dvh;background:var(--glass-bg);border-radius:var(--ptz-card-radius) var(--ptz-card-radius) 0 0;z-index:1600;transform:translate(-50%,105%);visibility:hidden;transition:transform .45s var(--m3-easing),visibility 0s .45s;display:flex;flex-direction:column;padding-bottom:env(safe-area-inset-bottom)}
+        .sheet.active{transform:translate(-50%,0);visibility:visible;transition:transform .45s var(--m3-easing)}
+        .sheet-handle{width:42px;height:5px;border-radius:3px;background:var(--bg-secondary);margin:10px auto 0;flex-shrink:0}
+        .sheet-head{display:flex;align-items:center;gap:10px;padding:10px 18px 6px}
+        .sheet-head img{width:40px;height:40px;object-fit:contain}
+        .sheet-head b{flex:1;font-size:17px}
+        .chips{display:flex;gap:8px;overflow-x:auto;padding:4px 18px 8px;scrollbar-width:none;flex-shrink:0}
+        .chips::-webkit-scrollbar{display:none}
+        .chip{border:none;background:var(--bg-secondary);color:var(--text-main);font-weight:600;font-size:12px;font-family:inherit;padding:8px 14px;border-radius:16px;cursor:pointer;white-space:nowrap;flex-shrink:0}
+        #chat-log{flex:1;overflow-y:auto;padding:8px 18px;display:flex;flex-direction:column;gap:10px}
+        .msg{max-width:85%;padding:11px 15px;border-radius:18px;font-size:14px;line-height:1.55;white-space:pre-wrap;word-break:break-word}
+        .msg.bot{background:var(--bg-secondary);border-bottom-left-radius:6px;align-self:flex-start}
+        .msg.user{background:var(--accent-primary);color:#fff;border-bottom-right-radius:6px;align-self:flex-end}
+        .msg.caret:after{content:"";display:inline-block;width:2px;height:1em;background:currentColor;margin-left:2px;vertical-align:-2px;animation:blink .8s steps(2) infinite}
+        .think{opacity:.8;animation:pulse 1.1s infinite}
+        @keyframes blink{50%{opacity:0}}
+        @keyframes pulse{50%{opacity:.6}}
+        .chat-cards{display:flex;flex-direction:column;gap:8px;align-self:stretch}
+        .chat-cards .chips{padding:0;flex-wrap:wrap;overflow:visible}
+        .chat-in{display:flex;gap:8px;padding:10px 18px 14px}
+        .chat-in .glass-input{flex:1}
+        .chat-in .ai-btn{padding:0 16px}
+        .aiball-fab,.chat-in .ai-btn,.msg.user,#quick-chips .chip,.chat-cards .chip{background:var(--ai-grad);color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.18)}
+        .preset-grid .preset-btn{white-space:normal;line-height:1.3}
 
-    /* List Base Styling */
-    .md-list {
-      list-style: none;
-      background-color: var(--md-surface);
-    }
-    .md-list-item {
-      display: flex;
-      align-items: center;
-      padding: 12px 16px;
-      gap: 14px;
-      border-bottom: 1px solid var(--md-divider);
-      cursor: pointer;
-    }
-    .md-list-item-text {
-      display: flex;
-      flex-direction: column;
-      flex: 1;
-    }
-    .md-list-item-primary {
-      font-size: 15px;
-      font-weight: 500;
-      color: var(--md-on-surface);
-    }
-    .md-list-item-secondary {
-      font-size: 12px;
-      color: var(--md-on-surface-medium);
-      margin-top: 2px;
-    }
-
-    /* Full Pages Overlay */
-    .view-page {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: calc(100% - 56px);
-      background-color: var(--md-surface);
-      z-index: 15;
-      display: none;
-      flex-direction: column;
-      overflow-y: auto;
-    }
-    .view-page.active {
-      display: flex;
-    }
-    .page-header {
-      height: 56px;
-      display: flex;
-      align-items: center;
-      padding: 0 16px;
-      border-bottom: 1px solid var(--md-divider);
-      gap: 16px;
-      background-color: var(--md-surface);
-      position: sticky;
-      top: 0;
-      z-index: 5;
-    }
-    .page-header h2 {
-      font-size: 18px;
-      font-weight: 500;
-    }
-
-    .ball-avatar {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      overflow: hidden;
-      display: inline-block;
-      vertical-align: middle;
-      border: 1px solid var(--md-divider);
-      background-color: #fff;
-    }
-    .ball-avatar img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-    .ball-avatar.uk-ball img {
-      object-fit: cover;
-      object-position: top;
-    }
-
-    .character-picker-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-      gap: 12px;
-      padding: 16px;
-    }
-    .char-card {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 8px;
-      border: 1px solid var(--md-divider);
-      border-radius: 8px;
-      cursor: pointer;
-      transition: var(--transition-standard);
-    }
-    .char-card.selected {
-      border-color: var(--md-primary);
-      background-color: rgba(98, 0, 238, 0.08);
-    }
-    .char-card img {
-      width: 48px;
-      height: 48px;
-      object-fit: cover;
-    }
-    .char-card.uk-card img {
-      object-position: top;
-    }
-
-    /* Ripple Effect Base Styles */
-    .ripple-surface {
-      position: relative;
-      overflow: hidden;
-    }
-    .ripple-effect {
-      position: absolute;
-      border-radius: 50%;
-      background-color: rgba(255, 255, 255, 0.35);
-      transform: scale(0);
-      animation: ripple-animation 0.6s linear;
-      pointer-events: none;
-    }
-    .ripple-surface.ripple-dark .ripple-effect {
-      background-color: rgba(0, 0, 0, 0.15);
-    }
-    @keyframes ripple-animation {
-      to { transform: scale(4); opacity: 0; }
-    }
-
-    .md-select {
-      width: 100%;
-      padding: 10px 12px;
-      border: 1px solid var(--md-on-surface-medium);
-      border-radius: 4px;
-      background-color: var(--md-surface);
-      color: var(--md-on-surface);
-      font-size: 14px;
-      outline: none;
-    }
-
-    .md-text-input {
-      width: 100%;
-      padding: 10px 12px;
-      border: 1px solid var(--md-on-surface-medium);
-      border-radius: 4px;
-      background-color: var(--md-surface);
-      color: var(--md-on-surface);
-      font-size: 14px;
-      outline: none;
-    }
-    .md-text-input:focus {
-      border-color: var(--md-primary);
-    }
-
-    /* Modals & Dialogs */
-    .md-dialog-overlay {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background-color: rgba(0, 0, 0, 0.5);
-      z-index: 1000;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      padding: 16px;
-    }
-    .md-dialog-overlay.active { display: flex; }
-    .md-dialog {
-      background-color: var(--md-surface);
-      border-radius: 12px;
-      width: 100%;
-      max-width: 440px;
-      box-shadow: var(--elevation-24);
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-      padding: 24px;
-      animation: modal-pop 0.2s cubic-bezier(0, 0, 0.2, 1);
-    }
-    @keyframes modal-pop {
-      from { transform: scale(0.9); opacity: 0; }
-      to { transform: scale(1); opacity: 1; }
-    }
-
-    /* Custom Toast / Snackbar */
-    #snackbar {
-      position: fixed;
-      bottom: 68px;
-      left: 50%;
-      transform: translateX(-50%) translateY(100px);
-      background-color: #323232;
-      color: #ffffff;
-      padding: 12px 24px;
-      border-radius: 8px;
-      font-size: 14px;
-      box-shadow: var(--elevation-6);
-      z-index: 2000;
-      transition: transform 0.3s cubic-bezier(0, 0, 0.2, 1);
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      max-width: 90vw;
-    }
-    #snackbar.show {
-      transform: translateX(-50%) translateY(0);
-    }
-
-    /* Custom Leaflet Direction Marker */
-    .user-gps-marker {
-      position: relative;
-      width: 24px;
-      height: 24px;
-      background-color: #1976D2;
-      border: 3px solid #ffffff;
-      border-radius: 50%;
-      box-shadow: 0 0 10px rgba(0,0,0,0.4);
-    }
-    .user-gps-heading {
-      position: absolute;
-      top: -12px;
-      left: 3px;
-      width: 0; height: 0;
-      border-left: 6px solid transparent;
-      border-right: 6px solid transparent;
-      border-bottom: 12px solid #1976D2;
-    }
   </style>
 </head>
-<body data-theme="light">
+<body class="on-map">
+<div id="app-viewport">
+  <header>
+    <div class="ball-avatar uk-ball" id="btn-char-avatar" title="キャラ切替"><img id="header-avatar-img" src="" alt=""></div>
+    <div class="logo">OsmMaps</div>
+    <button class="theme-toggle" id="theme-btn" title="テーマ切り替え"><span class="material-symbols-outlined">light_mode</span></button>
+  </header>
 
-  <div id="app-container">
-    <div id="map-container">
-      <div id="map"></div>
-    </div>
-
-    <!-- Google Maps Floating Search Bar -->
-    <div class="gmaps-search-bar">
-      <button class="md-icon-btn ripple-surface ripple-dark" id="btn-side-menu" title="メニュー">
-        <span class="material-icons">menu</span>
-      </button>
-      <input type="text" id="search-input" placeholder="場所、住所、スポットを検索..." autocomplete="off">
-      <button class="md-icon-btn ripple-surface ripple-dark" id="btn-clear-search">
-        <span class="material-icons">clear</span>
-      </button>
-      <div class="ball-avatar uk-ball ripple-surface" id="btn-char-avatar" title="キャラ切替">
-        <img id="header-avatar-img" src="" alt="Avatar">
-      </div>
-    </div>
-
-    <!-- Active Navigation HUD Banner -->
-    <div class="nav-hud-banner" id="nav-hud">
-      <div class="nav-hud-icon">
-        <span class="material-icons" id="nav-hud-turn-icon">navigation</span>
-      </div>
-      <div class="nav-hud-info">
-        <div class="nav-hud-distance" id="nav-hud-dist">--- m</div>
-        <div class="nav-hud-instruction" id="nav-hud-text">案内を準備中...</div>
-      </div>
-      <button class="md-icon-btn ripple-surface" style="color:#fff;" id="btn-exit-nav" title="案内終了">
-        <span class="material-icons">close</span>
-      </button>
-    </div>
-
-    <!-- Search Results Dropdown -->
-    <div class="search-results-dropdown" id="search-results">
-      <ul class="md-list" id="search-results-list"></ul>
-    </div>
-
-    <!-- Floating Action Buttons -->
-    <div class="fab-column">
-      <button class="md-fab mini ripple-surface" id="fab-route" title="経路検索">
-        <span class="material-icons">directions</span>
-      </button>
-      <button class="md-fab mini ripple-surface" id="fab-layers" title="マップタイプ変更">
-        <span class="material-icons">layers</span>
-      </button>
-      <button class="md-fab mini ripple-surface" id="fab-download-map" title="表示範囲をオフライン保存">
-        <span class="material-icons">cloud_download</span>
-      </button>
-      <button class="md-fab ripple-surface" id="fab-my-location" title="現在地追従">
-        <span class="material-icons" id="gps-icon" style="color: #1976D2;">my_location</span>
-      </button>
-    </div>
-
-    <!-- View Page 1: My Spots & Categories -->
-    <div class="view-page" id="page-saved">
-      <div class="page-header">
-        <button class="md-icon-btn ripple-surface ripple-dark" onclick="switchTab('explore')">
-          <span class="material-icons">arrow_back</span>
-        </button>
-        <h2>マイスポット & マイプレイス</h2>
-        <div style="margin-left: auto;">
-          <button class="md-btn filled ripple-surface" onclick="openAddPlaceModal()">
-            <span class="material-icons" style="font-size:18px;">add</span>
-            <span>追加</span>
-          </button>
+  <div id="stage">
+    <!-- マップ -->
+    <section class="map-view" id="page-explore">
+      <div id="map-wrap">
+        <div id="map"></div>
+        <div class="map-search">
+          <span class="material-symbols-outlined">search</span>
+          <input type="text" class="glass-input" id="search-input" placeholder="場所、住所、スポットを検索..." autocomplete="off">
+          <button class="icon-btn" id="btn-clear-search"><span class="material-symbols-outlined">close</span></button>
+        </div>
+        <div class="search-results-dropdown" id="search-results"><ul class="custom-list" id="search-results-list"></ul></div>
+        <div class="nav-hud-banner" id="nav-hud">
+          <div class="nav-hud-icon"><span class="material-symbols-outlined" id="nav-hud-turn-icon">navigation</span></div>
+          <div class="nav-hud-info"><div class="nav-hud-distance" id="nav-hud-dist">--- m</div><div class="nav-hud-instruction" id="nav-hud-text">案内を準備中...</div></div>
+          <button class="icon-btn" id="btn-exit-nav" title="案内終了"><span class="material-symbols-outlined">close</span></button>
+        </div>
+        <div class="run-hud" id="run-hud"><div><b id="run-time">0:00</b><span>時間</span></div><div><b id="run-dist">0 m</b><span>距離</span></div><div><b id="run-pace">--:--</b><span>ペース /km</span></div></div>
+        <div class="fab-column">
+          <button class="map-fab" id="fab-rec" title="軌跡の記録 開始/終了"><span class="material-symbols-outlined">fiber_manual_record</span></button>
+          <button class="map-fab" id="fab-route" title="経路検索"><span class="material-symbols-outlined">directions</span></button>
+          <button class="map-fab" id="fab-layers" title="マップ設定"><span class="material-symbols-outlined">layers</span></button>
+          <button class="map-fab" id="fab-download-map" title="表示範囲をオフライン保存"><span class="material-symbols-outlined">cloud_download</span></button>
+          <button class="map-fab" id="fab-my-location" title="現在地追従"><span class="material-symbols-outlined" id="gps-icon">my_location</span></button>
         </div>
       </div>
-      <div style="padding: 16px;">
-        
-        <!-- Category Filter Chips -->
-        <div style="display: flex; align-items: center; justify-content: space-between;">
-          <span style="font-weight: 500; font-size: 14px;">カテゴリフィルター</span>
-          <button class="md-btn text ripple-surface" style="font-size: 11px;" onclick="openAddCategoryModal()">+ カテゴリ作成</button>
-        </div>
-        <div class="chip-group" id="category-chips-container">
-          <!-- Populated dynamically -->
-        </div>
+    </section>
 
-        <hr style="border:none; border-top: 1px solid var(--md-divider); margin: 12px 0;">
+    <main id="main-scroll-area">
+      <div id="overscroll-wrapper">
 
-        <!-- Spots List -->
-        <ul class="md-list" id="saved-places-list">
-          <li class="md-list-item">
-            <div class="md-list-item-text">
-              <span class="md-list-item-primary">保存されたスポットがありません</span>
-              <span class="md-list-item-secondary">マップ上の長押し・タップ、または上の追加ボタンから登録できます</span>
+        <!-- マイスポット -->
+        <section class="view" id="page-saved">
+          <div class="glass-card">
+            <h2>マイスポット</h2>
+            <p>お気に入りの場所をカテゴリ別に保存。マップの長押しやタップからも登録できます。</p>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="ai-btn" onclick="openAddPlaceModal()"><span class="material-symbols-outlined">add</span>スポット追加</button>
+              <button class="ai-btn ai-btn-secondary" onclick="openAddCategoryModal()"><span class="material-symbols-outlined">label</span>カテゴリ作成</button>
             </div>
-          </li>
-        </ul>
-      </div>
-    </div>
-
-    <!-- View Page 2: Route Search & Step-by-Step Directions -->
-    <div class="view-page" id="page-route">
-      <div class="page-header">
-        <button class="md-icon-btn ripple-surface ripple-dark" onclick="switchTab('explore')">
-          <span class="material-icons">arrow_back</span>
-        </button>
-        <h2>経路検索・案内 (Routing)</h2>
-      </div>
-      <div style="padding: 16px; display: flex; flex-direction: column; gap: 14px;">
-        
-        <!-- Origin / Destination Inputs -->
-        <div style="display: flex; flex-direction: column; gap: 8px;">
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <span class="material-icons" style="color: #4CAF50;">my_location</span>
-            <input type="text" class="md-text-input" id="route-start-input" placeholder="出発地 (デフォルト: 現在地)">
-            <button class="md-icon-btn" onclick="useCurrentLocationAsStart()" title="現在地を使う">
-              <span class="material-icons">gps_fixed</span>
-            </button>
           </div>
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <span class="material-icons" style="color: #E53935;">place</span>
-            <input type="text" class="md-text-input" id="route-end-input" placeholder="目的地を入力またはマップで選択">
-            <button class="md-icon-btn" onclick="selectEndFromSaved()" title="マイスポットから選ぶ">
-              <span class="material-icons">bookmark</span>
-            </button>
+          <div class="glass-card">
+            <h2>カテゴリ</h2>
+            <div class="chip-group" id="category-chips-container"></div>
+            <ul class="custom-list" id="saved-places-list">
+              <li class="list-item"><div class="list-item-text"><span class="list-item-title">保存されたスポットがありません</span><span class="list-item-desc">マップ上の長押し・タップ、または追加ボタンから登録できます</span></div></li>
+            </ul>
           </div>
-        </div>
+        </section>
 
-        <button class="md-btn filled ripple-surface" style="width: 100%;" onclick="calculateRoute()">
-          <span class="material-icons">search</span>
-          <span>ルートを検索</span>
-        </button>
-
-        <!-- Route Summary & Nav Action -->
-        <div id="route-summary-card" style="display: none; background: var(--md-surface-variant); padding: 14px; border-radius: 8px; border: 1px solid var(--md-divider);">
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <div>
-              <div id="route-summary-time" style="font-size: 20px; font-weight: 700; color: var(--md-primary);">-- 分</div>
-              <div id="route-summary-dist" style="font-size: 13px; color: var(--md-on-surface-medium);">-- km</div>
+        <!-- 経路検索 -->
+        <section class="view" id="page-route">
+          <div class="glass-card">
+            <h2>経路検索・案内</h2>
+            <div class="row"><span class="material-symbols-outlined" style="color:#30A46C">my_location</span><input type="text" class="glass-input" id="route-start-input" placeholder="出発地 (デフォルト: 現在地)"><button class="icon-btn" onclick="useCurrentLocationAsStart()" title="現在地を使う"><span class="material-symbols-outlined">gps_fixed</span></button></div>
+            <div class="row"><span class="material-symbols-outlined" style="color:#E5484D">place</span><input type="text" class="glass-input" id="route-end-input" placeholder="目的地を入力またはマップで選択"><button class="icon-btn" onclick="selectEndFromSaved()" title="マイスポットから選ぶ"><span class="material-symbols-outlined">bookmark</span></button></div>
+            <button class="ai-btn block" style="margin-top:8px" onclick="calculateRoute()"><span class="material-symbols-outlined">search</span>ルートを検索</button>
+          </div>
+          <div class="glass-card" id="route-summary-card" style="display:none">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div><div id="route-summary-time" style="font-size:22px;font-weight:700;color:var(--accent-primary)">-- 分</div><div id="route-summary-dist" class="list-item-desc">-- km</div></div>
+              <button class="ai-btn" onclick="startTurnByTurnNavigation()"><span class="material-symbols-outlined">navigation</span>案内開始</button>
             </div>
-            <button class="md-btn filled ripple-surface" style="background-color: #2e7d32; color: #fff;" onclick="startTurnByTurnNavigation()">
-              <span class="material-icons">navigation</span>
-              <span>案内開始</span>
-            </button>
           </div>
-        </div>
+          <div class="glass-card">
+            <h2>ターンバイターン</h2>
+            <ul class="custom-list" id="route-steps-list">
+              <li class="list-item"><div class="list-item-text"><span class="list-item-title">経路が検索されていません</span><span class="list-item-desc">出発地と目的地を入力して「ルートを検索」を押してください</span></div></li>
+            </ul>
+          </div>
+        </section>
 
-        <!-- Step-by-Step Directions List -->
-        <div style="font-weight: 500; font-size: 14px; margin-top: 8px;">ターンバイターン道順</div>
-        <ul class="md-list" id="route-steps-list">
-          <li class="md-list-item">
-            <div class="md-list-item-text">
-              <span class="md-list-item-primary">経路が検索されていません</span>
-              <span class="md-list-item-secondary">出発地と目的地を入力して「ルートを検索」を押してください</span>
+        <!-- オフライン -->
+        <section class="view" id="page-offline">
+          <div class="glass-card">
+            <h2>オフラインマップ</h2>
+            <p>表示中の範囲の OpenStreetMap タイルを IndexedDB に保存すると、オフラインでも閲覧できます。</p>
+            <div class="list-item"><div class="list-item-text"><span class="list-item-title">保存済みタイル数</span><span class="list-item-desc" id="offline-tile-count">計算中...</span></div>
+              <button class="ai-btn ai-btn-secondary" onclick="clearOfflineMapData()">削除</button></div>
+            <button class="ai-btn block" style="margin-top:12px" onclick="downloadCurrentBounds()"><span class="material-symbols-outlined">cloud_download</span>現在の画面エリアを保存</button>
+          </div>
+        </section>
+
+        <!-- 軌跡・ランニング -->
+        <section class="view" id="page-track">
+          <div class="glass-card">
+            <h2>軌跡・ランニング</h2>
+            <div class="toggle-row"><div><div class="list-item-title">ランニングモード</div><div class="list-item-desc">現在地追従・ペース表示・1kmごとの音声案内</div></div>
+              <label class="switch"><input type="checkbox" id="run-mode"><span class="slider"></span></label></div>
+            <button class="ai-btn big" id="trk-btn" style="margin-top:8px"></button>
+            <div id="rec-stat" style="text-align:center;margin-top:12px;font-size:14px;font-weight:600;font-variant-numeric:tabular-nums"></div>
+            <p style="margin:12px 0 0;font-size:12px">※ 記録中は画面を開いたままにしてください</p>
+          </div>
+          <div class="glass-card">
+            <h2>保存済みの軌跡</h2>
+            <ul class="custom-list" id="trk-list"></ul>
+          </div>
+        </section>
+
+        <!-- 設定 -->
+        <section class="view" id="page-settings">
+          <div class="glass-card">
+            <h2>外観</h2>
+            <div class="toggle-row"><div><div class="list-item-title">ダークテーマ</div><div class="list-item-desc">アプリ全体のカラーモード</div></div>
+              <label class="switch"><input type="checkbox" id="setting-dark-theme"><span class="slider"></span></label></div>
+            <div class="slider-label-row" style="margin-top:16px"><span>デフォルト地図</span></div>
+            <select class="glass-input" id="select-map-provider" onchange="changeMapProvider(this.value)">
+              <option value="osm">OpenStreetMap Standard</option>
+              <option value="carto">CARTO Voyager</option>
+              <option value="dark">CARTO Dark Matter</option>
+            </select>
+          </div>
+
+          <div class="glass-card">
+            <h2>PTZ テーマ</h2>
+            <p>PTZ.json 規格でUI全体のアクセント・角丸・スライダー・トグルを変更できます。</p>
+            <div class="preset-grid" id="ptz-presets"></div>
+            <div class="slider-label-row" style="margin-top:16px"><span>アクセントカラー</span></div>
+            <div class="color-grid" id="ptz-swatches"></div>
+            <div id="ptz-sliders"></div>
+            <div class="slider-label-row" style="margin-top:8px"><span>PTZ.json</span></div>
+            <textarea class="json-textarea" id="ptz-json" spellcheck="false" oninput="ptzJson(this.value)"></textarea>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+              <button class="ai-btn ai-btn-secondary" onclick="ptzCopy()"><span class="material-symbols-outlined">content_copy</span>コピー</button>
+              <button class="ai-btn ai-btn-secondary" onclick="document.getElementById('ptz-file').click()"><span class="material-symbols-outlined">upload_file</span>読込</button>
+              <button class="ai-btn ai-btn-secondary" onclick="ptzDownload()"><span class="material-symbols-outlined">download</span>保存</button>
+              <input type="file" id="ptz-file" accept=".json,application/json" hidden onchange="ptzFile(event)">
             </div>
-          </li>
-        </ul>
-      </div>
-    </div>
-
-    <!-- View Page 3: Offline Tiles Storage -->
-    <div class="view-page" id="page-offline">
-      <div class="page-header">
-        <button class="md-icon-btn ripple-surface ripple-dark" onclick="switchTab('explore')">
-          <span class="material-icons">arrow_back</span>
-        </button>
-        <h2>OfflidbMap (IndexedDB キャッシュ)</h2>
-      </div>
-      <div style="padding: 16px;">
-        <div class="md-list-item">
-          <div class="md-list-item-text">
-            <span class="md-list-item-primary">IndexedDB 保存済みタイル数</span>
-            <span class="md-list-item-secondary" id="offline-tile-count">計算中...</span>
           </div>
-          <button class="md-btn outlined ripple-surface" onclick="clearOfflineMapData()">削除</button>
-        </div>
-        <p style="margin-top: 16px; font-size: 13px; color: var(--md-on-surface-medium); line-height: 1.5;">
-          ダウンロードボタンを押すと、現在表示しているマップ範囲の OpenStreetMap タイルデータが IndexedDB へ自動保存され、オフライン下でも閲覧が可能になります。
-        </p>
-        <div style="margin-top: 24px;">
-          <button class="md-btn filled ripple-surface" style="width:100%" onclick="downloadCurrentBounds()">現在の画面エリアを IndexedDB に保存</button>
-        </div>
-      </div>
-    </div>
 
-    <!-- View Page 4: Settings Page -->
-    <div class="view-page" id="page-settings">
-      <div class="page-header">
-        <button class="md-icon-btn ripple-surface ripple-dark" onclick="switchTab('explore')">
-          <span class="material-icons">arrow_back</span>
-        </button>
-        <h2>設定 (Settings)</h2>
-      </div>
-      <div style="padding: 8px 16px;">
-        <!-- Theme Toggle Switch -->
-        <label class="md-switch-container">
-          <div>
-            <div style="font-size: 15px;">ダークテーマ</div>
-            <div style="font-size: 12px; color: var(--md-on-surface-medium);">アプリ全体のカラーモードを切替</div>
+          <div class="glass-card">
+            <h2>ボールキャラ</h2>
+            <p>国と表情を組み合わせて、マップピン・アバターを設定します。</p>
+            <div style="display:flex;gap:8px">
+              <select class="glass-input" id="select-country" style="flex:1"></select>
+              <select class="glass-input" id="select-expression" style="flex:1"></select>
+            </div>
+            <div class="character-picker-grid" id="char-grid"></div>
           </div>
-          <input type="checkbox" class="md-switch-input" id="setting-dark-theme">
-          <div class="md-switch-track">
-            <span class="md-switch-thumb"></span>
-          </div>
-        </label>
+        </section>
 
-        <hr style="border:none; border-top: 1px solid var(--md-divider); margin: 8px 0;">
-
-        <!-- Character Selection Section -->
-        <div style="margin-top: 12px;">
-          <span style="font-weight: 500; font-size: 15px;">ボールキャラ選択 (Polandball)</span>
-          <div style="font-size: 12px; color: var(--md-on-surface-medium); margin-bottom: 8px;">
-            国と表情を組み合わせてマップピン・アバターを設定
-          </div>
-          <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-            <select class="md-select" id="select-country" style="flex: 1;"></select>
-            <select class="md-select" id="select-expression" style="flex: 1;"></select>
-          </div>
-          <div class="character-picker-grid" id="char-grid"></div>
-        </div>
-
-        <hr style="border:none; border-top: 1px solid var(--md-divider); margin: 16px 0;">
-
-        <!-- Map Layer Setting -->
-        <div style="margin-top: 8px;">
-          <div style="font-size: 15px; margin-bottom: 6px;">デフォルト地図表示</div>
-          <select class="md-select" id="select-map-provider" onchange="changeMapProvider(this.value)">
-            <option value="osm">OpenStreetMap Standard</option>
-            <option value="carto">CARTO Positron Light</option>
-            <option value="dark">CARTO Dark Matter</option>
-          </select>
-        </div>
       </div>
-    </div>
-
-    <!-- Bottom Navigation Bar -->
-    <nav class="md-nav-bar">
-      <div class="md-nav-bar-item active" id="nav-explore" onclick="switchTab('explore')">
-        <span class="material-icons">explore</span>
-        <span>マップ</span>
-      </div>
-      <div class="md-nav-bar-item" id="nav-saved" onclick="switchTab('saved')">
-        <span class="material-icons">bookmark_border</span>
-        <span>マイスポット</span>
-      </div>
-      <div class="md-nav-bar-item" id="nav-route" onclick="switchTab('route')">
-        <span class="material-icons">directions</span>
-        <span>経路検索</span>
-      </div>
-      <div class="md-nav-bar-item" id="nav-offline" onclick="switchTab('offline')">
-        <span class="material-icons">offline_pin</span>
-        <span>オフライン</span>
-      </div>
-      <div class="md-nav-bar-item" id="nav-settings" onclick="switchTab('settings')">
-        <span class="material-icons">settings</span>
-        <span>設定</span>
-      </div>
-    </nav>
+    </main>
   </div>
 
-  <!-- Custom Modal 1: Add Place Modal -->
-  <div class="md-dialog-overlay" id="modal-add-place">
-    <div class="md-dialog">
-      <h3 style="font-size:18px; font-weight:500;">マイプレイス登録</h3>
-      <div style="display:flex; flex-direction:column; gap:12px;">
-        <label style="font-size:12px; color:var(--md-on-surface-medium);">スポット名</label>
-        <input type="text" class="md-text-input" id="modal-place-name" placeholder="例: 東京タワー、お気に入りカフェ">
-        
-        <label style="font-size:12px; color:var(--md-on-surface-medium);">カテゴリ</label>
-        <select class="md-select" id="modal-place-category"></select>
-
-        <label style="font-size:12px; color:var(--md-on-surface-medium);">メモ・説明 (任意)</label>
-        <input type="text" class="md-text-input" id="modal-place-notes" placeholder="メモを入力...">
-
-        <input type="hidden" id="modal-place-lat">
-        <input type="hidden" id="modal-place-lng">
-      </div>
-      <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:8px;">
-        <button class="md-btn text ripple-surface" onclick="closeModal('modal-add-place')">キャンセル</button>
-        <button class="md-btn filled ripple-surface" onclick="saveNewPlaceFromModal()">保存</button>
-      </div>
-    </div>
+  <div class="bottom-nav-container">
+    <div class="nav-item active" id="nav-explore" onclick="switchTab('explore')"><span class="material-symbols-outlined">explore</span><span class="nav-label">マップ</span></div>
+    <div class="nav-item" id="nav-saved" onclick="switchTab('saved')"><span class="material-symbols-outlined">bookmark</span><span class="nav-label">スポット</span></div>
+    <div class="nav-item" id="nav-route" onclick="switchTab('route')"><span class="material-symbols-outlined">directions</span><span class="nav-label">経路</span></div>
+    <div class="nav-item" id="nav-track" onclick="switchTab('track')"><span class="material-symbols-outlined">timeline</span><span class="nav-label">軌跡</span></div>
+    <div class="nav-item" id="nav-offline" onclick="switchTab('offline')"><span class="material-symbols-outlined">offline_pin</span><span class="nav-label">オフライン</span></div>
+    <div class="nav-item" id="nav-settings" onclick="switchTab('settings')"><span class="material-symbols-outlined">tune</span><span class="nav-label">設定</span></div>
   </div>
+</div>
 
-  <!-- Custom Modal 2: Add Category Modal -->
-  <div class="md-dialog-overlay" id="modal-add-category">
-    <div class="md-dialog">
-      <h3 style="font-size:18px; font-weight:500;">新しいカテゴリ作成</h3>
-      <div style="display:flex; flex-direction:column; gap:12px;">
-        <label style="font-size:12px; color:var(--md-on-surface-medium);">カテゴリ名</label>
-        <input type="text" class="md-text-input" id="modal-cat-name" placeholder="例: キャンプ、ラーメン、仕事">
-      </div>
-      <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:8px;">
-        <button class="md-btn text ripple-surface" onclick="closeModal('modal-add-category')">キャンセル</button>
-        <button class="md-btn filled ripple-surface" onclick="saveNewCategory()">作成</button>
-      </div>
-    </div>
+<!-- AIBALL -->
+<button class="aiball-fab" id="aiball-fab"><img src="https://raw.githubusercontent.com/PolandBallHub-Operator/PBscreenshot/refs/heads/main/countryball_aiball.png" alt="">AIBALL<span class="ai-tip">よろしくなんよ</span></button>
+<div class="sheet-overlay" id="sheet-overlay"></div>
+<div class="sheet" id="sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-head"><img src="https://raw.githubusercontent.com/PolandBallHub-Operator/PBscreenshot/refs/heads/main/countryball_aiball.png" alt=""><b>AIBALL</b><button class="icon-btn" id="sheet-close"><span class="material-symbols-outlined">close</span></button></div>
+  <div class="chips" id="quick-chips"></div>
+  <div id="chat-log"></div>
+  <div class="chat-in"><input type="text" class="glass-input" id="chat-in" placeholder="例: 一番近いスシローに案内して"><button class="ai-btn" id="chat-send"><span class="material-symbols-outlined">send</span></button></div>
+</div>
+
+<!-- ダイアログ -->
+<div class="dialog-overlay" id="modal-add-place"><div class="glass-dialog">
+  <h2>マイプレイス登録</h2>
+  <div class="form">
+    <label>スポット名</label><input type="text" class="glass-input" id="modal-place-name" placeholder="例: 東京タワー、お気に入りカフェ">
+    <label>カテゴリ</label><select class="glass-input" id="modal-place-category"></select>
+    <label>メモ (任意)</label><input type="text" class="glass-input" id="modal-place-notes" placeholder="メモを入力...">
+    <input type="hidden" id="modal-place-lat"><input type="hidden" id="modal-place-lng">
   </div>
+  <div class="btn-row"><button class="ai-btn ai-btn-secondary" onclick="closeModal('modal-add-place')">キャンセル</button><button class="ai-btn" onclick="saveNewPlaceFromModal()">保存</button></div>
+</div></div>
+<div class="dialog-overlay" id="modal-add-category"><div class="glass-dialog">
+  <h2>新しいカテゴリ</h2>
+  <div class="form"><label>カテゴリ名</label><input type="text" class="glass-input" id="modal-cat-name" placeholder="例: キャンプ、ラーメン、仕事"></div>
+  <div class="btn-row"><button class="ai-btn ai-btn-secondary" onclick="closeModal('modal-add-category')">キャンセル</button><button class="ai-btn" onclick="saveNewCategory()">作成</button></div>
+</div></div>
 
-  <!-- Custom Toast Snackbar -->
-  <div id="snackbar">
-    <span class="material-icons" id="snackbar-icon" style="color:#2e7d32;">info</span>
-    <span id="snackbar-msg">メッセージ</span>
-  </div>
+<div class="toast" id="toast-message"></div>
 
-  <!-- Leaflet JS -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-  <script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
     // Polandball Configuration
     const BASE_BALL_URL = "https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/";
     const COUNTRIES = [
@@ -1025,12 +913,10 @@
       });
     }
 
-    function showToast(msg, icon = 'info') {
-      const snackbar = document.getElementById('snackbar');
-      document.getElementById('snackbar-msg').textContent = msg;
-      document.getElementById('snackbar-icon').textContent = icon;
-      snackbar.classList.add('show');
-      setTimeout(() => snackbar.classList.remove('show'), 3200);
+    function showToast(msg, icon) {
+      const t = document.getElementById('toast-message');
+      t.textContent = msg; t.classList.add('active');
+      clearTimeout(showToast._t); showToast._t = setTimeout(() => t.classList.remove('active'), 2400);
     }
 
     function getBallImageUrl(country, expression) {
@@ -1147,7 +1033,7 @@
       const isUk = country === 'england472x600';
       const ukClass = isUk ? 'uk-ball' : '';
       return `
-        <div class="ball-avatar ${ukClass}" style="width:42px; height:42px; box-shadow: 0 3px 6px rgba(0,0,0,0.3); border:2px solid #fff;">
+        <div class="ball-avatar ${ukClass}" style="width:42px; height:42px; border:2px solid #fff;">
           <img src="${url}" alt="${country}">
         </div>
       `;
@@ -1175,8 +1061,8 @@
           <b>選択したポイント</b><br>
           <span style="font-size:11px; color:#666;">Lat: ${latlng[0].toFixed(4)}, Lng: ${latlng[1].toFixed(4)}</span><br><br>
           <div style="display:flex; gap:6px; justify-content:center;">
-            <button class="md-btn filled ripple-surface" style="font-size:11px; height:28px; padding:0 8px;" onclick="openAddPlaceModal(${latlng[0]}, ${latlng[1]})">スポット登録</button>
-            <button class="md-btn outlined ripple-surface" style="font-size:11px; height:28px; padding:0 8px;" onclick="setAsRouteDestination(${latlng[0]}, ${latlng[1]})">ここへ行く</button>
+            <button class="ai-btn " style="font-size:11px; height:28px; padding:0 8px;" onclick="openAddPlaceModal(${latlng[0]}, ${latlng[1]})">スポット登録</button>
+            <button class="ai-btn ai-btn-secondary " style="font-size:11px; height:28px; padding:0 8px;" onclick="setAsRouteDestination(${latlng[0]}, ${latlng[1]})">ここへ行く</button>
           </div>
         </div>
       `).openPopup();
@@ -1202,6 +1088,7 @@
           }
 
           updateUserGpsMarker(userCurrentLat, userCurrentLng, pos.coords.heading);
+          if (window.onGpsFix) window.onGpsFix(pos);
 
           if (isNavigating) {
             updateTurnByTurnProgress(userCurrentLat, userCurrentLng);
@@ -1260,7 +1147,7 @@
       const container = document.getElementById('category-chips-container');
       if (!container) return;
       container.innerHTML = categories.map(cat => `
-        <div class="md-chip ${cat === selectedCategoryFilter ? 'active' : ''}" onclick="filterPlacesByCategory('${cat}')">
+        <div class="preset-btn ${cat === selectedCategoryFilter ? 'active' : ''}" onclick="filterPlacesByCategory('${cat}')">
           <span>${cat}</span>
         </div>
       `).join('');
@@ -1370,30 +1257,30 @@
 
       if (filtered.length === 0) {
         listElem.innerHTML = `
-          <li class="md-list-item">
-            <div class="md-list-item-text">
-              <span class="md-list-item-primary">該当するスポットがありません</span>
-              <span class="md-list-item-secondary">スポットを追加して自分だけのマップを作成しましょう</span>
+          <li class="list-item">
+            <div class="list-item-text">
+              <span class="list-item-title">該当するスポットがありません</span>
+              <span class="list-item-desc">スポットを追加して自分だけのマップを作成しましょう</span>
             </div>
           </li>`;
         return;
       }
 
       listElem.innerHTML = filtered.map(p => `
-        <li class="md-list-item ripple-surface ripple-dark" onclick="flyToSaved(${p.lat}, ${p.lng})">
-          <span class="material-icons" style="color:var(--md-primary)">place</span>
-          <div class="md-list-item-text">
+        <li class="list-item " onclick="flyToSaved(${p.lat}, ${p.lng})">
+          <span class="material-symbols-outlined" style="color:var(--accent-primary)">place</span>
+          <div class="list-item-text">
             <div style="display:flex; align-items:center; gap:8px;">
-              <span class="md-list-item-primary">${p.name}</span>
-              <span style="font-size:10px; background:rgba(98,0,238,0.1); color:var(--md-primary); padding:2px 6px; border-radius:10px;">${p.category || '未分類'}</span>
+              <span class="list-item-title">${p.name}</span>
+              <span class="badge">${p.category || '未分類'}</span>
             </div>
-            <span class="md-list-item-secondary">${p.notes ? p.notes + ' • ' : ''}${p.lat.toFixed(4)}, ${p.lng.toFixed(4)}</span>
+            <span class="list-item-desc">${p.notes ? p.notes + ' • ' : ''}${p.lat.toFixed(4)}, ${p.lng.toFixed(4)}</span>
           </div>
-          <button class="md-icon-btn" title="ここへ行く" onclick="event.stopPropagation(); setAsRouteDestination(${p.lat}, ${p.lng}, '${p.name}')">
-            <span class="material-icons" style="color:#2e7d32;">directions</span>
+          <button class="icon-btn" title="ここへ行く" onclick="event.stopPropagation(); setAsRouteDestination(${p.lat}, ${p.lng}, '${p.name}')">
+            <span class="material-symbols-outlined" style="color:#30A46C;">directions</span>
           </button>
-          <button class="md-icon-btn" title="削除" onclick="event.stopPropagation(); deleteSaved('${p.id}')">
-            <span class="material-icons">delete</span>
+          <button class="icon-btn" title="削除" onclick="event.stopPropagation(); deleteSaved('${p.id}')">
+            <span class="material-symbols-outlined">delete</span>
           </button>
         </li>
       `).join('');
@@ -1504,11 +1391,11 @@
         const icon = getManeuverIcon(s.maneuver.type, s.maneuver.modifier);
         const text = s.maneuver.instruction || translateManeuver(s.maneuver);
         return `
-          <li class="md-list-item ripple-surface ripple-dark" onclick="focusRouteStep(${s.maneuver.location[1]}, ${s.maneuver.location[0]})">
-            <span class="material-icons" style="color:var(--md-primary);">${icon}</span>
-            <div class="md-list-item-text">
-              <span class="md-list-item-primary">${text}</span>
-              <span class="md-list-item-secondary">${Math.round(s.distance)} m</span>
+          <li class="list-item " onclick="focusRouteStep(${s.maneuver.location[1]}, ${s.maneuver.location[0]})">
+            <span class="material-symbols-outlined" style="color:var(--accent-primary);">${icon}</span>
+            <div class="list-item-text">
+              <span class="list-item-title">${text}</span>
+              <span class="list-item-desc">${Math.round(s.distance)} m</span>
             </div>
           </li>
         `;
@@ -1617,14 +1504,14 @@
           .then(res => res.json())
           .then(data => {
             if (data.length === 0) {
-              searchResultsList.innerHTML = `<li class="md-list-item"><span class="md-list-item-primary">結果が見つかりませんでした</span></li>`;
+              searchResultsList.innerHTML = `<li class="list-item"><span class="list-item-title">結果が見つかりませんでした</span></li>`;
             } else {
               searchResultsList.innerHTML = data.slice(0, 5).map(item => `
-                <li class="md-list-item ripple-surface ripple-dark" onclick="selectSearchResult(${item.lat}, ${item.lon}, '${item.display_name.replace(/'/g, "\\'")}')">
-                  <span class="material-icons">location_on</span>
-                  <div class="md-list-item-text">
-                    <span class="md-list-item-primary">${item.display_name.split(',')[0]}</span>
-                    <span class="md-list-item-secondary">${item.display_name}</span>
+                <li class="list-item " onclick="selectSearchResult(${item.lat}, ${item.lon}, '${item.display_name.replace(/'/g, "\\'")}')">
+                  <span class="material-symbols-outlined">location_on</span>
+                  <div class="list-item-text">
+                    <span class="list-item-title">${item.display_name.split(',')[0]}</span>
+                    <span class="list-item-desc">${item.display_name}</span>
                   </div>
                 </li>
               `).join('');
@@ -1648,16 +1535,11 @@
     }
 
     function switchTab(tabId) {
-      document.querySelectorAll('.view-page').forEach(page => page.classList.remove('active'));
-      document.querySelectorAll('.md-nav-bar-item').forEach(item => item.classList.remove('active'));
-
-      const navItem = document.getElementById(`nav-${tabId}`);
-      if (navItem) navItem.classList.add('active');
-
-      if (tabId !== 'explore') {
-        const page = document.getElementById(`page-${tabId}`);
-        if (page) page.classList.add('active');
-      }
+      document.body.classList.toggle('on-map', tabId === 'explore');
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.id === 'nav-' + tabId));
+      document.querySelectorAll('main .view').forEach(v => v.classList.toggle('active', v.id === 'page-' + tabId));
+      if (tabId === 'explore') { if (map) setTimeout(() => map.invalidateSize(), 60); }
+      else document.getElementById('main-scroll-area').scrollTop = 0;
     }
 
     function initCharacterPicker() {
@@ -1735,7 +1617,6 @@
     }
 
     document.getElementById('btn-char-avatar').addEventListener('click', () => switchTab('settings'));
-    document.getElementById('btn-side-menu').addEventListener('click', () => switchTab('settings'));
     document.getElementById('fab-route').addEventListener('click', () => switchTab('route'));
     document.getElementById('fab-layers').addEventListener('click', () => switchTab('settings'));
     document.getElementById('fab-download-map').addEventListener('click', () => downloadCurrentBounds());
@@ -1781,35 +1662,6 @@
       };
     }
 
-    const darkSwitch = document.getElementById('setting-dark-theme');
-    darkSwitch.addEventListener('change', (e) => {
-      document.body.setAttribute('data-theme', e.target.checked ? 'dark' : 'light');
-    });
-
-    // Global Ripple Effect
-    document.addEventListener('click', function (e) {
-      const surface = e.target.closest('.ripple-surface');
-      if (surface) {
-        const rect = surface.getBoundingClientRect();
-        const size = Math.max(rect.width, rect.height);
-        
-        const prevRipple = surface.querySelector('.ripple-effect');
-        if (prevRipple) prevRipple.remove();
-
-        const ripple = document.createElement('span');
-        ripple.className = 'ripple-effect';
-        ripple.style.width = ripple.style.height = `${size}px`;
-        
-        const x = e.clientX - rect.left - size / 2;
-        const y = e.clientY - rect.top - size / 2;
-        
-        ripple.style.left = `${x}px`;
-        ripple.style.top = `${y}px`;
-        
-        surface.appendChild(ripple);
-      }
-    });
-
     window.onload = function() {
       initDB().then(() => {
         initMap();
@@ -1817,5 +1669,430 @@
       });
     };
   </script>
+<script>
+(() => {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const LS = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } };
+  const SV = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const fmtT = s => { s = Math.round(s); const h = s / 3600 | 0, m = (s % 3600) / 60 | 0, x = s % 60; return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(x).padStart(2, '0'); };
+  const fmtD = m => m >= 1000 ? (m / 1000).toFixed(2) + ' km' : Math.round(m) + ' m';
+  const pace = (sec, m) => m < 50 ? '--:--' : fmtT(sec / (m / 1000));
+
+  /* ================= PTZ エンジン（HyperUI 規格） ================= */
+  const PRESETS = {
+    default: { themeName: 'ShowMeCSS Default Blue', accentColor: '#3381FF', cardRadius: 24, sliderHeight: 20, toggleWidth: 54, toggleHeight: 30, toggleKnobRadius: 50, toggleKnobWidth: 22, bgLight: '#F7F7F7', bgDark: '#121212' },
+    sharpPurple: { themeName: 'Sharp Purple PTZ', accentColor: '#8B5CF6', cardRadius: 0, sliderHeight: 14, toggleWidth: 50, toggleHeight: 26, toggleKnobRadius: 0, toggleKnobWidth: 18, bgLight: '#FFFFFF', bgDark: '#1C1C1E' },
+    chunkyRose: { themeName: 'Chunky Rose PTZ', accentColor: '#EC4899', cardRadius: 32, sliderHeight: 24, toggleWidth: 64, toggleHeight: 36, toggleKnobRadius: 50, toggleKnobWidth: 28, bgLight: '#FFF1F2', bgDark: '#1A0B0E' },
+    minimalGray: { themeName: 'Minimal Monochrome PTZ', accentColor: '#64748B', cardRadius: 12, sliderHeight: 16, toggleWidth: 46, toggleHeight: 24, toggleKnobRadius: 50, toggleKnobWidth: 16, bgLight: '#F3F4F6', bgDark: '#0F0F10' }
+  };
+  const SLIDERS = [['cardRadius', 'カード角丸 (--ptz-card-radius)', 0, 40], ['sliderHeight', 'スライダー高さ (--ptz-slider-height)', 12, 32], ['toggleWidth', 'トグル幅 (--ptz-toggle-width)', 40, 85], ['toggleHeight', 'トグル高さ (--ptz-toggle-height)', 20, 40]];
+  const SWATCHES = ['#3381FF', '#8B5CF6', '#EC4899', '#10B981', '#F59E0B', '#64748B'];
+  let currentPtz = { ...PRESETS.default, ...LS('osm_ptz', {}) };
+  const themeBtn = $('theme-btn'), themeIcon = themeBtn.querySelector('span');
+
+  function adjustColorBrightness(hex, p) {
+    const n = parseInt(hex.slice(1), 16), f = c => Math.max(0, Math.min(255, Math.round(c * (100 + p) / 100)));
+    return '#' + [n >> 16 & 255, n >> 8 & 255, n & 255].map(c => f(c).toString(16).padStart(2, '0')).join('');
+  }
+  function applyPtz(ptz) {
+    currentPtz = { ...currentPtz, ...ptz };
+    const root = document.documentElement, dark = document.body.classList.contains('dark-mode');
+    root.style.setProperty('--accent-primary', currentPtz.accentColor);
+    root.style.setProperty('--accent-active', adjustColorBrightness(currentPtz.accentColor, -15));
+    root.style.setProperty('--ptz-card-radius', currentPtz.cardRadius + 'px');
+    root.style.setProperty('--ptz-slider-height', currentPtz.sliderHeight + 'px');
+    root.style.setProperty('--ptz-toggle-width', currentPtz.toggleWidth + 'px');
+    root.style.setProperty('--ptz-toggle-height', currentPtz.toggleHeight + 'px');
+    root.style.setProperty('--ptz-toggle-knob-radius', isNaN(currentPtz.toggleKnobRadius) ? currentPtz.toggleKnobRadius : currentPtz.toggleKnobRadius + '%');
+    root.style.setProperty('--ptz-toggle-knob-width', currentPtz.toggleKnobWidth + 'px');
+    root.style.setProperty('--bg-base', dark ? currentPtz.bgDark : currentPtz.bgLight);
+    SV('osm_ptz', currentPtz);
+    const ta = $('ptz-json'); if (ta && document.activeElement !== ta) ta.value = JSON.stringify(currentPtz, null, 2);
+    SLIDERS.forEach(([k, , mn, mx]) => { const f = $('ptzf-' + k); if (f) { f.style.width = ((currentPtz[k] - mn) / (mx - mn) * 100) + '%'; $('ptzv-' + k).textContent = currentPtz[k] + 'px'; } });
+  }
+  function setTheme(isDark) {
+    document.body.classList.toggle('dark-mode', isDark);
+    themeIcon.textContent = isDark ? 'dark_mode' : 'light_mode';
+    const c = $('setting-dark-theme'); if (c) c.checked = isDark;
+    SV('osm_dark', isDark); applyPtz({});
+  }
+  window.ptzSet = (k, v) => applyPtz(k === 'toggleHeight' ? { toggleHeight: v, toggleKnobWidth: v - 8 } : { [k]: v });
+  window.ptzPreset = k => { applyPtz(PRESETS[k]); showToast('プリセット [' + PRESETS[k].themeName + '] をロード'); };
+  window.ptzJson = v => { try { applyPtz(JSON.parse(v)); } catch (e) {} };
+  window.ptzCopy = () => { navigator.clipboard && navigator.clipboard.writeText(JSON.stringify(currentPtz, null, 2)).then(() => showToast('PTZ.json をコピーしました')); };
+  window.ptzDownload = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(currentPtz, null, 2)], { type: 'application/json' })); a.download = 'PTZ.json'; a.click(); };
+  window.ptzFile = ev => { const f = ev.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { try { applyPtz(JSON.parse(r.result)); showToast('PTZ.json を適用しました'); } catch (e) { showToast('JSONエラーを確認してください'); } }; r.readAsText(f); };
+
+  function buildPtzSettings() {
+    $('ptz-presets').innerHTML = Object.keys(PRESETS).map(k => `<button class="preset-btn" onclick="ptzPreset('${k}')">${PRESETS[k].themeName}</button>`).join('');
+    $('ptz-swatches').innerHTML = SWATCHES.map(c => `<div class="color-swatch" style="background:${c}" onclick="applyPtzColor('${c}')"></div>`).join('')
+      + '<input type="color" id="ptz-color" style="width:36px;height:36px;border:none;background:none;padding:0" oninput="applyPtzColor(this.value)">';
+    $('ptz-color').value = currentPtz.accentColor;
+    $('ptz-sliders').innerHTML = SLIDERS.map(([k, l, mn, mx]) => `<div class="slider-wrapper"><div class="slider-label-row"><span>${l}</span><span id="ptzv-${k}"></span></div>
+      <div class="thick-slider-container"><div class="thick-slider-fill" id="ptzf-${k}"><div class="thick-slider-knob"></div></div>
+      <input type="range" class="thick-slider-input" min="${mn}" max="${mx}" value="${currentPtz[k]}" oninput="ptzSet('${k}',+this.value)"></div></div>`).join('');
+    window.applyPtzColor = c => { applyPtz({ accentColor: c }); $('ptz-color').value = c; };
+  }
+
+  /* 弾性オーバースクロール（HyperUI 規格） */
+  function initOverscroll() {
+    const sa = $('main-scroll-area'), w = $('overscroll-wrapper');
+    let y0 = 0, pull = false, ws = 0, wt = null;
+    const edge = () => [sa.scrollTop <= 0, Math.abs(sa.scrollHeight - sa.clientHeight - sa.scrollTop) < 2];
+    sa.addEventListener('touchstart', e => { if (e.touches.length === 1) { y0 = e.touches[0].clientY; w.classList.remove('spring-back'); } }, { passive: true });
+    sa.addEventListener('touchmove', e => { if (e.touches.length !== 1) return; const d = e.touches[0].clientY - y0, [t, b] = edge();
+      if ((t && d > 0) || (b && d < 0)) { const p = d * .38; w.style.transform = `translateY(${p}px) scaleY(${1 + Math.abs(p) * .0003})`; pull = true; } }, { passive: true });
+    sa.addEventListener('touchend', () => { if (pull) { w.classList.add('spring-back'); w.style.transform = 'translateY(0px) scaleY(1)'; pull = false; } });
+    sa.addEventListener('wheel', e => { const [t, b] = edge();
+      if ((t && e.deltaY < 0) || (b && e.deltaY > 0)) { ws = Math.max(-60, Math.min(60, ws - e.deltaY * .25)); w.classList.remove('spring-back'); w.style.transform = `translateY(${ws}px)`;
+        clearTimeout(wt); wt = setTimeout(() => { w.classList.add('spring-back'); w.style.transform = 'translateY(0px)'; ws = 0; }, 120); } }, { passive: true });
+  }
+
+  /* ================= 軌跡 / ランニング ================= */
+  const COLORS = ['#e53935', '#1e88e5', '#43a047', '#fb8c00', '#8e24aa', '#00acc1', '#d81b60'];
+  let tracks = LS('osm_tracks', []), rec = null, recLine = null, runMode = LS('osm_runmode', false), layers = {}, tick = null, wl = null, lastKm = 0;
+
+  function drawTrack(t) {
+    if (layers[t.id]) { map.removeLayer(layers[t.id]); delete layers[t.id]; }
+    if (t.show === false || !t.pts.length) return;
+    layers[t.id] = L.polyline(t.pts.map(p => [p[0], p[1]]), { color: t.color, weight: 5, opacity: .9 })
+      .bindPopup(`<b>${esc(t.name)}</b><br>${fmtD(t.dist)}`).addTo(map);
+  }
+  function renderTracks() {
+    const ul = $('trk-list');
+    if (!tracks.length) { ul.innerHTML = '<li class="list-item"><span class="list-item-title" style="color:var(--text-sub)">まだ軌跡がありません</span></li>'; return; }
+    ul.innerHTML = tracks.slice().reverse().map(t => {
+      const sec = (t.t1 - t.t0) / 1000;
+      return `<li class="list-item"><span class="trk-dot" style="background:${t.color}"></span>
+        <div class="list-item-text"><span class="list-item-title">${esc(t.name)}</span>
+        <span class="list-item-desc">${fmtD(t.dist)} ・ ${fmtT(sec)}${t.mode === 'run' ? ' ・ ' + pace(sec, t.dist) : ''}</span></div>
+        <button class="icon-btn" onclick="trkAct('show','${t.id}')"><span class="material-symbols-outlined">${t.show === false ? 'visibility_off' : 'visibility'}</span></button>
+        <button class="icon-btn" onclick="trkAct('fly','${t.id}')"><span class="material-symbols-outlined">zoom_in_map</span></button>
+        <button class="icon-btn" onclick="trkAct('rename','${t.id}')"><span class="material-symbols-outlined">edit</span></button>
+        <button class="icon-btn" onclick="trkAct('del','${t.id}')"><span class="material-symbols-outlined">delete</span></button></li>`;
+    }).join('');
+  }
+  window.trkAct = (a, id) => {
+    const t = tracks.find(x => x.id === id); if (!t) return;
+    if (a === 'show') { t.show = t.show === false; drawTrack(t); }
+    else if (a === 'fly') { t.show = true; drawTrack(t); switchTab('explore'); map.fitBounds(layers[id].getBounds(), { padding: [40, 40] }); }
+    else if (a === 'rename') { const n = prompt('軌跡の名前', t.name); if (n) t.name = n.trim(); drawTrack(t); }
+    else if (a === 'del') { if (!confirm('「' + t.name + '」を削除しますか？')) return; if (layers[id]) map.removeLayer(layers[id]); delete layers[id]; tracks = tracks.filter(x => x.id !== id); }
+    SV('osm_tracks', tracks); renderTracks();
+  };
+
+  function addPt(lat, lng) {
+    const last = rec.pts[rec.pts.length - 1], d = last ? getDistanceMeters(last[0], last[1], lat, lng) : 0;
+    if (last && d < 5) return;
+    rec.pts.push([lat, lng, Date.now()]); rec.dist += d; recLine.addLatLng([lat, lng]);
+  }
+  function hud() {
+    if (!rec) return;
+    const sec = (Date.now() - rec.t0) / 1000;
+    $('run-time').textContent = fmtT(sec); $('run-dist').textContent = fmtD(rec.dist); $('run-pace').textContent = pace(sec, rec.dist);
+    $('rec-stat').textContent = `${fmtT(sec)} ・ ${fmtD(rec.dist)} ・ ${rec.pts.length}点`;
+  }
+  function speak(t) { try { const u = new SpeechSynthesisUtterance(t); u.lang = 'ja-JP'; speechSynthesis.speak(u); } catch (e) {} }
+  window.onGpsFix = pos => {
+    if (!rec || pos.coords.accuracy > 60) return;
+    addPt(pos.coords.latitude, pos.coords.longitude);
+    if (rec.mode === 'run') {
+      map.panTo([pos.coords.latitude, pos.coords.longitude]);
+      const km = rec.dist / 1000 | 0;
+      if (km > lastKm) { lastKm = km; const s = (Date.now() - rec.t0) / 1000; speak(`${km}キロ、タイム${fmtT(s).replace(':', '分')}秒、ペース${pace(s, rec.dist).replace(':', '分').replace(' /km', '')}秒`); }
+    }
+    hud();
+  };
+  function ui() {
+    const on = !!rec;
+    $('fab-rec').classList.toggle('recording', on);
+    $('trk-btn').className = 'ai-btn big' + (on ? ' rec-stop' : '');
+    $('trk-btn').textContent = on ? '■ 記録を終了' : (runMode ? '▶ ランニング開始' : '● 軌跡の記録を開始');
+    $('run-mode').disabled = on; $('run-mode').checked = runMode;
+    $('rec-stat').style.display = on ? 'block' : 'none';
+  }
+  function startRec(mode) {
+    if (rec) return false;
+    rec = { id: 't' + Date.now(), name: (mode === 'run' ? 'ラン ' : '軌跡 ') + new Date().toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+      color: COLORS[tracks.length % COLORS.length], mode, t0: Date.now(), pts: [], dist: 0, show: true };
+    recLine = L.polyline([], { color: rec.color, weight: 6 }).addTo(map);
+    lastKm = 0;
+    if (userCurrentLat != null) addPt(userCurrentLat, userCurrentLng);
+    tick = setInterval(hud, 1000);
+    if (mode === 'run') {
+      $('run-hud').style.display = 'grid';
+      try { navigator.wakeLock && navigator.wakeLock.request('screen').then(x => wl = x).catch(() => {}); } catch (e) {}
+      if (userCurrentLat != null) map.flyTo([userCurrentLat, userCurrentLng], 17);
+      speak('ランニングを開始します');
+    }
+    hud(); ui(); showToast(mode === 'run' ? 'ランニングモード開始' : '軌跡の記録を開始', 'fiber_manual_record');
+    return true;
+  }
+  function stopRec() {
+    if (!rec) return null;
+    clearInterval(tick); map.removeLayer(recLine);
+    try { wl && wl.release(); } catch (e) {} wl = null;
+    $('run-hud').style.display = 'none';
+    rec.t1 = Date.now(); const t = rec; rec = null; let out = null;
+    if (t.pts.length >= 2) { tracks.push(t); SV('osm_tracks', tracks); drawTrack(t); out = t; showToast('軌跡を保存しました', 'check_circle'); }
+    else showToast('記録点が少ないため破棄しました', 'warning');
+    if (t.mode === 'run') speak('ランニングを終了します');
+    ui(); renderTracks(); return out;
+  }
+  const toggleRec = () => rec ? stopRec() : startRec(runMode ? 'run' : 'track');
+
+  const AI_IMG = 'https://raw.githubusercontent.com/PolandBallHub-Operator/PBscreenshot/refs/heads/main/countryball_aiball.png';
+  const CAT = [
+    [/^(寿司|すし|スシ|鮨)(屋|店)?$/, '寿司屋', ['["cuisine"="sushi"]'], '寿司|鮨|すし|スシ|sushi', '["amenity"~"restaurant|fast_food"]'],
+    [/^(レストラン|食事処?|ご飯|ごはん|飯|飲食店|ランチ|ディナー)$/, 'レストラン', ['["amenity"="restaurant"]', '["amenity"="fast_food"]']],
+    [/^(ラーメン|らーめん)(屋|店)?$/, 'ラーメン店', ['["cuisine"="ramen"]'], 'ラーメン|らーめん|拉麺|ramen', '["amenity"~"restaurant|fast_food"]'],
+    [/^(カフェ|喫茶店?|コーヒー)$/, 'カフェ', ['["amenity"="cafe"]']],
+    [/^(コンビニ|コンビニエンスストア)$/, 'コンビニ', ['["shop"="convenience"]']],
+    [/^(スーパー|スーパーマーケット)$/, 'スーパー', ['["shop"="supermarket"]']],
+    [/^(駅|最寄り駅)$/, '駅', ['["railway"="station"]']],
+    [/^(トイレ|お手洗い)$/, 'トイレ', ['["amenity"="toilets"]']],
+    [/^(ATM|銀行)$/i, 'ATM・銀行', ['["amenity"~"atm|bank"]']],
+    [/^(薬局|ドラッグストア)$/, '薬局', ['["amenity"="pharmacy"]']],
+    [/^(病院|クリニック)$/, '病院', ['["amenity"~"hospital|clinic"]']],
+    [/^(ガソリンスタンド|ガソスタ|給油所)$/, 'ガソリンスタンド', ['["amenity"="fuel"]']],
+    [/^(駐車場|パーキング)$/, '駐車場', ['["amenity"="parking"]']],
+    [/^(公園)$/, '公園', ['["leisure"="park"]']],
+    [/^(ホテル|宿)$/, 'ホテル', ['["tourism"="hotel"]']],
+    [/^(温泉|銭湯)$/, '温泉・銭湯', ['["amenity"="public_bath"]', '["leisure"="sauna"]']]
+  ];
+  const ALIAS = { 'スシロー': 'スシロー|Sushiro', 'くら寿司': 'くら寿司|Kura', 'はま寿司': 'はま寿司|Hama', 'マクドナルド': 'マクドナルド|McDonald', 'マック': 'マクドナルド|McDonald', 'スタバ': 'スターバックス|Starbucks', 'スターバックス': 'スターバックス|Starbucks', 'セブン': 'セブン-イレブン|セブンイレブン|7-Eleven', 'セブンイレブン': 'セブン-イレブン|セブンイレブン|7-Eleven', 'ローソン': 'ローソン|Lawson', 'ファミマ': 'ファミリーマート|ファミマ|ＦａｍｉｌｙＭａｒｔ|Family ?Mart', 'ファミリーマート': 'ファミリーマート|ファミマ|ＦａｍｉｌｙＭａｒｔ|Family ?Mart', 'ユニクロ': 'ユニクロ|UNIQLO', 'サイゼリヤ': 'サイゼリヤ|サイゼ|Saizeriya', 'サイゼ': 'サイゼリヤ|サイゼ', 'ドトール': 'ドトール|Doutor', 'すき家': 'すき家|Sukiya', '吉野家': '吉野家|Yoshinoya', '松屋': '松屋|Matsuya', 'ガスト': 'ガスト|Gusto', 'ダイソー': 'ダイソー|Daiso' };
+  const TAIL = /(?:まで|へ|に)?(?:の)?(?:行きたい|行く|行って|案内して?(?:ほしい|くれ|ください)?|ルート(?:検索)?(?:して)?|ナビ(?:して)?|連れて行って|お願い(?:します)?|ください)?[。！!？?\s]*$/;
+  let pois = [], poiLayer = null, busy = false, finish = null;
+
+  const here = () => {
+    if (userCurrentLat != null) return { p: [userCurrentLat, userCurrentLng], gps: true };
+    if (currentMarker) { const l = currentMarker.getLatLng(); return { p: [l.lat, l.lng], gps: false }; }
+    const c = map.getCenter(); return { p: [c.lat, c.lng], gps: false };
+  };
+  async function geocode(q) {
+    const h = here().p;
+    const u = `https://nominatim.openstreetmap.org/search?format=json&limit=1&accept-language=ja&countrycodes=jp&q=${encodeURIComponent(q)}&viewbox=${h[1] - 1.5},${h[0] + 1.5},${h[1] + 1.5},${h[0] - 1.5}`;
+    let r; try { r = await fetchJson(u, null, 10000); } catch (e) { return null; }
+    return r[0] ? { p: [+r[0].lat, +r[0].lon], n: q } : null;
+  }
+  const tmo = (ms, label) => new Promise((_, rej) => setTimeout(() => rej(new Error(label || 'timeout')), ms));
+  async function fetchJson(url, opt, ms) {
+    const ac = new AbortController(), t = setTimeout(() => ac.abort(), ms);
+    try {
+      const r = await fetch(url, Object.assign({ signal: ac.signal }, opt || {}));
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return await r.json();
+    } finally { clearTimeout(t); }
+  }
+  const toPoi = (la, lo, n, h) => ({ p: [la, lo], n, d: getDistanceMeters(h[0], h[1], la, lo) });
+  /* Overpass: 複数ミラーを同時に投げて、最初に成功したものを採用 */
+  function overpassPois(f, nm, nmf, h, R, label) {
+    const a = `(around:${R},${h[0]},${h[1]})`;
+    const parts = f.map(x => `nwr${x}${a};`);
+    if (nm) parts.push(`nwr["name"~"${nm}",i]${nmf || ''}${a};`);
+    const body = 'data=' + encodeURIComponent(`[out:json][timeout:12];(${parts.join('')});out center tags 200;`);
+    const EPS = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter', 'https://overpass.private.coffee/api/interpreter'];
+    return Promise.any(EPS.map(ep => fetchJson(ep, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body }, 9000).then(j => {
+      const out = (j.elements || []).map(e => { const la = e.lat ?? (e.center && e.center.lat), lo = e.lon ?? (e.center && e.center.lon); if (la == null) return null; const tg = e.tags || {};
+        return toPoi(la, lo, tg['name:ja'] || tg.name || tg.brand || label, h); }).filter(Boolean);
+      if (!out.length) throw new Error('empty');
+      return out;
+    })));
+  }
+  /* Nominatim: 現在地周辺の範囲内(bounded)検索。軽くて速い */
+  function nominatimPois(q, h, label) {
+    const w = 0.06;
+    const u = `https://nominatim.openstreetmap.org/search?format=json&limit=40&accept-language=ja&bounded=1&q=${encodeURIComponent(q)}&viewbox=${h[1] - w},${h[0] + w},${h[1] + w},${h[0] - w}`;
+    return fetchJson(u, null, 9000).then(r => {
+      const out = (r || []).map(e => toPoi(+e.lat, +e.lon, e.name || e.display_name.split(',')[0] || label, h));
+      if (!out.length) throw new Error('empty');
+      return out;
+    });
+  }
+  async function routeVia(st, nav) {
+    const u = `https://router.project-osrm.org/route/v1/driving/${st.map(s => s.p[1] + ',' + s.p[0]).join(';')}?overview=full&geometries=geojson&steps=true`;
+    let d; try { d = await fetchJson(u, null, 12000); } catch (e) { return null; }
+    if (!d.routes || !d.routes.length) return null;
+    const rt = d.routes[0]; rt.legs = [{ steps: rt.legs.flatMap(l => l.steps) }];
+    currentRouteData = rt; startCoords = st[0].p; endCoords = st[st.length - 1].p;
+    $('route-start-input').value = st[0].n; $('route-end-input').value = st[st.length - 1].n;
+    renderRouteOnMap(rt); renderRouteSteps(rt);
+    st.slice(1, -1).forEach(s => routeStepMarkers.push(L.circleMarker(s.p, { radius: 9, color: '#fff', weight: 3, fillColor: '#ff9800', fillOpacity: 1 }).bindTooltip(s.n, { permanent: true, direction: 'top' }).addTo(map)));
+    if (nav) startTurnByTurnNavigation();
+    return rt;
+  }
+  function showPois(list, h) {
+    if (poiLayer) map.removeLayer(poiLayer);
+    poiLayer = L.layerGroup().addTo(map);
+    list.forEach((x, i) => L.marker(x.p, { icon: L.divIcon({ html: `<div class="ai-pin">${i + 1}</div>`, className: '', iconSize: [28, 28], iconAnchor: [14, 14] }) })
+      .bindPopup(`<b>${esc(x.n)}</b><br>${fmtD(x.d)}<br><button class="ai-btn" style="height:28px;font-size:11px;padding:0 10px;margin-top:6px" onclick="aiGo(${i})">ここへ案内</button>`).addTo(poiLayer));
+    map.fitBounds(L.latLngBounds(list.map(x => x.p).concat([h])), { padding: [60, 60], maxZoom: 17 });
+  }
+  window.aiGo = async i => {
+    const x = pois[i]; if (!x) return; closeAi();
+    showToast('ルートを計算中...', 'hourglass_empty');
+    const ok = await routeVia([{ p: here().p, n: '現在地' }, { p: x.p, n: x.n }], true);
+    if (!ok) showToast('ルートが見つかりませんでした', 'error');
+  };
+
+  async function poiFlow(term, nearest, guide) {
+    const h = here(), c = CAT.find(x => x[0].test(term));
+    let f, nm, nmf, label = term, q = term;
+    if (c) { f = c[2]; nm = c[3]; nmf = c[4]; label = c[1]; q = c[1]; }
+    else {
+      const pat = ALIAS[term] || term.replace(/[^\p{L}\p{N}\s\-ー・]/gu, '');
+      if (!pat) return null;
+      f = [`["name"~"${pat}",i]`, `["brand"~"${pat}",i]`, `["name:ja"~"${pat}",i]`];
+      q = ALIAS[term] ? ALIAS[term].split('|')[0] : term;
+    }
+    /* 近くの店を最大3件。Overpass と Nominatim を同時に走らせ、先に返った方を使う */
+    let list = [];
+    try { list = await Promise.any([overpassPois(f, nm, nmf, h.p, 5000, label), nominatimPois(q, h.p, label)]); } catch (e) { list = []; }
+    if (!list.length) { try { list = await overpassPois(f, nm, nmf, h.p, 20000, label); } catch (e) { list = []; } }
+    const seen = {};
+    list = list.filter(x => { const k = x.n + x.p[0].toFixed(4) + x.p[1].toFixed(4); return !seen[k] && (seen[k] = 1); }).sort((a, b) => a.d - b.d);
+    if (!list.length) return { empty: true, label };
+    const note = h.gps ? '' : '\n（現在地が取れてないので、地図上のピン位置を基準にしたんよ）';
+    pois = list.slice(0, nearest ? 1 : 3); showPois(pois, h.p);
+    if (nearest) {
+      if (guide) { closeAi(); const rt = await routeVia([{ p: h.p, n: '現在地' }, { p: pois[0].p, n: pois[0].n }], true);
+        if (!rt) return { text: `一番近い「${pois[0].n}」（${fmtD(pois[0].d)}）は見つけたけど、ルートが引けなかったんよ…もう一回頼むんよ` };
+        return { text: `一番近い「${pois[0].n}」（${fmtD(pois[0].d)}）に案内を始めるんよ！${note}` }; }
+      return { text: `一番近い${label}は「${pois[0].n}」、約${fmtD(pois[0].d)}先なんよ！${note}`, chips: [{ l: '👉 ここへ案内', go: 0 }] };
+    }
+    return { text: `近くの${label}を${pois.length}件見つけたんよ！\n` + pois.map((x, i) => `${i + 1}. ${x.n}（${fmtD(x.d)}）`).join('\n') + note,
+      chips: pois.map((x, i) => ({ l: `${i + 1} ${x.n.slice(0, 10)}へ案内`, go: i })) };
+  }
+
+  async function brain(t) {
+    const d = $('setting-dark-theme');
+    if (/ランニング|ラン(?:開始|終了)|走(?:る|りたい|ります)/.test(t)) {
+      if (/終了|停止|止め|やめ|ストップ|おわり|終わり/.test(t)) { if (!rec) return { text: '今は走ってないんよ' }; const r = stopRec(); return { text: r ? `おつかれさまなんよ！\n距離 ${fmtD(r.dist)} / タイム ${fmtT((r.t1 - r.t0) / 1000)} / ペース ${pace((r.t1 - r.t0) / 1000, r.dist)}\n軌跡に保存したダス` : '記録点が少なかったから保存しなかったんよ' }; }
+      runMode = true; SV('osm_runmode', true); if (rec) return { text: '今は記録中なんよ。終了してからランニングモードで始めるんよ' };
+      startRec('run'); return { text: 'ランニングモード開始なんよ！現在地を追従して、1kmごとに声でも教えるダス。がんばるんよ！' };
+    }
+    if (/軌跡|記録|ログ|トラック/.test(t)) {
+      if (/終了|停止|止め|やめ|ストップ|おわり|終わり/.test(t)) { if (!rec) return { text: '記録はしてないんよ' }; const r = stopRec(); return { text: r ? `記録を保存したんよ！距離 ${fmtD(r.dist)}` : '記録点が少なかったから保存しなかったんよ' }; }
+      if (/開始|スタート|始め|はじめ|取|とっ|して/.test(t) && !/一覧|見せ|表示/.test(t)) { if (rec) return { text: 'もう記録中なんよ' }; startRec(runMode ? 'run' : 'track'); return { text: '軌跡の記録を始めたんよ！終わるときは「記録終了」って言うんよ' }; }
+      closeAi(); switchTab('track'); return { text: '軌跡の一覧を開くんよ！個別に表示切替・削除もできるダス' };
+    }
+    if (/ダーク|暗く|夜モード/.test(t)) { d.checked = true; d.dispatchEvent(new Event('change')); return { text: 'ダークテーマにしたんよ' }; }
+    if (/ライト|明るく|昼モード/.test(t)) { d.checked = false; d.dispatchEvent(new Event('change')); return { text: 'ライトテーマにしたんよ' }; }
+    if (/(案内|ナビ).*(終了|止め|やめ|停止)/.test(t)) { $('btn-exit-nav').click(); return { text: '案内を終わるんよ' }; }
+    if (/(ここ|現在地).*(保存|登録)/.test(t)) { const h = here().p; closeAi(); openAddPlaceModal(h[0], h[1]); return { text: '登録画面を開いたんよ！名前をつけるんよ' }; }
+    if (/^(現在地|今どこ|ここはどこ)/.test(t)) { const h = here(); map.flyTo(h.p, 16); return { text: h.gps ? '現在地に移動したんよ！' : 'GPSがまだ取れてないんよ…許可を確認するんよ' }; }
+
+    const c = t.replace(TAIL, '').trim();
+    const hasRoute = /案内|ナビ|ルート|道順|行き方|経路|連れて|行きたい|行く|向かい/.test(t);
+    const mv = c.match(/^(?:(.+?)から)?(.+?)を?経由(?:して|で|し)?[、,\s]*(.+)$/);
+    if (mv) {
+      const names = [...(mv[1] ? [mv[1]] : []), ...mv[2].split(/[、,→]/).filter(Boolean), mv[3]];
+      const found = [];
+      for (const n of names) { const g = await geocode(n.trim()); if (!g) return { text: `「${n}」が地図で見つからなかったんよ…別の書き方で試してほしいダス` }; found.push(g); }
+      const st = mv[1] ? found : [{ p: here().p, n: '現在地' }, ...found];
+      const rt = await routeVia(st, false);
+      if (!rt) return { text: 'ルートが見つからなかったんよ…' };
+      closeAi();
+      return { text: `${st.map(s => s.n).join(' → ')} のルートを引いたんよ！\n約${(rt.distance / 1000).toFixed(1)}km、${Math.round(rt.duration / 60)}分ダス`, chips: [{ l: '🧭 ナビ開始', act: 'nav' }] };
+    }
+    const ma = hasRoute && c.match(/^(.+?)から(.+?)(?:までの?|への?)?$/);
+    if (ma) {
+      const a = await geocode(ma[1]), b = await geocode(ma[2]);
+      if (!a || !b) return { text: `「${!a ? ma[1] : ma[2]}」が見つからなかったんよ…` };
+      const rt = await routeVia([a, b], false); if (!rt) return { text: 'ルートが見つからなかったんよ…' };
+      closeAi(); return { text: `${a.n} → ${b.n} のルートなんよ！約${(rt.distance / 1000).toFixed(1)}km、${Math.round(rt.duration / 60)}分ダス`, chips: [{ l: '🧭 ナビ開始', act: 'nav' }] };
+    }
+
+    const nearest = /(一番|いちばん|1番|最も)近い|最寄/.test(t);
+    const searchV = /探し|さがし|ピックアップ|近く|周辺|この辺|検索|教えて|どこ|ある/.test(t);
+    const term = c.replace(/(一番|いちばん|1番|最も)近い|最寄り?の?|近くの?|周辺の?|この辺の?|今いる場所の?|全部|全て|すべて|を?(探して|さがして|探す|検索して?|ピックアップして?|教えて|見せて|表示して|案内して?|ナビして?|連れて行って|行きたい|行く)|[をにへの]$/g, '').replace(/[をにへ]$/, '').trim();
+    const known = term && (CAT.some(x => x[0].test(term)) || ALIAS[term]);
+    if (known) {
+      const r = await poiFlow(term, nearest || (hasRoute && !!ALIAS[term]), hasRoute);
+      if (r && !r.empty) return r;
+      if (r && r.empty && !hasRoute) return { text: `近くに${r.label}は見つからなかったんよ…範囲を広げて探しても出てこなかったダス` };
+    }
+    /* 固有名称（東京スカイツリー等）は周辺検索せず、1件だけ地名検索して案内 */
+    if (term && (hasRoute || nearest || searchV || /調べ|とは/.test(t))) {
+      const g = await geocode(term); if (!g) return { text: `「${term}」が見つからなかったんよ…` };
+      if (hasRoute || nearest) {
+        closeAi();
+        const rt = await routeVia([{ p: here().p, n: '現在地' }, g], true);
+        return rt ? { text: `「${term}」までのルートを引いて案内を始めるんよ！約${(rt.distance / 1000).toFixed(1)}km、${Math.round(rt.duration / 60)}分ダス` } : { text: 'ルートが見つからなかったんよ…' };
+      }
+      map.flyTo(g.p, 15); updatePlayerMarker(g.p);
+      return { text: `「${term}」を地図に出したんよ！`, chips: [{ l: '👉 ここへ案内', q: term + 'に案内して' }] };
+    }
+    return { text: 'できることはこんな感じなんよ！\n・「寿司を探して」「レストランを探して」周辺を全部ピックアップ\n・「一番近いスシローに案内して」\n・「二重橋前駅を経由して下北沢」\n・「ランニングモード開始」「軌跡の記録を開始/終了」\n・「ダークテーマにして」「ここを保存」\n何でも頼むんよ！', chips: QUICK.map(q => ({ l: q, q })) };
+  }
+
+  const QUICK = ['寿司を探して', 'レストランを探して', '一番近いスシローに案内して', '二重橋前駅を経由して下北沢', 'ランニングモード開始', '軌跡の記録を開始'];
+  const log = $('chat-log');
+  const bottom = () => { log.scrollTop = log.scrollHeight; };
+  function addMsg(role, text) { const d = document.createElement('div'); d.className = 'msg ' + role; if (text) d.textContent = text; log.appendChild(d); bottom(); return d; }
+  function typeOut(el, text) {
+    return new Promise(res => {
+      let i = 0; el.classList.add('caret');
+      const fin = () => { clearInterval(tm); el.textContent = text; el.classList.remove('caret'); finish = null; res(); };
+      const tm = setInterval(() => { el.textContent = text.slice(0, ++i); bottom(); if (i >= text.length) fin(); }, text.length > 150 ? 18 : 35);
+      finish = fin;
+    });
+  }
+  async function reply(work) {
+    busy = true;
+    const th = addMsg('bot', '用意してるんよ…'); th.classList.add('think');
+    let r; try { [r] = await Promise.all([Promise.race([work, tmo(30000, 'brain timeout')]), wait(900)]); } catch (e) { console.error(e); r = { text: 'うまくいかなかったんよ…通信を確認してもう一回頼むんよ' }; }
+    th.remove();
+    try {
+      await typeOut(addMsg('bot'), r.text);
+      if (r.chips && r.chips.length) {
+        const c = document.createElement('div'); c.className = 'chat-cards';
+        c.innerHTML = '<div class="chips">' + r.chips.map(x => `<button class="chip" ${x.go != null ? `data-go="${x.go}"` : x.act ? `data-act="${x.act}"` : `data-q="${esc(x.q)}"`}>${esc(x.l)}</button>`).join('') + '</div>';
+        log.appendChild(c); bottom();
+      }
+    } finally { busy = false; }
+  }
+  function send(t) {
+    t = t.trim(); if (!t) return;
+    if (busy) { finish && finish(); return; }
+    log.querySelectorAll('.chat-cards').forEach(c => c.remove());
+    addMsg('user', t); $('chat-in').value = ''; reply(brain(t));
+  }
+  function openAi() { $('sheet').classList.add('active'); $('sheet-overlay').classList.add('active'); if (!log.children.length) reply(Promise.resolve({ text: '何を探すんか？いっぱいあるんよ' })); }
+  function closeAi() { finish && finish(); $('sheet').classList.remove('active'); $('sheet-overlay').classList.remove('active'); }
+
+  function initAi() {
+    $('quick-chips').innerHTML = QUICK.map(q => `<button class="chip" data-q="${esc(q)}">${esc(q)}</button>`).join('');
+    const b = $('aiball-fab'); let t, long = false;
+    b.addEventListener('pointerdown', () => { long = false; t = setTimeout(() => { long = true; b.classList.add('hold'); setTimeout(() => b.classList.remove('hold'), 2600); }, 450); });
+    ['pointerup', 'pointerleave', 'pointercancel'].forEach(v => b.addEventListener(v, () => clearTimeout(t)));
+    b.addEventListener('contextmenu', e => e.preventDefault());
+    b.onclick = () => { if (long) { long = false; return; } openAi(); };
+    $('sheet-overlay').onclick = closeAi; $('sheet-close').onclick = closeAi;
+    $('chat-send').onclick = () => send($('chat-in').value);
+    $('chat-in').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) send(e.target.value); });
+    $('sheet').addEventListener('click', e => {
+      const c = e.target.closest('[data-q],[data-go],[data-act]'); if (!c) return;
+      if (c.dataset.q) send(c.dataset.q);
+      else if (c.dataset.go != null) aiGo(+c.dataset.go);
+      else if (c.dataset.act === 'nav') { closeAi(); startTurnByTurnNavigation(); }
+    });
+  }
+
+  /* ================= 起動 ================= */
+  buildPtzSettings(); initOverscroll(); initAi();
+  const dm = LS('osm_dark', null);
+  setTheme(dm === null ? matchMedia('(prefers-color-scheme: dark)').matches : dm);
+  themeBtn.addEventListener('click', () => setTheme(!document.body.classList.contains('dark-mode')));
+  $('setting-dark-theme').addEventListener('change', e => setTheme(e.target.checked));
+  $('fab-rec').onclick = toggleRec; $('trk-btn').onclick = toggleRec;
+  $('run-mode').onchange = e => { runMode = e.target.checked; SV('osm_runmode', runMode); ui(); };
+  renderTracks(); ui();
+  const ready = setInterval(() => { if (typeof map !== 'undefined' && map) { clearInterval(ready); tracks.forEach(drawTrack); } }, 200);
+})();
+</script>
 </body>
 </html>
