@@ -1,7 +1,7 @@
 ---
 # this ensures Jekyll processes the file
 ---
-const CACHE_NAME = 'polandballhub-cache-v4';
+const CACHE_NAME = 'polandballhub-cache-v5';
 const STATIC_CACHE = 'polandballhub-static-v3';
 
 const urlsToCache = [
@@ -13,6 +13,27 @@ const urlsToCache = [
   '{{ site.baseurl }}/parklauncher/index.html',
   '{{ site.baseurl }}/manifest.json'
 ];
+
+// 各アプリが個別のtheme-colorを持たなくても、PWAのシステムバーを
+// ライト=白／ダーク=黒に統一するための共通設定。
+const PWA_THEME_SCRIPT = `<meta name="theme-color" media="(prefers-color-scheme: light)" content="#FFFFFF"><meta name="theme-color" media="(prefers-color-scheme: dark)" content="#000000"><meta name="apple-mobile-web-app-status-bar-style" content="default"><script>(function(){function sync(){var dark=document.documentElement.classList.contains('dark-mode')||(document.body&&document.body.classList.contains('dark-mode'));var metas=document.querySelectorAll('meta[name="theme-color"]');metas.forEach(function(m){m.setAttribute('content',dark?'#000000':'#FFFFFF')});document.documentElement.style.colorScheme=dark?'dark':'light';var apple=document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');if(apple)apple.setAttribute('content',dark?'black':'default')}sync();document.addEventListener('DOMContentLoaded',function(){sync();if(document.body)new MutationObserver(sync).observe(document.body,{attributes:true,attributeFilter:['class']})});new MutationObserver(sync).observe(document.documentElement,{attributes:true,attributeFilter:['class']});})();</script>`;
+
+async function injectPwaTheme(response) {
+  const contentType = response.headers.get('content-type') || '';
+  if (!contentType.includes('text/html')) return response;
+
+  const html = await response.text();
+  const withoutThemeTags = html.replace(/\s*<meta\s+[^>]*name=["']theme-color["'][^>]*>\s*/gi, '');
+  const themedHtml = withoutThemeTags.replace(/<\/head>/i, `${PWA_THEME_SCRIPT}</head>`);
+  const headers = new Headers(response.headers);
+  headers.delete('content-length');
+  headers.delete('content-encoding');
+  return new Response(themedHtml, {
+    status: response.status,
+    statusText: response.statusText,
+    headers
+  });
+}
 
 self.addEventListener('install', event => {
   event.waitUntil(
@@ -70,6 +91,7 @@ self.addEventListener('fetch', event => {
   ) {
     event.respondWith(
       fetch(request, { cache: 'no-store' })
+        .then(response => injectPwaTheme(response))
         .then(response => {
           if (response && response.ok) {
             const responseClone = response.clone();
