@@ -11,13 +11,14 @@
 
   <!-- PWA Manifest -->
   <link rel="manifest" href="{{ site.baseurl }}/manifest.json">
-  <meta name="theme-color" content="#3381FF">
+  <meta id="theme-color-meta" name="theme-color" content="#FFFFFF">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta id="apple-status-bar-meta" name="apple-mobile-web-app-status-bar-style" content="default">
 
   <style>
     /* ========== テーマ設定 ========== */
     :root {
+      color-scheme: light;
       --accent-primary: #3381FF;
       --accent-glow: rgba(51, 129, 255, 0.15);
       --ptz-card-radius: 32px;
@@ -36,6 +37,7 @@
 
     /* Dark Mode */
     .dark-mode {
+      color-scheme: dark;
       --bg-base: #0A0A0C;
       --glass-bg: #16161A;
       --text-main: #F2F2F7;
@@ -243,6 +245,12 @@
     // テーマ管理関数
     function setTheme(isDark) {
       document.documentElement.classList.toggle('dark-mode', isDark);
+      if (document.body) document.body.classList.toggle('dark-mode', isDark);
+      document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
+      const themeColorMeta = document.getElementById('theme-color-meta');
+      const appleStatusBarMeta = document.getElementById('apple-status-bar-meta');
+      if (themeColorMeta) themeColorMeta.setAttribute('content', isDark ? '#000000' : '#FFFFFF');
+      if (appleStatusBarMeta) appleStatusBarMeta.setAttribute('content', isDark ? 'black' : 'default');
       menuThemeIcon.textContent = isDark ? 'light_mode' : 'dark_mode';
       localStorage.setItem('pbhub-theme', isDark ? 'dark' : 'light');
     }
@@ -250,8 +258,9 @@
     // 初期テーマ設定
     function initTheme() {
       const saved = localStorage.getItem('pbhub-theme');
+      const topPageSaved = localStorage.getItem('pb_top_dark');
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      const isDark = saved === 'dark' || (!saved && prefersDark);
+      const isDark = saved === 'dark' || (!saved && (topPageSaved === '1' || (topPageSaved === null && prefersDark)));
       setTheme(isDark);
     }
 
