@@ -1,7 +1,7 @@
 ---
 # this ensures Jekyll processes the file
 ---
-const CACHE_NAME = 'polandballhub-cache-v3';
+const CACHE_NAME = 'polandballhub-cache-v4';
 const STATIC_CACHE = 'polandballhub-static-v3';
 
 const urlsToCache = [
