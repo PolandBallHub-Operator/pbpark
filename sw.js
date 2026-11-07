@@ -1,7 +1,7 @@
 ---
 # this ensures Jekyll processes the file
 ---
-const CACHE_NAME = 'polandballhub-cache-v5';
+const CACHE_NAME = 'polandballhub-cache-v6';
 const STATIC_CACHE = 'polandballhub-static-v3';
 
 const urlsToCache = [
@@ -16,7 +16,7 @@ const urlsToCache = [
 
 // 各アプリが個別のtheme-colorを持たなくても、PWAのシステムバーを
 // ライト=白／ダーク=黒に統一するための共通設定。
-const PWA_THEME_SCRIPT = `<meta name="theme-color" media="(prefers-color-scheme: light)" content="#FFFFFF"><meta name="theme-color" media="(prefers-color-scheme: dark)" content="#000000"><meta name="apple-mobile-web-app-status-bar-style" content="default"><script>(function(){function sync(){var dark=document.documentElement.classList.contains('dark-mode')||(document.body&&document.body.classList.contains('dark-mode'));var metas=document.querySelectorAll('meta[name="theme-color"]');metas.forEach(function(m){m.setAttribute('content',dark?'#000000':'#FFFFFF')});document.documentElement.style.colorScheme=dark?'dark':'light';var apple=document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');if(apple)apple.setAttribute('content',dark?'black':'default')}sync();document.addEventListener('DOMContentLoaded',function(){sync();if(document.body)new MutationObserver(sync).observe(document.body,{attributes:true,attributeFilter:['class']})});new MutationObserver(sync).observe(document.documentElement,{attributes:true,attributeFilter:['class']});})();</script>`;
+const PWA_THEME_SCRIPT = `<meta id="pwa-theme-color" name="theme-color" content="#FFFFFF"><meta name="apple-mobile-web-app-status-bar-style" content="default"><script>(function(){function sync(){var dark=document.documentElement.classList.contains('dark-mode')||(document.body&&document.body.classList.contains('dark-mode'));var meta=document.querySelector('meta[name="theme-color"]');if(meta)meta.setAttribute('content',dark?'#000000':'#FFFFFF');document.documentElement.style.colorScheme=dark?'dark':'light';var apple=document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');if(apple)apple.setAttribute('content',dark?'black':'default')}sync();document.addEventListener('DOMContentLoaded',function(){sync();if(document.body)new MutationObserver(sync).observe(document.body,{attributes:true,attributeFilter:['class']})});new MutationObserver(sync).observe(document.documentElement,{attributes:true,attributeFilter:['class']});})();</script>`;
 
 async function injectPwaTheme(response) {
   const contentType = response.headers.get('content-type') || '';
