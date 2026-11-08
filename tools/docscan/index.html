@@ -5,1463 +5,1720 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
     <title>Documentスキャナー</title>
 
-    <!-- Google Fonts & Material Symbols -->
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
-    
-    <!-- jsPDF for PDF exporting -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
     <style>
+        /* ShowMeCSS (MIUICSS) ベーステーマ */
         :root {
             --accent-primary: #3381FF;
             --accent-active: #1A5FCC;
-            
-            /* Light Mode Tokens */
+
+            --ptz-card-radius: 24px;
+            --ptz-slider-height: 25px;
+            --ptz-toggle-width: 54px;
+            --ptz-toggle-height: 30px;
+            --ptz-toggle-knob-radius: 50%;
+            --ptz-toggle-knob-width: 22px;
+
             --bg-base: #F7F7F7;
             --glass-bg: #FFFFFF;
-            --text-main: #000000; /* Title bar title uses strict black/white */
-            --text-sub: #555555;
+            --text-main: #000000;
+            --text-sub: #666666;
             --bg-secondary: #EEEEEE;
-            
-            --m3-easing: cubic-bezier(0.32, 0.72, 0, 1);
-            --transition-smooth: 0.4s var(--m3-easing);
-            --card-padding: 20px; /* Slightly narrower padding */
-        }
+            --nav-bg: #FFFFFF;
+            --nav-icon-active: #000000;
 
+            --m3-easing: cubic-bezier(0.32, 0.72, 0, 1);
+            --transition-smooth: 0.35s var(--m3-easing);
+            --card-padding: 24px;
+        }
         .dark-mode {
-            /* Dark Mode Tokens */
-            --bg-base: #000000;
-            --glass-bg: #1C1C1E;
+            --bg-base: #121212;
+            --glass-bg: #1E1E1E;
             --text-main: #FFFFFF;
             --text-sub: #A1A1A6;
             --bg-secondary: #2C2C2E;
+            --nav-bg: #1E1E1E;
+            --nav-icon-active: #FFFFFF;
         }
 
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
         body {
-            margin: 0;
-            padding: 0;
+            margin: 0; padding: 0;
             font-family: 'Plus Jakarta Sans', 'Noto Sans JP', sans-serif;
             background-color: var(--bg-base);
             color: var(--text-main);
             transition: background-color var(--transition-smooth), color var(--transition-smooth);
-            overflow: hidden;
-            height: 100vh;
-            width: 100vw;
-            touch-action: none;
+            overflow: hidden; height: 100vh; width: 100vw;
         }
-
-        /* --- Scroll Container --- */
         #app-viewport {
-            height: 100vh;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-            scroll-behavior: smooth;
+            height: 100vh; display: flex; flex-direction: column;
+            justify-content: space-between; overflow: hidden;
         }
-
-        /* --- Header (Centered Title, No Border/Shadow) --- */
         header {
-            position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-            height: 72px; padding: 0 24px;
-            display: flex; align-items: center; justify-content: center; /* Center aligned content */
-            background: var(--glass-bg);
+            height: 64px; padding: 0 24px;
+            display: flex; align-items: center; justify-content: center;
+            background: var(--bg-base);
             transition: background-color var(--transition-smooth);
+            position: relative; flex-shrink: 0; z-index: 10;
         }
         .logo {
-            font-weight: 700; font-size: 20px; letter-spacing: -0.5px;
-            color: var(--text-main); /* white or black */
-            text-align: center;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            font-weight: 700; font-size: 18px; letter-spacing: -0.5px;
+            display: flex; align-items: center; gap: 8px;
         }
-        .logo span {
-            font-size: 24px;
-            color: var(--accent-primary);
-        }
+        .logo .material-symbols-outlined { color: var(--accent-primary); font-size: 24px; }
         .theme-toggle {
-            position: absolute; right: 24px;
-            width: 44px; height: 44px; border-radius: 22px;
-            border: none; background: var(--bg-secondary);
+            position: absolute; right: 24px; width: 40px; height: 40px;
+            border-radius: 50%; border: none; background: var(--bg-secondary);
             color: var(--text-main); cursor: pointer;
             display: flex; align-items: center; justify-content: center;
-            transition: background var(--transition-smooth);
+            transition: background var(--transition-smooth), transform 0.2s;
         }
+        .theme-toggle:active { transform: scale(0.92); }
 
-        /* --- Main Layout --- */
         main {
-            padding: 96px 20px 140px;
-            max-width: 800px; margin: 0 auto;
-            min-height: 100%;
-            transition: opacity 0.3s ease, transform 0.3s var(--m3-easing);
-            box-sizing: border-box;
+            flex-grow: 1; overflow-y: auto;
+            padding: 12px 20px 100px; max-width: 720px; width: 100%; margin: 0 auto;
+            -webkit-overflow-scrolling: touch; overscroll-behavior-y: none; will-change: transform;
         }
+        #overscroll-wrapper { transform-origin: center top; transition: transform 0s linear; }
+        #overscroll-wrapper.spring-back { transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
 
-        /* --- Flat Solid Card (No Shadow, No Border) --- */
         .glass-card {
             background: var(--glass-bg);
-            border-radius: 24px;
+            border-radius: var(--ptz-card-radius);
             padding: var(--card-padding);
-            margin-bottom: 16px; /* Narrower space */
-            box-shadow: none !important; /* Forbidden shadow */
-            border: none !important; /* Forbidden border */
-            transform-style: flat; /* No 3D */
+            margin-bottom: 20px;
+            box-shadow: none !important; border: none !important;
             transition: background-color var(--transition-smooth);
         }
+        h2 { font-size: 18px; margin: 0 0 12px; font-weight: 700; letter-spacing: -0.3px; }
+        p { font-size: 13.5px; line-height: 1.5; margin: 0 0 16px; color: var(--text-sub); }
 
-        /* 
-           白カードの中に更に灰色のカードが入るのを防ぐための特別調整
-           glass-card（白背景）の内部にあるグレー要素の背景を白・または透明・あるいは薄い枠に変更 
-        */
-        .glass-card .glass-input {
-            background: var(--glass-bg);
-            border: 1.5px solid var(--bg-secondary);
-        }
-        .glass-card .glass-input:focus {
-            border-color: var(--accent-primary);
-        }
-        .glass-card .preview-pane {
-            background: var(--glass-bg);
-            border: 2px dashed var(--bg-secondary);
-        }
-        .glass-card .comp-tile {
-            background: var(--glass-bg);
-            border: 1.5px solid var(--bg-secondary);
-        }
-
-        h2 { 
-            font-size: 20px; 
-            margin-top: 0; 
-            margin-bottom: 8px; /* Narrower gap */
-            font-weight: 700; 
-        }
-        p {
-            font-size: 14px;
-            line-height: 1.45;
-            margin-top: 0;
-            margin-bottom: 12px; /* Narrower gap */
-            color: var(--text-sub);
-        }
-
-        /* --- Interaction: Jelly/Squishy Effect --- */
-        @keyframes squishy {
-            0% { transform: scale(1, 1); }
-            30% { transform: scale(1.08, 0.92); }
-            50% { transform: scale(0.95, 1.05); }
-            70% { transform: scale(1.02, 0.98); }
-            100% { transform: scale(1, 1); }
-        }
-        .squish-active {
-            animation: squishy 0.4s var(--m3-easing);
-        }
-
-        /* --- Primary Buttons (#3381FF base) --- */
-        .ai-btn {
-            border: none; outline: none;
-            padding: 12px 24px; border-radius: 14px;
-            font-weight: 600; font-size: 15px;
-            color: white; cursor: pointer;
-            background: var(--accent-primary);
-            transition: transform 0.2s, background-color 0.2s;
-            display: inline-flex; align-items: center; gap: 8px;
-            box-shadow: none;
-        }
-        .ai-btn:hover { transform: scale(1.02); }
-        .ai-btn:active {
-            background: var(--accent-active);
-            transform: scale(0.95);
-        }
-        .ai-btn-secondary {
-            background: var(--bg-secondary);
-            color: var(--text-main);
-        }
-
-        /* --- Inputs --- */
-        .glass-input-wrapper { margin-bottom: 14px; }
-        .glass-input {
-            width: 100%; padding: 14px 18px;
-            border-radius: 14px; border: none;
-            background: var(--bg-secondary);
-            color: var(--text-main); font-size: 15px;
-            box-sizing: border-box; transition: background 0.3s var(--m3-easing);
-        }
-        .glass-input:focus {
-            outline: 2px solid var(--accent-primary);
-        }
-
-        /* --- Toggles (#3381FF) --- */
-        .toggle-row {
+        /* リスト */
+        .custom-list { display: flex; flex-direction: column; gap: 6px; }
+        .list-item {
             display: flex; align-items: center; justify-content: space-between;
-            padding: 10px 0;
+            padding: 10px 4px; border-bottom: none !important; gap: 12px;
         }
+        .list-item-title { font-weight: 600; font-size: 14px; }
+        .list-item-desc { font-size: 12px; color: var(--text-sub); margin-top: 2px; }
+
+        /* スライダー */
+        .slider-wrapper { margin: 16px 0; }
+        .slider-label-row {
+            display: flex; justify-content: space-between;
+            font-size: 13px; font-weight: 600; margin-bottom: 8px;
+        }
+        .thick-slider-container {
+            position: relative; width: 100%; height: var(--ptz-slider-height);
+            background: var(--bg-secondary);
+            border-radius: calc(var(--ptz-slider-height) / 2);
+            overflow: hidden; cursor: pointer; display: flex; align-items: center;
+        }
+        .thick-slider-fill {
+            position: absolute; top: 0; left: 0; height: 100%; width: 50%;
+            min-width: var(--ptz-slider-height);
+            background: var(--accent-primary);
+            transition: background-color var(--transition-smooth), width 0.05s ease-out;
+            border-radius: calc(var(--ptz-slider-height) / 2);
+            display: flex; align-items: center; justify-content: flex-end; padding-right: 3px;
+        }
+        .thick-slider-knob {
+            width: calc(var(--ptz-slider-height) - 6px); height: calc(var(--ptz-slider-height) - 6px);
+            background: #FFF; border-radius: 50%;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.25); flex-shrink: 0;
+        }
+        .thick-slider-input {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            opacity: 0; cursor: pointer; margin: 0; z-index: 5;
+        }
+
+        /* トグル */
         .switch {
-            position: relative; display: inline-block; width: 50px; height: 28px;
+            position: relative; display: inline-block; flex-shrink: 0;
+            width: var(--ptz-toggle-width); height: var(--ptz-toggle-height);
         }
         .switch input { opacity: 0; width: 0; height: 0; }
         .slider {
-            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
-            background: var(--bg-secondary);
-            transition: .3s var(--m3-easing);
-            border-radius: 34px;
+            position: absolute; cursor: pointer; inset: 0;
+            background: var(--bg-secondary); transition: var(--transition-smooth);
+            border-radius: calc(var(--ptz-toggle-height) / 2);
         }
         .slider:before {
             position: absolute; content: "";
-            height: 20px; width: 20px; left: 4px; bottom: 4px;
-            background: white; transition: .3s var(--m3-easing);
-            border-radius: 50%;
+            height: var(--ptz-toggle-knob-width); width: var(--ptz-toggle-knob-width);
+            left: 4px; bottom: calc((var(--ptz-toggle-height) - var(--ptz-toggle-knob-width)) / 2);
+            background: white; transition: var(--transition-smooth);
+            border-radius: var(--ptz-toggle-knob-radius);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.15);
         }
         input:checked + .slider { background: var(--accent-primary); }
-        input:checked + .slider:before { transform: translateX(22px); }
-
-        /* --- Navigation --- */
-        .nav-container {
-            position: fixed; bottom: 32px; left: 50%;
-            transform: translateX(-50%); z-index: 500;
-        }
-        .nav-rail {
-            display: flex; align-items: center; gap: 8px;
-            background: var(--glass-bg);
-            padding: 6px; border-radius: 32px;
-            box-shadow: none; /* No shadow */
-        }
-        .nav-item {
-            width: 52px; height: 52px;
-            display: flex; align-items: center; justify-content: center;
-            cursor: pointer; border-radius: 26px; color: var(--text-sub);
-            transition: all 0.3s var(--m3-easing);
-            position: relative;
-        }
-        .nav-item.active {
-            background: var(--accent-primary); color: white;
-            transform: scale(1.05);
+        input:checked + .slider:before {
+            transform: translateX(calc(var(--ptz-toggle-width) - var(--ptz-toggle-knob-width) - 8px));
         }
 
-        /* --- View Management --- */
-        .view { display: none; }
-        .view.active { display: block; animation: viewIn 0.4s var(--m3-easing); }
-        @keyframes viewIn {
-            from { opacity: 0; transform: translateY(12px); }
-            to { opacity: 1; transform: translateY(0); }
+        /* ボタン */
+        .ai-btn {
+            border: none; outline: none; padding: 12px 22px; border-radius: 14px;
+            font-weight: 600; font-size: 14px; font-family: inherit; color: white;
+            cursor: pointer; background: var(--accent-primary);
+            transition: opacity 0.2s, background-color var(--transition-smooth), transform 0.15s;
+            display: inline-flex; align-items: center; gap: 8px; justify-content: center;
         }
+        .ai-btn:active:not(:disabled) { opacity: 0.85; transform: scale(0.97); }
+        .ai-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+        .ai-btn-secondary { background: var(--bg-secondary); color: var(--text-main); }
+        .ai-btn-danger { background: #E11D48; }
+        .ai-btn-small { padding: 8px 14px; font-size: 12.5px; border-radius: 12px; }
+        .ai-btn .material-symbols-outlined { font-size: 20px; }
+        .ai-btn-gradient {
+            background: linear-gradient(135deg, #5679F0, #D2B5CD, #EB9968);
+            color: #FFF; text-shadow: 0 1px 2px rgba(0,0,0,0.28);
+        }
+        .ai-btn-gradient:disabled { opacity: 0.7; }
+        .ai-btn-gradient img { width: 22px; height: 22px; object-fit: contain; flex-shrink: 0; }
+        .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
+        .btn-row.stretch > .ai-btn { flex: 1; }
+        .btn-col { display: flex; flex-direction: column; gap: 10px; }
+        .btn-col > .ai-btn { width: 100%; }
 
-        /* --- Custom App Specific UI Components --- */
-        .component-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-            gap: 12px;
-            margin-top: 14px;
+        /* セグメント */
+        .seg { display: flex; gap: 4px; background: var(--bg-secondary); padding: 4px; border-radius: 14px; }
+        .seg button {
+            flex: 1; border: none; background: transparent; color: var(--text-main);
+            font-family: inherit; font-weight: 600; font-size: 12.5px; padding: 10px 4px;
+            border-radius: 11px; cursor: pointer; transition: background 0.25s, color 0.25s;
+            display: flex; align-items: center; justify-content: center; gap: 4px;
         }
-        .comp-tile {
-            background: var(--bg-secondary);
-            padding: 14px;
-            border-radius: 16px;
-            text-align: center;
-            cursor: pointer;
+        .seg button.active { background: var(--accent-primary); color: #FFF; }
+        .seg .material-symbols-outlined { font-size: 18px; }
+
+        /* アシスタント */
+        .assistant-card { display: flex; gap: 16px; align-items: flex-start; padding: 18px 20px; }
+        .assistant-img {
+            width: 72px; height: 72px; object-fit: contain; flex-shrink: 0; cursor: pointer;
             transition: transform 0.2s;
         }
-        .comp-tile:hover {
-            transform: translateY(-2px);
+        .assistant-img.pop { animation: pop 0.45s var(--m3-easing); }
+        @keyframes pop {
+            0% { transform: scale(0.85) rotate(-6deg); }
+            60% { transform: scale(1.1) rotate(3deg); }
+            100% { transform: scale(1) rotate(0); }
         }
-        .comp-tile span {
-            font-size: 28px;
-            color: var(--accent-primary);
-            display: block;
-            margin-bottom: 6px;
+        .assistant-body { flex: 1; min-width: 0; }
+        .assistant-name {
+            font-size: 11px; font-weight: 700; color: var(--accent-primary);
+            letter-spacing: 0.5px; margin-bottom: 4px;
+            display: flex; align-items: center; gap: 6px;
         }
-        .comp-tile div {
-            font-size: 13px;
-            font-weight: 600;
+        .assistant-text { font-size: 13.5px; line-height: 1.55; font-weight: 500; }
+        #assistant-action { margin-top: 10px; }
+
+        /* ドロップゾーン */
+        .dropzone {
+            border: 2px dashed var(--text-sub); border-radius: var(--ptz-card-radius);
+            padding: 26px 16px; text-align: center; cursor: pointer;
+            background: rgba(0,0,0,0.02); transition: background 0.2s, border-color 0.2s;
+            margin-top: 16px;
+        }
+        .dark-mode .dropzone { background: rgba(255,255,255,0.02); }
+        .dropzone:hover, .dropzone.over { background: rgba(51,129,255,0.07); border-color: var(--accent-primary); }
+
+        /* 切り抜きステージ */
+        .crop-wrap { padding: 14px; }
+        .crop-stage { position: relative; width: 100%; user-select: none; -webkit-user-select: none; }
+        .crop-stage canvas.src { display: block; width: 100%; height: auto; border-radius: 6px; }
+        .crop-svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+        .crop-svg .shade { fill: rgba(0,0,0,0.45); fill-rule: evenodd; }
+        .crop-svg .line {
+            fill: rgba(51,129,255,0.10); stroke: var(--accent-primary);
+            stroke-width: 2.5; vector-effect: non-scaling-stroke; stroke-linejoin: round;
+        }
+        .pin {
+            position: absolute; width: 48px; height: 48px;
+            transform: translate(-50%, -50%); touch-action: none; cursor: grab; z-index: 3;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .pin::after {
+            content: ''; width: 22px; height: 22px; border-radius: 50%;
+            background: var(--accent-primary); border: 3px solid #FFF;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.4); transition: transform 0.15s;
+        }
+        .pin.dragging::after { transform: scale(1.35); }
+        .loupe {
+            position: absolute; top: 10px; width: 112px; height: 112px; border-radius: 50%;
+            overflow: hidden; border: 3px solid #FFF; background: #000;
+            display: none; z-index: 4; pointer-events: none;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+        }
+        .loupe canvas { width: 100%; height: 100%; display: block; }
+        .loupe::before, .loupe::after { content: ''; position: absolute; background: rgba(255,255,255,0.9); }
+        .loupe::before { left: 50%; top: 14px; bottom: 14px; width: 1px; }
+        .loupe::after { top: 50%; left: 14px; right: 14px; height: 1px; }
+
+        /* プレビュー */
+        .preview-stage { display: flex; justify-content: center; }
+        #result-canvas {
+            width: auto; max-width: 100%; max-height: 62vh; height: auto; display: block;
+            outline: 1px solid var(--bg-secondary); border-radius: 4px; background: #FFF;
         }
 
-        /* Interactive Customizer Workspace */
-        .customizer-layout {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 16px;
+        /* ページ一覧 */
+        .page-item { display: flex; align-items: center; gap: 14px; padding: 10px 4px; }
+        .page-thumb {
+            width: 56px; height: 72px; object-fit: cover; border-radius: 6px;
+            background: #FFF; outline: 1px solid var(--bg-secondary); flex-shrink: 0;
         }
-        @media (min-width: 650px) {
-            .customizer-layout {
-                grid-template-columns: 1.1fr 0.9fr;
-            }
+        .page-info { flex: 1; min-width: 0; }
+        .page-actions { display: flex; gap: 4px; }
+        .icon-btn {
+            width: 36px; height: 36px; border-radius: 50%; border: none; cursor: pointer;
+            background: var(--bg-secondary); color: var(--text-main);
+            display: flex; align-items: center; justify-content: center; transition: transform 0.15s, opacity 0.2s;
+        }
+        .icon-btn:active { transform: scale(0.9); }
+        .icon-btn:disabled { opacity: 0.35; cursor: default; }
+        .icon-btn .material-symbols-outlined { font-size: 20px; }
+        .empty-state { text-align: center; padding: 12px 0 4px; }
+        .empty-state .material-symbols-outlined { font-size: 44px; color: var(--text-sub); }
+
+        /* アクセントスウォッチ */
+        .color-grid { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+        .color-swatch {
+            width: 36px; height: 36px; border-radius: 50%; cursor: pointer;
+            border: 3px solid transparent; transition: border-color 0.2s, transform 0.15s;
+        }
+        .color-swatch:active { transform: scale(0.9); }
+        .color-swatch.active { border-color: var(--text-main); }
+
+        .badge {
+            background: var(--accent-primary); color: white; padding: 3px 10px;
+            border-radius: 10px; font-size: 11px; font-weight: 700; display: inline-block;
         }
 
-        .preview-pane {
-            background: var(--bg-secondary);
-            border-radius: 20px;
-            padding: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 180px;
-            position: relative;
-            overflow: hidden;
+        /* ナビ */
+        .bottom-nav-container {
+            position: fixed; bottom: 0; left: 0; width: 100%; height: 72px;
+            background: var(--nav-bg); border-top: 1px solid var(--bg-secondary);
+            z-index: 500; display: flex; justify-content: space-around; align-items: center;
+            padding-bottom: env(safe-area-inset-bottom);
+            transition: background-color var(--transition-smooth), border-color var(--transition-smooth);
+        }
+        .nav-item {
+            flex: 1; height: 100%; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; cursor: pointer;
+            color: var(--text-sub); transition: color 0.25s var(--m3-easing);
+            position: relative; gap: 4px;
+        }
+        .nav-item .material-symbols-outlined {
+            font-size: 24px; font-variation-settings: 'FILL' 0, 'wght' 400;
+            transition: font-variation-settings 0.2s;
+        }
+        .nav-label { font-size: 10px; font-weight: 600; }
+        .nav-item.active { color: var(--nav-icon-active); }
+        .nav-item.active .material-symbols-outlined { font-variation-settings: 'FILL' 1, 'wght' 700; }
+        .nav-badge {
+            position: absolute; top: 10px; left: calc(50% + 8px);
+            min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px;
+            background: var(--accent-primary); color: #FFF; font-size: 10px; font-weight: 700;
+            display: none; align-items: center; justify-content: center;
         }
 
-        .slider-group {
-            margin-bottom: 14px;
-        }
-        .slider-group label {
-            display: flex;
-            justify-content: space-between;
-            font-size: 13px;
-            margin-bottom: 4px;
-            font-weight: 600;
-        }
-        .custom-slider {
-            width: 100%;
-            accent-color: var(--accent-primary);
-            cursor: pointer;
-        }
+        .view { display: none; }
+        .view.active { display: block; animation: viewIn 0.3s var(--m3-easing); }
+        @keyframes viewIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
-        .code-block {
-            background: #111111;
-            color: #A3FFA3;
-            padding: 12px;
-            border-radius: 12px;
-            font-family: monospace;
-            font-size: 11px;
-            white-space: pre-wrap;
-            word-break: break-all;
-            max-height: 150px;
-            overflow-y: auto;
-            text-align: left;
+        /* トースト & ダイアログ */
+        .toast {
+            position: fixed; bottom: 84px; left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--text-main); color: var(--glass-bg);
+            padding: 10px 20px; border-radius: 12px; font-size: 13px; font-weight: 600;
+            opacity: 0; visibility: hidden; transition: all 0.3s var(--m3-easing);
+            z-index: 2000; max-width: 90vw; text-align: center;
         }
-
-        /* --- Dialog Overlay --- */
+        .toast.active { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0); }
         .dialog-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5);
+            position: fixed; inset: 0; background: rgba(0,0,0,0.5);
             z-index: 1000; display: flex; align-items: center; justify-content: center;
             opacity: 0; visibility: hidden; transition: all 0.3s var(--m3-easing);
         }
         .dialog-overlay.active { opacity: 1; visibility: visible; }
         .glass-dialog {
-            background: var(--glass-bg);
-            border-radius: 28px;
+            background: var(--glass-bg); border-radius: var(--ptz-card-radius);
             padding: 24px; max-width: 380px; width: 90%; text-align: center;
             transform: scale(0.9) translateY(20px); transition: all 0.4s var(--m3-easing);
         }
         .dialog-overlay.active .glass-dialog { transform: scale(1) translateY(0); }
-
-        /* --- Toast Alert --- */
-        .toast {
-            position: fixed;
-            bottom: 110px;
-            left: 50%;
-            transform: translateX(-50%) translateY(20px);
-            background: var(--text-main);
-            color: var(--glass-bg);
-            padding: 10px 20px;
-            border-radius: 12px;
-            font-size: 13px;
-            font-weight: 600;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.3s var(--m3-easing);
-            z-index: 2000;
-        }
-        .toast.active {
-            opacity: 1;
-            visibility: visible;
-            transform: translateX(-50%) translateY(0);
-        }
-
-        .color-dot {
-            width: 24px;
-            height: 24px;
-            border-radius: 12px;
-            display: inline-block;
-            cursor: pointer;
-            margin-right: 6px;
-            transition: transform 0.2s;
-        }
-        .color-dot:active {
-            transform: scale(0.85);
-        }
-
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-        @media (max-width: 650px) { .grid { grid-template-columns: 1fr; } }
-
-        /* --- Character Display Board --- */
-        .char-board {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            margin-bottom: 16px;
-            padding: 16px;
-            background: var(--glass-bg);
-            border-radius: 24px;
-            box-sizing: border-box;
-        }
-        .char-img-container {
-            flex-shrink: 0;
-            width: 70px;
-            height: 70px;
-            position: relative;
-        }
-        .char-img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            border-radius: 50%;
-        }
-        .char-bubble {
-            flex-grow: 1;
-            background: var(--bg-base);
-            padding: 12px 16px;
-            border-radius: 16px;
-            position: relative;
-            font-size: 13.5px;
-            line-height: 1.4;
-            font-weight: 500;
-        }
-        .char-bubble::before {
-            content: '';
-            position: absolute;
-            left: -8px;
-            top: 24px;
-            border-width: 8px 8px 8px 0;
-            border-style: solid;
-            border-color: transparent var(--bg-base) transparent transparent;
-        }
-        .char-name {
-            font-size: 11px;
-            font-weight: 700;
-            color: var(--accent-primary);
-            margin-bottom: 2px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        /* --- Drag and Drop Area --- */
-        .upload-area {
-            width: 100%;
-            padding: 30px 16px;
-            border: 2px dashed var(--accent-primary);
-            border-radius: 18px;
-            text-align: center;
-            cursor: pointer;
-            transition: background 0.3s;
-            box-sizing: border-box;
-            background: rgba(51, 129, 255, 0.03);
-            margin-top: 10px;
-        }
-        .upload-area:hover {
-            background: rgba(51, 129, 255, 0.07);
-        }
-        .upload-area span {
-            font-size: 40px;
-            color: var(--accent-primary);
-        }
-
-        /* --- Crop Canvas Container & Drag Pins --- */
-        .crop-container {
-            position: relative;
-            width: 100%;
-            max-width: 100%;
-            margin: 16px auto;
-            display: none;
-            touch-action: none;
-            user-select: none;
-            background: #000;
-            border-radius: 16px;
-            overflow: hidden;
-        }
-        .crop-canvas {
-            display: block;
-            width: 100%;
-            height: auto;
-            border-radius: 16px;
-        }
-        .drag-pin {
-            position: absolute;
-            width: 24px;
-            height: 24px;
-            background: var(--accent-primary);
-            border: 3px solid white;
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
-            cursor: move;
-            z-index: 10;
-            touch-action: none;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-            transition: transform 0.15s, background-color 0.15s;
-        }
-        .drag-pin:hover, .drag-pin.dragging {
-            transform: translate(-50%, -50%) scale(1.3);
-            background: var(--accent-active);
-        }
-        .drag-pin-label {
-            position: absolute;
-            top: -24px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.75);
-            color: white;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 9px;
-            font-weight: bold;
-            pointer-events: none;
-            white-space: nowrap;
-        }
-
-        /* --- Canvas overlay for drawing guide lines --- */
-        .guide-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 5;
-        }
-
-        /* --- Export Preview --- */
-        .result-container {
-            width: 100%;
-            text-align: center;
-            display: none;
-            margin-top: 12px;
-        }
-        .result-canvas {
-            max-width: 100%;
-            max-height: 400px;
-            border-radius: 14px;
-            background: white;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
+        .progress-bar-bg { width: 100%; height: 12px; background: var(--bg-secondary); border-radius: 6px; overflow: hidden; margin: 16px 0 10px; }
+        .progress-bar-fill { height: 100%; width: 0%; background: var(--accent-primary); transition: width 0.1s linear; }
     </style>
 </head>
 <body>
-
-    <!-- --- Header --- -->
+<div id="app-viewport">
     <header>
         <div class="logo">
             <span class="material-symbols-outlined">document_scanner</span>
-            スキャナー
+            Documentスキャナー
         </div>
-        <button class="theme-toggle" id="theme-btn">
+        <button class="theme-toggle" id="theme-btn" title="テーマ切り替え">
             <span class="material-symbols-outlined">light_mode</span>
         </button>
     </header>
 
-    <div id="app-viewport">
-        <main id="main-content">
-            
-            <!-- キャラクター指示エリア -->
-            <div class="char-board">
-                <div class="char-img-container">
-                    <img src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/pbhuB2/pdf.png" class="char-img" alt="PDF先生" onerror="this.src='https://placehold.co/100x100/3381ff/ffffff?text=PDF'">
-                </div>
-                <div class="char-bubble">
-                    <div class="char-name" id="char-name-label">よろしくダス</div>
-                    <div id="char-speech">「早く書類をアップロードしましょう。高度な補正エンジンで一瞬で完璧なドキュメントにリサイズして見せます」</div>
+    <main id="main-scroll-area">
+        <div id="overscroll-wrapper">
+
+            <!-- アシスタント -->
+            <div class="glass-card assistant-card" id="assistant-card">
+                <img id="assistant-img" class="assistant-img" alt="アシスタント" title="タップでヒント">
+                <div class="assistant-body">
+                    <div class="assistant-name"><span class="material-symbols-outlined" style="font-size:14px;">support_agent</span>ドイツ アシスタント</div>
+                    <div class="assistant-text" id="assistant-text"></div>
+                    <button class="ai-btn ai-btn-small" id="assistant-action" style="display:none;"></button>
                 </div>
             </div>
 
-            <!-- VIEW 1: HOME (UPLOAD & PERSPECTIVE CROP) -->
-            <section id="view-home" class="view active">
+            <!-- 1. スキャン -->
+            <section id="view-scan" class="view active">
                 <div class="glass-card">
-                    <h2>1. ドキュメントの読み込み</h2>
-                    <p>歪んだり斜めから撮影された書類画像でも、四隅を正確にマッピングすれば、瞬時にまっすぐな長方形に復元されます。</p>
-                    
-                    <input type="file" id="file-input" accept="image/*" style="display: none;">
-                    
-                    <div class="upload-area" id="drop-zone" onclick="document.getElementById('file-input').click()">
-                        <span class="material-symbols-outlined">cloud_upload</span>
-                        <div style="font-weight: 700; margin-top: 8px;">ファイルをドラッグ＆ドロップ または クリック</div>
-                        <p style="font-size: 11px; margin-top: 4px; margin-bottom: 0;">スマートフォンで撮影した画像にも対応しています</p>
+                    <h2>書類を読み込む</h2>
+                    <p>斜めから撮った写真でも、四隅を合わせるだけで正面から見た形に直せます。</p>
+                    <div class="btn-row stretch">
+                        <button class="ai-btn" id="btn-pick"><span class="material-symbols-outlined">photo_library</span>画像を選択</button>
+                        <button class="ai-btn ai-btn-secondary" id="btn-camera"><span class="material-symbols-outlined">photo_camera</span>カメラで撮影</button>
+                    </div>
+                    <input type="file" id="file-input" accept="image/*" style="display:none;">
+                    <input type="file" id="camera-input" accept="image/*" capture="environment" style="display:none;">
+                    <div class="dropzone" id="drop-zone">
+                        <span class="material-symbols-outlined" style="font-size:38px;color:var(--accent-primary);">cloud_upload</span>
+                        <div style="font-weight:700;font-size:14px;margin-top:6px;">ここにドロップ</div>
+                        <div style="font-size:12px;color:var(--text-sub);margin-top:4px;">クリップボードの貼り付け (Ctrl+V) にも対応</div>
+                    </div>
+                </div>
+
+                <div class="glass-card" id="crop-card" style="display:none;">
+                    <h2>四隅を合わせる</h2>
+                    <p>青いピンをドラッグして書類の角に合わせます。ドラッグ中は拡大表示が出ます。</p>
+                    <div class="btn-row">
+                        <button class="ai-btn ai-btn-small ai-btn-gradient" id="btn-auto"><img src="https://raw.githubusercontent.com/PolandBallHub-Operator/PBscreenshot/refs/heads/main/countryball_aiball.png" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'material-symbols-outlined',textContent:'auto_awesome'}))">自動検出 (β)</button>
+                        <button class="ai-btn ai-btn-small ai-btn-secondary" id="btn-fullframe"><span class="material-symbols-outlined">fit_screen</span>全体を選択</button>
+                    </div>
+                    <div class="crop-wrap">
+                        <div class="crop-stage" id="crop-stage">
+                            <canvas class="src" id="source-canvas"></canvas>
+                            <svg class="crop-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
+                                <path class="shade" id="crop-shade"></path>
+                                <polygon class="line" id="crop-line"></polygon>
+                            </svg>
+                            <div class="pin" data-i="0"></div>
+                            <div class="pin" data-i="1"></div>
+                            <div class="pin" data-i="2"></div>
+                            <div class="pin" data-i="3"></div>
+                            <div class="loupe" id="loupe"><canvas id="loupe-canvas" width="224" height="224"></canvas></div>
+                        </div>
+                    </div>
+                    <button class="ai-btn" id="btn-scan" style="width:100%;padding:14px;"><span class="material-symbols-outlined">crop_rotate</span>スキャンを実行</button>
+                </div>
+            </section>
+
+            <!-- 2. 調整 -->
+            <section id="view-adjust" class="view">
+                <div class="glass-card" id="adjust-preview-card">
+                    <h2>プレビュー</h2>
+                    <div class="preview-stage"><canvas id="result-canvas"></canvas></div>
+                    <div class="btn-row" style="margin-top:16px;">
+                        <button class="ai-btn ai-btn-small ai-btn-secondary" id="btn-rot-l"><span class="material-symbols-outlined">rotate_left</span>左に回転</button>
+                        <button class="ai-btn ai-btn-small ai-btn-secondary" id="btn-rot-r"><span class="material-symbols-outlined">rotate_right</span>右に回転</button>
+                    </div>
+                </div>
+
+                <div class="glass-card" id="adjust-controls-card">
+                    <h2>補正</h2>
+                    <div class="seg" id="mode-seg">
+                        <button data-mode="color" class="active"><span class="material-symbols-outlined">palette</span>カラー</button>
+                        <button data-mode="gray"><span class="material-symbols-outlined">filter_b_and_w</span>グレー</button>
+                        <button data-mode="bw"><span class="material-symbols-outlined">contrast</span>白黒</button>
                     </div>
 
-                    <!-- スキャン調整エリア (画像選択後に表示) -->
-                    <div id="crop-workspace" style="display: none; margin-top: 20px;">
-                        <h3 style="margin: 0 0 8px 0; font-size: 15px; font-weight: 700;">四隅を合わせてください</h3>
-                        <p style="font-size: 12px; margin-bottom: 12px;">画像の角にある青い丸ピンをドラッグして、書類の4つの角にぴったり合わせてください。余計な背景は1ミリも残さないのが効率化の第一歩です。</p>
-                        
-                        <div class="crop-container" id="crop-container">
-                            <canvas class="crop-canvas" id="source-canvas"></canvas>
-                            <canvas class="guide-overlay" id="guide-canvas"></canvas>
-                            
-                            <!-- 4つのドラッグピン -->
-                            <div class="drag-pin" id="pin-tl" style="left: 10%; top: 10%;"><span class="drag-pin-label">左上</span></div>
-                            <div class="drag-pin" id="pin-tr" style="left: 90%; top: 10%;"><span class="drag-pin-label">右上</span></div>
-                            <div class="drag-pin" id="pin-br" style="left: 90%; top: 90%;"><span class="drag-pin-label">右下</span></div>
-                            <div class="drag-pin" id="pin-bl" style="left: 10%; top: 90%;"><span class="drag-pin-label">左下</span></div>
+                    <div class="slider-wrapper">
+                        <div class="slider-label-row"><span>影消し強度</span><span id="val-flat">70%</span></div>
+                        <div class="thick-slider-container">
+                            <div class="thick-slider-fill"><div class="thick-slider-knob"></div></div>
+                            <input type="range" class="thick-slider-input" id="ctl-flat" min="0" max="100" value="70" data-val="val-flat" data-unit="%">
                         </div>
+                    </div>
+                    <div class="slider-wrapper">
+                        <div class="slider-label-row"><span>明るさ</span><span id="val-bright">0</span></div>
+                        <div class="thick-slider-container">
+                            <div class="thick-slider-fill"><div class="thick-slider-knob"></div></div>
+                            <input type="range" class="thick-slider-input" id="ctl-bright" min="-100" max="100" value="0" data-val="val-bright" data-unit="">
+                        </div>
+                    </div>
+                    <div class="slider-wrapper">
+                        <div class="slider-label-row"><span id="lbl-contrast">コントラスト</span><span id="val-contrast">0</span></div>
+                        <div class="thick-slider-container">
+                            <div class="thick-slider-fill"><div class="thick-slider-knob"></div></div>
+                            <input type="range" class="thick-slider-input" id="ctl-contrast" min="-100" max="100" value="0" data-val="val-contrast" data-unit="">
+                        </div>
+                    </div>
+                    <div class="slider-wrapper">
+                        <div class="slider-label-row"><span>シャープネス</span><span id="val-sharp">20%</span></div>
+                        <div class="thick-slider-container">
+                            <div class="thick-slider-fill"><div class="thick-slider-knob"></div></div>
+                            <input type="range" class="thick-slider-input" id="ctl-sharp" min="0" max="100" value="20" data-val="val-sharp" data-unit="%">
+                        </div>
+                    </div>
+                    <div class="btn-row">
+                        <button class="ai-btn ai-btn-small" id="btn-suggest"><span class="material-symbols-outlined">auto_fix_high</span>おまかせ補正</button>
+                        <button class="ai-btn ai-btn-small ai-btn-secondary" id="btn-reset-adj"><span class="material-symbols-outlined">restart_alt</span>リセット</button>
+                    </div>
+                </div>
 
-                        <div style="text-align: right; margin-top: 16px;">
-                            <button class="ai-btn" id="btn-process-crop">
-                                <span class="material-symbols-outlined">auto_fix_high</span>
-                                オートリサイズを実行する
-                            </button>
+                <div class="glass-card" id="adjust-export-card">
+                    <h2>保存</h2>
+                    <p>複数ページのPDFにしたいときは、まず「ページに追加」を押してください。</p>
+                    <div class="btn-col">
+                        <button class="ai-btn" id="btn-add-page"><span class="material-symbols-outlined">library_add</span>ページに追加</button>
+                        <div class="btn-row stretch">
+                            <button class="ai-btn ai-btn-danger" data-export="pdf"><span class="material-symbols-outlined">picture_as_pdf</span>PDF</button>
+                            <button class="ai-btn ai-btn-secondary" data-export="png"><span class="material-symbols-outlined">image</span>PNG</button>
+                            <button class="ai-btn ai-btn-secondary" data-export="jpg"><span class="material-symbols-outlined">photo</span>JPG</button>
                         </div>
                     </div>
                 </div>
             </section>
 
-            <!-- VIEW 2: ADJUST & EXPORT -->
-            <section id="view-hub" class="view">
+            <!-- 3. ページ -->
+            <section id="view-pages" class="view">
                 <div class="glass-card">
-                    <h2>2. 影消し・明るさ調整 & 保存</h2>
-                    <p>照明のムラや影を補正し、印刷や閲覧に最適な白黒・クリアドキュメントに仕上げます。調整が終わったら、お好みの形式で瞬時にエクスポートしてください。</p>
-
-                    <div class="customizer-layout">
-                        <!-- Preview Panel (No gray nested card inside white card rule followed) -->
-                        <div style="display: flex; flex-direction: column; gap: 12px;">
-                            <div class="preview-pane" id="preview-outer-container">
-                                <div class="result-container" id="result-container" style="display: block;">
-                                    <canvas class="result-canvas" id="result-canvas"></canvas>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Controls Panel -->
-                        <div style="display: flex; flex-direction: column; gap: 10px;">
-                            <!-- 影消し（明るさ差均一化） -->
-                            <div class="slider-group">
-                                <label>
-                                    <span>影消し強度 (フラット平滑化)</span>
-                                    <span id="val-flatness">50%</span>
-                                </label>
-                                <input type="range" class="custom-slider" id="control-flatness" min="0" max="100" value="50" oninput="applyDocumentFilter()">
-                            </div>
-
-                            <!-- 明るさ -->
-                            <div class="slider-group">
-                                <label>
-                                    <span>全体の明るさ</span>
-                                    <span id="val-brightness">0%</span>
-                                </label>
-                                <input type="range" class="custom-slider" id="control-brightness" min="-100" max="100" value="0" oninput="applyDocumentFilter()">
-                            </div>
-
-                            <!-- コントラスト -->
-                            <div class="slider-group">
-                                <label>
-                                    <span id="contrast-label-text">コントラスト</span>
-                                    <span id="val-contrast">0%</span>
-                                </label>
-                                <input type="range" class="custom-slider" id="control-contrast" min="-100" max="100" value="0" oninput="applyDocumentFilter()">
-                            </div>
-
-                            <!-- スキャンモード -->
-                            <div class="slider-group">
-                                <p style="font-weight: 600; font-size: 13px; margin-bottom: 6px;">最適化モード</p>
-                                <div style="display: flex; gap: 6px;">
-                                    <button class="ai-btn" id="mode-color" style="flex: 1; justify-content: center; padding: 6px 4px; font-size: 12px;" onclick="setScanMode('color')">
-                                        <span class="material-symbols-outlined" style="font-size: 18px;">palette</span> カラー
-                                    </button>
-                                    <button class="ai-btn ai-btn-secondary" id="mode-mono" style="flex: 1; justify-content: center; padding: 6px 4px; font-size: 12px;" onclick="setScanMode('mono')">
-                                        <span class="material-symbols-outlined" style="font-size: 18px;">filter_b_and_w</span> 白黒強調
-                                    </button>
-                                    <button class="ai-btn ai-btn-secondary" id="mode-binary" style="flex: 1; justify-content: center; padding: 6px 4px; font-size: 12px;" onclick="setScanMode('binary')">
-                                        <span class="material-symbols-outlined" style="font-size: 18px;">contrast</span> 2極化
-                                    </button>
-                                </div>
-                            </div>
-
-                            <!-- Export Formats -->
-                            <div style="margin-top: 14px; border-top: 1.5px solid var(--bg-secondary); padding-top: 14px;">
-                                <p style="font-weight: 600; font-size: 13px; margin-bottom: 8px;">スキャンデータのエクスポート</p>
-                                <div style="display: flex; flex-direction: column; gap: 8px;">
-                                    <button class="ai-btn" style="width: 100%; justify-content: center; background: #E11D48;" onclick="exportFile('pdf')">
-                                        <span class="material-symbols-outlined">picture_as_pdf</span>
-                                        PDFドキュメントとして保存 (高解像度)
-                                    </button>
-                                    <button class="ai-btn" style="width: 100%; justify-content: center;" onclick="exportFile('png')">
-                                        <span class="material-symbols-outlined">image</span>
-                                        PNG画像として保存
-                                    </button>
-                                </div>
-                            </div>
+                    <h2>スキャンしたページ <span class="badge" id="pages-count">0</span></h2>
+                    <div id="pages-empty" class="empty-state">
+                        <span class="material-symbols-outlined">description</span>
+                        <p style="margin-top:8px;">まだページがありません。</p>
+                    </div>
+                    <div class="custom-list" id="pages-list"></div>
+                </div>
+                <div class="glass-card" id="pages-actions">
+                    <div class="btn-col">
+                        <button class="ai-btn ai-btn-danger" id="btn-pages-pdf"><span class="material-symbols-outlined">picture_as_pdf</span>すべてをPDFにまとめて保存</button>
+                        <div class="btn-row stretch">
+                            <button class="ai-btn" id="btn-pages-more"><span class="material-symbols-outlined">add_a_photo</span>続けてスキャン</button>
+                            <button class="ai-btn ai-btn-secondary" id="btn-pages-clear"><span class="material-symbols-outlined">delete_sweep</span>全削除</button>
                         </div>
                     </div>
                 </div>
             </section>
 
-            <!-- VIEW 3: SETTINGS -->
+            <!-- 4. 設定 -->
             <section id="view-settings" class="view">
                 <div class="glass-card">
-                    <h2>システム設定</h2>
-                    <p>「効率的スキャナー」のシステム動作環境の構成を変更可能です。</p>
-                    
-                    <div class="toggle-row">
-                        <span>MIダークモード</span>
-                        <label class="switch">
-                            <input type="checkbox" id="darkmode-toggle">
-                            <span class="slider"></span>
-                        </label>
-                    </div>
-
-                    <div class="toggle-row">
-                        <span>PDF圧縮率の最大化 (ファイル軽量化)</span>
-                        <label class="switch">
-                            <input type="checkbox" id="pdf-compress-toggle" checked>
-                            <span class="slider"></span>
-                        </label>
-                    </div>
-
-                    <div class="toggle-row">
-                        <span>操作成功時のトースト通知</span>
-                        <label class="switch">
-                            <input type="checkbox" id="toast-toggle" checked>
-                            <span class="slider"></span>
-                        </label>
+                    <h2>基本設定</h2>
+                    <div class="custom-list">
+                        <div class="list-item">
+                            <div><div class="list-item-title">ダークモード</div></div>
+                            <label class="switch"><input type="checkbox" id="set-dark"><span class="slider"></span></label>
+                        </div>
+                        <div class="list-item">
+                            <div><div class="list-item-title">アシスタントを表示</div><div class="list-item-desc">表情つきでガイドします</div></div>
+                            <label class="switch"><input type="checkbox" id="set-assistant" checked><span class="slider"></span></label>
+                        </div>
+                        <div class="list-item">
+                            <div><div class="list-item-title">自動枠取り (β) を自動実行</div><div class="list-item-desc">読み込み直後に枠を検出します</div></div>
+                            <label class="switch"><input type="checkbox" id="set-autodetect"><span class="slider"></span></label>
+                        </div>
+                        <div class="list-item">
+                            <div><div class="list-item-title">PDFを軽量化</div><div class="list-item-desc">画質を少し下げて容量を減らします</div></div>
+                            <label class="switch"><input type="checkbox" id="set-compress" checked><span class="slider"></span></label>
+                        </div>
+                        <div class="list-item">
+                            <div><div class="list-item-title">トースト通知</div></div>
+                            <label class="switch"><input type="checkbox" id="set-toast" checked><span class="slider"></span></label>
+                        </div>
                     </div>
                 </div>
 
                 <div class="glass-card">
-                    <h2>ワンポイントアドバイス</h2>
-                    <p style="font-size: 13px; font-weight: 600; color: var(--accent-primary);">1. 画像の白を綺麗に見せる。</p>
-                    <p style="font-size: 13px; margin-bottom: 12px;">ドキュメントの背景輝度を完全に均一化することで、共有しやすく、印象も良くします。</p>
-                    <p style="font-size: 13px; font-weight: 600; color: var(--accent-primary);">2. 透視変換による幾何的アライメント</p>
-                    <p style="font-size: 13px;">カメラから斜めに写した画像は、アスペクト比がおかしくなり、可読性が大きく損なわれます。</p>
+                    <h2>出力</h2>
+                    <div style="font-size:13px;font-weight:600;margin-bottom:8px;">PDFの用紙サイズ</div>
+                    <div class="seg" data-seg="paper">
+                        <button data-v="fit">画像サイズに合わせる</button>
+                        <button data-v="a4">A4</button>
+                    </div>
+                    <div style="font-size:13px;font-weight:600;margin:18px 0 8px;">出力解像度 (長辺)</div>
+                    <div class="seg" data-seg="res">
+                        <button data-v="1200">1200px</button>
+                        <button data-v="1800">1800px</button>
+                        <button data-v="2600">2600px</button>
+                    </div>
+                    <p style="margin:10px 0 0;font-size:12px;">解像度を変えると、次回のスキャンから反映されます。</p>
+                </div>
+
+                <div class="glass-card">
+                    <h2>アクセントカラー</h2>
+                    <div class="color-grid" id="accent-grid">
+                        <div class="color-swatch" data-c="#3381FF" style="background:#3381FF;"></div>
+                        <div class="color-swatch" data-c="#10B981" style="background:#10B981;"></div>
+                        <div class="color-swatch" data-c="#8B5CF6" style="background:#8B5CF6;"></div>
+                        <div class="color-swatch" data-c="#F59E0B" style="background:#F59E0B;"></div>
+                        <div class="color-swatch" data-c="#EC4899" style="background:#EC4899;"></div>
+                        <div class="color-swatch" data-c="#64748B" style="background:#64748B;"></div>
+                    </div>
                 </div>
             </section>
-        </main>
-    </div>
 
-    <!-- Navigation Bar -->
-    <div class="nav-container">
-        <nav class="nav-rail">
-            <div class="nav-item active" data-view="view-home" id="nav-btn-home">
-                <span class="material-symbols-outlined">crop_free</span>
-            </div>
-            <div class="nav-item" data-view="view-hub" id="nav-btn-hub">
-                <span class="material-symbols-outlined">tune</span>
-            </div>
-            <div class="nav-item" data-view="view-settings" id="nav-btn-settings">
-                <span class="material-symbols-outlined">settings</span>
-            </div>
-        </nav>
-    </div>
-
-    <!-- Liquid Dialog (Custom Dialog, No Alert) -->
-    <div class="dialog-overlay" id="main-dialog">
-        <div class="glass-dialog">
-            <span class="material-symbols-outlined" style="font-size: 48px; color: var(--accent-primary);">verified_user</span>
-            <h2 style="margin-top: 12px;" id="dialog-title">最適化処理完了</h2>
-            <p style="margin-bottom: 20px;" id="dialog-desc">書類は完璧にリサイズされ、影のない最適なドキュメントとして再構築されました。</p>
-            <button class="ai-btn" style="width: 100%; justify-content: center;" onclick="closeDialog()">理解しました</button>
         </div>
+    </main>
+
+    <div class="bottom-nav-container">
+        <div class="nav-item active" data-view="view-scan"><span class="material-symbols-outlined">crop_free</span><span class="nav-label">スキャン</span></div>
+        <div class="nav-item" data-view="view-adjust"><span class="material-symbols-outlined">tune</span><span class="nav-label">調整</span></div>
+        <div class="nav-item" data-view="view-pages"><span class="material-symbols-outlined">collections</span><span class="nav-label">ページ</span><span class="nav-badge" id="nav-badge">0</span></div>
+        <div class="nav-item" data-view="view-settings"><span class="material-symbols-outlined">settings</span><span class="nav-label">設定</span></div>
     </div>
+</div>
 
-    <!-- Toast Notification Message Box -->
-    <div class="toast" id="toast-message">操作が完了しました</div>
+<!-- 処理中ダイアログ -->
+<div class="dialog-overlay" id="busy-dialog">
+    <div class="glass-dialog">
+        <span class="material-symbols-outlined" style="font-size:44px;color:var(--accent-primary);">hourglass_top</span>
+        <h2 style="margin-top:12px;" id="busy-title">処理中...</h2>
+        <p id="busy-sub" style="margin-bottom:0;">しばらくお待ちください。</p>
+        <div class="progress-bar-bg"><div class="progress-bar-fill" id="busy-fill"></div></div>
+        <div style="font-size:13px;font-weight:700;" id="busy-pct">0%</div>
+    </div>
+</div>
 
-    <script>
-        /**
-         * 効率的スキャナー アプリケーションコアロジック
-         */
+<div class="toast" id="toast-message"></div>
 
-        const viewport = document.getElementById('app-viewport');
-        const themeBtn = document.getElementById('theme-btn');
-        const themeIcon = themeBtn.querySelector('span');
-        const toast = document.getElementById('toast-message');
-        const charSpeech = document.getElementById('char-speech');
+<script>
+const el = id => document.getElementById(id);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const tick = () => new Promise(r => setTimeout(r, 30));
 
-        // --- 画像処理・アライメント用ステート ---
-        let originalImage = null; // 元画像オブジェクト
-        let points = [];          // ドラッグピンの現在座標 [{x, y}, ...] (画像本来の解像度スケール)
-        let canvasScale = 1;      // 表示サイズに対する実像の縮尺
-        let activePin = null;     // ドラッグ中のピン
-        let scanMode = 'color';   // 'color' , 'mono' または 'binary'
+/* ================= 設定 ================= */
+const SETTINGS_KEY = 'docscan_settings_v3';
+const settings = {
+    dark: window.matchMedia('(prefers-color-scheme: dark)').matches,
+    assistant: true, autodetect: false, compress: true, toast: true,
+    paper: 'fit', res: 2600, accent: '#3381FF'
+};
+try {
+    const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || 'null');
+    if (saved) Object.assign(settings, saved);
+} catch (e) {}
+function saveSettings() { try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (e) {} }
 
-        // 透視変換後の高精細スキャン画像キャッシュ用Canvas
-        const scanTempCanvas = document.createElement('canvas');
+function adjustColorBrightness(hex, percent) {
+    const f = i => clamp(Math.round(parseInt(hex.substr(i, 2), 16) * (100 + percent) / 100), 0, 255).toString(16).padStart(2, '0');
+    return '#' + f(1) + f(3) + f(5);
+}
 
-        // キャラクター台詞集
-        const speechLibrary = {
-            loaded: [
-                "「無駄な余白を排除するチャンスです！4つの青いピンをドキュメントの角に正確に配置しなさい。」",
-                "「斜めから撮った写真でも問題ありません。計算力で完璧な正面画像に補正してみせます。」"
-            ],
-            cropped: [
-                "「お見事！見事な幾何的リサイズです。次に『影消し』でドキュメントのノイズを削減しましょう。」",
-                "「美しい長方形です！印刷や保存における非効率的な余白は完全に消失しました。」"
-            ],
-            adjusting: [
-                "「『影消し強度』を調整して、全体の背景が均一な白になるようにしなさい。コントラストの最適化も忘れずに。」",
-                "「紙のシワや照明ムラを消し去ることで、データサイズを15%以上軽量化できます。これぞ真の効率化です！」"
-            ],
-            binary: [
-                "「素晴らしい！中間色を一切許さない2極化はデータ容量を削減し、視認性を最大化する究極の効率モードダス！」",
-                "「文字と背景が完全分離しました！余計なピクセル情報を削ぎ落とし、ストレージに最も優しいドキュメントです！」"
-            ],
-            exported: [
-                "「保存完了！処理速度は完璧です。次の書類を読み込むか、設定を調整してください。」",
-                "「ファイリングに成功しました。このデータを活かすも変えるも、あなたの効率次第です！」"
-            ]
-        };
+function applySettings() {
+    document.body.classList.toggle('dark-mode', settings.dark);
+    el('theme-btn').querySelector('span').textContent = settings.dark ? 'dark_mode' : 'light_mode';
+    el('set-dark').checked = settings.dark;
+    el('set-assistant').checked = settings.assistant;
+    el('set-autodetect').checked = settings.autodetect;
+    el('set-compress').checked = settings.compress;
+    el('set-toast').checked = settings.toast;
+    el('assistant-card').style.display = settings.assistant ? 'flex' : 'none';
+    const root = document.documentElement;
+    root.style.setProperty('--accent-primary', settings.accent);
+    root.style.setProperty('--accent-active', adjustColorBrightness(settings.accent, -15));
+    document.querySelectorAll('#accent-grid .color-swatch').forEach(s => s.classList.toggle('active', s.dataset.c === settings.accent));
+    document.querySelectorAll('.seg[data-seg]').forEach(seg => {
+        seg.querySelectorAll('button').forEach(b => b.classList.toggle('active', String(settings[seg.dataset.seg]) === b.dataset.v));
+    });
+}
 
-        function setSpeech(category) {
-            const list = speechLibrary[category];
-            if (list) {
-                const randomText = list[Math.floor(Math.random() * list.length)];
-                charSpeech.textContent = randomText;
+/* ================= トースト / 処理中表示 ================= */
+let toastTimer;
+function showToast(msg, force) {
+    if (!settings.toast && !force) return;
+    const t = el('toast-message');
+    t.textContent = msg; t.classList.add('active');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('active'), 2400);
+}
+function busyStart(title, sub) {
+    el('busy-title').textContent = title;
+    el('busy-sub').textContent = sub || 'しばらくお待ちください。';
+    busyProgress(0);
+    el('busy-dialog').classList.add('active');
+}
+function busyProgress(p) {
+    const pct = Math.round(clamp(p, 0, 1) * 100);
+    el('busy-fill').style.width = pct + '%';
+    el('busy-pct').textContent = pct + '%';
+}
+function busyEnd() { el('busy-dialog').classList.remove('active'); }
+
+/* ================= アシスタント (表情つき) ================= */
+const ASSIST_BASE = 'https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/germany/';
+const ASSIST_IMG = {
+    normal: ASSIST_BASE + 'normal.png',
+    happy: ASSIST_BASE + 'happy.png',
+    lol: ASSIST_BASE + 'lol.png'
+};
+const ASSIST_FALLBACK = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><clipPath id="c"><circle cx="50" cy="50" r="46"/></clipPath><g clip-path="url(#c)"><rect width="100" height="34" fill="#000"/><rect y="33" width="100" height="34" fill="#D00"/><rect y="66" width="100" height="34" fill="#FC0"/></g><circle cx="38" cy="46" r="5" fill="#fff"/><circle cx="62" cy="46" r="5" fill="#fff"/><circle cx="38" cy="46" r="2" fill="#000"/><circle cx="62" cy="46" r="2" fill="#000"/></svg>');
+Object.values(ASSIST_IMG).forEach(u => { const i = new Image(); i.src = u; });
+
+const LINES = {
+    idle: [['normal', '書類の写真を読み込んでください。斜めから撮ったものでも、まっすぐに直しますよ。']],
+    loaded: [['normal', '青いピンを書類の四隅に合わせてください。「自動枠取り (β)」も試せます。']],
+    detectOk: [['happy', '枠を見つけました！ずれていたら、ピンを動かして微調整してください。'], ['happy', 'ヤー！ きれいに検出できたと思います。']],
+    detectFail: [['lol', 'うーん、枠が見つかりませんでした…。背景と紙の色が近いのかもしれません。手動でお願いします！']],
+    scanned: [['happy', 'スキャン完了です！ 仕上げの補正をしましょう。'], ['happy', 'まっすぐになりました！']],
+    adjust: [['normal', '影消しを上げると背景が均一な白になります。文字中心の書類なら「白黒」がおすすめです。']],
+    needScan: [['normal', 'まだスキャンがありません。先に画像を読み込んで四隅を合わせてください。']],
+    applied: [['happy', '補正を適用しました。気に入らなければスライダーで微調整してください。']],
+    pageAdded: [['happy', 'ページに追加しました！ 続けてスキャンもできます。']],
+    exported: [['happy', '保存しました。お疲れさまです！'], ['lol', 'データがぎゅっと軽くなりました。']],
+    pagesEmpty: [['normal', 'まだページがありません。調整画面の「ページに追加」で溜められます。']],
+    pages: [['normal', '↑↓で順番を入れ替えられます。まとめてPDFにできますよ。']],
+    settings: [['normal', '用紙サイズや出力解像度、アクセントカラーを変えられます。']],
+    error: [['lol', 'あれ？ うまく読み込めませんでした。別の画像で試してください。']],
+    deleted: [['normal', 'ページを削除しました。']]
+};
+const TIPS = [
+    ['normal', 'ヒント：書類は暗い色の机の上で撮ると、自動枠取りが成功しやすいです。'],
+    ['happy', 'ヒント：影が強いときは「影消し強度」を上げると、背景が白くそろいます。'],
+    ['lol', 'ヒント：ピンのドラッグ中は拡大表示が出ます。角をぴったり合わせられますよ。'],
+    ['normal', 'ヒント：2値化の「白黒」では、コントラストスライダーがしきい値になります。'],
+    ['happy', 'ヒント：複数ページは「ページに追加」で溜めて、まとめてPDFにできます。'],
+    ['lol', 'ヒント：Ctrl+V で、コピーした画像をそのまま貼り付けられます。']
+];
+let assistantAction = null;
+function say(emotion, text, action) {
+    const img = el('assistant-img');
+    const src = ASSIST_IMG[emotion] || ASSIST_IMG.normal;
+    img.onerror = () => { img.onerror = null; img.src = ASSIST_FALLBACK; };
+    if (img.getAttribute('src') !== src) img.src = src;
+    img.classList.remove('pop'); void img.offsetWidth; img.classList.add('pop');
+    el('assistant-text').textContent = text;
+    const btn = el('assistant-action');
+    if (action) {
+        btn.style.display = 'inline-flex';
+        btn.textContent = action.label;
+        assistantAction = action.fn;
+    } else {
+        btn.style.display = 'none';
+        assistantAction = null;
+    }
+}
+function sayKey(key, action) {
+    const list = LINES[key];
+    const [emo, text] = list[Math.floor(Math.random() * list.length)];
+    say(emo, text, action);
+}
+el('assistant-action').addEventListener('click', () => { if (assistantAction) assistantAction(); });
+el('assistant-img').addEventListener('click', () => {
+    const [emo, text] = TIPS[Math.floor(Math.random() * TIPS.length)];
+    say(emo, text);
+});
+
+/* ================= ビュー切替 ================= */
+const navItems = document.querySelectorAll('.nav-item');
+const views = document.querySelectorAll('.view');
+const scrollArea = el('main-scroll-area');
+let currentView = 'view-scan';
+
+function switchView(viewId) {
+    if (viewId === 'view-adjust' && !scan) {
+        showToast('先にスキャンを実行してください', true);
+        sayKey('needScan');
+        viewId = 'view-scan';
+    }
+    currentView = viewId;
+    navItems.forEach(n => n.classList.toggle('active', n.dataset.view === viewId));
+    views.forEach(v => v.classList.toggle('active', v.id === viewId));
+    scrollArea.scrollTo({ top: 0, behavior: 'smooth' });
+    if (viewId === 'view-scan') { work ? sayKey('loaded') : sayKey('idle'); }
+    else if (viewId === 'view-adjust') { renderPreview(); sayKey('adjust'); }
+    else if (viewId === 'view-pages') { pages.length ? sayKey('pages') : sayKey('pagesEmpty'); }
+    else if (viewId === 'view-settings') { sayKey('settings'); }
+}
+navItems.forEach(n => n.addEventListener('click', () => switchView(n.dataset.view)));
+
+/* ================= 画像読み込み ================= */
+let work = null; // 作業用キャンバス (長辺3200px以内)
+let scan = null; // {full, prev, bg}
+let pts = defaultPts();
+
+function defaultPts(m = 0.12) { return [{x:m,y:m},{x:1-m,y:m},{x:1-m,y:1-m},{x:m,y:1-m}]; }
+
+function loadImageFile(file) {
+    if (!file || !file.type.startsWith('image/')) { showToast('画像ファイルを選択してください', true); sayKey('error'); return; }
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => { URL.revokeObjectURL(url); buildWork(img); };
+    img.onerror = () => { URL.revokeObjectURL(url); showToast('画像を読み込めませんでした', true); sayKey('error'); };
+    img.src = url;
+}
+
+function buildWork(img) {
+    const iw = img.naturalWidth, ih = img.naturalHeight;
+    const sc = Math.min(1, 3200 / Math.max(iw, ih));
+    work = document.createElement('canvas');
+    work.width = Math.max(1, Math.round(iw * sc));
+    work.height = Math.max(1, Math.round(ih * sc));
+    work.getContext('2d').drawImage(img, 0, 0, work.width, work.height);
+
+    const cv = el('source-canvas');
+    const dw = Math.min(work.width, 1400);
+    cv.width = dw;
+    cv.height = Math.max(1, Math.round(work.height * dw / work.width));
+    cv.getContext('2d').drawImage(work, 0, 0, cv.width, cv.height);
+
+    el('crop-card').style.display = 'block';
+    pts = defaultPts();
+    renderCrop();
+    sayKey('loaded');
+    showToast('画像を読み込みました');
+    setTimeout(() => el('crop-card').scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+    if (settings.autodetect) runAutoDetect(true);
+}
+
+['file-input', 'camera-input'].forEach(id => {
+    el(id).addEventListener('change', e => { loadImageFile(e.target.files[0]); e.target.value = ''; });
+});
+el('btn-pick').addEventListener('click', () => el('file-input').click());
+el('btn-camera').addEventListener('click', () => el('camera-input').click());
+const dz = el('drop-zone');
+dz.addEventListener('click', () => el('file-input').click());
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('over'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('over'));
+dz.addEventListener('drop', e => {
+    e.preventDefault(); dz.classList.remove('over');
+    if (e.dataTransfer.files.length) loadImageFile(e.dataTransfer.files[0]);
+});
+document.addEventListener('paste', e => {
+    const items = (e.clipboardData && e.clipboardData.items) || [];
+    for (const it of items) {
+        if (it.type.startsWith('image/')) { loadImageFile(it.getAsFile()); switchView('view-scan'); break; }
+    }
+});
+
+/* ================= 四隅ピン ================= */
+const stage = el('crop-stage');
+const pinEls = Array.from(stage.querySelectorAll('.pin'));
+const loupe = el('loupe');
+const loupeCv = el('loupe-canvas');
+let dragIdx = -1;
+
+function renderCrop() {
+    pinEls.forEach((p, i) => { p.style.left = (pts[i].x * 100) + '%'; p.style.top = (pts[i].y * 100) + '%'; });
+    const f = v => (v * 100).toFixed(2);
+    const poly = pts.map(p => f(p.x) + ',' + f(p.y)).join(' ');
+    el('crop-line').setAttribute('points', poly);
+    el('crop-shade').setAttribute('d', 'M0 0H100V100H0Z M' + pts.map(p => f(p.x) + ' ' + f(p.y)).join(' L') + 'Z');
+}
+
+function drawLoupe(i) {
+    if (!work) return;
+    const rect = stage.getBoundingClientRect();
+    const ctx = loupeCv.getContext('2d');
+    const cx = pts[i].x * work.width, cy = pts[i].y * work.height;
+    const rw = (60 / rect.width) * work.width;
+    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, loupeCv.width, loupeCv.height);
+    ctx.drawImage(work, cx - rw / 2, cy - rw / 2, rw, rw, 0, 0, loupeCv.width, loupeCv.height);
+    loupe.style.display = 'block';
+    if (pts[i].x > 0.5) { loupe.style.left = '10px'; loupe.style.right = 'auto'; }
+    else { loupe.style.right = '10px'; loupe.style.left = 'auto'; }
+}
+
+function movePin(e, i) {
+    const rect = stage.getBoundingClientRect();
+    pts[i].x = clamp((e.clientX - rect.left) / rect.width, 0, 1);
+    pts[i].y = clamp((e.clientY - rect.top) / rect.height, 0, 1);
+    renderCrop();
+    drawLoupe(i);
+}
+pinEls.forEach((pin, i) => {
+    pin.addEventListener('pointerdown', e => {
+        e.preventDefault();
+        pin.setPointerCapture(e.pointerId);
+        dragIdx = i; pin.classList.add('dragging');
+        movePin(e, i);
+    });
+    pin.addEventListener('pointermove', e => { if (dragIdx === i) movePin(e, i); });
+    const end = () => { if (dragIdx === i) { dragIdx = -1; pin.classList.remove('dragging'); loupe.style.display = 'none'; } };
+    pin.addEventListener('pointerup', end);
+    pin.addEventListener('pointercancel', end);
+});
+
+el('btn-fullframe').addEventListener('click', () => { pts = defaultPts(0.02); renderCrop(); });
+el('btn-auto').addEventListener('click', () => runAutoDetect(false));
+
+/* ================= 自動枠取り (β) ================= */
+function boxBlur(src, w, h, r) {
+    if (r < 1) return src;
+    const tmp = new Float32Array(w * h), out = new Float32Array(w * h);
+    const pre = new Float64Array(Math.max(w, h) + 1);
+    for (let y = 0; y < h; y++) {
+        pre[0] = 0;
+        for (let x = 0; x < w; x++) pre[x + 1] = pre[x] + src[y * w + x];
+        for (let x = 0; x < w; x++) {
+            const lo = Math.max(0, x - r), hi = Math.min(w - 1, x + r);
+            tmp[y * w + x] = (pre[hi + 1] - pre[lo]) / (hi - lo + 1);
+        }
+    }
+    for (let x = 0; x < w; x++) {
+        pre[0] = 0;
+        for (let y = 0; y < h; y++) pre[y + 1] = pre[y] + tmp[y * w + x];
+        for (let y = 0; y < h; y++) {
+            const lo = Math.max(0, y - r), hi = Math.min(h - 1, y + r);
+            out[y * w + x] = (pre[hi + 1] - pre[lo]) / (hi - lo + 1);
+        }
+    }
+    return out;
+}
+
+function otsu(gray) {
+    const hist = new Float64Array(256);
+    for (let i = 0; i < gray.length; i++) hist[clamp(Math.round(gray[i]), 0, 255)]++;
+    const total = gray.length;
+    let sum = 0; for (let i = 0; i < 256; i++) sum += i * hist[i];
+    let sumB = 0, wB = 0, best = 0, th = 128;
+    for (let t = 0; t < 256; t++) {
+        wB += hist[t]; if (!wB) continue;
+        const wF = total - wB; if (!wF) break;
+        sumB += t * hist[t];
+        const mB = sumB / wB, mF = (sum - sumB) / wF;
+        const v = wB * wF * (mB - mF) * (mB - mF);
+        if (v > best) { best = v; th = t; }
+    }
+    return th;
+}
+
+function polyArea(q) {
+    let a = 0;
+    for (let i = 0; i < 4; i++) { const p = q[i], n = q[(i + 1) % 4]; a += p.x * n.y - n.x * p.y; }
+    return Math.abs(a) / 2;
+}
+
+function orderPoints(p) {
+    const s = p.map(q => q.x + q.y), d = p.map(q => q.x - q.y);
+    const tl = p[s.indexOf(Math.min(...s))], br = p[s.indexOf(Math.max(...s))];
+    const tr = p[d.indexOf(Math.max(...d))], bl = p[d.indexOf(Math.min(...d))];
+    return [tl, tr, br, bl];
+}
+
+function polyAreaN(P) {
+    let a = 0;
+    for (let i = 0; i < P.length; i++) { const p = P[i], n = P[(i + 1) % P.length]; a += p.x * n.y - n.x * p.y; }
+    return Math.abs(a) / 2;
+}
+
+function convexHull(P) {
+    P.sort((a, b) => a.x - b.x || a.y - b.y);
+    const cross = (o, a, b) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+    const lo = [];
+    for (const p of P) {
+        while (lo.length >= 2 && cross(lo[lo.length - 2], lo[lo.length - 1], p) <= 0) lo.pop();
+        lo.push(p);
+    }
+    const up = [];
+    for (let i = P.length - 1; i >= 0; i--) {
+        const p = P[i];
+        while (up.length >= 2 && cross(up[up.length - 2], up[up.length - 1], p) <= 0) up.pop();
+        up.push(p);
+    }
+    lo.pop(); up.pop();
+    return lo.concat(up);
+}
+
+// 凸包に内接する最大面積の四角形 (座標降下法)
+function maxAreaQuad(H) {
+    const n = H.length;
+    if (n < 4) return null;
+    const keys = [p => p.x + p.y, p => p.x - p.y, p => -(p.x + p.y), p => -(p.x - p.y)];
+    let idx = keys.map(f => {
+        let bi = 0, bv = Infinity;
+        H.forEach((p, i) => { const v = f(p); if (v < bv) { bv = v; bi = i; } });
+        return bi;
+    });
+    idx = Array.from(new Set(idx)).sort((a, b) => a - b);
+    if (idx.length < 4) return null;
+    const area = ix => polyAreaN(ix.map(i => H[i]));
+    let cur = area(idx);
+    for (let it = 0; it < 10; it++) {
+        let changed = false;
+        for (let k = 0; k < 4; k++) {
+            const prev = idx[(k + 3) % 4], next = idx[(k + 1) % 4];
+            let j = (prev + 1) % n, bestJ = idx[k], bestA = cur;
+            while (j !== next) {
+                const trial = idx.slice(); trial[k] = j;
+                const a = area(trial);
+                if (a > bestA + 1e-6) { bestA = a; bestJ = j; }
+                j = (j + 1) % n;
             }
+            if (bestJ !== idx[k]) { idx[k] = bestJ; cur = bestA; changed = true; }
         }
+        if (!changed) break;
+    }
+    return idx.map(i => H[i]);
+}
 
-        // --- 1. Accent & Brightness derivatives (ShowMeUI UI Standards) ---
-        function adjustColorBrightness(hex, percent) {
-            let R = parseInt(hex.substring(1, 3), 16);
-            let G = parseInt(hex.substring(3, 5), 16);
-            let B = parseInt(hex.substring(5, 7), 16);
-            R = parseInt(R * (100 + percent) / 100);
-            G = parseInt(G * (100 + percent) / 100);
-            B = parseInt(B * (100 + percent) / 100);
-            R = (R < 255) ? R : 255;
-            G = (G < 255) ? G : 255;
-            B = (B < 255) ? B : 255;
-            const rHex = ((R.toString(16).length == 1) ? "0" + R.toString(16) : R.toString(16));
-            const gHex = ((G.toString(16).length == 1) ? "0" + G.toString(16) : G.toString(16));
-            const bHex = ((B.toString(16).length == 1) ? "0" + B.toString(16) : B.toString(16));
-            return "#" + rHex + gHex + bHex;
+function anglesOk(q) {
+    for (let i = 0; i < 4; i++) {
+        const a = q[(i + 3) % 4], b = q[i], c = q[(i + 1) % 4];
+        const v1x = a.x - b.x, v1y = a.y - b.y, v2x = c.x - b.x, v2y = c.y - b.y;
+        const l = Math.hypot(v1x, v1y) * Math.hypot(v2x, v2y);
+        if (!l) return false;
+        const ang = Math.acos(clamp((v1x * v2x + v1y * v2y) / l, -1, 1)) * 180 / Math.PI;
+        if (ang < 50 || ang > 130) return false;
+    }
+    return true;
+}
+
+function sobelMag(g, w, h) {
+    const m = new Float32Array(w * h);
+    for (let y = 1; y < h - 1; y++) {
+        for (let x = 1; x < w - 1; x++) {
+            const i = y * w + x;
+            const gx = -g[i - w - 1] - 2 * g[i - 1] - g[i + w - 1] + g[i - w + 1] + 2 * g[i + 1] + g[i + w + 1];
+            const gy = -g[i - w - 1] - 2 * g[i - w] - g[i - w + 1] + g[i + w - 1] + 2 * g[i + w] + g[i + w + 1];
+            m[i] = Math.hypot(gx, gy);
         }
+    }
+    return m;
+}
 
-        // --- 2. ファイルアップロード＆パースペクティブ編集のロード ---
-        const fileInput = document.getElementById('file-input');
-        const dropZone = document.getElementById('drop-zone');
-        const cropWorkspace = document.getElementById('crop-workspace');
-        const sourceCanvas = document.getElementById('source-canvas');
-        const guideCanvas = document.getElementById('guide-canvas');
-        const cropContainer = document.getElementById('crop-container');
-
-        fileInput.addEventListener('change', handleFileSelect);
-        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.style.background = 'rgba(51,129,255,0.1)'; });
-        dropZone.addEventListener('dragleave', () => { dropZone.style.background = 'rgba(51,129,255,0.03)'; });
-        dropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropZone.style.background = 'rgba(51,129,255,0.03)';
-            if (e.dataTransfer.files.length > 0) {
-                fileInput.files = e.dataTransfer.files;
-                handleFileSelect();
+// 四角形の各辺に沿って、実際に輪郭(エッジ)がどれだけあるかを 0〜1 で評価
+function edgeSupport(q, grad, w, h, gp) {
+    let tot = 0, cnt = 0;
+    for (let i = 0; i < 4; i++) {
+        const A = q[i], B = q[(i + 1) % 4];
+        const dx = B.x - A.x, dy = B.y - A.y, len = Math.hypot(dx, dy) || 1;
+        const nx = -dy / len, ny = dx / len;
+        for (let s = 1; s <= 20; s++) {
+            const t = s / 21, cx = A.x + dx * t, cy = A.y + dy * t;
+            let m = 0;
+            for (let o = -2; o <= 2; o++) {
+                const x = Math.round(cx + nx * o), y = Math.round(cy + ny * o);
+                if (x >= 0 && y >= 0 && x < w && y < h) m = Math.max(m, grad[y * w + x]);
             }
-        });
-
-        function handleFileSelect() {
-            const file = fileInput.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                originalImage = new Image();
-                originalImage.onload = function() {
-                    setupCropWorkspace();
-                };
-                originalImage.src = event.target.result;
-            };
-            reader.readAsDataURL(file);
+            tot += Math.min(1, m / gp); cnt++;
         }
+    }
+    return tot / cnt;
+}
 
-        function setupCropWorkspace() {
-            cropWorkspace.style.display = 'block';
-            cropContainer.style.display = 'block';
+function detectDocumentQuad(srcCanvas) {
+    const sc = Math.min(1, 400 / Math.max(srcCanvas.width, srcCanvas.height));
+    const w = Math.max(16, Math.round(srcCanvas.width * sc)), h = Math.max(16, Math.round(srcCanvas.height * sc));
+    const total = w * h;
+    const c = document.createElement('canvas'); c.width = w; c.height = h;
+    const ctx = c.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(srcCanvas, 0, 0, w, h);
+    const d = ctx.getImageData(0, 0, w, h).data;
 
-            // ワークスペースCanvasに画像を描画
-            const maxWidth = cropWorkspace.clientWidth;
-            // 処理速度向上のために、プレビュー用は適度に制限
-            const scale = Math.min(1, maxWidth / originalImage.width);
-            sourceCanvas.width = originalImage.width * scale;
-            sourceCanvas.height = originalImage.height * scale;
-            canvasScale = scale;
+    const raw = new Float32Array(total);
+    for (let i = 0; i < total; i++) raw[i] = 0.299 * d[i * 4] + 0.587 * d[i * 4 + 1] + 0.114 * d[i * 4 + 2];
+    const rs = Math.max(1, Math.round(Math.min(w, h) * 0.008));
+    const gs = boxBlur(boxBlur(raw, w, h, rs), w, h, rs);
 
-            const ctx = sourceCanvas.getContext('2d');
-            ctx.drawImage(originalImage, 0, 0, sourceCanvas.width, sourceCanvas.height);
+    // エッジ強度マップ (輪郭の裏付け用)
+    const grad = sobelMag(boxBlur(raw, w, h, 1), w, h);
+    const samp = [];
+    for (let i = 0; i < total; i += 3) samp.push(grad[i]);
+    samp.sort((a, b) => a - b);
+    const gp = Math.max(8, samp[Math.floor(samp.length * 0.95)] || 8);
 
-            // ガイドCanvasを重ねる
-            guideCanvas.width = sourceCanvas.width;
-            guideCanvas.height = sourceCanvas.height;
-
-            // 初期ドラッグピン座標を設定 (画像の少し内側を囲むように初期化)
-            const w = sourceCanvas.width;
-            const h = sourceCanvas.height;
-            points = [
-                { id: 'pin-tl', x: w * 0.15, y: h * 0.15 }, // TL
-                { id: 'pin-tr', x: w * 0.85, y: h * 0.15 }, // TR
-                { id: 'pin-br', x: w * 0.85, y: h * 0.85 }, // BR
-                { id: 'pin-bl', x: w * 0.15, y: h * 0.85 }  // BL
-            ];
-
-            updatePinPositions();
-            drawGuideLines();
-            setSpeech('loaded');
-            showToast("画像をインポートしました！");
-            
-            // スクロールして表示を合わせる
-            cropContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    // 候補マスク群: 明暗 × 複数しきい値 + 周辺色との色差
+    const masks = [];
+    const t = otsu(gs);
+    for (const off of [0, -18, 18]) {
+        const tb = new Uint8Array(total), td = new Uint8Array(total);
+        for (let i = 0; i < total; i++) { const hi = gs[i] > t + off; tb[i] = hi ? 1 : 0; td[i] = hi ? 0 : 1; }
+        masks.push(tb, td);
+    }
+    // 画像の外周の色を「背景色」とみなし、そこから離れた領域を紙とする
+    const ring = Math.max(2, Math.round(Math.min(w, h) * 0.03));
+    const br = [], bg = [], bb = [];
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+        if (x < ring || y < ring || x >= w - ring || y >= h - ring) {
+            const i = (y * w + x) * 4; br.push(d[i]); bg.push(d[i + 1]); bb.push(d[i + 2]);
         }
+    }
+    const med = a => { a.sort((p, q) => p - q); return a[a.length >> 1]; };
+    const mr = med(br), mg = med(bg), mb = med(bb);
+    let dist = new Float32Array(total);
+    for (let i = 0; i < total; i++) {
+        const dr = d[i * 4] - mr, dg = d[i * 4 + 1] - mg, db = d[i * 4 + 2] - mb;
+        dist[i] = Math.sqrt(dr * dr + dg * dg + db * db) * 255 / 441;
+    }
+    dist = boxBlur(boxBlur(dist, w, h, rs), w, h, rs);
+    const td2 = otsu(dist);
+    const cm = new Uint8Array(total);
+    for (let i = 0; i < total; i++) cm[i] = dist[i] > td2 ? 1 : 0;
+    masks.push(cm);
 
-        // --- 3. ドラッグピンの相互作用 & タッチ・マウス操作対応 ---
-        const pins = {
-            'pin-tl': document.getElementById('pin-tl'),
-            'pin-tr': document.getElementById('pin-tr'),
-            'pin-br': document.getElementById('pin-br'),
-            'pin-bl': document.getElementById('pin-bl')
-        };
+    const stack = new Int32Array(total);
+    let best = null, bestScore = 0;
 
-        function updatePinPositions() {
-            points.forEach(p => {
-                const pinEl = pins[p.id];
-                if (pinEl) {
-                    pinEl.style.left = p.x + 'px';
-                    pinEl.style.top = p.y + 'px';
-                }
-            });
-        }
-
-        function drawGuideLines() {
-            const ctx = guideCanvas.getContext('2d');
-            ctx.clearRect(0, 0, guideCanvas.width, guideCanvas.height);
-
-            ctx.strokeStyle = 'rgba(51, 129, 255, 0.9)';
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            ctx.moveTo(points[0].x, points[0].y);
-            ctx.lineTo(points[1].x, points[1].y);
-            ctx.lineTo(points[2].x, points[2].y);
-            ctx.lineTo(points[3].x, points[3].y);
-            ctx.closePath();
-            ctx.stroke();
-
-            // 内側を半透明で塗りつぶし、抽出範囲を分かりやすくする
-            ctx.fillStyle = 'rgba(51, 129, 255, 0.15)';
-            ctx.fill();
-        }
-
-        // マウス・タッチドラッグのイベント監視
-        let isDragging = false;
-        let dragOffset = { x: 0, y: 0 };
-
-        function onStartDrag(e, pinId) {
-            e.preventDefault();
-            isDragging = true;
-            activePin = points.find(p => p.id === pinId);
-            pins[pinId].classList.add('dragging');
-        }
-
-        function onDrag(e) {
-            if (!isDragging || !activePin) return;
-
-            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-
-            const rect = guideCanvas.getBoundingClientRect();
-            // スケールを考慮した座標算出
-            let x = clientX - rect.left;
-            let y = clientY - rect.top;
-
-            // コンテナの外にピンが出ないよう境界制限
-            x = Math.max(0, Math.min(guideCanvas.width, x));
-            y = Math.max(0, Math.min(guideCanvas.height, y));
-
-            activePin.x = x;
-            activePin.y = y;
-
-            updatePinPositions();
-            drawGuideLines();
-        }
-
-        function onEndDrag() {
-            if (isDragging && activePin) {
-                pins[activePin.id].classList.remove('dragging');
-                isDragging = false;
-                activePin = null;
+    function evalMask(mask) {
+        const seen = new Uint8Array(total);
+        for (let s = 0; s < total; s++) {
+            if (!mask[s] || seen[s]) continue;
+            let sp = 0; stack[sp++] = s; seen[s] = 1;
+            let area = 0;
+            const bpts = [];
+            while (sp) {
+                const idx = stack[--sp];
+                const x = idx % w, y = (idx / w) | 0;
+                area++;
+                let isB = false;
+                if (x > 0) { if (mask[idx - 1]) { if (!seen[idx - 1]) { seen[idx - 1] = 1; stack[sp++] = idx - 1; } } else isB = true; } else isB = true;
+                if (x < w - 1) { if (mask[idx + 1]) { if (!seen[idx + 1]) { seen[idx + 1] = 1; stack[sp++] = idx + 1; } } else isB = true; } else isB = true;
+                if (y > 0) { if (mask[idx - w]) { if (!seen[idx - w]) { seen[idx - w] = 1; stack[sp++] = idx - w; } } else isB = true; } else isB = true;
+                if (y < h - 1) { if (mask[idx + w]) { if (!seen[idx + w]) { seen[idx + w] = 1; stack[sp++] = idx + w; } } else isB = true; } else isB = true;
+                if (isB) bpts.push({ x, y });
             }
+            const frac = area / total;
+            if (frac < 0.08 || bpts.length < 8) continue;
+            const hull = convexHull(bpts);
+            const hullA = polyAreaN(hull);
+            if (hullA <= 0) continue;
+            const q = maxAreaQuad(hull);
+            if (!q) continue;
+            const qo = orderPoints(q);
+            const qa = polyArea(qo);
+            if (qa < total * 0.08 || qa > total * 0.95) continue;
+            if (!anglesOk(qo)) continue;
+            const fit = qa / hullA;           // 凸包を四角形でどれだけ表せているか
+            if (fit < 0.8) continue;
+            const sol = Math.min(1, area / hullA);
+            const edge = edgeSupport(qo, grad, w, h, gp);
+            const score = Math.pow(fit, 3) * Math.sqrt(frac) * (0.4 + 0.6 * edge) * (0.6 + 0.4 * sol);
+            if (score > bestScore) { bestScore = score; best = qo; }
         }
+    }
+    masks.forEach(evalMask);
+    if (!best) return null;
 
-        // イベント設定
-        Object.keys(pins).forEach(id => {
-            pins[id].addEventListener('mousedown', (e) => onStartDrag(e, id));
-            pins[id].addEventListener('touchstart', (e) => onStartDrag(e, id), { passive: false });
-        });
+    let norm = best.map(p => ({ x: clamp((p.x + 0.5) / w, 0, 1), y: clamp((p.y + 0.5) / h, 0, 1) }));
+    try { norm = refineQuad(srcCanvas, norm); } catch (e) { console.warn('refine failed', e); }
+    return { pts: norm, conf: clamp(bestScore * 1.2, 0, 1) };
+}
 
-        window.addEventListener('mousemove', onDrag);
-        window.addEventListener('touchmove', onDrag, { passive: false });
-        window.addEventListener('mouseup', onEndDrag);
-        window.addEventListener('touchend', onEndDrag);
+// 高解像度で各辺のエッジに直線をあてはめ、四隅を精密化する
+function refineQuad(srcCanvas, q) {
+    const sc = Math.min(1, 1000 / Math.max(srcCanvas.width, srcCanvas.height));
+    const w = Math.max(16, Math.round(srcCanvas.width * sc)), h = Math.max(16, Math.round(srcCanvas.height * sc));
+    const c = document.createElement('canvas'); c.width = w; c.height = h;
+    const ctx = c.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(srcCanvas, 0, 0, w, h);
+    const d = ctx.getImageData(0, 0, w, h).data;
+    let g = new Float32Array(w * h);
+    for (let i = 0; i < w * h; i++) g[i] = 0.299 * d[i * 4] + 0.587 * d[i * 4 + 1] + 0.114 * d[i * 4 + 2];
+    g = boxBlur(g, w, h, 1);
+    const at = (x, y) => g[clamp(Math.round(y), 0, h - 1) * w + clamp(Math.round(x), 0, w - 1)];
 
-
-        // --- 4. 高精度パースペクティブ変換（透視投影変換）エンジン ---
-        document.getElementById('btn-process-crop').addEventListener('click', () => {
-            if (!originalImage || points.length !== 4) return;
-
-            // 元画像の本来のピクセル解像度における座標に逆算
-            const srcPoints = points.map(p => ({
-                x: p.x / canvasScale,
-                y: p.y / canvasScale
-            }));
-
-            // ドキュメントのアスペクト比と出力サイズを推定
-            // 4つの辺の最大長さから解像度を決定
-            const topWidth = Math.hypot(srcPoints[1].x - srcPoints[0].x, srcPoints[1].y - srcPoints[0].y);
-            const bottomWidth = Math.hypot(srcPoints[2].x - srcPoints[3].x, srcPoints[2].y - srcPoints[3].y);
-            const leftHeight = Math.hypot(srcPoints[3].x - srcPoints[0].x, srcPoints[3].y - srcPoints[0].y);
-            const rightHeight = Math.hypot(srcPoints[2].x - srcPoints[1].x, srcPoints[2].y - srcPoints[1].y);
-
-            const outputWidth = Math.round(Math.max(topWidth, bottomWidth));
-            const outputHeight = Math.round(Math.max(leftHeight, rightHeight));
-
-            // 出力ターゲットとなる4点の座標
-            const dstPoints = [
-                { x: 0, y: 0 },
-                { x: outputWidth, y: 0 },
-                { x: outputWidth, y: outputHeight },
-                { x: 0, y: outputHeight }
-            ];
-
-            // 透視投影変換を実行
-            warpPerspective(originalImage, srcPoints, dstPoints, outputWidth, outputHeight);
-            
-            // 調整画面に切り替え
-            switchView('view-hub');
-            setSpeech('cropped');
-            setTimeout(() => {
-                setSpeech('adjusting');
-            }, 3000);
-        });
-
-        // 連立一次方程式を解くガウス消去法 (透視変換に不可欠)
-        function solveLinearSystem(A, B) {
-            let n = B.length;
-            for (let i = 0; i < n; i++) {
-                let maxRow = i;
-                for (let k = i + 1; k < n; k++) {
-                    if (Math.abs(A[k][i]) > Math.abs(A[maxRow][i])) {
-                        maxRow = k;
-                    }
-                }
-                let temp = A[i]; A[i] = A[maxRow]; A[maxRow] = temp;
-                let t = B[i]; B[i] = B[maxRow]; B[maxRow] = t;
-
-                for (let k = i + 1; k < n; k++) {
-                    let c = -A[k][i] / A[i][i];
-                    for (let j = i; j < n; j++) {
-                        if (i === j) A[k][j] = 0;
-                        else A[k][j] += c * A[i][j];
-                    }
-                    B[k] += c * B[i];
-                }
+    const P = q.map(p => ({ x: p.x * w, y: p.y * h }));
+    const win = Math.max(4, Math.round(Math.min(w, h) * 0.02));
+    const lines = [];
+    for (let i = 0; i < 4; i++) {
+        const A = P[i], B = P[(i + 1) % 4];
+        const dx = B.x - A.x, dy = B.y - A.y, len = Math.hypot(dx, dy);
+        if (len < 20) return q;
+        const nx = -dy / len, ny = dx / len;
+        let pts = [];
+        for (let s = 0; s < 40; s++) {
+            const t = 0.08 + 0.84 * s / 39;
+            const cx = A.x + dx * t, cy = A.y + dy * t;
+            let bestM = 0, bo = 0;
+            for (let o = -win; o <= win; o++) {
+                const m = Math.abs(at(cx + nx * (o + 1.5), cy + ny * (o + 1.5)) - at(cx + nx * (o - 1.5), cy + ny * (o - 1.5)));
+                if (m > bestM) { bestM = m; bo = o; }
             }
-            let x = new Array(n).fill(0);
-            for (let i = n - 1; i >= 0; i--) {
-                x[i] = B[i] / A[i][i];
-                for (let k = i - 1; k >= 0; k--) {
-                    B[k] -= A[k][i] * x[i];
-                }
-            }
-            return x;
+            if (bestM > 6) pts.push({ x: cx + nx * bo, y: cy + ny * bo });
         }
-
-        // ホモグラフィ（変換行列）の決定
-        // ターゲット(dst)からソース(src)へのマッピング行列を求める（ピクセル穴あき防止の逆写像用）
-        function getHomographyMatrix(src, dst) {
-            const A = [];
-            const B = [];
-
-            for (let i = 0; i < 4; i++) {
-                const u = dst[i].x;
-                const v = dst[i].y;
-                const x = src[i].x;
-                const y = src[i].y;
-
-                A.push([u, v, 1, 0, 0, 0, -u * x, -v * x]);
-                B.push(x);
-                A.push([0, 0, 0, u, v, 1, -u * y, -v * y]);
-                B.push(y);
-            }
-
-            const h = solveLinearSystem(A, B);
-            return [
-                h[0], h[1], h[2],
-                h[3], h[4], h[5],
-                h[6], h[7], 1.0
-            ];
+        if (pts.length < 10) return q;
+        let L = null;
+        for (let pass = 0; pass < 3; pass++) {
+            let mx = 0, my = 0;
+            pts.forEach(p => { mx += p.x; my += p.y; });
+            mx /= pts.length; my /= pts.length;
+            let sxx = 0, syy = 0, sxy = 0;
+            pts.forEach(p => { const a = p.x - mx, b = p.y - my; sxx += a * a; syy += b * b; sxy += a * b; });
+            const th = 0.5 * Math.atan2(2 * sxy, sxx - syy);
+            L = { x: mx, y: my, dx: Math.cos(th), dy: Math.sin(th) };
+            const res = pts.map(p => Math.abs((p.x - L.x) * -L.dy + (p.y - L.y) * L.dx));
+            const sorted = res.slice().sort((a, b) => a - b);
+            const thr = Math.max(1.5, 2.5 * sorted[sorted.length >> 1]);
+            const kept = pts.filter((p, k) => res[k] <= thr);
+            if (kept.length < 8 || kept.length === pts.length) break;
+            pts = kept;
         }
+        lines.push(L);
+    }
+    const out = [];
+    for (let i = 0; i < 4; i++) {
+        const L1 = lines[(i + 3) % 4], L2 = lines[i];
+        const det = L1.dx * -L2.dy - L1.dy * -L2.dx;
+        if (Math.abs(det) < 1e-3) return q;
+        const rx = L2.x - L1.x, ry = L2.y - L1.y;
+        const tt = (rx * -L2.dy - ry * -L2.dx) / det;
+        const p = { x: L1.x + L1.dx * tt, y: L1.y + L1.dy * tt };
+        if (Math.hypot(p.x - P[i].x, p.y - P[i].y) > win * 2.5) { out.push(q[i]); continue; }
+        out.push({ x: clamp(p.x / w, 0, 1), y: clamp(p.y / h, 0, 1) });
+    }
+    return out;
+}
 
-        // 射影歪みのない画像を描画する
-        function warpPerspective(img, srcPts, dstPts, w, h) {
-            // 画像解析用のバックバッファを作成
-            const srcCanvas = document.createElement('canvas');
-            srcCanvas.width = img.width;
-            srcCanvas.height = img.height;
-            const srcCtx = srcCanvas.getContext('2d');
-            srcCtx.drawImage(img, 0, 0);
-            const srcData = srcCtx.getImageData(0, 0, img.width, img.height);
+function animatePts(to) {
+    const from = pts.map(p => ({ x: p.x, y: p.y }));
+    const t0 = performance.now();
+    (function step(now) {
+        const k = clamp((now - t0) / 380, 0, 1), e = 1 - Math.pow(1 - k, 3);
+        pts = from.map((f, i) => ({ x: f.x + (to[i].x - f.x) * e, y: f.y + (to[i].y - f.y) * e }));
+        renderCrop();
+        if (k < 1) requestAnimationFrame(step);
+    })(t0);
+}
 
-            // スキャン結果を書き込む一時Canvas
-            scanTempCanvas.width = w;
-            scanTempCanvas.height = h;
-            const dstCtx = scanTempCanvas.getContext('2d');
-            const dstData = dstCtx.createImageData(w, h);
+async function runAutoDetect(silent) {
+    if (!work) { showToast('先に画像を読み込んでください', true); return; }
+    const btn = el('btn-auto');
+    if (!silent) {
+        say('happy', 'ここなんね！');
+        btn.disabled = true;
+        await new Promise(r => setTimeout(r, 80));
+    }
+    let res = null;
+    try { res = detectDocumentQuad(work); } catch (e) { console.error(e); }
+    btn.disabled = false;
+    if (res) {
+        animatePts(orderPoints(res.pts));
+        if (silent) sayKey('detectOk');
+        else if (res.conf < 0.35) say('lol', 'ここなんね！…たぶん。自信がないので、ピンの位置を確認してください。');
+        else say('happy', 'ここなんね！ 枠を見つけました。ずれていたら、ピンを動かして微調整してください。');
+        showToast('枠を検出しました (β)');
+    } else {
+        if (silent) sayKey('detectFail');
+        else say('lol', 'ここなんね！…と言いたいのですが、見つかりませんでした。背景と紙の色が近いのかもしれません。手動でお願いします！');
+        showToast('枠を検出できませんでした。手動で調整してください', true);
+    }
+}
 
-            // ターゲットからソースへの逆ホモグラフィ行列を取得
-            const H = getHomographyMatrix(srcPts, dstPts);
-
-            const srcW = img.width;
-            const srcH = img.height;
-            const sPixels = srcData.data;
-            const dPixels = dstData.data;
-
-            // 出力画像各ピクセルへの逆投影
-            for (let y = 0; y < h; y++) {
-                for (let x = 0; x < w; x++) {
-                    const tmp = H[6] * x + H[7] * y + H[8];
-                    const srcX = (H[0] * x + H[1] * y + H[2]) / tmp;
-                    const srcY = (H[3] * x + H[4] * y + H[5]) / tmp;
-
-                    if (srcX >= 0 && srcX < srcW - 1 && srcY >= 0 && srcY < srcH - 1) {
-                        // バイリニア補間によるなめらかな描画
-                        const x0 = Math.floor(srcX);
-                        const x1 = x0 + 1;
-                        const y0 = Math.floor(srcY);
-                        const y1 = y0 + 1;
-
-                        const dx = srcX - x0;
-                        const dy = srcY - y0;
-
-                        const idx00 = (y0 * srcW + x0) * 4;
-                        const idx10 = (y0 * srcW + x1) * 4;
-                        const idx01 = (y1 * srcW + x0) * 4;
-                        const idx11 = (y1 * srcW + x1) * 4;
-
-                        const outIdx = (y * w + x) * 4;
-
-                        for (let c = 0; c < 4; c++) {
-                            const val = (1 - dx) * (1 - dy) * sPixels[idx00 + c] +
-                                        dx * (1 - dy) * sPixels[idx10 + c] +
-                                        (1 - dx) * dy * sPixels[idx01 + c] +
-                                        dx * dy * sPixels[idx11 + c];
-                            dPixels[outIdx + c] = val;
-                        }
-                    } else {
-                        // 範囲外は真っ白
-                        const outIdx = (y * w + x) * 4;
-                        dPixels[outIdx] = 255;
-                        dPixels[outIdx + 1] = 255;
-                        dPixels[outIdx + 2] = 255;
-                        dPixels[outIdx + 3] = 255;
-                    }
-                }
-            }
-
-            dstCtx.putImageData(dstData, 0, 0);
-
-            // デフォルトフィルタ処理
-            applyDocumentFilter();
+/* ================= 透視変換 ================= */
+function solveLinearSystem(A, B) {
+    const n = B.length;
+    for (let i = 0; i < n; i++) {
+        let maxRow = i;
+        for (let k = i + 1; k < n; k++) if (Math.abs(A[k][i]) > Math.abs(A[maxRow][i])) maxRow = k;
+        [A[i], A[maxRow]] = [A[maxRow], A[i]]; [B[i], B[maxRow]] = [B[maxRow], B[i]];
+        for (let k = i + 1; k < n; k++) {
+            const c = -A[k][i] / A[i][i];
+            for (let j = i; j < n; j++) A[k][j] = (i === j) ? 0 : A[k][j] + c * A[i][j];
+            B[k] += c * B[i];
         }
+    }
+    const x = new Array(n).fill(0);
+    for (let i = n - 1; i >= 0; i--) {
+        x[i] = B[i] / A[i][i];
+        for (let k = i - 1; k >= 0; k--) B[k] -= A[k][i] * x[i];
+    }
+    return x;
+}
+function getHomography(src, dst) {
+    const A = [], B = [];
+    for (let i = 0; i < 4; i++) {
+        const u = dst[i].x, v = dst[i].y, x = src[i].x, y = src[i].y;
+        A.push([u, v, 1, 0, 0, 0, -u * x, -v * x]); B.push(x);
+        A.push([0, 0, 0, u, v, 1, -u * y, -v * y]); B.push(y);
+    }
+    const h = solveLinearSystem(A, B);
+    return [h[0], h[1], h[2], h[3], h[4], h[5], h[6], h[7], 1];
+}
 
+async function warpPerspective(srcCanvas, P, outW, outH, onProg) {
+    const sw = srcCanvas.width, sh = srcCanvas.height;
+    const sd = srcCanvas.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, sw, sh).data;
+    const out = document.createElement('canvas'); out.width = outW; out.height = outH;
+    const octx = out.getContext('2d');
+    const od = octx.createImageData(outW, outH), dd = od.data;
+    const dst = [{x:0,y:0},{x:outW-1,y:0},{x:outW-1,y:outH-1},{x:0,y:outH-1}];
+    const H = getHomography(P, dst);
+    let last = performance.now();
+    for (let y = 0; y < outH; y++) {
+        for (let x = 0; x < outW; x++) {
+            const t = H[6] * x + H[7] * y + 1;
+            const sx = clamp((H[0] * x + H[1] * y + H[2]) / t, 0, sw - 1.001);
+            const sy = clamp((H[3] * x + H[4] * y + H[5]) / t, 0, sh - 1.001);
+            const x0 = sx | 0, y0 = sy | 0, fx = sx - x0, fy = sy - y0;
+            const i00 = (y0 * sw + x0) * 4, i10 = i00 + 4, i01 = i00 + sw * 4, i11 = i01 + 4;
+            const o = (y * outW + x) * 4;
+            const w00 = (1 - fx) * (1 - fy), w10 = fx * (1 - fy), w01 = (1 - fx) * fy, w11 = fx * fy;
+            dd[o]   = sd[i00] * w00 + sd[i10] * w10 + sd[i01] * w01 + sd[i11] * w11;
+            dd[o+1] = sd[i00+1] * w00 + sd[i10+1] * w10 + sd[i01+1] * w01 + sd[i11+1] * w11;
+            dd[o+2] = sd[i00+2] * w00 + sd[i10+2] * w10 + sd[i01+2] * w01 + sd[i11+2] * w11;
+            dd[o+3] = 255;
+        }
+        if (performance.now() - last > 40) {
+            onProg && onProg(y / outH);
+            await new Promise(r => setTimeout(r));
+            last = performance.now();
+        }
+    }
+    octx.putImageData(od, 0, 0);
+    return out;
+}
 
-        // --- 5. 高速積分画像を用いた、影・照明ムラ消去（明るさ平滑化）アルゴリズム ---
-        function setScanMode(mode) {
-            scanMode = mode;
-            document.getElementById('mode-color').className = mode === 'color' ? 'ai-btn' : 'ai-btn ai-btn-secondary';
-            document.getElementById('mode-mono').className = mode === 'mono' ? 'ai-btn' : 'ai-btn ai-btn-secondary';
-            document.getElementById('mode-binary').className = mode === 'binary' ? 'ai-btn' : 'ai-btn ai-btn-secondary';
-            
-            // 2極化の場合は、コントラストスライダーの表示ラベルをしきい値に変更
-            const contrastLabel = document.getElementById('contrast-label-text');
-            if (mode === 'binary') {
-                contrastLabel.textContent = '2極化しきい値';
-                setSpeech('binary');
+el('btn-scan').addEventListener('click', async () => {
+    if (!work) return;
+    const q = orderPoints(pts);
+    const P = q.map(p => ({ x: p.x * work.width, y: p.y * work.height }));
+    const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+    let outW = Math.round(Math.max(dist(P[0], P[1]), dist(P[3], P[2])));
+    let outH = Math.round(Math.max(dist(P[0], P[3]), dist(P[1], P[2])));
+    if (outW < 40 || outH < 40 || polyArea(P) < 400) { showToast('枠が小さすぎます。四隅を広げてください', true); return; }
+    const sc = Math.min(1, settings.res / Math.max(outW, outH));
+    outW = Math.max(1, Math.round(outW * sc)); outH = Math.max(1, Math.round(outH * sc));
+    busyStart('スキャン中...', '書類をまっすぐに補正しています。');
+    await tick();
+    try {
+        const canvas = await warpPerspective(work, P, outW, outH, busyProgress);
+        setScan(canvas);
+        busyEnd();
+        sayKey('scanned');
+        switchView('view-adjust');
+        setTimeout(analyzeAndSuggest, 400);
+    } catch (e) {
+        console.error(e); busyEnd();
+        showToast('スキャンに失敗しました', true); sayKey('error');
+    }
+});
+
+/* ================= 補正エンジン ================= */
+function makePreview(full, maxS) {
+    const sc = Math.min(1, maxS / Math.max(full.width, full.height));
+    const c = document.createElement('canvas');
+    c.width = Math.max(1, Math.round(full.width * sc));
+    c.height = Math.max(1, Math.round(full.height * sc));
+    c.getContext('2d').drawImage(full, 0, 0, c.width, c.height);
+    return c;
+}
+
+// 背景輝度マップ (小さな解像度で保持。文字を除いた紙の明るさを推定)
+function computeBgMap(canvas) {
+    const sc = Math.min(1, 300 / Math.max(canvas.width, canvas.height));
+    const bw = Math.max(4, Math.round(canvas.width * sc)), bh = Math.max(4, Math.round(canvas.height * sc));
+    const c = document.createElement('canvas'); c.width = bw; c.height = bh;
+    const ctx = c.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(canvas, 0, 0, bw, bh);
+    const d = ctx.getImageData(0, 0, bw, bh).data;
+    let g = new Float32Array(bw * bh);
+    for (let i = 0; i < bw * bh; i++) g[i] = 0.299 * d[i * 4] + 0.587 * d[i * 4 + 1] + 0.114 * d[i * 4 + 2];
+    // 最大値フィルタで文字(暗い線)を消す
+    const rd = 3;
+    const t = new Float32Array(bw * bh), m = new Float32Array(bw * bh);
+    for (let y = 0; y < bh; y++) for (let x = 0; x < bw; x++) {
+        let mx = 0;
+        for (let k = Math.max(0, x - rd); k <= Math.min(bw - 1, x + rd); k++) mx = Math.max(mx, g[y * bw + k]);
+        t[y * bw + x] = mx;
+    }
+    for (let y = 0; y < bh; y++) for (let x = 0; x < bw; x++) {
+        let mx = 0;
+        for (let k = Math.max(0, y - rd); k <= Math.min(bh - 1, y + rd); k++) mx = Math.max(mx, t[k * bw + x]);
+        m[y * bw + x] = mx;
+    }
+    const rb = Math.max(2, Math.round(Math.min(bw, bh) * 0.06));
+    const data = boxBlur(boxBlur(m, bw, bh, rb), bw, bh, rb);
+    return { w: bw, h: bh, data };
+}
+
+function getAdj() {
+    return {
+        mode: document.querySelector('#mode-seg button.active').dataset.mode,
+        flat: +el('ctl-flat').value, bright: +el('ctl-bright').value,
+        contrast: +el('ctl-contrast').value, sharp: +el('ctl-sharp').value
+    };
+}
+
+function processToCanvas(srcCanvas, dstCanvas, bg) {
+    const w = srcCanvas.width, h = srcCanvas.height;
+    const a = getAdj();
+    dstCanvas.width = w; dstCanvas.height = h;
+    const img = srcCanvas.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, w, h);
+    const px = img.data;
+
+    const flatW = a.flat / 100, target = 238;
+    const bw = bg.w, bh = bg.h, bd = bg.data;
+    const x0 = new Int32Array(w), x1 = new Int32Array(w), xf = new Float32Array(w);
+    for (let x = 0; x < w; x++) {
+        const fx = clamp((x + 0.5) / w * bw - 0.5, 0, bw - 1);
+        x0[x] = fx | 0; x1[x] = Math.min(bw - 1, x0[x] + 1); xf[x] = fx - x0[x];
+    }
+    const bAdd = a.bright * 1.5;
+    const cf = a.mode === 'bw' ? 1 : (259 * (a.contrast + 255)) / (255 * (259 - a.contrast));
+    const thr = clamp(150 + a.contrast, 20, 245);
+
+    for (let y = 0; y < h; y++) {
+        const fy = clamp((y + 0.5) / h * bh - 0.5, 0, bh - 1);
+        const y0 = fy | 0, y1 = Math.min(bh - 1, y0 + 1), yf = fy - y0;
+        const r0 = y0 * bw, r1 = y1 * bw;
+        for (let x = 0; x < w; x++) {
+            const i = (y * w + x) * 4;
+            let k = 1;
+            if (flatW > 0) {
+                const fx = xf[x];
+                const bv = (bd[r0 + x0[x]] * (1 - fx) + bd[r0 + x1[x]] * fx) * (1 - yf)
+                         + (bd[r1 + x0[x]] * (1 - fx) + bd[r1 + x1[x]] * fx) * yf;
+                k = Math.min(4, 1 + (target / Math.max(bv, 40) - 1) * flatW);
+            }
+            let r = px[i] * k + bAdd, g = px[i + 1] * k + bAdd, b = px[i + 2] * k + bAdd;
+            if (a.mode === 'bw') {
+                const v = 0.299 * r + 0.587 * g + 0.114 * b > thr ? 255 : 0;
+                px[i] = px[i + 1] = px[i + 2] = v;
             } else {
-                contrastLabel.textContent = 'コントラスト';
+                if (a.contrast !== 0) {
+                    r = cf * (r - 128) + 128; g = cf * (g - 128) + 128; b = cf * (b - 128) + 128;
+                }
+                if (a.mode === 'gray') {
+                    r = g = b = 0.299 * r + 0.587 * g + 0.114 * b;
+                }
+                px[i] = r; px[i + 1] = g; px[i + 2] = b; // Uint8ClampedArray が自動でクランプ
             }
-            
-            applyDocumentFilter();
         }
+    }
 
-        function applyDocumentFilter() {
-            if (!scanTempCanvas.width) return;
-
-            const valFlatness = parseInt(document.getElementById('control-flatness').value);
-            const valBrightness = parseInt(document.getElementById('control-brightness').value);
-            const valContrast = parseInt(document.getElementById('control-contrast').value);
-
-            document.getElementById('val-flatness').textContent = valFlatness + '%';
-            document.getElementById('val-brightness').textContent = (valBrightness > 0 ? '+' : '') + valBrightness + '%';
-            document.getElementById('val-contrast').textContent = (valContrast > 0 ? '+' : '') + valContrast + '%';
-
-            const w = scanTempCanvas.width;
-            const h = scanTempCanvas.height;
-
-            const resCanvas = document.getElementById('result-canvas');
-            resCanvas.width = w;
-            resCanvas.height = h;
-
-            const tempCtx = scanTempCanvas.getContext('2d');
-            const resCtx = resCanvas.getContext('2d');
-
-            const imgData = tempCtx.getImageData(0, 0, w, h);
-            const pixels = imgData.data;
-
-            // 1. 積分画像（インテグラルイメージ）の作成
-            // 影消し用に、背景の明るさの大きな流れをぼかした背景として高速検出するため
-            const integral = new Float32Array(w * h);
-            for (let y = 0; y < h; y++) {
-                let rowSum = 0;
-                for (let x = 0; x < w; x++) {
-                    const idx = (y * w + x) * 4;
-                    // 輝度算出 (Y = 0.299R + 0.587G + 0.114B)
-                    const lum = 0.299 * pixels[idx] + 0.587 * pixels[idx+1] + 0.114 * pixels[idx+2];
-                    rowSum += lum;
-                    if (y === 0) {
-                        integral[y * w + x] = rowSum;
-                    } else {
-                        integral[y * w + x] = integral[(y - 1) * w + x] + rowSum;
-                    }
+    if (a.sharp > 0 && a.mode !== 'bw') {
+        const amt = a.sharp / 100 * 0.9;
+        const copy = new Uint8ClampedArray(px);
+        for (let y = 1; y < h - 1; y++) {
+            for (let x = 1; x < w - 1; x++) {
+                const i = (y * w + x) * 4;
+                for (let c = 0; c < 3; c++) {
+                    const v = copy[i + c];
+                    const avg = (copy[i - 4 + c] + copy[i + 4 + c] + copy[i - w * 4 + c] + copy[i + w * 4 + c]) / 4;
+                    px[i + c] = v + amt * (v - avg) * 2;
                 }
             }
-
-            // 出力用ピクセルバッファ
-            const outImgData = resCtx.createImageData(w, h);
-            const outPixels = outImgData.data;
-
-            // 背景推定用のぼかし半径 (画像解像度に応じて適応的に変化、一般に大きいほど広域な影をカバー)
-            const r = Math.round(Math.min(w, h) * 0.12); 
-
-            // 輝度補正と影平滑化、トーン調整を一気に行う
-            for (let y = 0; y < h; y++) {
-                for (let x = 0; x < w; x++) {
-                    const idx = (y * w + x) * 4;
-                    const r_val = pixels[idx];
-                    const g_val = pixels[idx+1];
-                    const b_val = pixels[idx+2];
-                    const a_val = pixels[idx+3];
-
-                    let finalR = r_val;
-                    let finalG = g_val;
-                    let finalB = b_val;
-
-                    // 影消し処理 (フラット均一化)
-                    if (valFlatness > 0) {
-                        // 積分画像を使って、周囲(2r+1 x 2r+1)ピクセルの平均（背景色）を高速に求める (O(1))
-                        const x0 = Math.max(0, x - r);
-                        const x1 = Math.min(w - 1, x + r);
-                        const y0 = Math.max(0, y - r);
-                        const y1 = Math.min(h - 1, y + r);
-
-                        const count = (x1 - x0 + 1) * (y1 - y0 + 1);
-
-                        let sum = integral[y1 * w + x1];
-                        if (x0 > 0) sum -= integral[y1 * w + (x0 - 1)];
-                        if (y0 > 0) sum -= integral[(y0 - 1) * w + x1];
-                        if (x0 > 0 && y0 > 0) sum += integral[(y0 - 1) * w + (x0 - 1)];
-
-                        const localMean = sum / count;
-
-                        // 影消しの計算 (除算による照明ムラ修正)
-                        // 強度(valFlatness/100)でブレンドする
-                        const targetBG = 235; // 目標背景白さ
-                        if (localMean > 0) {
-                            const ratio = targetBG / localMean;
-                            const flatnessWeight = valFlatness / 100;
-
-                            // 補正率を適応
-                            const k = 1 + (ratio - 1) * flatnessWeight;
-
-                            finalR = Math.min(255, r_val * k);
-                            finalG = Math.min(255, g_val * k);
-                            finalB = Math.min(255, b_val * k);
-                        }
-                    }
-
-                    // 2. 明るさ調整 (brightness)
-                    if (valBrightness !== 0) {
-                        const factor = valBrightness * 1.5; // スケール調整
-                        finalR = Math.min(255, Math.max(0, finalR + factor));
-                        finalG = Math.min(255, Math.max(0, finalG + factor));
-                        finalB = Math.min(255, Math.max(0, finalB + factor));
-                    }
-
-                    // 3. コントラスト調整 (contrast) - 2極化モード以外で適用
-                    if (valContrast !== 0 && scanMode !== 'binary') {
-                        const factor = (259 * (valContrast + 255)) / (255 * (259 - valContrast));
-                        finalR = Math.min(255, Math.max(0, factor * (finalR - 128) + 128));
-                        finalG = Math.min(255, Math.max(0, factor * (finalG - 128) + 128));
-                        finalB = Math.min(255, Math.max(0, factor * (finalB - 128) + 128));
-                    }
-
-                    // 4. カラー / 白黒強調 / 2極化モード
-                    if (scanMode === 'mono') {
-                        // モノクロしきい値処理（しきい値をコントラスト等の補正後に判定）
-                        const monoVal = 0.299 * finalR + 0.587 * finalG + 0.114 * finalB;
-                        // 140付近を境界にし、高コントラスト化
-                        const finalMono = monoVal > 140 ? 255 : Math.max(0, monoVal * 0.5);
-                        outPixels[idx] = finalMono;
-                        outPixels[idx+1] = finalMono;
-                        outPixels[idx+2] = finalMono;
-                    } else if (scanMode === 'binary') {
-                        // 完全なる2極化 (二値化) モード
-                        const monoVal = 0.299 * finalR + 0.587 * finalG + 0.114 * finalB;
-                        // スライダーの入力値をしきい値オフセット (標準128、範囲約28〜228) として計算
-                        const threshold = 128 + (valContrast * 1.0);
-                        const finalBinary = monoVal >= threshold ? 255 : 0;
-                        outPixels[idx] = finalBinary;
-                        outPixels[idx+1] = finalBinary;
-                        outPixels[idx+2] = finalBinary;
-                    } else {
-                        outPixels[idx] = finalR;
-                        outPixels[idx+1] = finalG;
-                        outPixels[idx+2] = finalB;
-                    }
-                    outPixels[idx+3] = a_val;
-                }
-            }
-
-            resCtx.putImageData(outImgData, 0, 0);
         }
+    }
+    dstCanvas.getContext('2d').putImageData(img, 0, 0);
+}
 
+function setScan(full) {
+    scan = { full, prev: makePreview(full, 1000), bg: computeBgMap(full) };
+}
 
-        // --- 6. 高品質PDF & PNGエクスポート ---
-        function exportFile(format) {
-            const resCanvas = document.getElementById('result-canvas');
-            if (!resCanvas.width) {
-                showToast("まだスキャンが完了していません！");
-                return;
-            }
+let rafId = 0;
+function schedulePreview() { cancelAnimationFrame(rafId); rafId = requestAnimationFrame(renderPreview); }
+function renderPreview() { if (scan) processToCanvas(scan.prev, el('result-canvas'), scan.bg); }
 
-            if (format === 'png') {
-                // PNG 保存
-                const link = document.createElement('a');
-                link.download = `scan_${Date.now()}.png`;
-                link.href = resCanvas.toDataURL('image/png');
-                link.click();
-                setSpeech('exported');
-                showToast("PNGとしてエクスポートしました！");
-            } else if (format === 'pdf') {
-                // PDF 保存
-                showToast("PDF変換中...");
-                const { jsPDF } = window.jspdf;
+/* スライダー */
+function syncSlider(input) {
+    const min = +input.min, max = +input.max, v = +input.value;
+    input.previousElementSibling.style.width = ((v - min) / (max - min) * 100) + '%';
+    const lab = el(input.dataset.val);
+    if (lab) lab.textContent = (min < 0 && v > 0 ? '+' : '') + v + (input.dataset.unit || '');
+}
+document.querySelectorAll('.thick-slider-input').forEach(inp => {
+    syncSlider(inp);
+    inp.addEventListener('input', () => { syncSlider(inp); schedulePreview(); });
+});
+function setSlider(id, v) { const i = el(id); i.value = v; syncSlider(i); }
 
-                // スキャン画像の縦横比をキープ
-                const imgWidth = resCanvas.width;
-                const imgHeight = resCanvas.height;
+function setMode(mode) {
+    document.querySelectorAll('#mode-seg button').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+    el('lbl-contrast').textContent = mode === 'bw' ? 'しきい値調整' : 'コントラスト';
+    schedulePreview();
+}
+document.querySelectorAll('#mode-seg button').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
 
-                // PDFドキュメントの新規作成 (用紙サイズは画像比率にオートフィット)
-                const pdf = new jsPDF({
-                    orientation: imgWidth > imgHeight ? 'landscape' : 'portrait',
-                    unit: 'px',
-                    format: [imgWidth, imgHeight]
-                });
+function applyPreset(p) {
+    setMode(p.mode); setSlider('ctl-flat', p.flat); setSlider('ctl-bright', p.bright);
+    setSlider('ctl-contrast', p.contrast); setSlider('ctl-sharp', p.sharp);
+    renderPreview();
+}
+const DEFAULT_PRESET = { mode: 'color', flat: 70, bright: 0, contrast: 0, sharp: 20 };
+el('btn-reset-adj').addEventListener('click', () => { applyPreset(DEFAULT_PRESET); showToast('補正をリセットしました'); });
 
-                // 画質の圧縮切り替え
-                const isCompress = document.getElementById('pdf-compress-toggle') ? document.getElementById('pdf-compress-toggle').checked : true;
-                const imgData = resCanvas.toDataURL('image/jpeg', isCompress ? 0.75 : 0.95);
+/* 解析 → おまかせ補正 */
+let suggestion = null;
+function analyzeScan() {
+    const c = scan.prev, ctx = c.getContext('2d', { willReadFrequently: true });
+    const d = ctx.getImageData(0, 0, c.width, c.height).data;
+    let sat = 0, n = 0;
+    for (let i = 0; i < d.length; i += 40) {
+        const mx = Math.max(d[i], d[i+1], d[i+2]), mn = Math.min(d[i], d[i+1], d[i+2]);
+        if (mx > 0) { sat += (mx - mn) / mx; n++; }
+    }
+    sat /= Math.max(1, n);
+    const sorted = Array.from(scan.bg.data).sort((a, b) => a - b);
+    const lo = sorted[Math.floor(sorted.length * 0.05)], hi = sorted[Math.floor(sorted.length * 0.95)];
+    const uneven = hi > 0 ? (hi - lo) / hi : 0;
+    const mean = sorted[Math.floor(sorted.length / 2)];
+    const s = { mode: 'color', flat: 70, bright: 0, contrast: 0, sharp: 20, reason: '' };
+    if (uneven > 0.25) { s.flat = 95; s.reason = '影がかなり強いので、影消しを強めにします。'; }
+    else if (uneven > 0.12) { s.flat = 80; s.reason = '少し影があるので、影消しを少し強めにします。'; }
+    else { s.flat = 55; s.reason = '照明は均一なので、控えめに整えます。'; }
+    if (mean < 150) { s.bright = 15; s.reason += ' 全体も暗めなので明るくします。'; }
+    if (sat < 0.14) { s.mode = 'bw'; s.reason += ' 文字中心の書類のようなので、白黒がおすすめです。'; s.contrast = 0; }
+    else { s.contrast = 10; }
+    return s;
+}
+function analyzeAndSuggest() {
+    if (!scan) return;
+    suggestion = analyzeScan();
+    say('normal', 'この書類を見て、おすすめ設定を考えました。' + suggestion.reason, {
+        label: 'おすすめを適用', fn: () => { applySuggestion(); }
+    });
+}
+function applySuggestion() {
+    if (!scan) return;
+    if (!suggestion) suggestion = analyzeScan();
+    applyPreset(suggestion);
+    sayKey('applied');
+    showToast('おまかせ補正を適用しました');
+}
+el('btn-suggest').addEventListener('click', () => { suggestion = analyzeScan(); applySuggestion(); });
 
-                pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
-                pdf.save(`scan_${Date.now()}.pdf`);
+/* 回転 */
+function rotateCanvas(c, dir) {
+    const r = document.createElement('canvas');
+    r.width = c.height; r.height = c.width;
+    const x = r.getContext('2d');
+    x.translate(r.width / 2, r.height / 2); x.rotate(dir * Math.PI / 2);
+    x.drawImage(c, -c.width / 2, -c.height / 2);
+    return r;
+}
+function rotateScan(dir) {
+    if (!scan) return;
+    setScan(rotateCanvas(scan.full, dir));
+    renderPreview();
+}
+el('btn-rot-l').addEventListener('click', () => rotateScan(-1));
+el('btn-rot-r').addEventListener('click', () => rotateScan(1));
 
-                setSpeech('exported');
-                showToast("PDFとしてエクスポートしました！");
-            }
+/* ================= 書き出し / ページ管理 ================= */
+function downloadBlob(blob, name) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
+function downloadDataUrl(url, name) {
+    const a = document.createElement('a');
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+}
+const quality = () => settings.compress ? 0.75 : 0.92;
+
+async function renderFull() {
+    const c = document.createElement('canvas');
+    processToCanvas(scan.full, c, scan.bg);
+    return c;
+}
+
+function buildPdf(images) {
+    if (!window.jspdf) { showToast('PDFライブラリを読み込めませんでした', true); return null; }
+    const { jsPDF } = window.jspdf;
+    let pdf = null;
+    images.forEach((im, idx) => {
+        if (settings.paper === 'a4') {
+            const orient = im.w > im.h ? 'landscape' : 'portrait';
+            if (!pdf) pdf = new jsPDF({ orientation: orient, unit: 'mm', format: 'a4' });
+            else pdf.addPage('a4', orient);
+            const pw = pdf.internal.pageSize.getWidth(), ph = pdf.internal.pageSize.getHeight();
+            const m = 6, s = Math.min((pw - m * 2) / im.w, (ph - m * 2) / im.h);
+            const dw = im.w * s, dh = im.h * s;
+            pdf.addImage(im.dataUrl, 'JPEG', (pw - dw) / 2, (ph - dh) / 2, dw, dh, undefined, 'FAST');
+        } else {
+            const orient = im.w > im.h ? 'landscape' : 'portrait';
+            if (!pdf) pdf = new jsPDF({ orientation: orient, unit: 'px', format: [im.w, im.h] });
+            else pdf.addPage([im.w, im.h], orient);
+            pdf.addImage(im.dataUrl, 'JPEG', 0, 0, im.w, im.h, undefined, 'FAST');
         }
+    });
+    return pdf;
+}
 
-
-        // --- 7. Dialog, Toast & Squishy Click Interaction ---
-        function openOverviewDialog() {
-            document.getElementById('main-dialog').classList.add('active');
+async function exportCurrent(fmt) {
+    if (!scan) { showToast('スキャンがありません', true); return; }
+    busyStart('書き出し中...', '高解像度で仕上げています。');
+    busyProgress(0.3);
+    await tick();
+    try {
+        const c = await renderFull();
+        busyProgress(0.7);
+        const stamp = Date.now();
+        if (fmt === 'png') {
+            await new Promise(res => c.toBlob(b => { downloadBlob(b, `scan_${stamp}.png`); res(); }, 'image/png'));
+        } else if (fmt === 'jpg') {
+            await new Promise(res => c.toBlob(b => { downloadBlob(b, `scan_${stamp}.jpg`); res(); }, 'image/jpeg', quality()));
+        } else {
+            const pdf = buildPdf([{ dataUrl: c.toDataURL('image/jpeg', quality()), w: c.width, h: c.height }]);
+            if (pdf) pdf.save(`scan_${stamp}.pdf`);
         }
-        function closeDialog() {
-            document.getElementById('main-dialog').classList.remove('active');
-        }
+        busyProgress(1); busyEnd();
+        sayKey('exported'); showToast('保存しました');
+    } catch (e) {
+        console.error(e); busyEnd(); showToast('書き出しに失敗しました', true);
+    }
+}
+document.querySelectorAll('[data-export]').forEach(b => b.addEventListener('click', () => exportCurrent(b.dataset.export)));
 
-        function showToast(msg) {
-            const isToastEnabled = document.getElementById('toast-toggle') ? document.getElementById('toast-toggle').checked : true;
-            if (!isToastEnabled) return;
+/* ページ */
+const pages = [];
+let pageSeq = 0;
 
-            toast.textContent = msg;
-            toast.classList.add('active');
-            setTimeout(() => {
-                toast.classList.remove('active');
-            }, 2500);
-        }
-
-        document.addEventListener('mousedown', (e) => {
-            const target = e.target.closest('.glass-card, .ai-btn, .nav-item, .comp-tile');
-            if (target) {
-                target.classList.remove('squish-active');
-                void target.offsetWidth; // Force Reflow
-                target.classList.add('squish-active');
-                
-                setTimeout(() => {
-                    target.classList.remove('squish-active');
-                }, 400);
-            }
+async function addCurrentPage() {
+    if (!scan) { showToast('スキャンがありません', true); return; }
+    busyStart('ページを追加中...', '仕上げ処理をしています。');
+    busyProgress(0.4);
+    await tick();
+    try {
+        const c = await renderFull();
+        const th = makePreview(c, 200);
+        pages.push({
+            id: ++pageSeq, w: c.width, h: c.height,
+            dataUrl: c.toDataURL('image/jpeg', quality()),
+            thumb: th.toDataURL('image/jpeg', 0.7)
         });
+        busyEnd();
+        renderPages();
+        switchView('view-pages');
+        say('happy', LINES.pageAdded[0][1], { label: '続けてスキャン', fn: startNextScan });
+        showToast(`ページ ${pages.length} を追加しました`);
+    } catch (e) {
+        console.error(e); busyEnd(); showToast('追加に失敗しました', true);
+    }
+}
+el('btn-add-page').addEventListener('click', addCurrentPage);
 
-        // --- 8. View Switcher Protocol ---
-        const navItems = document.querySelectorAll('.nav-item');
-        const views = document.querySelectorAll('.view');
+function startNextScan() {
+    work = null; scan = null;
+    el('crop-card').style.display = 'none';
+    switchView('view-scan');
+}
+el('btn-pages-more').addEventListener('click', startNextScan);
 
-        function switchView(viewId) {
-            navItems.forEach(n => {
-                n.classList.remove('active');
-                if (n.getAttribute('data-view') === viewId) {
-                    n.classList.add('active');
-                }
-            });
+function renderPages() {
+    const list = el('pages-list');
+    el('pages-count').textContent = pages.length;
+    const badge = el('nav-badge');
+    badge.textContent = pages.length;
+    badge.style.display = pages.length ? 'flex' : 'none';
+    el('pages-empty').style.display = pages.length ? 'none' : 'block';
+    el('btn-pages-pdf').disabled = !pages.length;
+    el('btn-pages-clear').disabled = !pages.length;
+    list.innerHTML = pages.map((p, i) => `
+        <div class="page-item" data-id="${p.id}">
+            <img class="page-thumb" src="${p.thumb}" alt="ページ${i + 1}">
+            <div class="page-info">
+                <div class="list-item-title">ページ ${i + 1}</div>
+                <div class="list-item-desc">${p.w} × ${p.h}px</div>
+            </div>
+            <div class="page-actions">
+                <button class="icon-btn" data-act="up" ${i === 0 ? 'disabled' : ''} title="上へ"><span class="material-symbols-outlined">arrow_upward</span></button>
+                <button class="icon-btn" data-act="down" ${i === pages.length - 1 ? 'disabled' : ''} title="下へ"><span class="material-symbols-outlined">arrow_downward</span></button>
+                <button class="icon-btn" data-act="save" title="画像として保存"><span class="material-symbols-outlined">download</span></button>
+                <button class="icon-btn" data-act="del" title="削除"><span class="material-symbols-outlined">delete</span></button>
+            </div>
+        </div>`).join('');
+}
+el('pages-list').addEventListener('click', e => {
+    const btn = e.target.closest('[data-act]'); if (!btn) return;
+    const id = +btn.closest('.page-item').dataset.id;
+    const i = pages.findIndex(p => p.id === id); if (i < 0) return;
+    const act = btn.dataset.act;
+    if (act === 'up' && i > 0) { [pages[i - 1], pages[i]] = [pages[i], pages[i - 1]]; }
+    else if (act === 'down' && i < pages.length - 1) { [pages[i + 1], pages[i]] = [pages[i], pages[i + 1]]; }
+    else if (act === 'save') { downloadDataUrl(pages[i].dataUrl, `page_${i + 1}.jpg`); return; }
+    else if (act === 'del') { pages.splice(i, 1); sayKey('deleted'); }
+    renderPages();
+});
+el('btn-pages-pdf').addEventListener('click', async () => {
+    if (!pages.length) return;
+    busyStart('PDFを作成中...', `${pages.length}ページをまとめています。`);
+    busyProgress(0.5);
+    await tick();
+    try {
+        const pdf = buildPdf(pages.map(p => ({ dataUrl: p.dataUrl, w: p.w, h: p.h })));
+        if (pdf) pdf.save(`scan_${Date.now()}.pdf`);
+        busyEnd(); sayKey('exported'); showToast('PDFを保存しました');
+    } catch (e) {
+        console.error(e); busyEnd(); showToast('PDFの作成に失敗しました', true);
+    }
+});
+el('btn-pages-clear').addEventListener('click', () => {
+    if (!pages.length) return;
+    pages.length = 0; renderPages(); sayKey('deleted'); showToast('すべて削除しました');
+});
 
-            views.forEach(v => {
-                v.classList.remove('active');
-                if (v.id === viewId) {
-                    v.classList.add('active');
-                    viewport.scrollTo({ top: 0, behavior: 'smooth' });
-                }
-            });
+/* ================= 設定の操作 ================= */
+el('theme-btn').addEventListener('click', () => { settings.dark = !settings.dark; applySettings(); saveSettings(); });
+[['set-dark','dark'],['set-assistant','assistant'],['set-autodetect','autodetect'],['set-compress','compress'],['set-toast','toast']].forEach(([id, key]) => {
+    el(id).addEventListener('change', e => { settings[key] = e.target.checked; applySettings(); saveSettings(); });
+});
+document.querySelectorAll('.seg[data-seg] button').forEach(b => {
+    b.addEventListener('click', () => {
+        const key = b.parentElement.dataset.seg;
+        settings[key] = key === 'res' ? +b.dataset.v : b.dataset.v;
+        applySettings(); saveSettings();
+    });
+});
+document.querySelectorAll('#accent-grid .color-swatch').forEach(s => {
+    s.addEventListener('click', () => { settings.accent = s.dataset.c; applySettings(); saveSettings(); });
+});
 
-            // ページ遷移に連動したキャラクターの台詞バリエーション
-            if (viewId === 'view-home') {
-                if (originalImage) {
-                    setSpeech('loaded');
-                } else {
-                    charSpeech.textContent = "「無駄は罪です！早く書類をアップロードしなさい。私の高度な補正エンジンで一瞬で完璧なドキュメントにリサイズして見せます！」";
-                }
-            } else if (viewId === 'view-hub') {
-                setSpeech('adjusting');
-            } else if (viewId === 'view-settings') {
-                charSpeech.textContent = "「環境設定です。PDFの圧縮率を上げて、保存ストレージの容量を無駄遣いしないように設定しなさい！」";
-            }
-        }
+/* ================= 弾性オーバースクロール ================= */
+const overscrollWrapper = el('overscroll-wrapper');
+let startY = 0, isPulling = false;
+scrollArea.addEventListener('touchstart', e => {
+    if (e.touches.length === 1) { startY = e.touches[0].clientY; overscrollWrapper.classList.remove('spring-back'); }
+}, { passive: true });
+scrollArea.addEventListener('touchmove', e => {
+    if (e.touches.length !== 1 || dragIdx >= 0) return;
+    const dy = e.touches[0].clientY - startY;
+    const atTop = scrollArea.scrollTop <= 0;
+    const atBottom = Math.abs(scrollArea.scrollHeight - scrollArea.clientHeight - scrollArea.scrollTop) < 2;
+    if ((atTop && dy > 0) || (atBottom && dy < 0)) {
+        const pull = dy * 0.38;
+        overscrollWrapper.style.transform = `translateY(${pull}px) scaleY(${1 + Math.abs(pull) * 0.0003})`;
+        isPulling = true;
+    }
+}, { passive: true });
+scrollArea.addEventListener('touchend', () => {
+    if (isPulling) {
+        overscrollWrapper.classList.add('spring-back');
+        overscrollWrapper.style.transform = 'translateY(0px) scaleY(1)';
+        isPulling = false;
+    }
+});
+let wheelTimer = null, wheelSum = 0;
+scrollArea.addEventListener('wheel', e => {
+    const atTop = scrollArea.scrollTop <= 0;
+    const atBottom = Math.abs(scrollArea.scrollHeight - scrollArea.clientHeight - scrollArea.scrollTop) < 2;
+    if ((atTop && e.deltaY < 0) || (atBottom && e.deltaY > 0)) {
+        wheelSum = clamp(wheelSum - e.deltaY * 0.25, -60, 60);
+        overscrollWrapper.classList.remove('spring-back');
+        overscrollWrapper.style.transform = `translateY(${wheelSum}px)`;
+        clearTimeout(wheelTimer);
+        wheelTimer = setTimeout(() => {
+            overscrollWrapper.classList.add('spring-back');
+            overscrollWrapper.style.transform = 'translateY(0px)';
+            wheelSum = 0;
+        }, 120);
+    }
+}, { passive: true });
 
-        navItems.forEach(item => {
-            item.addEventListener('click', () => {
-                const viewId = item.getAttribute('data-view');
-                if (viewId === 'view-hub' && !originalImage) {
-                    showToast("最初に書類画像をアップロードしてください。");
-                    return;
-                }
-                switchView(viewId);
-            });
-        });
-
-        // --- 9. Theme Control System ---
-        function setTheme(isDark) {
-            document.body.classList.toggle('dark-mode', isDark);
-            themeIcon.textContent = isDark ? 'dark_mode' : 'light_mode';
-            
-            const dmToggle = document.getElementById('darkmode-toggle');
-            if (dmToggle) {
-                dmToggle.checked = isDark;
-            }
-        }
-
-        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
-        setTheme(prefersDark.matches);
-
-        themeBtn.addEventListener('click', () => {
-            setTheme(!document.body.classList.contains('dark-mode'));
-        });
-
-        document.getElementById('darkmode-toggle').addEventListener('change', (e) => {
-            setTheme(e.target.checked);
-        });
-
-        // Init Hook
-        window.onload = () => {
-            // スキャナー初期化
-        };
-    </script>
+/* ================= 初期化 ================= */
+applySettings();
+renderPages();
+sayKey('idle');
+</script>
 </body>
 </html>
