@@ -5,502 +5,391 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
     <title>PB 文字起こし-AI要約</title>
 
-    <!-- Google Fonts & Material Symbols -->
+    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/PolandBallHub-Operator/pbpark/refs/heads/main/AI/Transkriptsummary/res/assets/Transkript.png">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
-    <!-- JSZip (for Zip Save/Restore) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
+    <script>
+        // 同意済みなら、プライバシー画面を一瞬も出さない
+        try { if (localStorage.getItem('pbt_privacy_v1') === '1') document.documentElement.classList.add('consented'); } catch (e) {}
+    </script>
+
     <style>
+        /* ShowMeCSS (MIUICSS) ベーステーマ */
         :root {
-            /* 全てが紫系グラデーション & フラットUIのカラー定義 */
-            --accent-primary: #8B5CF6;
-            --accent-active: #6D28D9;
-            --purple-grad-start: #7C3AED;
-            --purple-grad-end: #C084FC;
-            
-            /* Light Mode Tokens (紫系アクセント) */
-            --bg-base: #F5F3FF;
+            --accent-primary: #5679F0;
+            --accent-active: #4562C8;
+            --grad: linear-gradient(135deg, #5679F0, #D2B5CD, #EB9968);
+
+            --ptz-card-radius: 24px;
+            --ptz-toggle-width: 54px;
+            --ptz-toggle-height: 30px;
+            --ptz-toggle-knob-radius: 50%;
+            --ptz-toggle-knob-width: 22px;
+
+            --bg-base: #F7F7F7;
             --glass-bg: #FFFFFF;
-            --text-main: #1F192F;
-            --text-sub: #6B5E84;
-            --bg-secondary: #EDE9FE;
-            
+            --text-main: #000000;
+            --text-sub: #666666;
+            --bg-secondary: #EEEEEE;
+            --nav-bg: #FFFFFF;
+            --nav-icon-active: #000000;
+            --danger: #E5484D;
+
             --m3-easing: cubic-bezier(0.32, 0.72, 0, 1);
-            --transition-smooth: 0.4s var(--m3-easing);
-            --card-padding: 20px;
+            --transition-smooth: 0.35s var(--m3-easing);
+            --card-padding: 24px;
+        }
+        .dark-mode {
+            --bg-base: #121212;
+            --glass-bg: #1E1E1E;
+            --text-main: #FFFFFF;
+            --text-sub: #A1A1A6;
+            --bg-secondary: #2C2C2E;
+            --nav-bg: #1E1E1E;
+            --nav-icon-active: #FFFFFF;
         }
 
-        .dark-mode {
-            /* Dark Mode Tokens (深紫・黒) */
-            --bg-base: #0F0A1C;
-            --glass-bg: #1A122B;
-            --text-main: #F5F3FF;
-            --text-sub: #A78BFA;
-            --bg-secondary: #2E1F47;
-        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
         body {
-            margin: 0;
-            padding: 0;
+            margin: 0; padding: 0;
             font-family: 'Plus Jakarta Sans', 'Noto Sans JP', sans-serif;
             background-color: var(--bg-base);
             color: var(--text-main);
             transition: background-color var(--transition-smooth), color var(--transition-smooth);
-            overflow: hidden;
-            height: 100vh;
-            width: 100vw;
-            touch-action: none;
+            overflow: hidden; height: 100vh; width: 100vw;
         }
-
-        /* --- Scroll Container --- */
         #app-viewport {
-            height: 100vh;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-            scroll-behavior: smooth;
+            height: 100vh; display: flex; flex-direction: column;
+            justify-content: space-between; overflow: hidden;
         }
-
-        /* --- Header (Centered Title, No Border/Shadow) --- */
         header {
-            position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-            height: 72px; padding: 0 24px;
+            height: 64px; padding: 0 24px;
             display: flex; align-items: center; justify-content: center;
-            background: var(--glass-bg);
-            transition: background-color var(--transition-smooth);
-        }
-        .header-content {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        .header-logo-img {
-            width: 32px;
-            height: 32px;
-            object-fit: contain;
+            background: var(--bg-base); transition: background-color var(--transition-smooth);
+            position: relative; flex-shrink: 0; z-index: 10;
         }
         .logo {
-            font-weight: 700; font-size: 20px; letter-spacing: -0.5px;
-            color: var(--text-main);
-            text-align: center;
+            font-weight: 700; font-size: 17px; letter-spacing: -0.5px;
+            display: flex; align-items: center; gap: 8px; max-width: calc(100% - 110px);
         }
+        .logo img { width: 30px; height: 30px; object-fit: contain; flex-shrink: 0; }
         .theme-toggle {
-            position: absolute; right: 24px;
-            width: 44px; height: 44px; border-radius: 22px;
-            border: none; background: var(--bg-secondary);
+            position: absolute; right: 24px; width: 40px; height: 40px;
+            border-radius: 50%; border: none; background: var(--bg-secondary);
             color: var(--text-main); cursor: pointer;
             display: flex; align-items: center; justify-content: center;
-            transition: background var(--transition-smooth);
+            transition: background var(--transition-smooth), transform 0.2s;
         }
+        .theme-toggle:active { transform: scale(0.92); }
 
-        /* --- Main Layout --- */
         main {
-            padding: 96px 20px 140px;
-            max-width: 800px; margin: 0 auto;
-            min-height: 100%;
-            transition: opacity 0.3s ease, transform 0.3s var(--m3-easing);
-            box-sizing: border-box;
+            flex-grow: 1; overflow-y: auto;
+            padding: 12px 20px 100px; max-width: 720px; width: 100%; margin: 0 auto;
+            -webkit-overflow-scrolling: touch; overscroll-behavior-y: none; will-change: transform;
         }
+        #overscroll-wrapper { transform-origin: center top; transition: transform 0s linear; }
+        #overscroll-wrapper.spring-back { transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
 
-        /* --- Flat Solid Card (No Shadow, No Border) --- */
         .glass-card {
-            background: var(--glass-bg);
-            border-radius: 24px;
-            padding: var(--card-padding);
-            margin-bottom: 16px;
-            box-shadow: none !important;
-            border: none !important;
-            transform-style: flat;
+            background: var(--glass-bg); border-radius: var(--ptz-card-radius);
+            padding: var(--card-padding); margin-bottom: 20px;
+            box-shadow: none !important; border: none !important;
             transition: background-color var(--transition-smooth);
         }
+        h2 { font-size: 18px; margin: 0 0 12px; font-weight: 700; letter-spacing: -0.3px; display: flex; align-items: center; gap: 8px; }
+        p { font-size: 13.5px; line-height: 1.5; margin: 0 0 16px; color: var(--text-sub); }
+        label.field { font-size: 13px; font-weight: 600; display: block; margin-bottom: 6px; }
 
-        h2 { 
-            font-size: 20px; 
-            margin-top: 0; 
-            margin-bottom: 8px;
-            font-weight: 700; 
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        p {
-            font-size: 14px;
-            line-height: 1.45;
-            margin-top: 0;
-            margin-bottom: 12px;
-            color: var(--text-sub);
-        }
+        /* グラデーション文字 (アイコン用) */
+        .grad-text { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent; }
 
-        /* --- Interaction: Jelly/Squishy Effect --- */
-        @keyframes squishy {
-            0% { transform: scale(1, 1); }
-            30% { transform: scale(1.08, 0.92); }
-            50% { transform: scale(0.95, 1.05); }
-            70% { transform: scale(1.02, 0.98); }
-            100% { transform: scale(1, 1); }
+        .custom-list { display: flex; flex-direction: column; gap: 6px; }
+        .list-item {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 10px 4px; border-bottom: none !important; gap: 12px;
         }
-        .squish-active {
-            animation: squishy 0.4s var(--m3-easing);
-        }
+        .list-item-title { font-weight: 600; font-size: 14px; }
+        .list-item-desc { font-size: 12px; color: var(--text-sub); margin-top: 2px; }
 
-        /* --- Primary Buttons --- */
-        .ai-btn {
-            border: none; outline: none;
-            padding: 12px 24px; border-radius: 14px;
-            font-weight: 600; font-size: 15px;
-            color: white; cursor: pointer;
-            background: linear-gradient(135deg, var(--purple-grad-start), var(--purple-grad-end));
-            transition: transform 0.2s, opacity 0.2s;
-            display: inline-flex; align-items: center; gap: 8px;
-            box-shadow: none;
-        }
-        .ai-btn:hover { transform: scale(1.02); opacity: 0.95; }
-        .ai-btn:active {
-            transform: scale(0.95);
-        }
-        .ai-btn-secondary {
-            background: var(--bg-secondary);
-            color: var(--text-main);
-        }
-        .ai-btn-danger {
-            background: #EF4444;
-            color: white;
-        }
-
-        /* --- Inputs & Selects --- */
+        /* 入力 */
         .glass-input-wrapper { margin-bottom: 14px; }
         .glass-input {
-            width: 100%; padding: 14px 18px;
-            border-radius: 14px; border: none;
-            background: var(--bg-secondary);
-            color: var(--text-main); font-size: 15px;
-            box-sizing: border-box; transition: background 0.3s var(--m3-easing);
-            font-family: inherit;
+            width: 100%; padding: 14px 16px; border-radius: 14px; border: none;
+            background: var(--bg-secondary); color: var(--text-main);
+            font-size: 15px; font-family: inherit; transition: background var(--transition-smooth);
         }
-        .glass-input:focus {
-            outline: 2px solid var(--accent-primary);
-        }
+        .glass-input::placeholder { color: var(--text-sub); }
+        .glass-input:focus { outline: 2px solid var(--accent-primary); }
 
-        /* --- Toggles --- */
-        .toggle-row {
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 12px 0;
-        }
+        /* トグル (グラデーション) */
         .switch {
-            position: relative; display: inline-block; width: 50px; height: 28px;
+            position: relative; display: inline-block; flex-shrink: 0;
+            width: var(--ptz-toggle-width); height: var(--ptz-toggle-height);
         }
         .switch input { opacity: 0; width: 0; height: 0; }
         .slider {
-            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
-            background: var(--bg-secondary);
-            transition: .3s var(--m3-easing);
-            border-radius: 34px;
+            position: absolute; cursor: pointer; inset: 0;
+            background: var(--bg-secondary); transition: var(--transition-smooth);
+            border-radius: calc(var(--ptz-toggle-height) / 2);
         }
         .slider:before {
             position: absolute; content: "";
-            height: 20px; width: 20px; left: 4px; bottom: 4px;
-            background: white; transition: .3s var(--m3-easing);
-            border-radius: 50%;
+            height: var(--ptz-toggle-knob-width); width: var(--ptz-toggle-knob-width);
+            left: 4px; bottom: calc((var(--ptz-toggle-height) - var(--ptz-toggle-knob-width)) / 2);
+            background: white; transition: var(--transition-smooth);
+            border-radius: var(--ptz-toggle-knob-radius);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.15);
         }
-        input:checked + .slider { background: var(--accent-primary); }
-        input:checked + .slider:before { transform: translateX(22px); }
+        input:checked + .slider { background: var(--grad); }
+        input:checked + .slider:before {
+            transform: translateX(calc(var(--ptz-toggle-width) - var(--ptz-toggle-knob-width) - 8px));
+        }
+        input:focus-visible + .slider { outline: 2px solid var(--accent-primary); outline-offset: 2px; }
 
-        /* --- Navigation --- */
-        .nav-container {
-            position: fixed; bottom: 32px; left: 50%;
-            transform: translateX(-50%); z-index: 500;
+        /* ボタン (グラデーション) */
+        .ai-btn {
+            border: 2px solid transparent; outline: none; padding: 11px 22px; border-radius: 14px;
+            font-weight: 600; font-size: 14px; font-family: inherit; color: #FFF;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+            cursor: pointer; background: var(--grad);
+            transition: opacity 0.2s, transform 0.15s;
+            display: inline-flex; align-items: center; gap: 8px; justify-content: center;
         }
-        .nav-rail {
-            display: flex; align-items: center; gap: 8px;
-            background: var(--glass-bg);
-            padding: 6px; border-radius: 32px;
-            box-shadow: none;
+        .ai-btn:active:not(:disabled) { opacity: 0.88; transform: scale(0.97); }
+        .ai-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+        .ai-btn .material-symbols-outlined { font-size: 20px; }
+        .ai-btn-secondary {
+            color: var(--text-main); text-shadow: none;
+            background: linear-gradient(var(--glass-bg), var(--glass-bg)) padding-box, var(--grad) border-box;
+        }
+        .ai-btn-danger { background: var(--danger); color: #FFF; text-shadow: none; }
+        .ai-btn-danger-outline {
+            color: var(--danger); text-shadow: none;
+            background: linear-gradient(var(--glass-bg), var(--glass-bg)) padding-box, linear-gradient(var(--danger), var(--danger)) border-box;
+        }
+        .ai-btn-small { padding: 8px 14px; font-size: 12.5px; border-radius: 12px; }
+        .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+
+        /* セキュリティ表示 */
+        .security-badge {
+            display: flex; align-items: flex-start; gap: 10px;
+            padding: 12px 14px; border-radius: 16px; background: var(--bg-secondary);
+            color: var(--text-sub); font-size: 12px; line-height: 1.55; margin-bottom: 16px;
+        }
+        .security-badge .material-symbols-outlined { font-size: 22px; flex-shrink: 0; }
+
+        /* 言語選択 */
+        .flag-selector-wrapper { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 16px; }
+        .flag-option {
+            background: var(--bg-secondary); padding: 10px 4px; border-radius: 16px;
+            text-align: center; cursor: pointer; transition: transform 0.15s, background 0.2s;
+            border: 2px solid transparent;
+        }
+        .flag-option:active { transform: scale(0.95); }
+        .flag-option.selected {
+            background: linear-gradient(var(--glass-bg), var(--glass-bg)) padding-box, var(--grad) border-box;
+        }
+        .flag-img { width: 36px; height: 36px; object-fit: contain; display: block; margin: 0 auto 6px; }
+        .flag-label { font-size: 11px; font-weight: 600; }
+
+        /* 録音ステータス */
+        .status-badge {
+            display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px;
+            border-radius: 12px; font-size: 13px; font-weight: 600; background: var(--bg-secondary);
+        }
+        .status-badge .material-symbols-outlined { font-size: 18px; }
+        .status-badge.recording { background: rgba(229,72,77,0.15); color: var(--danger); animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
+
+        /* 文字起こし表示 */
+        .live-note-editor {
+            border-radius: 16px; background: var(--bg-secondary); padding: 16px;
+            min-height: 180px; max-height: 350px; overflow-y: auto;
+            font-size: 14px; line-height: 1.6; color: var(--text-main);
+        }
+        .live-note-editor:focus { outline: 2px solid var(--accent-primary); }
+        .placeholder-msg { color: var(--text-sub); font-style: italic; text-align: center; margin-top: 60px; }
+        .transcription-line { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px; padding-bottom: 8px; }
+        .transcription-line:last-child { margin-bottom: 0; padding-bottom: 0; }
+        .transcription-time {
+            font-size: 11px; font-weight: 700; background: var(--grad); color: #FFF;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+            padding: 2px 8px; border-radius: 8px; white-space: nowrap; margin-top: 3px;
+        }
+        .transcription-text { word-break: break-all; flex: 1; min-width: 0; }
+
+        /* ノート一覧 */
+        .note-item {
+            background: var(--bg-secondary); border-radius: 18px; padding: 14px 16px; margin-bottom: 10px;
+            cursor: pointer; transition: transform 0.15s; display: flex; justify-content: space-between; align-items: center;
+        }
+        .note-item:active { transform: scale(0.98); }
+        .note-info { flex-grow: 1; margin-right: 12px; min-width: 0; }
+        .note-title { font-weight: 700; font-size: 15px; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .note-date { font-size: 12px; color: var(--text-sub); }
+        .flex-center { display: flex; align-items: center; gap: 6px; }
+        .detail-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; gap: 10px; }
+
+        .summary-box {
+            position: relative; overflow: hidden; background: var(--bg-secondary); border-radius: 16px;
+            padding: 16px 16px 16px 22px; font-size: 14px; line-height: 1.6; white-space: pre-wrap;
+        }
+        .summary-box::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: var(--grad); }
+
+        /* ナビ */
+        .bottom-nav-container {
+            position: fixed; bottom: 0; left: 0; width: 100%; height: 72px;
+            background: var(--nav-bg); border-top: 1px solid var(--bg-secondary);
+            z-index: 500; display: flex; justify-content: space-around; align-items: center;
+            padding-bottom: env(safe-area-inset-bottom);
+            transition: background-color var(--transition-smooth), border-color var(--transition-smooth);
         }
         .nav-item {
-            width: 52px; height: 52px;
-            display: flex; align-items: center; justify-content: center;
-            cursor: pointer; border-radius: 26px; color: var(--text-sub);
-            transition: all 0.3s var(--m3-easing);
-            position: relative;
+            flex: 1; height: 100%; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; cursor: pointer;
+            color: var(--text-sub); transition: color 0.25s var(--m3-easing); gap: 3px;
         }
-        .nav-item.active {
-            background: var(--accent-primary); color: white;
-            transform: scale(1.05);
+        .nav-item .material-symbols-outlined {
+            font-size: 24px; font-variation-settings: 'FILL' 0, 'wght' 400;
+            padding: 3px 18px; border-radius: 16px; transition: background 0.25s, color 0.25s, font-variation-settings 0.2s;
         }
+        .nav-label { font-size: 10px; font-weight: 600; }
+        .nav-item.active { color: var(--nav-icon-active); }
+        .nav-item.active .material-symbols-outlined { font-variation-settings: 'FILL' 1, 'wght' 600; background: var(--grad); color: #FFF; }
 
-        /* --- View Management --- */
         .view { display: none; }
-        .view.active { display: block; animation: viewIn 0.4s var(--m3-easing); }
-        @keyframes viewIn {
-            from { opacity: 0; transform: translateY(12px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        .view.active { display: block; animation: viewIn 0.3s var(--m3-easing); }
+        @keyframes viewIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* --- Speech Recognition Panel Custom --- */
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 6px 14px;
-            border-radius: 12px;
-            font-size: 13px;
-            font-weight: 600;
-            background: var(--bg-secondary);
-            margin-bottom: 12px;
-        }
-        .status-badge.recording {
-            background: #FEE2E2;
-            color: #EF4444;
-            animation: pulse 1.5s infinite;
-        }
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.6; }
-            100% { opacity: 1; }
-        }
-
-        /* Flag Image Config */
-        .flag-selector-wrapper {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 10px;
-            margin-bottom: 16px;
-        }
-        .flag-option {
-            background: var(--bg-secondary);
-            padding: 10px;
-            border-radius: 16px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.2s;
-            border: 2px solid transparent !important;
-        }
-        .flag-option.selected {
-            border: 2px solid var(--accent-primary) !important;
-            background: var(--glass-bg);
-        }
-        .flag-img {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            object-fit: cover;
-            display: block;
-            margin: 0 auto 6px;
-        }
-        .flag-label {
-            font-size: 11px;
-            font-weight: 600;
-        }
-
-        /* Live Transcription Output */
-        .live-note-editor {
-            border-radius: 16px;
-            background: var(--bg-secondary);
-            padding: 16px;
-            min-height: 180px;
-            max-height: 350px;
-            overflow-y: auto;
-            font-size: 14px;
-            line-height: 1.6;
-            color: var(--text-main);
-        }
-        .transcription-line {
-            display: flex;
-            align-items: flex-start;
-            gap: 10px;
-            margin-bottom: 8px;
-            padding-bottom: 8px;
-            border-bottom: 1px dashed rgba(139, 92, 246, 0.2);
-        }
-        .transcription-time {
-            font-size: 11px;
-            background: var(--accent-primary);
-            color: white;
-            padding: 2px 6px;
-            border-radius: 6px;
-            white-space: nowrap;
-            margin-top: 3px;
-        }
-        .transcription-text {
-            word-break: break-all;
-        }
-
-        /* Note list item & editor UI */
-        .note-item {
-            background: var(--glass-bg);
-            border-radius: 18px;
-            padding: 16px;
-            margin-bottom: 12px;
-            cursor: pointer;
-            transition: transform 0.2s;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .note-item:hover {
-            transform: translateY(-2px);
-        }
-        .note-info {
-            flex-grow: 1;
-            margin-right: 12px;
-        }
-        .note-title {
-            font-weight: 700;
-            font-size: 15px;
-            margin-bottom: 4px;
-            color: var(--text-main);
-        }
-        .note-date {
-            font-size: 12px;
-            color: var(--text-sub);
-        }
-
-        /* Detailed view */
-        .detail-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 16px;
-        }
-
-        /* Info disclaimer styling */
-        .security-badge {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 14px;
-            border-radius: 12px;
-            background: rgba(139, 92, 246, 0.1);
-            color: var(--accent-primary);
-            font-size: 12px;
-            font-weight: 600;
-            margin-bottom: 16px;
-        }
-
-        /* --- Dialog Overlay --- */
+        /* ダイアログ & トースト */
         .dialog-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5);
+            position: fixed; inset: 0; background: rgba(0,0,0,0.5);
             z-index: 1000; display: flex; align-items: center; justify-content: center;
             opacity: 0; visibility: hidden; transition: all 0.3s var(--m3-easing);
         }
         .dialog-overlay.active { opacity: 1; visibility: visible; }
+        .dialog-overlay.top { z-index: 4000; }
         .glass-dialog {
-            background: var(--glass-bg);
-            border-radius: 28px;
-            padding: 24px; max-width: 420px; width: 90%; text-align: left;
+            background: var(--glass-bg); border-radius: var(--ptz-card-radius);
+            padding: 24px; max-width: 440px; width: 90%; text-align: left; max-height: 86vh; display: flex; flex-direction: column;
             transform: scale(0.9) translateY(20px); transition: all 0.4s var(--m3-easing);
         }
         .dialog-overlay.active .glass-dialog { transform: scale(1) translateY(0); }
-
-        /* --- Toast Alert --- */
+        .dialog-scroll { overflow-y: auto; margin: 14px 0 18px; font-size: 13.5px; line-height: 1.65; color: var(--text-sub); white-space: pre-wrap; }
+        .ball-popup {
+            position: fixed; left: 50%; bottom: 84px; z-index: 900; pointer-events: none;
+            display: flex; flex-direction: column; align-items: center; gap: 10px;
+            opacity: 0; transform: translateX(-50%) translateY(40px) scale(0.85);
+            transition: opacity 0.25s ease, transform 0.35s var(--m3-easing);
+        }
+        .ball-popup.show { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); animation: ballBounce 0.5s var(--m3-easing); }
+        @keyframes ballBounce { 0% { transform: translateX(-50%) translateY(40px) scale(0.8); } 60% { transform: translateX(-50%) translateY(-10px) scale(1.05); } 100% { transform: translateX(-50%) translateY(0) scale(1); } }
+        .ball-popup img { width: 120px; height: 120px; object-fit: contain; filter: drop-shadow(0 8px 12px rgba(0,0,0,0.3)); }
+        .ball-bubble {
+            position: relative; max-width: 80vw; background: var(--text-main); color: var(--glass-bg);
+            padding: 10px 18px; border-radius: 18px; font-size: 15px; font-weight: 700; text-align: center;
+        }
+        .ball-bubble::after {
+            content: ''; position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%);
+            border-width: 9px 9px 0 9px; border-style: solid; border-color: var(--text-main) transparent transparent transparent;
+        }
         .toast {
-            position: fixed;
-            bottom: 110px;
-            left: 50%;
+            position: fixed; bottom: 84px; left: 50%;
             transform: translateX(-50%) translateY(20px);
-            background: var(--text-main);
-            color: var(--glass-bg);
-            padding: 10px 20px;
-            border-radius: 12px;
-            font-size: 13px;
-            font-weight: 600;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.3s var(--m3-easing);
-            z-index: 2000;
+            background: var(--text-main); color: var(--glass-bg);
+            padding: 10px 20px; border-radius: 12px; font-size: 13px; font-weight: 600;
+            opacity: 0; visibility: hidden; transition: all 0.3s var(--m3-easing);
+            z-index: 5000; max-width: 90vw; text-align: center;
         }
-        .toast.active {
-            opacity: 1;
-            visibility: visible;
-            transform: translateX(-50%) translateY(0);
-        }
+        .toast.active { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0); }
 
-        .summary-box {
-            background: rgba(139, 92, 246, 0.05);
-            border-radius: 16px;
-            padding: 16px;
-            font-size: 14px;
-            line-height: 1.6;
-            margin-top: 14px;
-            border-left: 4px solid var(--accent-primary);
-            white-space: pre-wrap;
+        /* 初回起動: プライバシー画面 */
+        #privacy-screen {
+            position: fixed; inset: 0; z-index: 3000; background: var(--bg-base);
+            display: flex; flex-direction: column; justify-content: space-between;
+            padding: env(safe-area-inset-top) 24px calc(env(safe-area-inset-bottom) + 24px);
+            overflow-y: auto;
         }
-
-        .btn-row {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            margin-top: 12px;
+        html.consented #privacy-screen { display: none; }
+        .privacy-body { padding-top: max(8vh, 40px); text-align: center; }
+        .privacy-icon {
+            width: 128px; height: 128px; margin: 0 auto 22px; border-radius: 32px; background: #FFF;
+            display: flex; align-items: center; justify-content: center; overflow: hidden;
         }
-
-        .flex-center {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
+        .privacy-icon img { width: 84%; height: 84%; object-fit: contain; }
+        .privacy-icon .material-symbols-outlined { font-size: 64px; }
+        #privacy-screen h1 { font-size: 24px; font-weight: 600; margin: 0 0 28px; letter-spacing: -0.3px; }
+        #privacy-text { font-size: 17px; line-height: 1.7; color: var(--text-main); text-align: left; margin: 0 4px; }
+        .privacy-footer { margin-top: 24px; }
+        .privacy-legal { font-size: 14.5px; line-height: 1.7; color: var(--text-sub); margin: 0 4px 22px; }
+        .privacy-legal a { color: var(--accent-primary); text-decoration: underline; cursor: pointer; }
+        .privacy-actions { display: flex; gap: 14px; }
+        .privacy-actions .ai-btn { flex: 1; height: 56px; border-radius: 28px; font-size: 17px; }
+        #privacy-decline { background: var(--bg-secondary); border-color: transparent; color: var(--text-main); }
     </style>
 </head>
 <body>
+<script>
+    // 初期テーマを描画前に反映
+    (function () {
+        var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        try { var s = localStorage.getItem('pbt_dark'); if (s !== null) dark = s === '1'; } catch (e) {}
+        if (dark) document.body.classList.add('dark-mode');
+    })();
+</script>
 
+<div id="app-viewport">
     <header>
-        <div class="header-content">
-            <img class="header-logo-img" src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbpark/refs/heads/main/AI/Transkriptsummary/res/assets/Transkript.png" alt="PB Transkript" onerror="this.style.display='none'">
-            <div class="logo">Loca文字起こし＆AI要約</div>
+        <div class="logo">
+            <img src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbpark/refs/heads/main/AI/Transkriptsummary/res/assets/Transkript.png" alt="" onerror="this.style.display='none'">
+            Loca文字起こし＆AI要約
         </div>
-        <button class="theme-toggle" id="theme-btn">
+        <button class="theme-toggle" id="theme-btn" title="テーマ切り替え">
             <span class="material-symbols-outlined">light_mode</span>
         </button>
     </header>
 
-    <div id="app-viewport">
-        <main id="main-content">
-            
-            <!-- VIEW: Home (Real-time Recorder) -->
+    <main id="main-scroll-area">
+        <div id="overscroll-wrapper">
+
+            <!-- 文字起こし -->
             <section id="view-home" class="view active">
                 <div class="security-badge">
-                    <span class="material-symbols-outlined">security</span>
-                    <span>セキュリティおよび個人情報保護のため、音声録音機能はありません。<br>文字起こしにAIは使用していません。ブラウザが処理します。<br>GoogleAIにより文字起こし要約は処理されます。しかし、要約をしない限り処理されません。</span>
+                    <span class="material-symbols-outlined grad-text">security</span>
+                    <span>相手のプライバシーに配慮し、音声は録音・保存しません。文字起こしはブラウザの音声認識機能で行われ、ブラウザによっては音声が提供元のサーバーで処理されます。要約を実行したときだけ、文字起こしテキストが Google Gemini に送信されます。</span>
                 </div>
 
                 <div class="glass-card">
-                    <h2>
-                        <span class="material-symbols-outlined">mic</span>
-                        リアルタイム文字起こし
-                    </h2>
-                    <p>対象の言語を選択し、開始ボタンを押してください。発話の区切りごとにタイムスタンプが付与されます。</p>
+                    <h2><span class="material-symbols-outlined grad-text">mic</span>リアルタイム文字起こし</h2>
+                    <p>対象の言語を選択し、開始ボタンを押してください。発話の区切りごとにタイムスタンプが付きます。</p>
 
-                    <!-- Language Selection (Flags) -->
-                    <div class="flag-selector-wrapper">
-                        <!-- Japan -->
-                        <div class="flag-option selected" onclick="selectLanguage('ja-JP', 'japan', this)">
-                            <img class="flag-img" src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/japan/normal.png" alt="Japan" onerror="this.src='https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=80&q=80'">
+                    <div class="flag-selector-wrapper" id="flag-selector">
+                        <div class="flag-option selected" data-lang="ja-JP" data-ball="japan">
+                            <img class="flag-img" src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/japan/normal.png" alt="" onerror="this.style.visibility='hidden'">
                             <div class="flag-label">日本語</div>
                         </div>
-                        <!-- USA (English) -->
-                        <div class="flag-option" onclick="selectLanguage('en-US', 'usa', this)">
-                            <img class="flag-img" src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/usa/normal.png" alt="usa" onerror="this.src='https://images.unsplash.com/photo-1501594907352-04cda38ebc29?auto=format&fit=crop&w=80&q=80'">
+                        <div class="flag-option" data-lang="en-US" data-ball="usa">
+                            <img class="flag-img" src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/usa/normal.png" alt="" onerror="this.style.visibility='hidden'">
                             <div class="flag-label">English</div>
                         </div>
-                        <!-- Germany -->
-                        <div class="flag-option" onclick="selectLanguage('de-DE', 'germany', this)">
-                            <img class="flag-img" src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/germany/normal.png" alt="Germany" onerror="this.src='https://images.unsplash.com/photo-1467269204594-9661b134dd2b?auto=format&fit=crop&w=80&q=80'">
+                        <div class="flag-option" data-lang="de-DE" data-ball="germany">
+                            <img class="flag-img" src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/germany/normal.png" alt="" onerror="this.style.visibility='hidden'">
                             <div class="flag-label">Deutsch</div>
                         </div>
-                        <!-- China -->
-                        <div class="flag-option" onclick="selectLanguage('zh-CN', 'china', this)">
-                            <img class="flag-img" src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/china/normal.png" alt="China" onerror="this.src='https://images.unsplash.com/photo-1508672019048-805c876b67e2?auto=format&fit=crop&w=80&q=80'">
+                        <div class="flag-option" data-lang="zh-CN" data-ball="china">
+                            <img class="flag-img" src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/china/normal.png" alt="" onerror="this.style.visibility='hidden'">
                             <div class="flag-label">中文</div>
                         </div>
-                        <!-- Korea -->
-                        <div class="flag-option" onclick="selectLanguage('ko-KR', 'korea', this)">
-                            <img class="flag-img" src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/korea/normal.png" alt="Korea" onerror="this.src='https://images.unsplash.com/photo-1517154421773-0529f29ea451?auto=format&fit=crop&w=80&q=80'">
+                        <div class="flag-option" data-lang="ko-KR" data-ball="korea">
+                            <img class="flag-img" src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/korea/normal.png" alt="" onerror="this.style.visibility='hidden'">
                             <div class="flag-label">한국어</div>
                         </div>
                     </div>
 
-                    <!-- Recording Controller -->
-                    <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 16px;">
+                    <div style="display:flex; gap:12px; align-items:center; margin-bottom:16px; flex-wrap:wrap;">
                         <button class="ai-btn" id="record-toggle-btn">
                             <span class="material-symbols-outlined" id="mic-icon">play_arrow</span>
                             <span id="record-btn-text">文字起こし開始</span>
@@ -511,1032 +400,751 @@
                         </div>
                     </div>
 
-                    <!-- Note Title Input -->
                     <div class="glass-input-wrapper">
-                        <label style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 6px;">ノートタイトル (未入力の場合は現在時刻になります)</label>
+                        <label class="field" for="current-note-title">ノートタイトル (未入力の場合は現在時刻になります)</label>
                         <input type="text" class="glass-input" id="current-note-title" placeholder="会議メモ、授業など...">
                     </div>
 
-                    <!-- Realtime Transcription Box -->
                     <div class="live-note-editor" id="live-transcription-box">
-                        <div style="color: var(--text-sub); font-style: italic; text-align: center; margin-top: 60px;">ここにリアルタイムの文字起こし結果が表示されます。</div>
+                        <div class="placeholder-msg">ここにリアルタイムの文字起こし結果が表示されます。</div>
                     </div>
 
-                    <!-- Save Operations -->
-                    <div class="btn-row" style="margin-top: 14px;">
-                        <button class="ai-btn ai-btn-secondary" id="save-note-btn" disabled>
-                            <span class="material-symbols-outlined">save</span>
-                            ノートを保存
-                        </button>
-                        <button class="ai-btn ai-btn-secondary ai-btn-danger" id="clear-live-btn">
-                            <span class="material-symbols-outlined">delete</span>
-                            クリア
-                        </button>
+                    <div class="btn-row" style="margin-top:14px;">
+                        <button class="ai-btn" id="save-note-btn" disabled><span class="material-symbols-outlined">save</span>ノートを保存</button>
+                        <button class="ai-btn ai-btn-danger-outline" id="clear-live-btn"><span class="material-symbols-outlined">delete</span>クリア</button>
                     </div>
                 </div>
             </section>
 
-            <!-- VIEW: Notes List & Detail (Interactive Notes Tab) -->
+            <!-- ノート -->
             <section id="view-notes" class="view">
                 <div class="glass-card" id="notes-list-container">
-                    <h2>
-                        <span class="material-symbols-outlined">folder</span>
-                        保存された文字起こし
-                    </h2>
-                    <p>保存された文字起こしノートを選択して、編集、要約、またはエクスポートを行います。</p>
-                    <div id="notes-list" style="margin-top: 14px;">
-                        <!-- JS Loaded dynamic elements -->
+                    <h2><span class="material-symbols-outlined grad-text">folder</span>保存された文字起こし</h2>
+                    <p>ノートを選択して、編集・要約・エクスポートができます。</p>
+                    <div class="glass-input-wrapper">
+                        <input type="search" class="glass-input" id="notes-search" placeholder="タイトルや本文で検索...">
                     </div>
+                    <div id="notes-list"></div>
                 </div>
 
-                <!-- Note Editor Panel (Shown when a note is active) -->
-                <div class="glass-card" id="note-editor-container" style="display: none;">
+                <div class="glass-card" id="note-editor-container" style="display:none;">
                     <div class="detail-header">
-                        <button class="ai-btn ai-btn-secondary" onclick="closeNoteEditor()" style="padding: 8px 16px;">
-                            <span class="material-symbols-outlined">arrow_back</span>
-                            一覧に戻る
-                        </button>
-                        <div class="flex-center">
-                            <span class="material-symbols-outlined" style="color: var(--accent-primary);">edit_note</span>
-                            <span style="font-weight: 700;">ノート詳細編集</span>
-                        </div>
+                        <button class="ai-btn ai-btn-secondary ai-btn-small" id="back-btn"><span class="material-symbols-outlined">arrow_back</span>一覧に戻る</button>
+                        <div class="flex-center"><span class="material-symbols-outlined grad-text">edit_note</span><span style="font-weight:700;">ノート編集</span></div>
                     </div>
 
-                    <!-- Edit Details Form -->
                     <div class="glass-input-wrapper">
-                        <label style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 4px;">タイトル</label>
+                        <label class="field" for="edit-note-title">タイトル</label>
                         <input type="text" class="glass-input" id="edit-note-title">
                     </div>
 
-                    <div style="margin-bottom: 14px;">
-                        <label style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 4px;">文字起こし内容</label>
-                        <!-- Editable Area with Time Markers -->
-                        <div class="live-note-editor" id="edit-note-content" contenteditable="true" style="white-space: pre-wrap;"></div>
+                    <div style="margin-bottom:14px;">
+                        <label class="field">文字起こし内容 (タップして編集できます)</label>
+                        <div class="live-note-editor" id="edit-note-content"></div>
                     </div>
 
-                    <!-- AI Summary Box -->
-                    <div id="ai-summary-wrapper" style="margin-top: 16px; margin-bottom: 16px;">
-                        <h3 style="font-size: 16px; font-weight: 700; margin: 0 0 8px 0; display: flex; align-items: center; gap: 6px;">
-                            <span class="material-symbols-outlined" style="color: var(--accent-primary);">psychology</span>
-                            AI要約結果
-                        </h3>
-                        <p style="font-size: 12px; margin-bottom: 6px;">※設定タブでAPIキーを設定した後、要約ボタンを押してください。</p>
-                        <div class="summary-box" id="summary-content-display">要約はまだ作成されていません。下のボタンからAI要約をリクエストしてください。</div>
+                    <div style="margin:18px 0;">
+                        <h2 style="font-size:16px;margin-bottom:6px;"><span class="material-symbols-outlined grad-text">psychology</span>AI要約結果</h2>
+                        <p style="font-size:12px;margin-bottom:8px;">※設定タブでAPIキーを入力してから、要約ボタンを押してください。</p>
+                        <div class="summary-box" id="summary-content-display"></div>
                     </div>
 
                     <div class="btn-row">
-                        <button class="ai-btn" id="generate-ai-summary-btn">
-                            <span class="material-symbols-outlined">auto_awesome</span>
-                            AIで要約を生成
-                        </button>
-                        <button class="ai-btn ai-btn-secondary" id="download-note-txt-btn">
-                            <span class="material-symbols-outlined">download</span>
-                            TXTでダウンロード
-                        </button>
-                        <button class="ai-btn ai-btn-secondary" id="save-edited-note-btn">
-                            <span class="material-symbols-outlined">check</span>
-                            編集を保存
-                        </button>
-                        <button class="ai-btn ai-btn-secondary ai-btn-danger" id="delete-note-btn" style="margin-left: auto;">
-                            <span class="material-symbols-outlined">delete</span>
-                            削除
-                        </button>
+                        <button class="ai-btn" id="generate-ai-summary-btn"><span class="material-symbols-outlined">auto_awesome</span>AIで要約を生成</button>
+                        <button class="ai-btn ai-btn-secondary" id="copy-note-btn"><span class="material-symbols-outlined">content_copy</span>コピー</button>
+                        <button class="ai-btn ai-btn-secondary" id="download-note-txt-btn"><span class="material-symbols-outlined">download</span>TXT</button>
+                    </div>
+                    <div class="btn-row">
+                        <button class="ai-btn" id="save-edited-note-btn"><span class="material-symbols-outlined">check</span>編集を保存</button>
+                        <button class="ai-btn ai-btn-danger-outline" id="delete-note-btn" style="margin-left:auto;"><span class="material-symbols-outlined">delete</span>削除</button>
                     </div>
                 </div>
             </section>
 
-            <!-- VIEW: Settings & Config -->
+            <!-- 設定 -->
             <section id="view-settings" class="view">
                 <div class="glass-card">
-                    <h2>
-                        <span class="material-symbols-outlined">settings</span>
-                        要約設定 (Gemini API)
-                    </h2>
-                    <p>文字起こしデータを要約するためには、Google Gemini APIキーが必要です。</p>
-                    
+                    <h2><span class="material-symbols-outlined grad-text">settings</span>要約設定 (Gemini API)</h2>
+                    <p>要約には Google Gemini API キーが必要です。キーはこの端末のブラウザ内にだけ保存されます。</p>
                     <div class="glass-input-wrapper">
-                        <label style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 6px;">Gemini API キー</label>
-                        <input type="password" class="glass-input" id="settings-gemini-key" placeholder="AIzaSy...">
+                        <label class="field" for="settings-gemini-key">Gemini API キー</label>
+                        <input type="password" class="glass-input" id="settings-gemini-key" placeholder="AIzaSy..." autocomplete="off">
                     </div>
-
-                    <div class="glass-input-wrapper">
-                        <label style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 6px;">使用するモデル</label>
-                        <input type="text" class="glass-input" id="settings-gemini-model" value="gemini-2.5-flash-lite" placeholder="gemini-2.5-flash-lite, gemini-2.5-flash-preview-09-2025など">
-                    </div>
-                </div>
-
-                <div class="glass-card">
-                    <h2>
-                        <span class="material-symbols-outlined">cleaning_services</span>
-                        フィルター機能
-                    </h2>
-                    <p>文脈に合わせて無駄なフィラーワード（あの、えと、えっと、えー、など）を取り除いて文字起こしを行います。</p>
-                    
-                    <div class="toggle-row">
-                        <span>フィラー自動除去機能</span>
-                        <label class="switch">
-                            <input type="checkbox" id="settings-filler-toggle" checked>
-                            <span class="slider"></span>
-                        </label>
+                    <div class="glass-input-wrapper" style="margin-bottom:0;">
+                        <label class="field" for="settings-gemini-model">使用するモデル</label>
+                        <input type="text" class="glass-input" id="settings-gemini-model" value="gemini-2.5-flash-lite" placeholder="gemini-2.5-flash-lite など">
                     </div>
                 </div>
 
                 <div class="glass-card">
-                    <h2>
-                        <span class="material-symbols-outlined">swap_driving_side</span>
-                        バックアップ / リストア (ZIP)
-                    </h2>
-                    <p>現在保存されている文字起こし履歴全体の保存および他環境からのリストアを、単一のZIPパッケージで実行可能です。</p>
-                    
-                    <div class="btn-row">
-                        <button class="ai-btn" id="export-zip-btn">
-                            <span class="material-symbols-outlined">folder_zip</span>
-                            全体のセーブ (ZIP形式でDL)
-                        </button>
-                        <button class="ai-btn ai-btn-secondary" onclick="document.getElementById('import-file-input').click()">
-                            <span class="material-symbols-outlined">upload_file</span>
-                            リストア (ZIPインポート)
-                        </button>
-                        <input type="file" id="import-file-input" style="display: none;" accept=".zip">
+                    <h2><span class="material-symbols-outlined grad-text">cleaning_services</span>フィルター機能</h2>
+                    <p>「あの」「えっと」などのフィラーワードを取り除いて文字起こしします。</p>
+                    <div class="custom-list">
+                        <div class="list-item">
+                            <div class="list-item-title">フィラー自動除去</div>
+                            <label class="switch"><input type="checkbox" id="settings-filler-toggle" checked><span class="slider"></span></label>
+                        </div>
                     </div>
                 </div>
 
                 <div class="glass-card">
-                    <h2>
-                        <span class="material-symbols-outlined">palette</span>
-                        テーマ & デザイン
-                    </h2>
-                    <div class="toggle-row">
-                        <span>セマンティックダークモード</span>
-                        <label class="switch">
-                            <input type="checkbox" id="darkmode-toggle">
-                            <span class="slider"></span>
-                        </label>
+                    <h2><span class="material-symbols-outlined grad-text">swap_driving_side</span>バックアップ / リストア (ZIP)</h2>
+                    <p>保存済みの文字起こしをまとめて ZIP に書き出し、別の環境へ復元できます。</p>
+                    <div class="btn-row" style="margin-top:0;">
+                        <button class="ai-btn" id="export-zip-btn"><span class="material-symbols-outlined">folder_zip</span>全体をセーブ (ZIP)</button>
+                        <button class="ai-btn ai-btn-secondary" id="import-btn"><span class="material-symbols-outlined">upload_file</span>リストア</button>
+                        <input type="file" id="import-file-input" style="display:none;" accept=".zip">
+                    </div>
+                </div>
+
+                <div class="glass-card">
+                    <h2><span class="material-symbols-outlined grad-text">palette</span>テーマ</h2>
+                    <div class="custom-list">
+                        <div class="list-item">
+                            <div class="list-item-title">ダークモード</div>
+                            <label class="switch"><input type="checkbox" id="darkmode-toggle"><span class="slider"></span></label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card">
+                    <h2><span class="material-symbols-outlined grad-text">privacy_tip</span>プライバシー</h2>
+                    <div class="btn-row" style="margin-top:0;">
+                        <button class="ai-btn ai-btn-secondary" id="open-terms-btn">利用規約</button>
+                        <button class="ai-btn ai-btn-secondary" id="open-privacy-btn">プライバシーポリシー</button>
+                        <button class="ai-btn ai-btn-danger-outline" id="revoke-btn">同意を取り消す</button>
                     </div>
                 </div>
             </section>
-        </main>
-    </div>
 
-    <!-- Navigation Bar -->
-    <div class="nav-container">
-        <nav class="nav-rail">
-            <div class="nav-item active" data-view="view-home">
-                <span class="material-symbols-outlined">mic</span>
-            </div>
-            <div class="nav-item" data-view="view-notes" id="nav-notes-tab">
-                <span class="material-symbols-outlined">description</span>
-            </div>
-            <div class="nav-item" data-view="view-settings">
-                <span class="material-symbols-outlined">settings</span>
-            </div>
-        </nav>
-    </div>
+        </div>
+    </main>
 
-    <!-- Modal Dialog System -->
-    <div class="dialog-overlay" id="main-dialog">
-        <div class="glass-dialog">
-            <div style="display: flex; align-items: center; gap: 8px;">
-                <span class="material-symbols-outlined" style="font-size: 32px; color: var(--accent-primary);" id="dialog-icon">info</span>
-                <h2 style="margin: 0;" id="dialog-title">通知</h2>
-            </div>
-            <p style="margin-top: 14px; margin-bottom: 20px;" id="dialog-body"></p>
-            <div style="display: flex; justify-content: flex-end; gap: 8px;" id="dialog-buttons">
-                <button class="ai-btn" onclick="closeDialog()">閉じる</button>
-            </div>
+    <div class="bottom-nav-container">
+        <div class="nav-item active" data-view="view-home"><span class="material-symbols-outlined">mic</span><span class="nav-label">文字起こし</span></div>
+        <div class="nav-item" data-view="view-notes"><span class="material-symbols-outlined">description</span><span class="nav-label">ノート</span></div>
+        <div class="nav-item" data-view="view-settings"><span class="material-symbols-outlined">settings</span><span class="nav-label">設定</span></div>
+    </div>
+</div>
+
+<!-- 初回起動: プライバシー画面 -->
+<div id="privacy-screen" role="dialog" aria-modal="true" aria-labelledby="privacy-title">
+    <div class="privacy-body">
+        <div class="privacy-icon">
+            <img src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbpark/refs/heads/main/AI/Transkriptsummary/res/assets/Transkript.png" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'material-symbols-outlined grad-text',textContent:'mic'}))">
+        </div>
+        <h1 id="privacy-title">Loca文字起こし＆AI要約</h1>
+        <p id="privacy-text">Loca文字起こし＆AI要約へようこそ！このアプリでは、話した内容をリアルタイムで文字に起こし、ノートとして保存したり、AIで要約したりすることができます。</p>
+    </div>
+    <div class="privacy-footer">
+        <p class="privacy-legal">続ける前に、<a id="link-terms" role="button" tabindex="0">利用規約</a>と<a id="link-privacy" role="button" tabindex="0">プライバシーポリシー</a>を読んで同意してください。</p>
+        <div class="privacy-actions">
+            <button class="ai-btn" id="privacy-decline">同意しない</button>
+            <button class="ai-btn" id="privacy-accept">同意</button>
         </div>
     </div>
-
-    <!-- Toast Notification Message Box -->
-    <div class="toast" id="toast-message">メッセージ</div>
-
-    <script>
-        /**
-         * PB 文字起こし-AI要約 Core Logic
-         * IndexedDB によるノートデータおよび設定の永続化
-         */
-
-        const viewport = document.getElementById('app-viewport');
-        const themeBtn = document.getElementById('theme-btn');
-        const themeIcon = themeBtn.querySelector('span');
-        const toast = document.getElementById('toast-message');
-
-        // State 管理
-        let currentLangCode = 'ja-JP';
-        let currentCountryBall = 'japan';
-        let isRecording = false;
-        let recognition = null;
-        let db = null;
-        let currentSessionLines = [];
-        let startTime = null;
-        let activeNoteId = null;
-
-        // フィラー単語リスト
-        const fillerWords = ['あの', 'えと', 'えっと', 'えー', 'えーと', 'あのー', 'まあ', 'ま、', 'なんか', 'なんていうか'];
-
-        // --- 1. IndexedDB 初期設定 ---
-        function initDB() {
-            return new Promise((resolve, reject) => {
-                const request = indexedDB.open('PB_Transcription_DB', 1);
-                request.onupgradeneeded = (e) => {
-                    const dbInstance = e.target.result;
-                    if (!dbInstance.objectStoreNames.contains('notes')) {
-                        dbInstance.createObjectStore('notes', { keyPath: 'id', autoIncrement: true });
-                    }
-                    if (!dbInstance.objectStoreNames.contains('settings')) {
-                        dbInstance.createObjectStore('settings', { keyPath: 'key' });
-                    }
-                };
-                request.onsuccess = (e) => {
-                    db = e.target.result;
-                    resolve(db);
-                };
-                request.onerror = (e) => reject(e);
-            });
-        }
-
-        // 汎用 IndexedDB 操作
-        function getSetting(key, defaultValue) {
-            return new Promise((resolve) => {
-                if (!db) return resolve(defaultValue);
-                const transaction = db.transaction(['settings'], 'readonly');
-                const store = transaction.objectStore('settings');
-                const req = store.get(key);
-                req.onsuccess = () => {
-                    resolve(req.result ? req.result.value : defaultValue);
-                };
-                req.onerror = () => resolve(defaultValue);
-            });
-        }
-
-        function saveSetting(key, value) {
-            return new Promise((resolve) => {
-                if (!db) return resolve();
-                const transaction = db.transaction(['settings'], 'readwrite');
-                const store = transaction.objectStore('settings');
-                store.put({ key, value });
-                transaction.oncomplete = () => resolve();
-            });
-        }
-
-        function getAllNotes() {
-            return new Promise((resolve) => {
-                if (!db) return resolve([]);
-                const transaction = db.transaction(['notes'], 'readonly');
-                const store = transaction.objectStore('notes');
-                const req = store.getAll();
-                req.onsuccess = () => {
-                    // 最新順にソートして返却
-                    const sorted = req.result.sort((a, b) => b.timestamp - a.timestamp);
-                    resolve(sorted);
-                };
-                req.onerror = () => resolve([]);
-            });
-        }
-
-        function saveNote(note) {
-            return new Promise((resolve) => {
-                if (!db) return resolve();
-                const transaction = db.transaction(['notes'], 'readwrite');
-                const store = transaction.objectStore('notes');
-                const req = store.put(note);
-                req.onsuccess = (e) => resolve(req.result);
-            });
-        }
-
-        function deleteNoteFromDB(id) {
-            return new Promise((resolve) => {
-                if (!db) return resolve();
-                const transaction = db.transaction(['notes'], 'readwrite');
-                const store = transaction.objectStore('notes');
-                const req = store.delete(id);
-                req.onsuccess = () => resolve();
-            });
-        }
-
-        // --- 2. 音声認識エンジン (WebKitSpeechRecognition) ---
-        function initSpeechRecognition() {
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!SpeechRecognition) {
-                showDialog('音声認識非対応', 'お使いのブラウザは音声認識に対応していません。Google Chromeなどの対応ブラウザをご利用ください。');
-                return;
-            }
-
-            recognition = new SpeechRecognition();
-            recognition.continuous = true;
-            recognition.interimResults = false;
-            recognition.lang = currentLangCode;
-
-            recognition.onstart = () => {
-                isRecording = true;
-                updateRecordingUI();
-            };
-
-            recognition.onresult = (event) => {
-                const results = event.results;
-                const latestResult = results[results.length - 1];
-                if (latestResult.isFinal) {
-                    let transcript = latestResult[0].transcript.trim();
-                    if (!transcript) return;
-
-                    // フィラー自動除去ロジック
-                    const isFillerEnabled = document.getElementById('settings-filler-toggle').checked;
-                    if (isFillerEnabled) {
-                        transcript = cleanFillerWords(transcript);
-                    }
-
-                    if (transcript.length === 0) return;
-
-                    // 秒数を計算
-                    const now = new Date();
-                    const diffMs = now - startTime;
-                    const elapsedStr = formatElapsedTime(diffMs);
-
-                    const line = {
-                        time: elapsedStr,
-                        text: transcript,
-                        timestamp: now.getTime()
-                    };
-
-                    currentSessionLines.push(line);
-                    appendLineToLiveBox(line);
-                    document.getElementById('save-note-btn').disabled = false;
-                }
-            };
-
-            recognition.onerror = (event) => {
-                console.error('Speech recognition error', event.error);
-                if (event.error === 'not-allowed') {
-                    showDialog('マイクアクセス拒否', 'マイクへのアクセスが拒否されています。ブラウザの設定でマイクの許可をお願いします。');
-                    stopRecording();
-                }
-            };
-
-            recognition.onend = () => {
-                if (isRecording) {
-                    // 継続して音声を取得するために再起動
-                    try {
-                        recognition.start();
-                    } catch (e) {
-                        console.error('Recognition restart error:', e);
-                    }
-                }
-            };
-        }
-
-        // フィラー除去アルゴリズム
-        function cleanFillerWords(text) {
-            let processed = text;
-            
-            // 厳密な単語マッチや、日本語特有の接辞としてのフィラーワード除去
-            // 日本語の助詞につづく「あの、えと」などの除去
-            fillerWords.forEach(word => {
-                // 正規表現で文脈的なフィラーを取り除く
-                const regex = new RegExp(`(^|\\s|、|。)${word}(、|。|\\s|$)`, 'g');
-                processed = processed.replace(regex, '$1$2');
-            });
-
-            // 余分な句読点の修正
-            processed = processed.replace(/、+/g, '、').replace(/。+/g, '。');
-            processed = processed.replace(/^、|^。/, '');
-            
-            return processed.trim();
-        }
-
-        // 経過時間フォーマッタ (HH:MM:SS)
-        function formatElapsedTime(ms) {
-            const totalSeconds = Math.floor(ms / 1000);
-            const hours = Math.floor(totalSeconds / 3600);
-            const minutes = Math.floor((totalSeconds % 3600) / 60);
-            const seconds = totalSeconds % 60;
-
-            const pad = (num) => String(num).padStart(2, '0');
-            return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
-        }
-
-        function selectLanguage(langCode, countryBall, element) {
-            if (isRecording) {
-                showToast('録音中は言語を変更できません。一度停止してください。');
-                return;
-            }
-            currentLangCode = langCode;
-            currentCountryBall = countryBall;
-
-            // UIのトグル切り替え
-            document.querySelectorAll('.flag-option').forEach(opt => opt.classList.remove('selected'));
-            element.classList.add('selected');
-
-            if (recognition) {
-                recognition.lang = currentLangCode;
-            }
-            showToast(`言語を ${element.querySelector('.flag-label').textContent} に切り替えました。`);
-        }
-
-        function toggleRecording() {
-            if (!recognition) {
-                initSpeechRecognition();
-            }
-
-            if (!recognition) return;
-
-            if (isRecording) {
-                stopRecording();
-            } else {
-                startRecording();
-            }
-        }
-
-        function startRecording() {
-            startTime = new Date();
-            currentSessionLines = [];
-            const liveBox = document.getElementById('live-transcription-box');
-            liveBox.innerHTML = '';
-            
-            try {
-                recognition.start();
-                showToast('音声認識を開始しました。');
-            } catch (e) {
-                console.error(e);
-            }
-        }
-
-        function stopRecording() {
-            isRecording = false;
-            if (recognition) {
-                try {
-                    recognition.stop();
-                } catch (e) {
-                    console.error(e);
-                }
-            }
-            updateRecordingUI();
-            showToast('音声認識を停止しました。');
-        }
-
-        function updateRecordingUI() {
-            const toggleBtn = document.getElementById('record-toggle-btn');
-            const micIcon = document.getElementById('mic-icon');
-            const btnText = document.getElementById('record-btn-text');
-            const statusBadge = document.getElementById('recording-status');
-            const statusText = document.getElementById('status-text');
-
-            if (isRecording) {
-                toggleBtn.classList.add('ai-btn-danger');
-                micIcon.textContent = 'stop';
-                btnText.textContent = '文字起こし停止';
-                statusBadge.classList.add('recording');
-                statusText.textContent = '音声検出中...';
-            } else {
-                toggleBtn.classList.remove('ai-btn-danger');
-                micIcon.textContent = 'play_arrow';
-                btnText.textContent = '文字起こし開始';
-                statusBadge.classList.remove('recording');
-                statusText.textContent = '待機中';
-            }
-        }
-
-        function appendLineToLiveBox(line) {
-            const liveBox = document.getElementById('live-transcription-box');
-            // 初期プレースホルダー除去
-            if (liveBox.querySelector('em') || liveBox.innerText.includes('ここにリアルタイム')) {
-                liveBox.innerHTML = '';
-            }
-
-            const lineEl = document.createElement('div');
-            lineEl.className = 'transcription-line';
-            lineEl.innerHTML = `
-                <span class="transcription-time">${line.time}</span>
-                <span class="transcription-text">${escapeHTML(line.text)}</span>
-            `;
-            liveBox.appendChild(lineEl);
-            liveBox.scrollTop = liveBox.scrollHeight;
-        }
-
-        // --- 3. ノートの保存 & 管理システム ---
-        async function handleSaveNote() {
-            if (currentSessionLines.length === 0) return;
-
-            const titleInput = document.getElementById('current-note-title').value.trim();
-            const now = new Date();
-            const dateStr = now.toLocaleString('ja-JP');
-            const finalTitle = titleInput || `文字起こし - ${dateStr}`;
-
-            const newNote = {
-                title: finalTitle,
-                language: currentLangCode,
-                country: currentCountryBall,
-                lines: currentSessionLines,
-                timestamp: now.getTime(),
-                dateText: dateStr,
-                summary: ''
-            };
-
-            await saveNote(newNote);
-            showToast('ノートを IndexedDB に保存しました！');
-            
-            // クリーンアップ
-            document.getElementById('current-note-title').value = '';
-            document.getElementById('live-transcription-box').innerHTML = `<div style="color: var(--text-sub); font-style: italic; text-align: center; margin-top: 60px;">ここにリアルタイムの文字起こし結果が表示されます。</div>`;
-            document.getElementById('save-note-btn').disabled = true;
-            currentSessionLines = [];
-
-            // ノートリストへ切り替え
-            switchView('view-notes');
-            loadNotesList();
-        }
-
-        async function loadNotesList() {
-            const notes = await getAllNotes();
-            const listContainer = document.getElementById('notes-list');
-            listContainer.innerHTML = '';
-
-            if (notes.length === 0) {
-                listContainer.innerHTML = `
-                    <div style="text-align: center; padding: 40px; color: var(--text-sub);">
-                        <span class="material-symbols-outlined" style="font-size: 48px; opacity: 0.5;">description</span>
-                        <p style="margin-top: 10px;">保存されたノートはまだありません。</p>
-                    </div>
-                `;
-                return;
-            }
-
-            notes.forEach(note => {
-                const item = document.createElement('div');
-                item.className = 'note-item';
-                item.onclick = () => openNoteEditor(note);
-
-                // 国旗画像 fallback
-                const flagSrc = `https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/${note.country}/normal.png`;
-
-                item.innerHTML = `
-                    <div class="note-info">
-                        <div class="note-title">${escapeHTML(note.title)}</div>
-                        <div class="note-date">${note.dateText} (${getLanguageLabel(note.language)})</div>
-                    </div>
-                    <div class="flex-center">
-                        <img src="${flagSrc}" class="flag-img" style="width: 28px; height: 28px; margin-bottom: 0;" onerror="this.style.display='none'">
-                        <span class="material-symbols-outlined" style="color: var(--text-sub);">chevron_right</span>
-                    </div>
-                `;
-                listContainer.appendChild(item);
-            });
-        }
-
-        function getLanguageLabel(code) {
-            const map = {
-                'ja-JP': '日本語',
-                'en-US': 'English',
-                'de-DE': 'Deutsch',
-                'zh-CN': '中文',
-                'ko-KR': '한국어'
-            };
-            return map[code] || code;
-        }
-
-        // --- 4. ノート詳細エディタ / AI要約 / 再生 ---
-        let currentEditingNote = null;
-
-        function openNoteEditor(note) {
-            currentEditingNote = note;
-            activeNoteId = note.id;
-
-            document.getElementById('notes-list-container').style.display = 'none';
-            document.getElementById('note-editor-container').style.display = 'block';
-
-            document.getElementById('edit-note-title').value = note.title;
-            
-            // コンテンツをタイムスタンプつきの編集可能形式でレンダリング
-            const contentEditor = document.getElementById('edit-note-content');
-            contentEditor.innerHTML = '';
-
-            if (note.lines && note.lines.length > 0) {
-                note.lines.forEach(line => {
-                    const lineDiv = document.createElement('div');
-                    lineDiv.className = 'transcription-line';
-                    lineDiv.innerHTML = `
-                        <span class="transcription-time" contenteditable="false">${line.time}</span>
-                        <span class="transcription-text" contenteditable="true">${escapeHTML(line.text)}</span>
-                    `;
-                    contentEditor.appendChild(lineDiv);
-                });
-            } else {
-                contentEditor.innerHTML = '<div style="color: var(--text-sub);">内容がありません。</div>';
-            }
-
-            // 要約表示
-            const summaryDisplay = document.getElementById('summary-content-display');
-            if (note.summary) {
-                summaryDisplay.textContent = note.summary;
-                summaryDisplay.style.color = 'var(--text-main)';
-            } else {
-                summaryDisplay.textContent = '要約はまだ作成されていません。下のボタンからAI要約をリクエストしてください。';
-                summaryDisplay.style.color = 'var(--text-sub)';
-            }
-        }
-
-        function closeNoteEditor() {
-            document.getElementById('notes-list-container').style.display = 'block';
-            document.getElementById('note-editor-container').style.display = 'none';
-            currentEditingNote = null;
-            activeNoteId = null;
-            loadNotesList();
-        }
-
-        async function handleSaveEditedNote() {
-            if (!currentEditingNote) return;
-
-            const updatedTitle = document.getElementById('edit-note-title').value.trim();
-            if (!updatedTitle) {
-                showToast('タイトルを入力してください。');
-                return;
-            }
-
-            // エディタ内の編集後データ再構成
-            const contentEditor = document.getElementById('edit-note-content');
-            const lineElems = contentEditor.querySelectorAll('.transcription-line');
-            const updatedLines = [];
-
-            lineElems.forEach(el => {
-                const timeStr = el.querySelector('.transcription-time').textContent;
-                const textStr = el.querySelector('.transcription-text').textContent.trim();
-                if (textStr) {
-                    updatedLines.push({
-                        time: timeStr,
-                        text: textStr,
-                        timestamp: Date.now() // 近似
-                    });
-                }
-            });
-
-            currentEditingNote.title = updatedTitle;
-            currentEditingNote.lines = updatedLines;
-            // 要約も保存
-            currentEditingNote.summary = document.getElementById('summary-content-display').textContent;
-
-            await saveNote(currentEditingNote);
-            showToast('編集内容を保存しました。');
-            loadNotesList();
-        }
-
-        async function handleDeleteNote() {
-            if (!currentEditingNote) return;
-
-            showConfirmDialog('削除の確認', 'この文字起こしデータを完全に削除してもよろしいですか？', async () => {
-                await deleteNoteFromDB(currentEditingNote.id);
-                showToast('ノートを削除しました。');
-                closeNoteEditor();
-            });
-        }
-
-        // --- 5. Gemini API 要約エンジン ---
-        async function handleAISummary() {
-            if (!currentEditingNote) return;
-
-            const apiKey = document.getElementById('settings-gemini-key').value.trim();
-            const model = document.getElementById('settings-gemini-model').value.trim() || 'gemini-2.5-flash-lite';
-
-            if (!apiKey) {
-                showDialog('APIキー未設定', '設定タブにて有効なGemini APIキーを入力してください。');
-                return;
-            }
-
-            // 本文テキストの構築
-            const contentEditor = document.getElementById('edit-note-content');
-            const textToSummarize = Array.from(contentEditor.querySelectorAll('.transcription-text'))
-                .map(el => el.textContent)
-                .join('\n');
-
-            if (!textToSummarize) {
-                showToast('要約するテキストが存在しません。');
-                return;
-            }
-
-            const summaryDisplay = document.getElementById('summary-content-display');
-            summaryDisplay.textContent = '要約生成中... しばらくお待ちください。';
-            summaryDisplay.style.color = 'var(--text-sub)';
-
-            const prompt = `以下の文字起こしテキストの内容を、分かりやすく綺麗に構成した日本語の文章で要約してください。重要な決定事項、議論の要旨、次のステップに分けて整理してください：\n\n${textToSummarize}`;
-
-            try {
-                const summary = await callGeminiAPI(apiKey, model, prompt);
-                summaryDisplay.textContent = summary;
-                summaryDisplay.style.color = 'var(--text-main)';
-                
-                // 即座にオブジェクトを更新してIndexedDBへ格納
-                currentEditingNote.summary = summary;
-                await saveNote(currentEditingNote);
-                showToast('AI要約の作成が完了し、自動保存しました！');
-            } catch (err) {
-                summaryDisplay.textContent = `要約に失敗しました：${err.message}`;
-                summaryDisplay.style.color = '#EF4444';
-            }
-        }
-
-        // 指数バックオフ対応APIコール
-        async function callGeminiAPI(apiKey, model, prompt) {
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-            const payload = {
-                contents: [{ parts: [{ text: prompt }] }]
-            };
-
-            let retries = 5;
-            let delay = 1000;
-
-            for (let i = 0; i < retries; i++) {
-                try {
-                    const response = await fetch(url, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(payload)
-                    });
-
-                    if (response.ok) {
-                        const data = await response.json();
-                        const textResult = data.candidates?.[0]?.content?.parts?.[0]?.text;
-                        if (textResult) {
-                            return textResult;
-                        } else {
-                            throw new Error('APIレスポンスからテキストを抽出できませんでした。');
-                        }
-                    } else {
-                        const errDetails = await response.text();
-                        console.error(`Gemini Error details: ${errDetails}`);
-                    }
-                } catch (e) {
-                    console.warn(`Attempt ${i+1} failed. Retrying...`);
-                }
-
-                if (i < retries - 1) {
-                    await new Promise(r => setTimeout(r, delay));
-                    delay *= 2;
-                }
-            }
-
-            throw new Error('5回のリトライ後もAPIから有効な応答を得られませんでした。キーの有効性やネットワーク接続を確認してください。');
-        }
-
-        // TXTエクスポート
-        function handleDownloadTxt() {
-            if (!currentEditingNote) return;
-
-            const title = currentEditingNote.title;
-            const contentEditor = document.getElementById('edit-note-content');
-            const lines = Array.from(contentEditor.querySelectorAll('.transcription-line'))
-                .map(el => {
-                    const t = el.querySelector('.transcription-time').textContent;
-                    const txt = el.querySelector('.transcription-text').textContent;
-                    return `[${t}] ${txt}`;
-                }).join('\n');
-
-            const summary = currentEditingNote.summary ? `\n\n【AI要約】\n${currentEditingNote.summary}` : '';
-            const fullOutput = `タイトル: ${title}\n日付: ${currentEditingNote.dateText}\n\n【文字起こし詳細】\n${lines}${summary}`;
-
-            const blob = new Blob([fullOutput], { type: 'text/plain;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${title.replace(/[\/\\?%*:|"<>\s]/g, '_')}.txt`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            showToast('ノートをダウンロードしました。');
-        }
-
-        // --- 6. 全バックアップ & リストア (Zip形式 / JSZip) ---
-        async function handleExportZip() {
-            const notes = await getAllNotes();
-            if (notes.length === 0) {
-                showToast('保存するメモがありません。');
-                return;
-            }
-
-            const zip = new JSZip();
-            // JSON メタデータ
-            zip.file('metadata.json', JSON.stringify(notes, null, 2));
-
-            // テキストファイル群も同封してバックアップを閲覧可能にする
-            const folder = zip.folder("transcriptions");
-            notes.forEach(note => {
-                const textLines = note.lines.map(l => `[${l.time}] ${l.text}`).join('\n');
-                const fileContent = `Title: ${note.title}\nDate: ${note.dateText}\n\n---\n${textLines}\n\n---\nSummary:\n${note.summary || ''}`;
-                folder.file(`${note.id}_${note.title.replace(/[\/\\?%*:|"<>\s]/g, '_')}.txt`, fileContent);
-            });
-
-            const content = await zip.generateAsync({ type: 'blob' });
-            const url = URL.createObjectURL(content);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `PB_Transcription_Backup_${Date.now()}.zip`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            showToast('全体バックアップZIPをエクスポートしました。');
-        }
-
-        function handleImportZip(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                try {
-                    const zip = await JSZip.loadAsync(e.target.result);
-                    const metadataFile = zip.file('metadata.json');
-                    if (!metadataFile) {
-                        showDialog('復元エラー', 'ZIPファイル内に有効なバックアップデータ (metadata.json) が見つかりません。');
-                        return;
-                    }
-
-                    const jsonStr = await metadataFile.async('string');
-                    const importedNotes = JSON.parse(jsonStr);
-
-                    if (!Array.isArray(importedNotes)) {
-                        throw new Error('無効なデータ形式です。');
-                    }
-
-                    // DBにマージして保存
-                    for (const note of importedNotes) {
-                        // IDが衝突しないように新規追加、あるいは既存を上書き
-                        await saveNote(note);
-                    }
-
-                    showDialog('リストア成功', 'すべての文字起こしデータを正常にインポートしました！', () => {
-                        loadNotesList();
-                        switchView('view-notes');
-                    });
-                } catch (err) {
-                    showDialog('リストア失敗', `ZIPファイルの解析に失敗しました。ファイルが破損しているか、非対応の形式です：\n${err.message}`);
-                }
-            };
-            reader.readAsArrayBuffer(file);
-            // インプットの値をリセットして再度のインポートに対応
-            event.target.value = '';
-        }
-
-        // --- 7. ダイアログ & UI ヘルパーシステム ---
-        function showDialog(title, body, onConfirm = null) {
-            document.getElementById('dialog-title').textContent = title;
-            document.getElementById('dialog-body').textContent = body;
-            const btnContainer = document.getElementById('dialog-buttons');
-            
-            if (onConfirm) {
-                btnContainer.innerHTML = `
-                    <button class="ai-btn ai-btn-secondary" onclick="closeDialog()">キャンセル</button>
-                    <button class="ai-btn" id="dialog-confirm-btn">確認</button>
-                `;
-                document.getElementById('dialog-confirm-btn').onclick = () => {
-                    closeDialog();
-                    onConfirm();
-                };
-            } else {
-                btnContainer.innerHTML = `<button class="ai-btn" onclick="closeDialog()">閉じる</button>`;
-            }
-
-            document.getElementById('main-dialog').classList.add('active');
-        }
-
-        function showConfirmDialog(title, body, onConfirm) {
-            showDialog(title, body, onConfirm);
-        }
-
-        function closeDialog() {
-            document.getElementById('main-dialog').classList.remove('active');
-        }
-
-        function showToast(msg) {
-            toast.textContent = msg;
-            toast.classList.add('active');
-            setTimeout(() => {
-                toast.classList.remove('active');
-            }, 2800);
-        }
-
-        function escapeHTML(str) {
-            if (!str) return '';
-            return str.replace(/[&<>'"]/g, 
-                tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
-            );
-        }
-
-        // --- 8. テーマ & 環境設定システム ---
-        function setTheme(isDark) {
-            document.body.classList.toggle('dark-mode', isDark);
-            themeIcon.textContent = isDark ? 'dark_mode' : 'light_mode';
-            
-            const dmToggle = document.getElementById('darkmode-toggle');
-            if (dmToggle) {
-                dmToggle.checked = isDark;
-            }
-            saveSetting('dark_mode', isDark);
-        }
-
-        // --- 9. ビューの切り替えプロトコル ---
-        const navItems = document.querySelectorAll('.nav-item');
-        const views = document.querySelectorAll('.view');
-
-        function switchView(viewId) {
-            navItems.forEach(n => {
-                n.classList.remove('active');
-                if (n.getAttribute('data-view') === viewId) {
-                    n.classList.add('active');
-                }
-            });
-
-            views.forEach(v => {
-                v.classList.remove('active');
-                if (v.id === viewId) {
-                    v.classList.add('active');
-                    viewport.scrollTo({ top: 0, behavior: 'smooth' });
-                }
-            });
-
-            // 遷移ごとのアクション
-            if (viewId === 'view-notes') {
-                loadNotesList();
-            }
-        }
-
-        // --- 10. 初期化フック ---
-        window.onload = async () => {
-            // DBロード
-            await initDB();
-
-            // 設定読み込み
-            const savedApiKey = await getSetting('gemini_api_key', '');
-            const savedModel = await getSetting('gemini_model', 'gemini-2.5-flash-lite');
-            const savedFiller = await getSetting('filler_enabled', true);
-            const savedDarkMode = await getSetting('dark_mode', false);
-
-            document.getElementById('settings-gemini-key').value = savedApiKey;
-            document.getElementById('settings-gemini-model').value = savedModel;
-            document.getElementById('settings-filler-toggle').checked = savedFiller;
-            setTheme(savedDarkMode);
-
-            // リスナー設定
-            document.getElementById('record-toggle-btn').addEventListener('click', toggleRecording);
-            document.getElementById('save-note-btn').addEventListener('click', handleSaveNote);
-            document.getElementById('clear-live-btn').addEventListener('click', () => {
-                currentSessionLines = [];
-                document.getElementById('live-transcription-box').innerHTML = `<div style="color: var(--text-sub); font-style: italic; text-align: center; margin-top: 60px;">ここにリアルタイムの文字起こし結果が表示されます。</div>`;
-                document.getElementById('save-note-btn').disabled = true;
-                showToast('セッションのテキストをクリアしました。');
-            });
-
-            // エディタ内リスナー
-            document.getElementById('save-edited-note-btn').addEventListener('click', handleSaveEditedNote);
-            document.getElementById('delete-note-btn').addEventListener('click', handleDeleteNote);
-            document.getElementById('download-note-txt-btn').addEventListener('click', handleDownloadTxt);
-            document.getElementById('generate-ai-summary-btn').addEventListener('click', handleAISummary);
-
-            // 設定保存リスナー
-            document.getElementById('settings-gemini-key').addEventListener('input', (e) => {
-                saveSetting('gemini_api_key', e.target.value.trim());
-            });
-            document.getElementById('settings-gemini-model').addEventListener('input', (e) => {
-                saveSetting('gemini_model', e.target.value.trim() || 'gemini-2.5-flash-lite');
-            });
-            document.getElementById('settings-filler-toggle').addEventListener('change', (e) => {
-                saveSetting('filler_enabled', e.target.checked);
-            });
-
-            // ZIP インポート
-            document.getElementById('import-file-input').addEventListener('change', handleImportZip);
-            document.getElementById('export-zip-btn').addEventListener('click', handleExportZip);
-
-            // テーマボタン切り替え
-            themeBtn.addEventListener('click', () => {
-                setTheme(!document.body.classList.contains('dark-mode'));
-            });
-            document.getElementById('darkmode-toggle').addEventListener('change', (e) => {
-                setTheme(e.target.checked);
-            });
-
-            // ナビゲーション
-            navItems.forEach(item => {
-                item.addEventListener('click', () => {
-                    const viewId = item.getAttribute('data-view');
-                    switchView(viewId);
-                });
-            });
-
-            // クリックスクィーズ (Jellyフィードバック)
-            document.addEventListener('mousedown', (e) => {
-                const target = e.target.closest('.glass-card, .ai-btn, .nav-item, .note-item, .flag-option');
-                if (target) {
-                    target.classList.remove('squish-active');
-                    void target.offsetWidth; // Force Reflow
-                    target.classList.add('squish-active');
-                    
-                    setTimeout(() => {
-                        target.classList.remove('squish-active');
-                    }, 400);
-                }
-            });
+</div>
+
+<!-- 汎用ダイアログ -->
+<div class="dialog-overlay" id="main-dialog">
+    <div class="glass-dialog">
+        <h2 id="dialog-title" style="margin-bottom:0;">通知</h2>
+        <div class="dialog-scroll" id="dialog-body"></div>
+        <div style="display:flex; justify-content:flex-end; gap:8px;" id="dialog-buttons"></div>
+    </div>
+</div>
+
+<!-- 規約ダイアログ (プライバシー画面より前面) -->
+<div class="dialog-overlay top" id="legal-dialog">
+    <div class="glass-dialog">
+        <h2 id="legal-title" style="margin-bottom:0;"></h2>
+        <div class="dialog-scroll" id="legal-body"></div>
+        <div style="display:flex; justify-content:flex-end;"><button class="ai-btn" id="legal-close">閉じる</button></div>
+    </div>
+</div>
+
+<!-- 言語ボタンで出てくるボール -->
+<div class="ball-popup" id="ball-popup" aria-live="polite">
+    <div class="ball-bubble" id="ball-bubble"></div>
+    <img id="ball-img" alt="">
+</div>
+
+<div class="toast" id="toast-message"></div>
+
+<script>
+/* ============================================================
+   PB 文字起こし-AI要約  (ShowMeCSS Edition)
+   ノート・設定は IndexedDB に保存
+   ============================================================ */
+const $ = id => document.getElementById(id);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const PRIVACY_KEY = 'pbt_privacy_v1';
+
+let currentLangCode = 'ja-JP';
+let currentCountryBall = 'japan';
+let isRecording = false;
+let recognition = null;
+let db = null;
+let currentSessionLines = [];
+let startTime = null;
+let currentEditingNote = null;
+let allNotesCache = [];
+
+const fillerWords = ['あの', 'えと', 'えっと', 'えー', 'えーと', 'あのー', 'まあ', 'ま、', 'なんか', 'なんていうか'];
+
+/* ---------- IndexedDB ---------- */
+function initDB() {
+    return new Promise(resolve => {
+        let req;
+        try { req = indexedDB.open('PB_Transcription_DB', 1); } catch (e) { return resolve(null); }
+        req.onupgradeneeded = e => {
+            const d = e.target.result;
+            if (!d.objectStoreNames.contains('notes')) d.createObjectStore('notes', { keyPath: 'id', autoIncrement: true });
+            if (!d.objectStoreNames.contains('settings')) d.createObjectStore('settings', { keyPath: 'key' });
         };
-    </script>
+        req.onsuccess = e => { db = e.target.result; resolve(db); };
+        req.onerror = () => resolve(null);
+    });
+}
+const getSetting = (key, def) => new Promise(resolve => {
+    if (!db) return resolve(def);
+    const r = db.transaction(['settings'], 'readonly').objectStore('settings').get(key);
+    r.onsuccess = () => resolve(r.result ? r.result.value : def);
+    r.onerror = () => resolve(def);
+});
+const saveSetting = (key, value) => new Promise(resolve => {
+    if (!db) return resolve();
+    const t = db.transaction(['settings'], 'readwrite');
+    t.objectStore('settings').put({ key, value });
+    t.oncomplete = () => resolve(); t.onerror = () => resolve();
+});
+const getAllNotes = () => new Promise(resolve => {
+    if (!db) return resolve([]);
+    const r = db.transaction(['notes'], 'readonly').objectStore('notes').getAll();
+    r.onsuccess = () => resolve(r.result.sort((a, b) => b.timestamp - a.timestamp));
+    r.onerror = () => resolve([]);
+});
+const saveNote = note => new Promise(resolve => {
+    if (!db) return resolve();
+    const r = db.transaction(['notes'], 'readwrite').objectStore('notes').put(note);
+    r.onsuccess = () => resolve(r.result); r.onerror = () => resolve();
+});
+const deleteNoteFromDB = id => new Promise(resolve => {
+    if (!db) return resolve();
+    const r = db.transaction(['notes'], 'readwrite').objectStore('notes').delete(id);
+    r.onsuccess = () => resolve(); r.onerror = () => resolve();
+});
+
+/* ---------- UI ヘルパー ---------- */
+let toastTimer;
+function showToast(msg) {
+    const t = $('toast-message');
+    t.textContent = msg; t.classList.add('active');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('active'), 2600);
+}
+function escapeHTML(s) {
+    if (!s) return '';
+    return s.replace(/[&<>'"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[c]));
+}
+function closeDialog() { $('main-dialog').classList.remove('active'); }
+function showDialog(title, body, onConfirm) {
+    $('dialog-title').textContent = title;
+    $('dialog-body').textContent = body;
+    const box = $('dialog-buttons');
+    box.innerHTML = '';
+    const mk = (text, cls, fn) => { const b = document.createElement('button'); b.className = 'ai-btn ' + cls; b.textContent = text; b.onclick = fn; box.appendChild(b); };
+    if (onConfirm) {
+        mk('キャンセル', 'ai-btn-secondary', closeDialog);
+        mk('確認', '', () => { closeDialog(); onConfirm(); });
+    } else {
+        mk('閉じる', '', closeDialog);
+    }
+    $('main-dialog').classList.add('active');
+}
+
+/* ---------- テーマ ---------- */
+function setTheme(isDark, persist = true) {
+    document.body.classList.toggle('dark-mode', isDark);
+    $('theme-btn').querySelector('span').textContent = isDark ? 'dark_mode' : 'light_mode';
+    $('darkmode-toggle').checked = isDark;
+    if (persist) {
+        try { localStorage.setItem('pbt_dark', isDark ? '1' : '0'); } catch (e) {}
+        saveSetting('dark_mode', isDark);
+    }
+}
+
+/* ---------- 規約 & プライバシー ---------- */
+const LEGAL = {
+    terms: {
+        title: '利用規約',
+        body:
+`1. 本アプリについて
+本アプリは、ブラウザの音声認識機能を使った文字起こしと、Google Gemini API を使った要約を行うツールです。
+
+2. 認識結果について
+文字起こしや要約の内容は、正確とは限りません。重要な内容は、必ずご自身で確認してください。
+
+3. 他の人の発言を扱うとき
+会議や授業などで他の人の発言を文字に起こす場合は、相手の同意を得るなど、関係する法令・規則・プライバシーを守ってください。
+
+4. Gemini API の利用
+要約機能は、ご自身の Gemini API キーで動作します。API の利用料金や利用条件は、Google との契約に従います。
+
+5. 免責
+本アプリは現状のまま提供されます。誤認識やデータの消失などによる損害について、責任を負いません。大切なノートは、設定タブの ZIP バックアップで保管してください。`
+    },
+    privacy: {
+        title: 'プライバシーポリシー',
+        body:
+`1. 音声を録音しない理由
+本アプリは、音声を録音・保存しません。
+・相手のプライバシーに配慮するためです。話した内容は、その場で文字に変換するだけで、音声そのものは残しません。
+・場所や状況によっては、相手の同意なく音声を録音することが、法令や施設・組織の規則で禁止または制限される場合があるためです。
+文字として残す場合も、他の人の発言を扱うときは、相手の同意を得るなど配慮をお願いします。
+
+2. 文字起こしの処理
+文字起こしは、お使いのブラウザの音声認識機能で行われます。ブラウザによっては (例: Chrome)、音声が提供元のサーバーに送信されて処理されます。詳しくは、ご利用のブラウザのプライバシーポリシーをご確認ください。
+
+3. 保存されるデータ
+ノート、設定、API キーは、この端末のブラウザ内 (IndexedDB) にだけ保存されます。本アプリの提供者のサーバーには送信されません。
+
+4. 要約を実行したとき
+「AIで要約を生成」を押したときだけ、そのノートの文字起こしテキストが Google の Gemini API に送信されます。押さない限り、送信されません。
+
+5. ローカルAIを採用していない理由
+要約に、端末内で動くローカルAIを採用していない理由は、Gemini の場合は安全フィルターがあるためです。
+
+6. データの削除
+ブラウザのサイトデータを消去すると、ノートや設定も削除されます。設定タブの「同意を取り消す」で、この画面をもう一度表示できます。`
+    }
+};
+function openLegal(kind) {
+    $('legal-title').textContent = LEGAL[kind].title;
+    $('legal-body').textContent = LEGAL[kind].body;
+    $('legal-dialog').classList.add('active');
+}
+$('legal-close').onclick = () => $('legal-dialog').classList.remove('active');
+$('legal-dialog').addEventListener('click', e => { if (e.target === $('legal-dialog')) $('legal-dialog').classList.remove('active'); });
+[['link-terms', 'terms'], ['link-privacy', 'privacy']].forEach(([id, k]) => {
+    $(id).addEventListener('click', () => openLegal(k));
+    $(id).addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openLegal(k); } });
+});
+$('open-terms-btn').onclick = () => openLegal('terms');
+$('open-privacy-btn').onclick = () => openLegal('privacy');
+
+async function acceptPrivacy() {
+    try { localStorage.setItem(PRIVACY_KEY, '1'); } catch (e) {}
+    await saveSetting(PRIVACY_KEY, true);
+    document.documentElement.classList.add('consented');
+    showToast('ご利用ありがとうございます');
+}
+$('privacy-accept').onclick = acceptPrivacy;
+$('privacy-decline').onclick = () => {
+    $('privacy-text').textContent = '同意いただけない場合は、このアプリをご利用いただけません。内容をご確認のうえ、ご利用になる場合は「同意」を押してください。';
+    try { window.close(); } catch (e) {}
+};
+$('revoke-btn').onclick = () => showDialog('同意の取り消し', '同意を取り消すと、次に画面を開いたときと同じプライバシー画面が表示されます。よろしいですか？', async () => {
+    try { localStorage.removeItem(PRIVACY_KEY); } catch (e) {}
+    await saveSetting(PRIVACY_KEY, false);
+    $('privacy-text').textContent = 'Loca文字起こし＆AI要約へようこそ！このアプリでは、話した内容をリアルタイムで文字に起こし、ノートとして保存したり、AIで要約したりすることができます。';
+    document.documentElement.classList.remove('consented');
+});
+
+/* ---------- 音声認識 ---------- */
+function initSpeechRecognition() {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) {
+        showDialog('音声認識に非対応です', 'お使いのブラウザは音声認識に対応していません。Google Chrome などの対応ブラウザをご利用ください。');
+        return;
+    }
+    recognition = new SR();
+    recognition.continuous = true;
+    recognition.interimResults = false;
+    recognition.lang = currentLangCode;
+
+    recognition.onstart = () => { isRecording = true; updateRecordingUI(); };
+    recognition.onresult = event => {
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+            const r = event.results[i];
+            if (!r.isFinal) continue;
+            let text = r[0].transcript.trim();
+            if (!text) continue;
+            if ($('settings-filler-toggle').checked) text = cleanFillerWords(text);
+            if (!text) continue;
+            const line = { time: formatElapsedTime(Date.now() - startTime), text, timestamp: Date.now() };
+            currentSessionLines.push(line);
+            appendLineToLiveBox(line);
+            $('save-note-btn').disabled = false;
+        }
+    };
+    recognition.onerror = event => {
+        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+            showDialog('マイクが許可されていません', 'マイクへのアクセスが拒否されています。ブラウザの設定でマイクを許可してください。');
+            stopRecording(true);
+        } else if (event.error === 'audio-capture') {
+            showDialog('マイクが見つかりません', 'マイクが接続されているか確認してください。');
+            stopRecording(true);
+        } else if (event.error === 'network') {
+            showToast('音声認識サービスに接続できません');
+        }
+    };
+    recognition.onend = () => {
+        if (isRecording) { try { recognition.start(); } catch (e) {} }
+    };
+}
+function cleanFillerWords(text) {
+    let s = text;
+    fillerWords.forEach(w => { s = s.replace(new RegExp(`(^|\\s|、|。)${w}(、|。|\\s|$)`, 'g'), '$1$2'); });
+    return s.replace(/、+/g, '、').replace(/。+/g, '。').replace(/^、|^。/, '').trim();
+}
+function formatElapsedTime(ms) {
+    const t = Math.floor(ms / 1000), p = n => String(n).padStart(2, '0');
+    return `${p(Math.floor(t / 3600))}:${p(Math.floor((t % 3600) / 60))}:${p(t % 60)}`;
+}
+$('flag-selector').addEventListener('click', e => {
+    const opt = e.target.closest('.flag-option'); if (!opt) return;
+    if (isRecording) { showToast('文字起こし中は言語を変更できません。一度停止してください。'); return; }
+    currentLangCode = opt.dataset.lang;
+    currentCountryBall = opt.dataset.ball;
+    document.querySelectorAll('.flag-option').forEach(o => o.classList.toggle('selected', o === opt));
+    if (recognition) recognition.lang = currentLangCode;
+    showBall(opt.querySelector('.flag-img'), 'よし！聞いてるんよ！');
+});
+
+/* 言語ボタンを押したとき、そのボールが画面に出てきて話す */
+let ballTimer;
+function showBall(srcImg, text) {
+    const pop = $('ball-popup'), img = $('ball-img');
+    img.style.display = srcImg && srcImg.style.visibility !== 'hidden' ? 'block' : 'none';
+    if (srcImg && srcImg.src && img.getAttribute('src') !== srcImg.src) img.src = srcImg.src;
+    $('ball-bubble').textContent = text;
+    pop.classList.remove('show'); void pop.offsetWidth; pop.classList.add('show');
+    clearTimeout(ballTimer);
+    ballTimer = setTimeout(() => pop.classList.remove('show'), 2400);
+}
+function toggleRecording() {
+    if (!recognition) initSpeechRecognition();
+    if (!recognition) return;
+    isRecording ? stopRecording() : startRecording();
+}
+function startRecording() {
+    if (currentSessionLines.length) {
+        // 続けて録音する場合は、経過時間を引き継ぐ
+        const last = currentSessionLines[currentSessionLines.length - 1];
+        startTime = new Date(Date.now() - (parseElapsed(last.time) + 1) * 1000);
+    } else {
+        startTime = new Date();
+        $('live-transcription-box').innerHTML = '';
+    }
+    try { recognition.lang = currentLangCode; recognition.start(); showToast('音声認識を開始しました'); } catch (e) { console.error(e); }
+}
+function parseElapsed(s) { const [h, m, x] = s.split(':').map(Number); return h * 3600 + m * 60 + x; }
+function stopRecording(silent) {
+    isRecording = false;
+    if (recognition) { try { recognition.stop(); } catch (e) {} }
+    updateRecordingUI();
+    if (!silent) showToast('音声認識を停止しました');
+}
+function updateRecordingUI() {
+    const btn = $('record-toggle-btn');
+    btn.classList.toggle('ai-btn-danger', isRecording);
+    $('mic-icon').textContent = isRecording ? 'stop' : 'play_arrow';
+    $('record-btn-text').textContent = isRecording ? '文字起こし停止' : '文字起こし開始';
+    $('recording-status').classList.toggle('recording', isRecording);
+    $('status-text').textContent = isRecording ? '音声検出中...' : '待機中';
+}
+function appendLineToLiveBox(line) {
+    const box = $('live-transcription-box');
+    const ph = box.querySelector('.placeholder-msg'); if (ph) ph.remove();
+    const el = document.createElement('div');
+    el.className = 'transcription-line';
+    el.innerHTML = `<span class="transcription-time">${line.time}</span><span class="transcription-text">${escapeHTML(line.text)}</span>`;
+    box.appendChild(el);
+    box.scrollTop = box.scrollHeight;
+}
+function resetLiveBox() {
+    currentSessionLines = [];
+    $('live-transcription-box').innerHTML = '<div class="placeholder-msg">ここにリアルタイムの文字起こし結果が表示されます。</div>';
+    $('save-note-btn').disabled = true;
+}
+$('record-toggle-btn').addEventListener('click', toggleRecording);
+$('clear-live-btn').addEventListener('click', () => { resetLiveBox(); showToast('セッションのテキストをクリアしました'); });
+
+/* ---------- ノート保存 / 一覧 ---------- */
+async function handleSaveNote() {
+    if (!currentSessionLines.length) return;
+    if (isRecording) stopRecording(true);
+    const now = new Date(), dateStr = now.toLocaleString('ja-JP');
+    await saveNote({
+        title: $('current-note-title').value.trim() || `文字起こし - ${dateStr}`,
+        language: currentLangCode, country: currentCountryBall,
+        lines: currentSessionLines, timestamp: now.getTime(), dateText: dateStr, summary: ''
+    });
+    showToast('ノートを保存しました');
+    $('current-note-title').value = '';
+    resetLiveBox();
+    switchView('view-notes');
+}
+$('save-note-btn').addEventListener('click', handleSaveNote);
+
+const LANG_LABEL = { 'ja-JP': '日本語', 'en-US': 'English', 'de-DE': 'Deutsch', 'zh-CN': '中文', 'ko-KR': '한국어' };
+
+async function loadNotesList() {
+    allNotesCache = await getAllNotes();
+    renderNotesList();
+}
+function renderNotesList() {
+    const box = $('notes-list');
+    const q = $('notes-search').value.trim().toLowerCase();
+    const notes = allNotesCache.filter(n => !q || n.title.toLowerCase().includes(q) ||
+        (n.lines || []).some(l => l.text.toLowerCase().includes(q)) || (n.summary || '').toLowerCase().includes(q));
+    box.innerHTML = '';
+    if (!notes.length) {
+        box.innerHTML = `<div style="text-align:center;padding:36px 0;color:var(--text-sub);">
+            <span class="material-symbols-outlined" style="font-size:48px;opacity:0.5;">description</span>
+            <p style="margin-top:10px;margin-bottom:0;">${q ? '該当するノートがありません。' : '保存されたノートはまだありません。'}</p></div>`;
+        return;
+    }
+    notes.forEach(note => {
+        const item = document.createElement('div');
+        item.className = 'note-item';
+        item.onclick = () => openNoteEditor(note);
+        const flag = `https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/${encodeURIComponent(note.country || 'japan')}/normal.png`;
+        item.innerHTML = `
+            <div class="note-info">
+                <div class="note-title">${escapeHTML(note.title)}</div>
+                <div class="note-date">${escapeHTML(note.dateText || '')} (${LANG_LABEL[note.language] || note.language || ''})</div>
+            </div>
+            <div class="flex-center">
+                <img src="${flag}" class="flag-img" style="width:28px;height:28px;margin:0;" alt="" onerror="this.style.display='none'">
+                <span class="material-symbols-outlined" style="color:var(--text-sub);">chevron_right</span>
+            </div>`;
+        box.appendChild(item);
+    });
+}
+$('notes-search').addEventListener('input', renderNotesList);
+
+/* ---------- ノート編集 ---------- */
+const SUMMARY_EMPTY = '要約はまだ作成されていません。下のボタンからAI要約をリクエストしてください。';
+function openNoteEditor(note) {
+    currentEditingNote = note;
+    $('notes-list-container').style.display = 'none';
+    $('note-editor-container').style.display = 'block';
+    $('edit-note-title').value = note.title;
+    const ed = $('edit-note-content');
+    ed.innerHTML = '';
+    if (note.lines && note.lines.length) {
+        note.lines.forEach(line => {
+            const d = document.createElement('div');
+            d.className = 'transcription-line';
+            d.innerHTML = `<span class="transcription-time">${escapeHTML(line.time)}</span><span class="transcription-text" contenteditable="true">${escapeHTML(line.text)}</span>`;
+            ed.appendChild(d);
+        });
+    } else {
+        ed.innerHTML = '<div style="color:var(--text-sub);">内容がありません。</div>';
+    }
+    const sd = $('summary-content-display');
+    sd.textContent = note.summary || SUMMARY_EMPTY;
+    sd.style.color = note.summary ? 'var(--text-main)' : 'var(--text-sub)';
+    scrollArea.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function closeNoteEditor() {
+    $('notes-list-container').style.display = 'block';
+    $('note-editor-container').style.display = 'none';
+    currentEditingNote = null;
+    loadNotesList();
+}
+$('back-btn').onclick = closeNoteEditor;
+
+function collectEditedLines() {
+    const out = [];
+    $('edit-note-content').querySelectorAll('.transcription-line').forEach(el => {
+        const t = el.querySelector('.transcription-time'), x = el.querySelector('.transcription-text');
+        if (t && x && x.textContent.trim()) out.push({ time: t.textContent, text: x.textContent.trim(), timestamp: Date.now() });
+    });
+    return out;
+}
+async function handleSaveEditedNote() {
+    if (!currentEditingNote) return;
+    const title = $('edit-note-title').value.trim();
+    if (!title) { showToast('タイトルを入力してください'); return; }
+    currentEditingNote.title = title;
+    currentEditingNote.lines = collectEditedLines();
+    const s = $('summary-content-display').textContent;
+    currentEditingNote.summary = s === SUMMARY_EMPTY || s.startsWith('要約生成中') || s.startsWith('要約に失敗') ? (currentEditingNote.summary || '') : s;
+    await saveNote(currentEditingNote);
+    showToast('編集内容を保存しました');
+}
+$('save-edited-note-btn').onclick = handleSaveEditedNote;
+
+$('delete-note-btn').onclick = () => {
+    if (!currentEditingNote) return;
+    showDialog('削除の確認', 'この文字起こしデータを完全に削除してもよろしいですか？', async () => {
+        await deleteNoteFromDB(currentEditingNote.id);
+        showToast('ノートを削除しました');
+        closeNoteEditor();
+    });
+};
+
+function noteAsText() {
+    const lines = collectEditedLines().map(l => `[${l.time}] ${l.text}`).join('\n');
+    const sum = currentEditingNote.summary ? `\n\n【AI要約】\n${currentEditingNote.summary}` : '';
+    return `タイトル: ${$('edit-note-title').value.trim() || currentEditingNote.title}\n日付: ${currentEditingNote.dateText}\n\n【文字起こし詳細】\n${lines}${sum}`;
+}
+$('download-note-txt-btn').onclick = () => {
+    if (!currentEditingNote) return;
+    const blob = new Blob([noteAsText()], { type: 'text/plain;charset=utf-8' });
+    downloadBlob(blob, `${currentEditingNote.title.replace(/[\/\\?%*:|"<>\s]/g, '_')}.txt`);
+    showToast('ノートをダウンロードしました');
+};
+$('copy-note-btn').onclick = async () => {
+    if (!currentEditingNote) return;
+    try { await navigator.clipboard.writeText(noteAsText()); showToast('クリップボードにコピーしました'); }
+    catch (e) { showToast('コピーできませんでした'); }
+};
+function downloadBlob(blob, name) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
+
+/* ---------- Gemini 要約 ---------- */
+async function handleAISummary() {
+    if (!currentEditingNote) return;
+    const apiKey = $('settings-gemini-key').value.trim();
+    const model = $('settings-gemini-model').value.trim() || 'gemini-2.5-flash-lite';
+    if (!apiKey) { showDialog('APIキーが未設定です', '設定タブで有効な Gemini API キーを入力してください。'); return; }
+    const text = Array.from($('edit-note-content').querySelectorAll('.transcription-text')).map(e => e.textContent).join('\n');
+    if (!text.trim()) { showToast('要約するテキストがありません'); return; }
+
+    const sd = $('summary-content-display'), btn = $('generate-ai-summary-btn');
+    sd.textContent = '要約生成中... しばらくお待ちください。';
+    sd.style.color = 'var(--text-sub)';
+    btn.disabled = true;
+    const prompt = `以下の文字起こしテキストの内容を、分かりやすく綺麗に構成した日本語の文章で要約してください。重要な決定事項、議論の要旨、次のステップに分けて整理してください：\n\n${text}`;
+    try {
+        const summary = await callGeminiAPI(apiKey, model, prompt);
+        sd.textContent = summary; sd.style.color = 'var(--text-main)';
+        currentEditingNote.summary = summary;
+        currentEditingNote.lines = collectEditedLines();
+        await saveNote(currentEditingNote);
+        showToast('AI要約を作成し、保存しました');
+    } catch (err) {
+        sd.textContent = `要約に失敗しました：${err.message}`;
+        sd.style.color = 'var(--danger)';
+    } finally { btn.disabled = false; }
+}
+$('generate-ai-summary-btn').onclick = handleAISummary;
+
+async function callGeminiAPI(apiKey, model, prompt) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
+    let delay = 1000, lastErr = '';
+    for (let i = 0; i < 4; i++) {
+        try {
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+            });
+            if (res.ok) {
+                const data = await res.json();
+                const t = data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0].text;
+                if (t) return t;
+                throw new Error('APIの応答から要約を取り出せませんでした。');
+            }
+            let msg = '';
+            try { msg = (await res.json()).error.message; } catch (e) {}
+            lastErr = `HTTP ${res.status}${msg ? ' - ' + msg : ''}`;
+            // キーやモデル名の誤りなど、再試行しても直らないエラーはすぐ終了
+            if (res.status >= 400 && res.status < 500 && res.status !== 429) throw new Error(lastErr);
+        } catch (e) {
+            if (/^HTTP 4/.test(e.message) || /取り出せ/.test(e.message)) throw e;
+            lastErr = e.message || '通信エラー';
+        }
+        if (i < 3) { await new Promise(r => setTimeout(r, delay)); delay *= 2; }
+    }
+    throw new Error(`再試行しても応答を得られませんでした (${lastErr})。キーやネットワークを確認してください。`);
+}
+
+/* ---------- ZIP バックアップ ---------- */
+$('export-zip-btn').onclick = async () => {
+    if (typeof JSZip === 'undefined') { showToast('ZIPライブラリを読み込めませんでした'); return; }
+    const notes = await getAllNotes();
+    if (!notes.length) { showToast('保存するノートがありません'); return; }
+    const zip = new JSZip();
+    zip.file('metadata.json', JSON.stringify(notes, null, 2));
+    const folder = zip.folder('transcriptions');
+    notes.forEach(n => {
+        const body = (n.lines || []).map(l => `[${l.time}] ${l.text}`).join('\n');
+        folder.file(`${n.id}_${n.title.replace(/[\/\\?%*:|"<>\s]/g, '_')}.txt`,
+            `Title: ${n.title}\nDate: ${n.dateText}\n\n---\n${body}\n\n---\nSummary:\n${n.summary || ''}`);
+    });
+    downloadBlob(await zip.generateAsync({ type: 'blob' }), `PB_Transcription_Backup_${Date.now()}.zip`);
+    showToast('バックアップZIPを書き出しました');
+};
+$('import-btn').onclick = () => $('import-file-input').click();
+$('import-file-input').addEventListener('change', e => {
+    const file = e.target.files[0]; e.target.value = '';
+    if (!file) return;
+    if (typeof JSZip === 'undefined') { showToast('ZIPライブラリを読み込めませんでした'); return; }
+    const reader = new FileReader();
+    reader.onload = async ev => {
+        try {
+            const zip = await JSZip.loadAsync(ev.target.result);
+            const meta = zip.file('metadata.json');
+            if (!meta) { showDialog('復元エラー', 'ZIP内に metadata.json が見つかりません。'); return; }
+            const notes = JSON.parse(await meta.async('string'));
+            if (!Array.isArray(notes)) throw new Error('無効なデータ形式です。');
+            for (const n of notes) await saveNote(n);
+            showDialog('リストア成功', `${notes.length} 件のノートを復元しました。同じIDのノートは上書きされています。`);
+            switchView('view-notes');
+        } catch (err) {
+            showDialog('リストア失敗', `ZIPの解析に失敗しました：\n${err.message}`);
+        }
+    };
+    reader.readAsArrayBuffer(file);
+});
+
+/* ---------- 設定 ---------- */
+$('settings-gemini-key').addEventListener('input', e => saveSetting('gemini_api_key', e.target.value.trim()));
+$('settings-gemini-model').addEventListener('input', e => saveSetting('gemini_model', e.target.value.trim() || 'gemini-2.5-flash-lite'));
+$('settings-filler-toggle').addEventListener('change', e => saveSetting('filler_enabled', e.target.checked));
+$('theme-btn').addEventListener('click', () => setTheme(!document.body.classList.contains('dark-mode')));
+$('darkmode-toggle').addEventListener('change', e => setTheme(e.target.checked));
+
+/* ---------- ナビ ---------- */
+const scrollArea = $('main-scroll-area');
+const navItems = document.querySelectorAll('.nav-item');
+function switchView(viewId) {
+    navItems.forEach(n => n.classList.toggle('active', n.dataset.view === viewId));
+    document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === viewId));
+    scrollArea.scrollTo({ top: 0, behavior: 'smooth' });
+    if (viewId === 'view-notes') {
+        if (currentEditingNote) { /* 編集中のまま */ } else loadNotesList();
+    }
+}
+navItems.forEach(n => n.addEventListener('click', () => switchView(n.dataset.view)));
+
+/* ---------- 弾性オーバースクロール ---------- */
+
+
+/* ---------- 初期化 ---------- */
+window.addEventListener('load', async () => {
+    await initDB();
+    $('settings-gemini-key').value = await getSetting('gemini_api_key', '');
+    $('settings-gemini-model').value = await getSetting('gemini_model', 'gemini-2.5-flash-lite');
+    $('settings-filler-toggle').checked = await getSetting('filler_enabled', true);
+    setTheme(document.body.classList.contains('dark-mode'), false);
+
+    // localStorage が消えていても、IndexedDB に同意記録があれば復元
+    if (!document.documentElement.classList.contains('consented') && await getSetting(PRIVACY_KEY, false) === true) {
+        try { localStorage.setItem(PRIVACY_KEY, '1'); } catch (e) {}
+        document.documentElement.classList.add('consented');
+    }
+    loadNotesList();
+});
+</script>
 </body>
 </html>
