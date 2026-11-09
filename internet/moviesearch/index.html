@@ -1,503 +1,769 @@
----
-layout: default
-title: 動画を検索
----
 <!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
-    <title>PB-Intelligence Videos</title>
+    <title>PB-Videos</title>
 
-    <!-- Google Fonts & Material Symbols -->
+    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/poland/lol.png">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
 
     <style>
+        /* ShowMeCSS (MCSS) ベーステーマ */
         :root {
-            --ai-grad-primary: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #3b82f6 100%);
-            --ai-grad-active: linear-gradient(135deg, #f43f5e 0%, #8b5cf6 50%, #0ea5e9 100%);
-            --glass-bg: rgba(255, 255, 255, 0.4);
-            --glass-border: rgba(255, 255, 255, 0.5);
-            --glass-blur: 25px;
-            --text-main: #1d1d1f;
-            --text-sub: #48484a;
-            --bg-base: #f5f5f7;
+            --accent-primary: #3381FF;
+            --accent-active: #1A5FCC;
+
+            --ptz-card-radius: 24px;
+            --ptz-toggle-width: 54px;
+            --ptz-toggle-height: 30px;
+            --ptz-toggle-knob-radius: 50%;
+            --ptz-toggle-knob-width: 22px;
+
+            --bg-base: #F7F7F7;
+            --glass-bg: #FFFFFF;
+            --text-main: #000000;
+            --text-sub: #666666;
+            --bg-secondary: #EEEEEE;
+            --nav-bg: #FFFFFF;
+            --nav-icon-active: #000000;
+            --danger: #E5484D;
+
             --m3-easing: cubic-bezier(0.32, 0.72, 0, 1);
-            --transition-smooth: 0.5s var(--m3-easing);
+            --transition-smooth: 0.35s var(--m3-easing);
+            --card-padding: 24px;
+            --nav-h: 72px;
+        }
+        .dark-mode {
+            --bg-base: #121212;
+            --glass-bg: #1E1E1E;
+            --text-main: #FFFFFF;
+            --text-sub: #A1A1A6;
+            --bg-secondary: #2C2C2E;
+            --nav-bg: #1E1E1E;
+            --nav-icon-active: #FFFFFF;
         }
 
-        .dark-mode {
-            --glass-bg: rgba(28, 28, 30, 0.4);
-            --glass-border: rgba(255, 255, 255, 0.1);
-            --text-main: #f5f5f7;
-            --text-sub: #a1a1a6;
-            --bg-base: #000000;
-        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
         body {
             margin: 0; padding: 0;
             font-family: 'Plus Jakarta Sans', 'Noto Sans JP', sans-serif;
             background-color: var(--bg-base);
             color: var(--text-main);
-            transition: background-color var(--transition-smooth);
-            overflow: hidden;
-            height: 100vh; width: 100vw;
+            transition: background-color var(--transition-smooth), color var(--transition-smooth);
+            overflow: hidden; height: 100vh; width: 100vw;
         }
-
-        /* --- Background --- */
-        .liquid-bg {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            z-index: -1; overflow: hidden; filter: blur(80px); opacity: 0.8;
-            pointer-events: none;
-        }
-        .liquid-blob {
-            position: absolute;
-            background: var(--ai-grad-primary);
-            border-radius: 50%;
-            width: 600px; height: 600px;
-            mix-blend-mode: multiply;
-            animation: blobFlow 20s infinite alternate ease-in-out;
-            will-change: transform;
-        }
-        .dark-mode .liquid-blob { mix-blend-mode: screen; opacity: 0.5; }
-
-        @keyframes blobFlow {
-            0% { transform: translate(-10%, -10%) scale(1); border-radius: 60% 40% 30% 70%/60% 30% 70% 40%; }
-            50% { transform: translate(20%, 10%) scale(1.1); border-radius: 30% 60% 70% 40%/50% 60% 30% 60%; }
-            100% { transform: translate(-5%, 20%) scale(0.9); border-radius: 60% 40% 30% 70%/60% 30% 70% 40%; }
-        }
-
-        /* --- Header --- */
-        header {
-            position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-            height: 72px; padding: 0 32px;
-            display: flex; align-items: center; justify-content: space-between;
-            background: var(--glass-bg);
-            backdrop-filter: blur(var(--glass-blur));
-            border-bottom: 1px solid var(--glass-border);
-        }
-        .logo {
-            font-weight: 700; font-size: 22px; letter-spacing: -0.5px;
-            background: var(--ai-grad-primary);
-            -webkit-background-clip: text; -webkit-fill-color: transparent;
-            display: flex; align-items: center; gap: 10px;
-        }
-        .logo img { width: 32px; height: 32px; object-fit: contain; }
-
-        /* --- App Layout --- */
         #app-viewport {
-            height: 100vh;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-            padding-bottom: 200px; /* Space for search bar */
+            height: 100vh; display: flex; flex-direction: column;
+            justify-content: space-between; overflow: hidden;
         }
+        header {
+            height: 64px; padding: 0 24px;
+            display: flex; align-items: center; justify-content: center;
+            background: var(--bg-base); transition: background-color var(--transition-smooth);
+            position: relative; flex-shrink: 0; z-index: 10;
+        }
+        .logo { font-weight: 700; font-size: 18px; letter-spacing: -0.5px; display: flex; align-items: center; gap: 8px; }
+        .logo img { width: 30px; height: 30px; object-fit: contain; }
+        .theme-toggle {
+            position: absolute; right: 24px; width: 40px; height: 40px;
+            border-radius: 50%; border: none; background: var(--bg-secondary);
+            color: var(--text-main); cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: background var(--transition-smooth), transform 0.2s;
+        }
+        .theme-toggle:active { transform: scale(0.92); }
 
         main {
-            padding: 100px 24px 150px;
-            max-width: 900px; margin: 0 auto;
-            transition: opacity 0.3s ease;
+            flex-grow: 1; overflow-y: auto;
+            padding: 12px 20px 100px; max-width: 720px; width: 100%; margin: 0 auto;
+            -webkit-overflow-scrolling: touch; overscroll-behavior-y: none; will-change: transform;
         }
+        #overscroll-wrapper { transform-origin: center top; transition: transform 0s linear; }
+        #overscroll-wrapper.spring-back { transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
 
-        /* --- Cards & UI Elements --- */
         .glass-card {
-            background: var(--glass-bg);
-            backdrop-filter: blur(var(--glass-blur)) saturate(180%);
-            border: 1px solid var(--glass-border);
-            border-radius: 32px;
-            padding: 32px;
-            margin-bottom: 24px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.05);
-            transform-style: preserve-3d;
-            transition: transform 0.1s ease-out, box-shadow 0.3s ease;
+            background: var(--glass-bg); border-radius: var(--ptz-card-radius);
+            padding: var(--card-padding); margin-bottom: 20px;
+            box-shadow: none !important; border: none !important;
+            transition: background-color var(--transition-smooth);
         }
-        h2 { font-size: 24px; margin-top: 0; font-weight: 700; }
+        h2 { font-size: 18px; margin: 0 0 12px; font-weight: 700; letter-spacing: -0.3px; display: flex; align-items: center; gap: 8px; }
+        h2 .material-symbols-outlined { color: var(--accent-primary); }
+        p { font-size: 13.5px; line-height: 1.5; margin: 0 0 16px; color: var(--text-sub); }
+        .section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+        .section-head h2 { margin: 0; }
 
-        .ai-btn {
-            border: none; outline: none;
-            padding: 14px 24px; border-radius: 16px;
-            font-weight: 600; font-size: 14px;
-            color: white; cursor: pointer;
-            background: var(--ai-grad-primary);
-            transition: all 0.5s var(--m3-easing);
-            display: inline-flex; align-items: center; gap: 8px;
+        .custom-list { display: flex; flex-direction: column; gap: 6px; }
+        .list-item {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 10px 4px; border-bottom: none !important; gap: 12px;
         }
-        .ai-btn:active { transform: scale(0.95); }
+        .list-item-title { font-weight: 600; font-size: 14px; }
+        .list-item-desc { font-size: 12px; color: var(--text-sub); margin-top: 2px; }
 
-        /* --- Search Bar Container --- */
-        .search-container {
-            position: fixed; bottom: 100px; left: 50%;
-            transform: translateX(-50%);
-            width: 90%; max-width: 600px;
-            z-index: 1000;
-        }
-        .search-rail {
-            background: var(--glass-bg);
-            backdrop-filter: blur(40px) saturate(180%);
-            border: 1px solid var(--glass-border);
-            border-radius: 28px;
-            padding: 12px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
-            display: flex; flex-direction: column; gap: 10px;
-        }
-        .search-input-group {
-            display: flex; gap: 8px; align-items: center;
+        /* 入力 */
+        .input-wrap { position: relative; }
+        .input-wrap > .material-symbols-outlined {
+            position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+            color: var(--text-sub); font-size: 22px; pointer-events: none;
         }
         .glass-input {
-            flex: 1; padding: 14px 20px;
-            border-radius: 20px; border: 1px solid var(--glass-border);
-            background: rgba(255,255,255,0.2);
-            color: var(--text-main); font-size: 16px;
-            outline: none; transition: 0.3s;
+            width: 100%; padding: 15px 16px; border-radius: 14px; border: none;
+            background: var(--bg-secondary); color: var(--text-main);
+            font-size: 15px; font-family: inherit; transition: background var(--transition-smooth);
         }
-        .search-actions {
-            display: flex; gap: 8px;
+        .input-wrap .glass-input { padding-left: 46px; padding-right: 46px; }
+        .glass-input::placeholder { color: var(--text-sub); }
+        .glass-input:focus { outline: 2px solid var(--accent-primary); }
+        .clear-btn {
+            position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+            width: 34px; height: 34px; border-radius: 50%; border: none; background: transparent;
+            color: var(--text-sub); cursor: pointer; display: none; align-items: center; justify-content: center;
         }
-        .search-type-btn {
-            flex: 1; padding: 10px; border-radius: 14px; border: 1px solid var(--glass-border);
-            background: var(--glass-bg); color: var(--text-main);
-            font-size: 12px; font-weight: 600; cursor: pointer;
+        .clear-btn.show { display: flex; }
+        .clear-btn .material-symbols-outlined { font-size: 20px; }
+
+        /* セグメント */
+        .seg { display: flex; gap: 4px; background: var(--bg-secondary); padding: 4px; border-radius: 14px; }
+        .seg button {
+            flex: 1; border: none; background: transparent; color: var(--text-main);
+            font-family: inherit; font-weight: 600; font-size: 12.5px; padding: 10px 4px;
+            border-radius: 11px; cursor: pointer; transition: background 0.25s, color 0.25s;
             display: flex; align-items: center; justify-content: center; gap: 4px;
-            transition: 0.3s;
         }
-        .search-type-btn.active {
-            background: var(--ai-grad-primary); color: white; border-color: transparent;
+        .seg button.active { background: var(--accent-primary); color: #FFF; }
+        .seg .material-symbols-outlined { font-size: 18px; }
+        .type-desc { font-size: 12px; color: var(--text-sub); margin: 10px 2px 16px; min-height: 18px; }
+
+        /* トグル */
+        .switch {
+            position: relative; display: inline-block; flex-shrink: 0;
+            width: var(--ptz-toggle-width); height: var(--ptz-toggle-height);
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer; inset: 0;
+            background: var(--bg-secondary); transition: var(--transition-smooth);
+            border-radius: calc(var(--ptz-toggle-height) / 2);
+        }
+        .slider:before {
+            position: absolute; content: "";
+            height: var(--ptz-toggle-knob-width); width: var(--ptz-toggle-knob-width);
+            left: 4px; bottom: calc((var(--ptz-toggle-height) - var(--ptz-toggle-knob-width)) / 2);
+            background: white; transition: var(--transition-smooth);
+            border-radius: var(--ptz-toggle-knob-radius);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+        }
+        input:checked + .slider { background: var(--accent-primary); }
+        input:checked + .slider:before {
+            transform: translateX(calc(var(--ptz-toggle-width) - var(--ptz-toggle-knob-width) - 8px));
         }
 
-        /* --- Navigation --- */
-        .nav-container {
-            position: fixed; bottom: 30px; left: 50%;
-            transform: translateX(-50%); z-index: 500;
+        /* ボタン */
+        .ai-btn {
+            border: none; outline: none; padding: 12px 22px; border-radius: 14px;
+            font-weight: 600; font-size: 14px; font-family: inherit; color: white;
+            cursor: pointer; background: var(--accent-primary);
+            transition: opacity 0.2s, background-color var(--transition-smooth), transform 0.15s;
+            display: inline-flex; align-items: center; gap: 8px; justify-content: center;
         }
-        .nav-rail {
-            display: flex; align-items: center; gap: 8px;
-            background: var(--glass-bg); backdrop-filter: blur(var(--glass-blur)) saturate(150%);
-            padding: 8px; border-radius: 40px; border: 1px solid var(--glass-border);
-            box-shadow: 0 15px 45px rgba(0,0,0,0.15);
+        .ai-btn:active:not(:disabled) { opacity: 0.88; transform: scale(0.97); }
+        .ai-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+        .ai-btn-secondary { background: var(--bg-secondary); color: var(--text-main); }
+        .ai-btn-danger { background: var(--danger); }
+        .ai-btn-block { width: 100%; height: 52px; font-size: 15px; border-radius: 16px; }
+        .ai-btn .material-symbols-outlined { font-size: 20px; }
+        .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
+        .icon-btn {
+            width: 38px; height: 38px; border-radius: 50%; border: none; cursor: pointer; flex-shrink: 0;
+            background: var(--bg-secondary); color: var(--text-main);
+            display: flex; align-items: center; justify-content: center; transition: transform 0.15s;
+        }
+        .icon-btn { overflow: hidden; }
+        .icon-btn:active { transform: scale(0.9); }
+        .icon-btn .material-symbols-outlined { font-size: 20px; }
+        .icon-btn.accent { background: var(--accent-primary); color: #FFF; }
+        .icon-btn.danger { color: var(--danger); }
+        .text-btn { border: none; background: none; color: var(--accent-primary); font-family: inherit; font-weight: 600; font-size: 13px; cursor: pointer; padding: 6px 4px; }
+
+        /* チップ */
+        .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+        .chip {
+            border: none; background: var(--bg-secondary); color: var(--text-main); font-family: inherit;
+            padding: 9px 14px; border-radius: 12px; font-size: 13px; font-weight: 600; cursor: pointer;
+            display: inline-flex; align-items: center; gap: 6px; max-width: 100%; transition: transform 0.15s, opacity 0.2s;
+        }
+        .chip:active { transform: scale(0.95); opacity: 0.85; }
+        .chip .material-symbols-outlined { font-size: 16px; color: var(--text-sub); }
+        .chip span.t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 220px; }
+        .empty { text-align: center; color: var(--text-sub); font-size: 13px; padding: 8px 0; margin: 0; }
+
+        /* ヒーロー */
+        .hero { display: flex; align-items: center; gap: 16px; }
+        .hero img { width: 68px; height: 68px; object-fit: contain; flex-shrink: 0; }
+        .hero h2 { margin: 0 0 4px; }
+        .hero p { margin: 0; }
+
+        /* お気に入りリスト */
+        .channel-item { display: flex; align-items: center; gap: 12px; padding: 12px 4px; }
+        .channel-avatar {
+            width: 42px; height: 42px; border-radius: 50%; background: var(--accent-primary); color: #FFF;
+            display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; flex-shrink: 0;
+        }
+        .channel-info { flex: 1; min-width: 0; }
+        .channel-name { font-weight: 700; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .channel-id { font-family: ui-monospace, monospace; font-size: 11.5px; color: var(--text-sub); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .channel-actions { display: flex; gap: 6px; }
+        .field-label { font-size: 13px; font-weight: 600; margin: 0 0 8px; display: block; }
+        .add-grid { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 14px; }
+        a.link { color: var(--accent-primary); font-size: 12.5px; font-weight: 600; text-decoration: none; }
+
+        .color-grid { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+        .color-swatch {
+            width: 36px; height: 36px; border-radius: 50%; cursor: pointer;
+            border: 3px solid transparent; transition: border-color 0.2s, transform 0.15s;
+        }
+        .color-swatch:active { transform: scale(0.9); }
+        .color-swatch.active { border-color: var(--text-main); }
+
+        /* ナビ */
+        .bottom-nav-container {
+            position: fixed; bottom: 0; left: 0; width: 100%; height: var(--nav-h);
+            background: var(--nav-bg); border-top: 1px solid var(--bg-secondary);
+            z-index: 500; display: flex; justify-content: space-around; align-items: center;
+            padding-bottom: env(safe-area-inset-bottom);
+            transition: background-color var(--transition-smooth), border-color var(--transition-smooth);
         }
         .nav-item {
-            width: 50px; height: 50px;
-            display: flex; align-items: center; justify-content: center;
-            cursor: pointer; border-radius: 25px; color: var(--text-sub);
-            transition: all 0.4s var(--m3-easing);
+            flex: 1; height: 100%; display: flex; flex-direction: column; position: relative;
+            align-items: center; justify-content: center; cursor: pointer;
+            color: var(--text-sub); transition: color 0.25s var(--m3-easing); gap: 4px;
         }
-        .nav-item.active {
-            background: var(--ai-grad-primary); color: white;
-            transform: scale(1.1);
+        .nav-item .material-symbols-outlined {
+            font-size: 24px; font-variation-settings: 'FILL' 0, 'wght' 400;
+            transition: font-variation-settings 0.2s;
+        }
+        .nav-label { font-size: 10px; font-weight: 600; }
+        .nav-item.active { color: var(--nav-icon-active); }
+        .nav-item.active .material-symbols-outlined { font-variation-settings: 'FILL' 1, 'wght' 700; }
+        .nav-badge {
+            position: absolute; top: 10px; left: calc(50% + 8px); min-width: 16px; height: 16px; padding: 0 4px;
+            border-radius: 8px; background: var(--accent-primary); color: #FFF; font-size: 10px; font-weight: 700;
+            display: none; align-items: center; justify-content: center;
         }
 
-        /* --- Iframe Preview --- */
-        .preview-overlay {
-            position: fixed; top: 72px; left: 0; width: 100%; height: calc(100% - 72px);
-            background: var(--bg-base); z-index: 90;
-            display: none; flex-direction: column;
-        }
-        .preview-overlay.active { display: flex; animation: viewIn 0.5s var(--m3-easing); }
-        .preview-header {
-            padding: 10px 20px; background: var(--glass-bg);
-            display: flex; justify-content: space-between; align-items: center;
-            border-bottom: 1px solid var(--glass-border);
-        }
-        iframe { flex: 1; border: none; width: 100%; height: 100%; }
-
-        /* --- View Mgmt --- */
         .view { display: none; }
-        .view.active { display: block; animation: viewIn 0.5s var(--m3-easing); }
-        @keyframes viewIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .view.active { display: block; animation: viewIn 0.3s var(--m3-easing); }
+        @keyframes viewIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
-        .channel-item {
-            display: flex; align-items: center; justify-content: space-between;
-            background: rgba(0,0,0,0.05); padding: 12px 20px;
-            border-radius: 16px; margin-bottom: 10px;
+        /* プレビュー (検索結果) */
+        .preview-overlay {
+            position: fixed; left: 0; right: 0; top: 64px; bottom: calc(var(--nav-h) + env(safe-area-inset-bottom));
+            background: var(--bg-base); z-index: 400; display: none; flex-direction: column;
         }
-
-        /* Squishy Effect */
-        @keyframes squishy {
-            0% { transform: scale(1); }
-            30% { transform: scale(1.1, 0.9); }
-            50% { transform: scale(0.95, 1.05); }
-            100% { transform: scale(1); }
+        .preview-overlay.active { display: flex; animation: viewIn 0.3s var(--m3-easing); }
+        .preview-header {
+            padding: 8px 16px; display: flex; align-items: center; gap: 10px; background: var(--bg-base); flex-shrink: 0;
         }
-        .squish-active { animation: squishy 0.4s var(--m3-easing); }
+        .preview-title { flex: 1; min-width: 0; font-weight: 700; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .preview-hint {
+            margin: 0 16px 8px; padding: 10px 14px; border-radius: 14px; background: var(--bg-secondary);
+            font-size: 12px; line-height: 1.5; color: var(--text-sub); display: flex; gap: 8px; align-items: flex-start; flex-shrink: 0;
+        }
+        .preview-hint .material-symbols-outlined { font-size: 18px; color: var(--accent-primary); flex-shrink: 0; }
+        .preview-body { position: relative; flex: 1; margin: 0 12px 10px; border-radius: 18px; overflow: hidden; background: var(--glass-bg); }
+        iframe { border: none; width: 100%; height: 100%; display: block; background: #FFF; }
+        .loading {
+            position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+            background: var(--glass-bg); transition: opacity 0.3s;
+        }
+        .loading.hide { opacity: 0; pointer-events: none; }
+        .spinner {
+            width: 36px; height: 36px; border-radius: 50%;
+            border: 4px solid var(--bg-secondary); border-top-color: var(--accent-primary); animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
+        /* ダイアログ & トースト */
+        .dialog-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+            z-index: 1000; display: flex; align-items: center; justify-content: center;
+            opacity: 0; visibility: hidden; transition: all 0.3s var(--m3-easing);
+        }
+        .dialog-overlay.active { opacity: 1; visibility: visible; }
+        .glass-dialog {
+            background: var(--glass-bg); border-radius: var(--ptz-card-radius);
+            padding: 24px; max-width: 380px; width: 90%;
+            transform: scale(0.9) translateY(20px); transition: all 0.4s var(--m3-easing);
+        }
+        .dialog-overlay.active .glass-dialog { transform: scale(1) translateY(0); }
+        .toast {
+            position: fixed; bottom: 84px; left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--text-main); color: var(--glass-bg);
+            padding: 10px 20px; border-radius: 12px; font-size: 13px; font-weight: 600;
+            opacity: 0; visibility: hidden; transition: all 0.3s var(--m3-easing);
+            z-index: 2000; max-width: 90vw; text-align: center;
+        }
+        .toast.active { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0); }
     </style>
 </head>
 <body>
-
-    <div class="liquid-bg">
-        <div class="liquid-blob" id="blob-1" style="left: -10%; top: -10%;"></div>
-        <div class="liquid-blob" id="blob-2" style="right: -10%; bottom: -10%; background: var(--ai-grad-active); animation-delay: -5s;"></div>
-    </div>
-
+<div id="app-viewport">
     <header>
         <div class="logo">
-            <img src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/poland/lol.png" alt="AI Ball">
+            <img src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/poland/lol.png" alt="" onerror="this.style.display='none'">
             Polska Tube
         </div>
-        <button class="nav-item" id="theme-btn" style="background:var(--glass-bg); border:1px solid var(--glass-border);">
+        <button class="theme-toggle" id="theme-btn" title="テーマ切り替え">
             <span class="material-symbols-outlined">light_mode</span>
         </button>
     </header>
 
-    <!-- Search Overlay / Iframe -->
-    <div class="preview-overlay" id="search-preview">
-        <div class="preview-header">
-            <span id="preview-title" style="font-weight: 600; font-size: 14px;">Video Search Results</span>
-            <button class="ai-btn" onclick="closePreview()" style="padding: 8px 16px; border-radius: 12px;">閉じる</button>
-        </div>
-        <iframe id="search-iframe" src="about:blank"></iframe>
-    </div>
+    <main id="main-scroll-area">
+        <div id="overscroll-wrapper">
 
-    <div id="app-viewport">
-        <main id="main-content">
-            <!-- Home Section -->
-            <section id="view-home" class="view active">
-                <div class="glass-card tilt-card">
-                    <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px;">
-                        <img src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/poland/normal.png" style="width: 60px;">
+            <!-- 検索 -->
+            <section id="view-search" class="view active">
+                <div class="glass-card">
+                    <div class="hero">
+                        <img src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/poland/normal.png" alt="" onerror="this.style.display='none'">
                         <div>
-                            <h2 style="margin:0;">動画を見よう！</h2>
-                            <p style="color: var(--text-sub); margin: 0; font-size: 14px;">自分の希望する動画を観る方法</p>
+                            <h2>動画を見よう！</h2>
+                            <p>見たい動画を、キーワードやAIで探せます。</p>
                         </div>
                     </div>
-                    <p style="color: var(--text-sub); line-height: 1.6; font-size: 14px;">
-                        下の検索バーから動画を探しましょう。「Intelligence」を選択すると、AIが動画の文脈を理解して検索をサポートします。
-                    </p>
                 </div>
 
-                <div class="glass-card tilt-card" id="fav-summary">
-                    <h2>Favorite Channels</h2>
-                    <div id="fav-list-mini">
-                        <p style="opacity: 0.5; font-size: 13px;">お気に入りチャンネルがここに表示されます。</p>
+                <div class="glass-card">
+                    <div class="input-wrap">
+                        <span class="material-symbols-outlined">search</span>
+                        <input type="text" id="search-input" class="glass-input" placeholder="キーワードを入力..." autocomplete="off" enterkeyhint="search">
+                        <button class="clear-btn" id="clear-input" title="消去"><span class="material-symbols-outlined">close</span></button>
                     </div>
+
+                    <div class="seg" id="type-seg" style="margin-top:14px;">
+                        <button data-type="normal" class="active"><span class="material-symbols-outlined">movie</span>Normal</button>
+                        <button data-type="intelligence"><span class="material-symbols-outlined">psychology</span>Intelligence</button>
+                        <button data-type="youtube"><span class="material-symbols-outlined">smart_display</span>YouTube</button>
+                    </div>
+                    <div class="type-desc" id="type-desc"></div>
+
+                    <button class="ai-btn ai-btn-block" id="search-btn"><span class="material-symbols-outlined">search</span>動画を検索</button>
+                </div>
+
+                <div class="glass-card" id="history-card" style="display:none;">
+                    <div class="section-head">
+                        <h2><span class="material-symbols-outlined">history</span>検索履歴</h2>
+                        <button class="text-btn" id="clear-history-btn">消去</button>
+                    </div>
+                    <div class="chips" id="history-chips"></div>
+                </div>
+
+                <div class="glass-card">
+                    <div class="section-head">
+                        <h2><span class="material-symbols-outlined">star</span>お気に入りチャンネル</h2>
+                        <button class="text-btn" id="goto-fav">管理</button>
+                    </div>
+                    <div class="chips" id="fav-chips"></div>
+                    <p class="empty" id="fav-empty">お気に入りのチャンネルを登録すると、ここからすぐ検索できます。</p>
                 </div>
             </section>
 
-            <!-- Favorites Section -->
+            <!-- お気に入り -->
             <section id="view-fav" class="view">
                 <div class="glass-card">
-                    <h2>Channel Manager</h2>
-                    <p style="color: var(--text-sub); margin-bottom: 20px; font-size: 14px;">YouTube チャンネルIDを登録してクイックアクセス。</p>
-                    <div style="display: flex; gap: 8px; margin-bottom: 24px;">
-                        <input type="text" id="new-channel-id" class="glass-input" placeholder="Channel ID (UC...)">
-                        <button class="ai-btn" onclick="addChannel()">
-                            <span class="material-symbols-outlined">add</span>
-                        </button>
+                    <h2><span class="material-symbols-outlined">add_circle</span>チャンネルを追加</h2>
+                    <p>チャンネルID (UC…)、@ハンドル、またはチャンネルのURLを貼り付けられます。</p>
+                    <div class="add-grid">
+                        <div>
+                            <label class="field-label" for="new-channel-id">チャンネルID / @ハンドル / URL</label>
+                            <input type="text" id="new-channel-id" class="glass-input" placeholder="UC... または @name" autocomplete="off">
+                        </div>
+                        <div>
+                            <label class="field-label" for="new-channel-name">名前 (任意)</label>
+                            <input type="text" id="new-channel-name" class="glass-input" placeholder="例: 好きなチャンネル" autocomplete="off">
+                        </div>
                     </div>
-                    <div id="full-fav-list">
-                        <!-- List populated by JS -->
+                    <div class="btn-row" style="align-items:center;justify-content:space-between;">
+                        <button class="ai-btn" id="add-channel-btn"><span class="material-symbols-outlined">add</span>追加</button>
+                        <a class="link" href="https://seostudio.tools/ja/youtube-channel-id" target="_blank" rel="noopener">IDの調べ方 →</a>
                     </div>
-                    <a href="https://seostudio.tools/ja/youtube-channel-id" target="_blank" style="color: #6366f1; font-size: 12px; text-decoration: none;">IDの取得はこちらから →</a>
+                </div>
+
+                <div class="glass-card">
+                    <h2><span class="material-symbols-outlined">star</span>登録済みチャンネル</h2>
+                    <div id="full-fav-list"></div>
                 </div>
             </section>
-        </main>
-    </div>
 
-    <!-- Bottom Search Bar -->
-    <div class="search-container">
-        <div class="search-rail">
-            <div class="search-input-group">
-                <input type="text" id="main-search-input" class="glass-input" placeholder="キーワードを入力...">
-                <button class="ai-btn" id="search-trigger" onclick="executeSearch()">
-                    <span class="material-symbols-outlined">search</span>
-                </button>
-            </div>
-            <div class="search-actions">
-                <button class="search-type-btn active" id="btn-normal" onclick="setSearchType('normal')">
-                    <span class="material-symbols-outlined" style="font-size: 16px;">movie</span> Normal
-                </button>
-                <button class="search-type-btn" id="btn-intel" onclick="setSearchType('intelligence')">
-                    <span class="material-symbols-outlined" style="font-size: 16px;">psychology</span> Intelligence
-                </button>
-            </div>
+            <!-- 設定 -->
+            <section id="view-settings" class="view">
+                <div class="glass-card">
+                    <h2><span class="material-symbols-outlined">tune</span>検索</h2>
+                    <div style="font-size:13px;font-weight:600;margin-bottom:8px;">検索結果の表示方法</div>
+                    <div class="seg" id="open-seg">
+                        <button data-mode="inapp">アプリ内</button>
+                        <button data-mode="tab">新しいタブ</button>
+                    </div>
+                    <p style="font-size:12px;margin:10px 2px 18px;">サイトによっては、アプリ内に表示できないことがあります。そのときは「新しいタブ」にするか、結果画面の「新しいタブで開く」を使ってください。</p>
+
+                    <div style="font-size:13px;font-weight:600;margin-bottom:8px;">最初の検索タイプ</div>
+                    <div class="seg" id="default-type-seg">
+                        <button data-type="normal">Normal</button>
+                        <button data-type="intelligence">Intelligence</button>
+                        <button data-type="youtube">YouTube</button>
+                    </div>
+
+                    <div class="custom-list" style="margin-top:12px;">
+                        <div class="list-item">
+                            <div>
+                                <div class="list-item-title">検索履歴を保存</div>
+                                <div class="list-item-desc">この端末のブラウザ内にだけ保存します</div>
+                            </div>
+                            <label class="switch"><input type="checkbox" id="set-history" checked><span class="slider"></span></label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card">
+                    <h2><span class="material-symbols-outlined">palette</span>デザイン</h2>
+                    <div class="custom-list">
+                        <div class="list-item">
+                            <div class="list-item-title">ダークモード</div>
+                            <label class="switch"><input type="checkbox" id="set-dark"><span class="slider"></span></label>
+                        </div>
+                    </div>
+                    <div style="font-size:13px;font-weight:600;margin-top:12px;">アクセントカラー</div>
+                    <div class="color-grid" id="accent-grid">
+                        <div class="color-swatch" data-c="#3381FF" style="background:#3381FF;"></div>
+                        <div class="color-swatch" data-c="#10B981" style="background:#10B981;"></div>
+                        <div class="color-swatch" data-c="#8B5CF6" style="background:#8B5CF6;"></div>
+                        <div class="color-swatch" data-c="#F59E0B" style="background:#F59E0B;"></div>
+                        <div class="color-swatch" data-c="#EC4899" style="background:#EC4899;"></div>
+                        <div class="color-swatch" data-c="#64748B" style="background:#64748B;"></div>
+                    </div>
+                </div>
+
+                <div class="glass-card">
+                    <h2><span class="material-symbols-outlined">delete_sweep</span>データの消去</h2>
+                    <div class="btn-row">
+                        <button class="ai-btn ai-btn-secondary" id="wipe-history-btn">履歴を消去</button>
+                        <button class="ai-btn ai-btn-secondary" id="wipe-fav-btn">お気に入りを消去</button>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- 検索結果 -->
+    <div class="preview-overlay" id="preview">
+        <div class="preview-header">
+            <div class="preview-title" id="preview-title">検索結果</div>
+            <button class="icon-btn accent" id="preview-open" title="新しいタブで開く"><span class="material-symbols-outlined">open_in_new</span></button>
+            <button class="icon-btn" id="preview-close" title="閉じる"><span class="material-symbols-outlined">close</span></button>
+        </div>
+        <div class="preview-hint" id="preview-hint">
+            <span class="material-symbols-outlined">info</span>
+            <span>表示されない場合は、そのサイトが埋め込みを許可していません。右上の「新しいタブで開く」を押してください。</span>
+        </div>
+        <div class="preview-body">
+            <iframe id="preview-iframe" src="about:blank" title="検索結果" referrerpolicy="no-referrer"></iframe>
+            <div class="loading" id="preview-loading"><div class="spinner"></div></div>
         </div>
     </div>
 
-    <!-- Navigation -->
-    <div class="nav-container">
-        <nav class="nav-rail">
-            <div class="nav-item active" data-view="view-home">
-                <span class="material-symbols-outlined">home</span>
-            </div>
-            <div class="nav-item" data-view="view-fav">
-                <span class="material-symbols-outlined">star</span>
-            </div>
-        </nav>
+    <div class="bottom-nav-container">
+        <div class="nav-item active" data-view="view-search"><span class="material-symbols-outlined">search</span><span class="nav-label">検索</span></div>
+        <div class="nav-item" data-view="view-fav"><span class="material-symbols-outlined">star</span><span class="nav-label">お気に入り</span><span class="nav-badge" id="fav-badge">0</span></div>
+        <div class="nav-item" data-view="view-settings"><span class="material-symbols-outlined">settings</span><span class="nav-label">設定</span></div>
     </div>
+</div>
 
-    <script>
-        /**
-         * PB-Intelligence Videos Logic
-         */
-        let currentSearchType = 'normal'; // 'normal' or 'intelligence'
-        let favorites = JSON.parse(localStorage.getItem('pb_fav_channels') || '[]');
+<div class="dialog-overlay" id="main-dialog">
+    <div class="glass-dialog">
+        <h2 id="dialog-title" style="margin-bottom:8px;">確認</h2>
+        <p id="dialog-body" style="margin-bottom:20px;"></p>
+        <div style="display:flex;justify-content:flex-end;gap:8px;" id="dialog-buttons"></div>
+    </div>
+</div>
 
-        const viewport = document.getElementById('app-viewport');
-        const mainContent = document.getElementById('main-content');
-        const searchPreview = document.getElementById('search-preview');
-        const searchIframe = document.getElementById('search-iframe');
-        const searchInput = document.getElementById('main-search-input');
+<div class="toast" id="toast-message"></div>
 
-        // --- 1. Search Logic ---
-        function setSearchType(type) {
-            currentSearchType = type;
-            document.getElementById('btn-normal').classList.toggle('active', type === 'normal');
-            document.getElementById('btn-intel').classList.toggle('active', type === 'intelligence');
-            searchInput.placeholder = type === 'normal' ? 'キーワードを入力...' : 'AIに動画調査を依頼...';
-        }
+<script>
+const $ = id => document.getElementById(id);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
-        function executeSearch(queryOverride = null) {
-            const query = queryOverride || searchInput.value.trim();
-            if (!query) return;
+/* ---------- 保存 ---------- */
+const LS = {
+    get(key, def) { try { const v = localStorage.getItem(key); return v === null ? def : JSON.parse(v); } catch (e) { return def; } },
+    set(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) {} }
+};
+const settings = Object.assign({
+    dark: window.matchMedia('(prefers-color-scheme: dark)').matches,
+    accent: '#3381FF', openMode: 'inapp', defaultType: 'normal', saveHistory: true
+}, LS.get('pb_settings_v2', {}));
+const saveSettings = () => LS.set('pb_settings_v2', settings);
 
-            let url = "";
-            if (currentSearchType === 'normal') {
-                url = `https://www.bing.com/videos/search?q=${encodeURIComponent(query)}`;
-            } else {
-                url = `https://www.bing.com/copilotsearch?q=${encodeURIComponent(query)}+という動画を調べて`;
-            }
+// お気に入り: 旧形式 (IDの文字列配列) からの移行つき
+let favorites = (() => {
+    const v2 = LS.get('pb_fav_v2', null);
+    if (Array.isArray(v2)) return v2;
+    const old = LS.get('pb_fav_channels', []);
+    return (Array.isArray(old) ? old : []).filter(x => typeof x === 'string').map(id => ({ id, name: '' }));
+})();
+let history = LS.get('pb_history_v2', []);
+const saveFavs = () => LS.set('pb_fav_v2', favorites);
+const saveHistory = () => LS.set('pb_history_v2', history);
 
-            searchIframe.src = url;
-            searchPreview.classList.add('active');
-            document.getElementById('preview-title').innerText = `${currentSearchType.toUpperCase()} Results: ${query}`;
-        }
+/* ---------- テーマ ---------- */
+function shade(hex, pct) {
+    const f = i => clamp(Math.round(parseInt(hex.substr(i, 2), 16) * (100 + pct) / 100), 0, 255).toString(16).padStart(2, '0');
+    return '#' + f(1) + f(3) + f(5);
+}
+function applySettings() {
+    document.body.classList.toggle('dark-mode', settings.dark);
+    $('theme-btn').querySelector('span').textContent = settings.dark ? 'dark_mode' : 'light_mode';
+    $('set-dark').checked = settings.dark;
+    $('set-history').checked = settings.saveHistory;
+    const r = document.documentElement.style;
+    r.setProperty('--accent-primary', settings.accent);
+    r.setProperty('--accent-active', shade(settings.accent, -15));
+    document.querySelectorAll('#accent-grid .color-swatch').forEach(s => s.classList.toggle('active', s.dataset.c === settings.accent));
+    $('open-seg').querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.mode === settings.openMode));
+    $('default-type-seg').querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.type === settings.defaultType));
+}
+$('theme-btn').onclick = () => { settings.dark = !settings.dark; applySettings(); saveSettings(); };
+$('set-dark').onchange = e => { settings.dark = e.target.checked; applySettings(); saveSettings(); };
+$('set-history').onchange = e => { settings.saveHistory = e.target.checked; saveSettings(); };
+document.querySelectorAll('#accent-grid .color-swatch').forEach(s => s.onclick = () => { settings.accent = s.dataset.c; applySettings(); saveSettings(); });
+$('open-seg').querySelectorAll('button').forEach(b => b.onclick = () => { settings.openMode = b.dataset.mode; applySettings(); saveSettings(); });
+$('default-type-seg').querySelectorAll('button').forEach(b => b.onclick = () => { settings.defaultType = b.dataset.type; applySettings(); saveSettings(); setType(b.dataset.type); });
 
-        function closePreview() {
-            searchPreview.classList.remove('active');
-            searchIframe.src = "about:blank";
-        }
+/* ---------- トースト / ダイアログ ---------- */
+let toastTimer;
+function showToast(msg) {
+    const t = $('toast-message'); t.textContent = msg; t.classList.add('active');
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('active'), 2200);
+}
+function confirmDialog(title, body, onOk) {
+    $('dialog-title').textContent = title; $('dialog-body').textContent = body;
+    const box = $('dialog-buttons'); box.innerHTML = '';
+    const mk = (text, cls, fn) => { const b = document.createElement('button'); b.className = 'ai-btn ' + cls; b.textContent = text; b.onclick = fn; box.appendChild(b); };
+    mk('キャンセル', 'ai-btn-secondary', () => $('main-dialog').classList.remove('active'));
+    mk('削除する', 'ai-btn-danger', () => { $('main-dialog').classList.remove('active'); onOk(); });
+    $('main-dialog').classList.add('active');
+}
 
-        // --- 2. Favorite Channels Logic ---
-        function renderFavorites() {
-            const fullList = document.getElementById('full-fav-list');
-            const miniList = document.getElementById('fav-list-mini');
-            
-            fullList.innerHTML = '';
-            miniList.innerHTML = '';
+/* ---------- ナビ ---------- */
+const scrollArea = $('main-scroll-area');
+const navItems = document.querySelectorAll('.nav-item');
+function switchView(id) {
+    closePreview();
+    navItems.forEach(n => n.classList.toggle('active', n.dataset.view === id));
+    document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === id));
+    scrollArea.scrollTo({ top: 0, behavior: 'smooth' });
+}
+navItems.forEach(n => n.addEventListener('click', () => switchView(n.dataset.view)));
+$('goto-fav').onclick = () => switchView('view-fav');
 
-            if (favorites.length === 0) {
-                fullList.innerHTML = '<p style="opacity:0.5; text-align:center;">保存されたチャンネルはありません</p>';
-                miniList.innerHTML = '<p style="opacity:0.5; font-size:13px;">保存されたチャンネルはありません</p>';
-                return;
-            }
+/* ---------- 検索 ---------- */
+const TYPES = {
+    normal: { placeholder: 'キーワードを入力...', desc: 'Bing の動画検索で探します。' },
+    intelligence: { placeholder: 'AIに動画の調査を依頼...', desc: 'AI (Copilot) が動画の文脈を理解して探します。' },
+    youtube: { placeholder: 'YouTube で検索...', desc: 'YouTube の検索結果を新しいタブで開きます。' }
+};
+let currentType = settings.defaultType;
+function setType(type) {
+    currentType = type;
+    $('type-seg').querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.type === type));
+    $('search-input').placeholder = TYPES[type].placeholder;
+    $('type-desc').textContent = TYPES[type].desc;
+}
+$('type-seg').querySelectorAll('button').forEach(b => b.onclick = () => setType(b.dataset.type));
 
-            favorites.forEach((id, index) => {
-                // Full List Item
-                const item = document.createElement('div');
-                item.className = 'channel-item';
-                item.innerHTML = `
-                    <span style="font-family: monospace; font-size:13px;">${id}</span>
-                    <div style="display:flex; gap:8px;">
-                        <button class="ai-btn" style="padding:8px; border-radius:10px; background:#10b981;" onclick="searchChannel('${id}')">
-                            <span class="material-symbols-outlined">play_circle</span>
-                        </button>
-                        <button class="ai-btn" style="padding:8px; border-radius:10px; background:#ef4444;" onclick="removeChannel(${index})">
-                            <span class="material-symbols-outlined">delete</span>
-                        </button>
-                    </div>
-                `;
-                fullList.appendChild(item);
+function buildUrl(type, q) {
+    const e = encodeURIComponent;
+    if (type === 'youtube') return `https://www.youtube.com/results?search_query=${e(q)}`;
+    if (type === 'intelligence') return `https://www.bing.com/copilotsearch?q=${e(q + ' という動画を調べて')}`;
+    return `https://www.bing.com/videos/search?q=${e(q)}`;
+}
+let lastUrl = '';
+function executeSearch(query, type) {
+    const q = (query != null ? query : $('search-input').value).trim();
+    const t = type || currentType;
+    if (!q) { showToast('キーワードを入力してください'); $('search-input').focus(); return; }
+    const url = buildUrl(t, q);
+    addHistory(q);
+    if (t === 'youtube' || settings.openMode === 'tab') {
+        const w = window.open(url, '_blank', 'noopener');
+        if (!w) showToast('ポップアップがブロックされました。許可してください');
+        return;
+    }
+    openPreview(url, `${{ normal: 'Normal', intelligence: 'Intelligence' }[t]}: ${q}`);
+}
+$('search-btn').onclick = () => executeSearch();
+$('search-input').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); executeSearch(); } });
+$('search-input').addEventListener('input', () => $('clear-input').classList.toggle('show', !!$('search-input').value));
+$('clear-input').onclick = () => { $('search-input').value = ''; $('clear-input').classList.remove('show'); $('search-input').focus(); };
 
-                // Mini List Item
-                const miniBtn = document.createElement('button');
-                miniBtn.className = 'ai-btn';
-                miniBtn.style = 'margin: 5px; font-size: 12px; padding: 10px 15px;';
-                miniBtn.innerHTML = `<span class="material-symbols-outlined" style="font-size:14px;">account_circle</span> ${id.substring(0, 8)}...`;
-                miniBtn.onclick = () => searchChannel(id);
-                miniList.appendChild(miniBtn);
-            });
-        }
+/* プレビュー */
+function openPreview(url, title) {
+    lastUrl = url;
+    $('preview-title').textContent = title;
+    $('preview-loading').classList.remove('hide');
+    $('preview-iframe').src = url;
+    $('preview').classList.add('active');
+}
+function closePreview() {
+    if (!$('preview').classList.contains('active')) return;
+    $('preview').classList.remove('active');
+    $('preview-iframe').src = 'about:blank';
+}
+$('preview-iframe').addEventListener('load', () => { if ($('preview-iframe').src !== 'about:blank') $('preview-loading').classList.add('hide'); });
+$('preview-close').onclick = closePreview;
+$('preview-open').onclick = () => { if (lastUrl) window.open(lastUrl, '_blank', 'noopener'); };
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closePreview(); });
 
-        function addChannel() {
-            const input = document.getElementById('new-channel-id');
-            const id = input.value.trim();
-            if (id && !favorites.includes(id)) {
-                favorites.push(id);
-                localStorage.setItem('pb_fav_channels', JSON.stringify(favorites));
-                input.value = '';
-                renderFavorites();
-            }
-        }
+/* ---------- 履歴 ---------- */
+function addHistory(q) {
+    if (!settings.saveHistory) return;
+    history = [q, ...history.filter(h => h !== q)].slice(0, 12);
+    saveHistory(); renderHistory();
+}
+function renderHistory() {
+    const box = $('history-chips'); box.innerHTML = '';
+    $('history-card').style.display = history.length ? 'block' : 'none';
+    history.forEach(q => {
+        const c = document.createElement('button');
+        c.className = 'chip';
+        c.innerHTML = '<span class="material-symbols-outlined">history</span><span class="t"></span>';
+        c.querySelector('.t').textContent = q;
+        c.onclick = () => { $('search-input').value = q; $('clear-input').classList.add('show'); executeSearch(q); };
+        box.appendChild(c);
+    });
+}
+function wipeHistory() { history = []; saveHistory(); renderHistory(); showToast('履歴を消去しました'); }
+$('clear-history-btn').onclick = wipeHistory;
+$('wipe-history-btn').onclick = () => confirmDialog('履歴を消去', '検索履歴をすべて消去します。よろしいですか？', wipeHistory);
 
-        function removeChannel(index) {
-            favorites.splice(index, 1);
-            localStorage.setItem('pb_fav_channels', JSON.stringify(favorites));
-            renderFavorites();
-        }
+/* ---------- お気に入り ---------- */
+function parseChannel(raw) {
+    const s = raw.trim();
+    if (!s) return null;
+    let m = s.match(/(UC[\w-]{22})/);
+    if (m && (/^UC[\w-]{22}$/.test(s) || /youtube\.com\/channel\//.test(s))) return { id: m[1] };
+    m = s.match(/youtube\.com\/(@[\w.\-%]+)/i) || s.match(/^(@[\w.\-%]+)$/);
+    if (m) return { id: decodeURIComponent(m[1]) };
+    if (/^[\w.\-]{3,}$/.test(s) && !/^UC/.test(s)) return { id: '@' + s };
+    return null;
+}
+function channelYoutubeUrl(id) {
+    if (/^UC[\w-]{22}$/.test(id)) return `https://www.youtube.com/channel/${id}`;
+    if (id.startsWith('@')) return `https://www.youtube.com/${encodeURIComponent(id).replace('%40', '@')}`;
+    return `https://www.youtube.com/results?search_query=${encodeURIComponent(id)}`;
+}
+function favLabel(f) { return f.name || (f.id.length > 14 ? f.id.slice(0, 12) + '…' : f.id); }
 
-        function searchChannel(id) {
-            currentSearchType = 'normal';
-            executeSearch(id);
-        }
+function renderFavorites() {
+    const list = $('full-fav-list'), chips = $('fav-chips');
+    list.innerHTML = ''; chips.innerHTML = '';
+    $('fav-empty').style.display = favorites.length ? 'none' : 'block';
+    const badge = $('fav-badge'); badge.textContent = favorites.length; badge.style.display = favorites.length ? 'flex' : 'none';
+    if (!favorites.length) {
+        list.innerHTML = '<p class="empty">まだ登録されていません。上のフォームから追加してください。</p>';
+        return;
+    }
+    favorites.forEach((f, i) => {
+        const row = document.createElement('div');
+        row.className = 'channel-item';
+        row.innerHTML = `
+            <div class="channel-avatar"></div>
+            <div class="channel-info"><div class="channel-name"></div><div class="channel-id"></div></div>
+            <div class="channel-actions">
+                <button class="icon-btn accent" data-a="search" title="動画を検索"><span class="material-symbols-outlined">play_circle</span></button>
+                <button class="icon-btn" data-a="yt" title="YouTubeで開く"><span class="material-symbols-outlined">open_in_new</span></button>
+                <button class="icon-btn danger" data-a="del" title="削除"><span class="material-symbols-outlined">delete</span></button>
+            </div>`;
+        row.querySelector('.channel-avatar').textContent = (f.name || f.id.replace('@', '')).charAt(0).toUpperCase();
+        row.querySelector('.channel-name').textContent = f.name || '(名前なし)';
+        row.querySelector('.channel-id').textContent = f.id;
+        row.querySelector('[data-a="search"]').onclick = () => searchChannel(f);
+        row.querySelector('[data-a="yt"]').onclick = () => window.open(channelYoutubeUrl(f.id), '_blank', 'noopener');
+        row.querySelector('[data-a="del"]').onclick = () => confirmDialog('削除の確認', `「${favLabel(f)}」をお気に入りから削除しますか？`, () => { favorites.splice(i, 1); saveFavs(); renderFavorites(); showToast('削除しました'); });
+        list.appendChild(row);
 
-        // --- 3. UI Interactions ---
-        function initTilt() {
-            const cards = document.querySelectorAll('.tilt-card');
-            cards.forEach(card => {
-                card.addEventListener('mousemove', (e) => {
-                    const rect = card.getBoundingClientRect();
-                    const x = e.clientX - rect.left;
-                    const y = e.clientY - rect.top;
-                    const centerX = rect.width / 2;
-                    const centerY = rect.height / 2;
-                    const rotateX = (y - centerY) / 15;
-                    const rotateY = (centerX - x) / 15;
-                    card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.01, 1.01, 1.01)`;
-                });
-                card.addEventListener('mouseleave', () => {
-                    card.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)`;
-                });
-            });
-        }
+        const c = document.createElement('button');
+        c.className = 'chip';
+        c.innerHTML = '<span class="material-symbols-outlined">account_circle</span><span class="t"></span>';
+        c.querySelector('.t').textContent = favLabel(f);
+        c.onclick = () => searchChannel(f);
+        chips.appendChild(c);
+    });
+}
+function searchChannel(f) {
+    $('search-input').value = f.name || f.id;
+    $('clear-input').classList.add('show');
+    // チャンネルは ID/ハンドルで動画検索 (Intelligence のままでも Normal 検索にする)
+    executeSearch(f.id, currentType === 'youtube' ? 'youtube' : 'normal');
+}
+function addChannel() {
+    const parsed = parseChannel($('new-channel-id').value);
+    if (!parsed) { showToast('IDは「UC」で始まる24文字、または @ハンドルで入力してください'); $('new-channel-id').focus(); return; }
+    if (favorites.some(f => f.id === parsed.id)) { showToast('すでに登録されています'); return; }
+    favorites.push({ id: parsed.id, name: $('new-channel-name').value.trim() });
+    saveFavs();
+    $('new-channel-id').value = ''; $('new-channel-name').value = '';
+    renderFavorites();
+    showToast('お気に入りに追加しました');
+}
+$('add-channel-btn').onclick = addChannel;
+$('new-channel-id').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); $('new-channel-name').focus(); } });
+$('new-channel-name').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); addChannel(); } });
+$('wipe-fav-btn').onclick = () => confirmDialog('お気に入りを消去', '登録したチャンネルをすべて削除します。よろしいですか？', () => { favorites = []; saveFavs(); renderFavorites(); showToast('お気に入りを消去しました'); });
 
-        // Nav Switch
-        const navItems = document.querySelectorAll('.nav-item[data-view]');
-        navItems.forEach(item => {
-            item.addEventListener('click', () => {
-                const viewId = item.getAttribute('data-view');
-                navItems.forEach(n => n.classList.remove('active'));
-                item.classList.add('active');
-                document.querySelectorAll('.view').forEach(v => {
-                    v.classList.toggle('active', v.id === viewId);
-                });
-                viewport.scrollTo({ top: 0, behavior: 'smooth' });
-            });
-        });
+/* ---------- 弾性オーバースクロール ---------- */
+const wrap = $('overscroll-wrapper');
+let startY = 0, pulling = false;
+scrollArea.addEventListener('touchstart', e => {
+    if (e.touches.length === 1) { startY = e.touches[0].clientY; wrap.classList.remove('spring-back'); }
+}, { passive: true });
+scrollArea.addEventListener('touchmove', e => {
+    if (e.touches.length !== 1) return;
+    const dy = e.touches[0].clientY - startY;
+    const atTop = scrollArea.scrollTop <= 0;
+    const atBottom = Math.abs(scrollArea.scrollHeight - scrollArea.clientHeight - scrollArea.scrollTop) < 2;
+    if ((atTop && dy > 0) || (atBottom && dy < 0)) {
+        const pull = dy * 0.38;
+        wrap.style.transform = `translateY(${pull}px) scaleY(${1 + Math.abs(pull) * 0.0003})`;
+        pulling = true;
+    }
+}, { passive: true });
+scrollArea.addEventListener('touchend', () => {
+    if (pulling) { wrap.classList.add('spring-back'); wrap.style.transform = 'translateY(0) scaleY(1)'; pulling = false; }
+});
+let wTimer = null, wSum = 0;
+scrollArea.addEventListener('wheel', e => {
+    const atTop = scrollArea.scrollTop <= 0;
+    const atBottom = Math.abs(scrollArea.scrollHeight - scrollArea.clientHeight - scrollArea.scrollTop) < 2;
+    if ((atTop && e.deltaY < 0) || (atBottom && e.deltaY > 0)) {
+        wSum = clamp(wSum - e.deltaY * 0.25, -60, 60);
+        wrap.classList.remove('spring-back');
+        wrap.style.transform = `translateY(${wSum}px)`;
+        clearTimeout(wTimer);
+        wTimer = setTimeout(() => { wrap.classList.add('spring-back'); wrap.style.transform = 'translateY(0)'; wSum = 0; }, 120);
+    }
+}, { passive: true });
 
-        // Theme Toggle
-        const themeBtn = document.getElementById('theme-btn');
-        themeBtn.addEventListener('click', () => {
-            const isDark = document.body.classList.toggle('dark-mode');
-            themeBtn.querySelector('span').textContent = isDark ? 'dark_mode' : 'light_mode';
-        });
-
-        // Blob Parallax
-        window.addEventListener('mousemove', (e) => {
-            const moveX = (e.clientX / window.innerWidth - 0.5) * 40;
-            const moveY = (e.clientY / window.innerHeight - 0.5) * 40;
-            document.getElementById('blob-1').style.transform = `translate(${moveX}px, ${moveY}px)`;
-            document.getElementById('blob-2').style.transform = `translate(${-moveX * 1.5}px, ${-moveY * 1.5}px)`;
-        });
-
-        // Click Squish
-        document.addEventListener('mousedown', (e) => {
-            const target = e.target.closest('.glass-card, .ai-btn, .nav-item, .search-type-btn');
-            if (target) {
-                target.classList.remove('squish-active');
-                void target.offsetWidth;
-                target.classList.add('squish-active');
-            }
-        });
-
-        // Init
-        window.onload = () => {
-            initTilt();
-            renderFavorites();
-            // Enter key search
-            searchInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') executeSearch();
-            });
-        };
-    </script>
+/* ---------- 初期化 ---------- */
+applySettings();
+setType(settings.defaultType);
+renderFavorites();
+renderHistory();
+</script>
 </body>
 </html>
