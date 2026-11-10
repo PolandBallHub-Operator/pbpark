@@ -10,146 +10,126 @@
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
+        /* ShowMeCSS (MIUICSS) ベーステーマ — HyperOS ファイルマネージャー風レイアウト */
         :root {
             --accent-primary: #3381FF;
             --ptz-card-radius: 24px;
-            --ptz-toggle-width: 54px; --ptz-toggle-height: 30px; --ptz-toggle-knob-radius: 50%; --ptz-toggle-knob-width: 22px;
-            --bg-base: #F7F7F7; --glass-bg: #FFFFFF; --text-main: #000000; --text-sub: #8A8A8E;
-            --bg-secondary: #EEEEEE; --nav-bg: #FFFFFF; --nav-icon-active: #000000; --danger: #E5484D;
-            --folder: #FFB62E; --folder-tab: #FFC85C;
+            --ptz-toggle-width: 54px;
+            --ptz-toggle-height: 30px;
+            --ptz-toggle-knob-radius: 50%;
+            --ptz-toggle-knob-width: 22px;
+            --bg-base: #F7F7F7;
+            --glass-bg: #FFFFFF;
+            --text-main: #000000;
+            --text-sub: #8A8A8E;
+            --bg-secondary: #EEEEEE;
+            --nav-bg: #FFFFFF;
+            --nav-icon-active: #000000;
+            --danger: #E5484D;
+            --folder: #FFB020;
             --m3-easing: cubic-bezier(0.32, 0.72, 0, 1);
             --transition-smooth: 0.35s var(--m3-easing);
             --nav-h: 72px;
         }
         .dark-mode {
-            --bg-base: #121212; --glass-bg: #1E1E1E; --text-main: #FFFFFF; --text-sub: #8E8E93;
-            --bg-secondary: #2C2C2E; --nav-bg: #1E1E1E; --nav-icon-active: #FFFFFF;
+            --bg-base: #000000; --glass-bg: #1C1C1E; --text-main: #FFFFFF; --text-sub: #8E8E93;
+            --bg-secondary: #2C2C2E; --nav-bg: #1C1C1E; --nav-icon-active: #FFFFFF;
         }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body {
-            margin: 0; font-family: 'Plus Jakarta Sans', 'Noto Sans JP', sans-serif; background: var(--bg-base); color: var(--text-main);
-            transition: background-color var(--transition-smooth), color var(--transition-smooth); overflow: hidden; height: 100vh; width: 100vw;
+            margin: 0; font-family: 'Plus Jakarta Sans', 'Noto Sans JP', sans-serif;
+            background: var(--bg-base); color: var(--text-main); overflow: hidden; height: 100vh; width: 100vw;
+            transition: background-color var(--transition-smooth), color var(--transition-smooth);
+            -webkit-user-select: none; user-select: none;
         }
+        .material-symbols-outlined { display: inline-block; width: 1em; height: 1em; overflow: hidden; white-space: nowrap; line-height: 1; flex-shrink: 0; }
+        .hidden { display: none !important; }
         #app-viewport { height: 100vh; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+
+        /* ヘッダー */
         header {
-            height: 60px; padding: 0 12px 0 14px; display: flex; align-items: center; justify-content: space-between;
-            background: var(--bg-base); flex-shrink: 0; z-index: 10; transition: background-color var(--transition-smooth);
+            height: 60px; padding: 0 10px 0 8px; display: flex; align-items: center; justify-content: space-between;
+            background: var(--bg-base); flex-shrink: 0; z-index: 20; transition: background-color var(--transition-smooth);
+            padding-top: env(safe-area-inset-top);
         }
-        .hbtn {
-            width: 42px; height: 42px; border-radius: 50%; border: none; background: transparent; color: var(--text-main);
-            cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background 0.2s, transform 0.15s;
+        .head-left { display: flex; align-items: center; gap: 4px; min-width: 0; flex: 1; }
+        .head-title { font-weight: 700; font-size: 17px; opacity: 0; transition: opacity 0.2s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .head-title.show { opacity: 1; }
+        .head-actions { display: flex; align-items: center; }
+        .plain-btn {
+            width: 44px; height: 44px; border: none; background: transparent; color: var(--text-main); cursor: pointer;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: background 0.2s, transform 0.15s; flex-shrink: 0;
         }
-        .hbtn:active { background: var(--bg-secondary); transform: scale(0.92); }
-        .hbtn.hidden { visibility: hidden; }
-        .hbtn .material-symbols-outlined { font-size: 26px; }
-        .hright { display: flex; align-items: center; }
-        .hright.hidden { visibility: hidden; }
+        .plain-btn:active { background: var(--bg-secondary); transform: scale(0.92); }
+        .plain-btn .material-symbols-outlined { font-size: 26px; font-weight: 300; }
+        .sel-header {
+            position: absolute; top: 0; left: 0; right: 0; height: 60px; background: var(--bg-base); z-index: 30;
+            display: flex; align-items: center; justify-content: space-between; padding: 0 10px 0 8px; padding-top: env(safe-area-inset-top);
+        }
+        .sel-title { font-weight: 700; font-size: 17px; flex: 1; margin-left: 4px; }
+        .text-btn { border: none; background: none; color: var(--accent-primary); font-family: inherit; font-weight: 700; font-size: 14px; cursor: pointer; padding: 10px 12px; }
 
-        .sel-bar {
-            position: absolute; top: 0; left: 0; right: 0; height: 60px; z-index: 30; background: var(--bg-base);
-            padding: 0 8px 0 12px; align-items: center; justify-content: space-between; display: none;
-        }
-        .sel-bar.active { display: flex; }
-        .sel-left { display: flex; align-items: center; gap: 4px; font-weight: 700; font-size: 16px; min-width: 0; }
-        .sel-right { display: flex; align-items: center; }
-        .sel-right .hbtn { width: 38px; height: 38px; }
-        .sel-right .hbtn .material-symbols-outlined { font-size: 23px; }
-
+        /* スクロール */
         main {
-            flex-grow: 1; overflow-y: auto; padding: 0 16px 120px; max-width: 760px; width: 100%; margin: 0 auto;
+            flex-grow: 1; overflow-y: auto; padding: 0 16px calc(var(--nav-h) + 40px); max-width: 760px; width: 100%; margin: 0 auto;
             -webkit-overflow-scrolling: touch; overscroll-behavior-y: none;
         }
         #overscroll-wrapper { transform-origin: center top; }
         #overscroll-wrapper.spring-back { transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-        .big-title { font-size: 34px; font-weight: 300; letter-spacing: -0.5px; margin: 8px 6px 18px; word-break: break-all; }
-        .crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: -8px 6px 14px; font-size: 13px; color: var(--text-sub); }
-        .crumbs button { border: none; background: none; padding: 2px 0; font: inherit; color: var(--text-sub); cursor: pointer; }
-        .crumbs button:last-child { color: var(--text-main); font-weight: 600; }
-
+        .big-title { font-size: 34px; font-weight: 400; letter-spacing: -0.5px; margin: 6px 4px 18px; line-height: 1.2; word-break: break-all; }
         .view { display: none; }
         .view.active { display: block; animation: viewIn 0.3s var(--m3-easing); }
         @keyframes viewIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
-        .searchbar { display: none; margin: 0 2px 14px; position: relative; }
-        .searchbar.active { display: block; }
-        .searchbar > .material-symbols-outlined { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-sub); font-size: 22px; }
-        .glass-input {
-            width: 100%; padding: 14px 16px; border-radius: 16px; border: none; background: var(--bg-secondary); color: var(--text-main);
-            font-size: 15px; font-family: inherit;
-        }
-        .searchbar .glass-input { padding-left: 46px; background: var(--glass-bg); }
-        .glass-input:focus { outline: 2px solid var(--accent-primary); }
-        textarea.glass-input { resize: vertical; min-height: 100px; }
-        select.glass-input { appearance: none; }
-
-        /* タイプカード */
-        .type-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 26px; }
+        /* タイプグリッド */
+        .type-head { display: flex; align-items: center; justify-content: space-between; margin: 0 4px 10px; font-size: 13px; color: var(--text-sub); }
+        .type-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 22px; }
         .type-card {
-            display: flex; align-items: center; gap: 14px; padding: 18px 16px; border-radius: var(--ptz-card-radius);
-            background: var(--glass-bg); cursor: pointer; border: none; font-family: inherit; color: var(--text-main);
-            font-size: 15px; font-weight: 600; text-align: left; transition: transform 0.15s, background-color var(--transition-smooth);
+            border: none; background: var(--glass-bg); color: var(--text-main); font-family: inherit; font-weight: 600; font-size: 15px;
+            height: 68px; border-radius: 22px; display: flex; align-items: center; gap: 14px; padding: 0 20px; cursor: pointer;
+            transition: transform 0.15s, background-color var(--transition-smooth); box-shadow: none; text-align: left;
         }
         .type-card:active { transform: scale(0.97); }
-        .tile { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #FFF; flex-shrink: 0; }
-        .tile .material-symbols-outlined { font-size: 22px; font-variation-settings: 'FILL' 1; }
+        .type-card .material-symbols-outlined { font-size: 30px; font-variation-settings: 'FILL' 1; }
 
-        .list-head { display: flex; align-items: center; justify-content: space-between; margin: 0 6px 6px; color: var(--text-sub); font-size: 13.5px; }
-        .list-head .hbtn { width: 36px; height: 36px; color: var(--text-sub); }
-        .list-head .hbtn .material-symbols-outlined { font-size: 22px; }
-
-        /* リスト (区切り線なし) */
-        .item {
-            display: flex; align-items: center; gap: 16px; padding: 14px 6px; cursor: pointer; border-radius: 18px; position: relative;
-            transition: background 0.15s; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
-        }
-        .item:active { background: var(--bg-secondary); }
-        .item.selected { background: color-mix(in srgb, var(--accent-primary) 14%, transparent); }
-        .item-icon { width: 54px; height: 54px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; position: relative; }
-        .item-icon svg { width: 54px; height: 54px; }
-        .item-icon .tile { width: 42px; height: 42px; border-radius: 12px; }
-        .item-icon img.thumb { width: 42px; height: 42px; border-radius: 10px; object-fit: cover; }
-        .item-info { flex: 1; min-width: 0; }
-        .item-name { font-size: 16px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .item-meta { font-size: 12px; color: var(--text-sub); margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .item-chev { color: var(--text-sub); opacity: 0.7; }
+        /* リスト */
+        .list-head { display: flex; align-items: center; justify-content: space-between; margin: 0 4px 4px; min-height: 40px; }
+        .crumbs { display: flex; align-items: center; flex-wrap: wrap; gap: 2px; font-size: 13px; color: var(--text-sub); min-width: 0; }
+        .crumb { cursor: pointer; padding: 4px 2px; border-radius: 6px; }
+        .crumb.last { color: var(--text-main); font-weight: 700; }
+        .crumb-sep { opacity: 0.5; font-size: 16px; }
+        .file-row { display: flex; align-items: center; gap: 16px; padding: 16px 6px; cursor: pointer; border-radius: 18px; transition: background 0.2s; position: relative; }
+        .file-row:active { background: var(--bg-secondary); }
+        .file-row.selected { background: var(--bg-secondary); }
+        .file-ico { width: 46px; height: 46px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .file-ico .material-symbols-outlined { font-size: 44px; font-variation-settings: 'FILL' 1, 'wght' 400; }
+        .file-info { flex: 1; min-width: 0; }
+        .file-name { font-size: 16px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .file-sub { font-size: 12px; color: var(--text-sub); margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .file-end { color: var(--text-sub); display: flex; align-items: center; flex-shrink: 0; }
         .check {
-            width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--text-sub); flex-shrink: 0; display: none;
-            align-items: center; justify-content: center; color: #FFF;
+            width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--text-sub); display: flex; align-items: center; justify-content: center; color: transparent;
         }
-        .sel-mode .check { display: flex; }
-        .sel-mode .item-chev { display: none; }
-        .item.selected .check { background: var(--accent-primary); border-color: var(--accent-primary); }
-        .check .material-symbols-outlined { font-size: 16px; font-variation-settings: 'wght' 700; opacity: 0; }
-        .item.selected .check .material-symbols-outlined { opacity: 1; }
-        .empty { text-align: center; color: var(--text-sub); padding: 40px 16px; font-size: 14px; }
-        .empty .material-symbols-outlined { font-size: 54px; display: block; margin-bottom: 8px; opacity: 0.6; }
+        .check .material-symbols-outlined { font-size: 18px; }
+        .file-row.selected .check { background: var(--accent-primary); border-color: var(--accent-primary); color: #FFF; }
+        .empty-box { text-align: center; color: var(--text-sub); padding: 48px 16px; font-size: 14px; }
+        .empty-box .material-symbols-outlined { font-size: 56px; opacity: 0.5; display: block; margin-bottom: 8px; }
 
-        .glass-card { background: var(--glass-bg); border-radius: var(--ptz-card-radius); padding: 22px; margin-bottom: 18px; transition: background-color var(--transition-smooth); }
-        h2 { font-size: 17px; margin: 0 0 12px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+        /* カード/フォーム */
+        .glass-card { background: var(--glass-bg); border-radius: var(--ptz-card-radius); padding: 22px; margin-bottom: 18px; box-shadow: none !important; border: none !important; transition: background-color var(--transition-smooth); }
+        h2 { font-size: 17px; margin: 0 0 12px; font-weight: 700; letter-spacing: -0.3px; display: flex; align-items: center; gap: 8px; }
         h2 .material-symbols-outlined { color: var(--accent-primary); }
         p { font-size: 13.5px; line-height: 1.55; margin: 0 0 14px; color: var(--text-sub); }
         .field-label { font-size: 13px; font-weight: 600; margin: 14px 0 8px; display: block; }
-        .field-label:first-of-type { margin-top: 0; }
-        .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; }
-        .row-title { font-weight: 600; font-size: 14px; }
-        .row-desc { font-size: 12px; color: var(--text-sub); margin-top: 2px; }
-        .bar { height: 10px; border-radius: 5px; background: var(--bg-secondary); overflow: hidden; margin: 6px 0 4px; }
-        .bar > div { height: 100%; width: 0; background: var(--accent-primary); border-radius: 5px; transition: width 0.5s; }
-        .color-grid { display: flex; gap: 10px; flex-wrap: wrap; }
-        .color-swatch { width: 36px; height: 36px; border-radius: 50%; cursor: pointer; border: 3px solid transparent; }
-        .color-swatch.active { border-color: var(--text-main); }
-        .mascot { display: flex; align-items: center; gap: 14px; }
-        .mascot .ball { width: 72px; height: 72px; border-radius: 50%; overflow: hidden; background: var(--bg-secondary); flex-shrink: 0; cursor: pointer; }
-        .mascot .ball.big { width: 130px; height: 130px; margin: 0 auto 12px; cursor: default; }
-        .ball img { width: 100%; height: 100%; object-fit: cover; display: block; }
-        .ball img.is-uk { object-position: top; }
-        .mascot-label { font-size: 11.5px; font-weight: 700; color: var(--accent-primary); letter-spacing: 0.4px; text-transform: uppercase; }
-        .mascot-text { font-size: 14.5px; font-weight: 600; margin-top: 2px; }
-
+        .glass-input, select.glass-input, textarea.glass-input {
+            width: 100%; padding: 14px 16px; border-radius: 14px; border: none; background: var(--bg-secondary); color: var(--text-main);
+            font-size: 15px; font-family: inherit; -webkit-user-select: text; user-select: text;
+        }
+        textarea.glass-input { resize: vertical; min-height: 96px; }
+        .glass-input:focus { outline: 2px solid var(--accent-primary); }
         .ai-btn {
-            border: none; outline: none; padding: 12px 20px; border-radius: 14px; font-weight: 600; font-size: 14px; font-family: inherit;
-            color: #FFF; cursor: pointer; background: var(--accent-primary); transition: opacity 0.2s, transform 0.15s;
-            display: inline-flex; align-items: center; gap: 8px; justify-content: center;
+            border: none; outline: none; padding: 12px 22px; border-radius: 14px; font-weight: 600; font-size: 14px; font-family: inherit; color: #FFF;
+            cursor: pointer; background: var(--accent-primary); transition: opacity 0.2s, transform 0.15s; display: inline-flex; align-items: center; gap: 8px; justify-content: center;
         }
         .ai-btn:active:not(:disabled) { opacity: 0.88; transform: scale(0.97); }
         .ai-btn:disabled { opacity: 0.4; }
@@ -157,168 +137,183 @@
         .ai-btn-danger { background: var(--danger); }
         .ai-btn .material-symbols-outlined { font-size: 20px; }
         .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
-
+        .progress { height: 10px; border-radius: 5px; background: var(--bg-secondary); overflow: hidden; margin: 6px 0 4px; }
+        .progress > div { height: 100%; background: var(--accent-primary); border-radius: 5px; width: 0; transition: width 0.5s; }
+        .setting-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0; }
+        .row-title { font-weight: 700; font-size: 14px; } .row-desc { font-size: 12px; color: var(--text-sub); margin-top: 2px; }
         .switch { position: relative; display: inline-block; flex-shrink: 0; width: var(--ptz-toggle-width); height: var(--ptz-toggle-height); }
         .switch input { opacity: 0; width: 0; height: 0; }
         .slider { position: absolute; cursor: pointer; inset: 0; background: var(--bg-secondary); transition: var(--transition-smooth); border-radius: calc(var(--ptz-toggle-height) / 2); }
-        .slider:before {
-            position: absolute; content: ""; height: var(--ptz-toggle-knob-width); width: var(--ptz-toggle-knob-width); left: 4px;
-            bottom: calc((var(--ptz-toggle-height) - var(--ptz-toggle-knob-width)) / 2); background: #FFF; transition: var(--transition-smooth);
-            border-radius: var(--ptz-toggle-knob-radius); box-shadow: 0 1px 3px rgba(0,0,0,0.15);
-        }
+        .slider:before { position: absolute; content: ""; height: var(--ptz-toggle-knob-width); width: var(--ptz-toggle-knob-width); left: 4px; bottom: calc((var(--ptz-toggle-height) - var(--ptz-toggle-knob-width)) / 2); background: #FFF; transition: var(--transition-smooth); border-radius: var(--ptz-toggle-knob-radius); box-shadow: 0 1px 3px rgba(0,0,0,0.15); }
         input:checked + .slider { background: var(--accent-primary); }
         input:checked + .slider:before { transform: translateX(calc(var(--ptz-toggle-width) - var(--ptz-toggle-knob-width) - 8px)); }
+        .color-grid { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+        .color-swatch { width: 36px; height: 36px; border-radius: 50%; cursor: pointer; border: 3px solid transparent; transition: transform 0.15s; }
+        .color-swatch:active { transform: scale(0.9); } .color-swatch.active { border-color: var(--text-main); }
 
-        /* プレビュー */
-        .preview-box { border-radius: var(--ptz-card-radius); background: var(--glass-bg); padding: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 200px; overflow: auto; max-height: 62vh; }
-        .preview-box img, .preview-box video { max-width: 100%; max-height: 52vh; border-radius: 12px; object-fit: contain; }
-        .preview-box pre { width: 100%; white-space: pre-wrap; word-break: break-word; font-family: ui-monospace, monospace; font-size: 13px; margin: 0; user-select: text; -webkit-user-select: text; align-self: flex-start; }
-        .preview-box iframe { width: 100%; height: 52vh; border: none; border-radius: 12px; background: #FFF; }
-        .preview-box ul { align-self: stretch; margin: 0 0 14px; padding-left: 20px; max-height: 32vh; overflow-y: auto; font-size: 13.5px; }
-        .preview-actions { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+        /* マスコット */
+        .mascot { display: flex; align-items: center; gap: 14px; background: var(--glass-bg); border-radius: var(--ptz-card-radius); padding: 14px 18px; margin-bottom: 18px; cursor: pointer; }
+        .ball { width: 58px; height: 58px; border-radius: 50%; overflow: hidden; background: var(--bg-secondary); flex-shrink: 0; }
+        .ball img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .ball img.uk-ball { object-position: top; }
+        .ball.big { width: 120px; height: 120px; margin: 0 auto; }
+        .mascot-label { font-size: 11px; font-weight: 700; color: var(--accent-primary); letter-spacing: 0.4px; text-transform: uppercase; }
+        .mascot-text { font-size: 14px; font-weight: 600; margin-top: 2px; }
 
-        /* ナビ */
-        .bottom-nav-container {
+        /* ビューア */
+        .viewer-box { background: var(--glass-bg); border-radius: var(--ptz-card-radius); padding: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 240px; overflow: auto; -webkit-user-select: text; user-select: text; }
+        .viewer-box img, .viewer-box video { max-width: 100%; max-height: 60vh; border-radius: 14px; object-fit: contain; }
+        .viewer-box pre { width: 100%; white-space: pre-wrap; word-break: break-word; font-family: ui-monospace, monospace; font-size: 13px; margin: 0; align-self: flex-start; }
+        .viewer-box iframe { width: 100%; height: 60vh; border: none; border-radius: 12px; background: #FFF; }
+        .viewer-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; flex-wrap: wrap; }
+        .zip-list { width: 100%; margin: 0 0 12px; padding-left: 20px; max-height: 40vh; overflow-y: auto; font-size: 13px; line-height: 1.7; }
+
+        /* ナビ & バー */
+        .bottom-bar {
             position: fixed; bottom: 0; left: 0; width: 100%; height: var(--nav-h); background: var(--nav-bg); border-top: 1px solid var(--bg-secondary);
             z-index: 500; display: flex; justify-content: space-around; align-items: center; padding-bottom: env(safe-area-inset-bottom);
             transition: background-color var(--transition-smooth);
         }
-        .nav-item { flex: 1; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; color: var(--text-sub); gap: 4px; transition: color 0.25s var(--m3-easing); }
-        .nav-item .material-symbols-outlined { font-size: 26px; font-variation-settings: 'FILL' 1, 'wght' 400; opacity: 0.55; }
-        .nav-label { font-size: 11px; font-weight: 600; }
-        .nav-item.active { color: var(--nav-icon-active); }
-        .nav-item.active .material-symbols-outlined { opacity: 1; font-variation-settings: 'FILL' 1, 'wght' 600; }
+        .bar-item { flex: 1; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; color: var(--text-sub); gap: 4px; border: none; background: none; font-family: inherit; transition: color 0.25s; }
+        .bar-item .material-symbols-outlined { font-size: 25px; font-variation-settings: 'FILL' 0, 'wght' 400; }
+        .bar-item span.lbl { font-size: 10.5px; font-weight: 600; }
+        .bar-item.active { color: var(--nav-icon-active); }
+        .bar-item.active .material-symbols-outlined { font-variation-settings: 'FILL' 1, 'wght' 700; }
+        .bar-item.danger { color: var(--danger); }
+        .bar-item:disabled { opacity: 0.35; }
+        .bar-over { z-index: 520; }
 
-        /* 貼り付けバー */
-        .paste-pill {
-            position: fixed; left: 50%; bottom: calc(var(--nav-h) + 14px); transform: translateX(-50%) translateY(20px); z-index: 450;
-            background: var(--text-main); color: var(--glass-bg); border-radius: 28px; padding: 8px 8px 8px 20px;
-            display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; opacity: 0; visibility: hidden;
-            transition: all 0.3s var(--m3-easing); max-width: 92vw;
+        /* メニュー */
+        .menu {
+            position: absolute; top: 54px; right: 12px; background: var(--glass-bg); border-radius: 18px; padding: 8px; z-index: 600; min-width: 200px;
+            box-shadow: 0 8px 28px rgba(0,0,0,0.18); opacity: 0; transform: scale(0.92) translateY(-6px); transform-origin: top right; visibility: hidden; transition: all 0.2s var(--m3-easing);
         }
-        .paste-pill.active { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0); }
-        .paste-pill button { border: none; border-radius: 20px; padding: 9px 16px; font-family: inherit; font-weight: 700; font-size: 13px; cursor: pointer; }
-        .paste-pill .go { background: var(--accent-primary); color: #FFF; }
-        .paste-pill .no { background: transparent; color: inherit; opacity: 0.8; }
+        .menu.open { opacity: 1; transform: none; visibility: visible; }
+        .menu button { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 14px; border: none; background: none; color: var(--text-main); font-family: inherit; font-size: 14px; font-weight: 500; border-radius: 12px; cursor: pointer; text-align: left; }
+        .menu button:active { background: var(--bg-secondary); }
+        .menu .material-symbols-outlined { font-size: 22px; color: var(--text-sub); }
+        .searchbar { display: flex; gap: 8px; align-items: center; padding: 0 16px 10px; max-width: 760px; margin: 0 auto; width: 100%; flex-shrink: 0; }
+        .searchbar .glass-input { background: var(--glass-bg); }
 
-        /* シート・ダイアログ */
-        .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; opacity: 0; visibility: hidden; transition: all 0.3s var(--m3-easing); }
-        .overlay.active { opacity: 1; visibility: visible; }
-        .overlay.center { align-items: center; justify-content: center; }
-        .overlay.bottom { align-items: flex-end; justify-content: center; }
-        .glass-dialog { background: var(--glass-bg); border-radius: var(--ptz-card-radius); padding: 24px; max-width: 400px; width: 92%; transform: scale(0.9) translateY(20px); transition: all 0.4s var(--m3-easing); }
-        .overlay.active .glass-dialog { transform: scale(1) translateY(0); }
-        .sheet { background: var(--glass-bg); border-radius: 28px 28px 0 0; padding: 12px 16px calc(20px + env(safe-area-inset-bottom)); width: 100%; max-width: 560px; transform: translateY(100%); transition: transform 0.4s var(--m3-easing); }
-        .overlay.active .sheet { transform: translateY(0); }
-        .sheet-grip { width: 40px; height: 4px; border-radius: 2px; background: var(--bg-secondary); margin: 0 auto 10px; }
-        .sheet-title { font-size: 15px; font-weight: 700; padding: 6px 8px 8px; }
-        .sheet-opt { display: flex; align-items: center; gap: 14px; width: 100%; border: none; background: none; color: var(--text-main); font: inherit; font-size: 15px; padding: 14px 8px; border-radius: 14px; cursor: pointer; text-align: left; }
-        .sheet-opt:active { background: var(--bg-secondary); }
-        .sheet-opt .material-symbols-outlined { color: var(--text-sub); }
-        .sheet-opt.on { font-weight: 700; }
-        .sheet-opt.on .material-symbols-outlined { color: var(--accent-primary); }
+        /* ダイアログ/トースト */
+        .dialog-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: all 0.3s var(--m3-easing); }
+        .dialog-overlay.active { opacity: 1; visibility: visible; }
+        .glass-dialog { background: var(--glass-bg); border-radius: var(--ptz-card-radius); padding: 24px; max-width: 400px; width: 90%; transform: scale(0.9) translateY(20px); transition: all 0.4s var(--m3-easing); max-height: 88vh; overflow-y: auto; }
+        .dialog-overlay.active .glass-dialog { transform: none; }
         .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
-        .toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--text-main); color: var(--glass-bg); padding: 10px 20px; border-radius: 12px; font-size: 13px; font-weight: 600; opacity: 0; visibility: hidden; transition: all 0.3s var(--m3-easing); z-index: 2000; max-width: 90vw; text-align: center; }
+        .seg { display: flex; gap: 4px; background: var(--bg-secondary); padding: 4px; border-radius: 14px; margin-top: 6px; }
+        .seg button { flex: 1; border: none; background: transparent; color: var(--text-main); font-family: inherit; font-weight: 600; font-size: 13px; padding: 10px 4px; border-radius: 11px; cursor: pointer; }
+        .seg button.active { background: var(--accent-primary); color: #FFF; }
+        .toast { position: fixed; bottom: 88px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--text-main); color: var(--glass-bg); padding: 10px 20px; border-radius: 12px; font-size: 13px; font-weight: 600; opacity: 0; visibility: hidden; transition: all 0.3s var(--m3-easing); z-index: 2000; max-width: 90vw; text-align: center; pointer-events: none; }
         .toast.active { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0); }
-        input[type=file] { display: none; }
     </style>
 </head>
 <body>
 <div id="app-viewport">
     <header>
-        <button class="hbtn hidden" id="back-btn" title="戻る"><span class="material-symbols-outlined">arrow_back</span></button>
-        <div class="hright" id="head-actions">
-            <button class="hbtn" id="search-btn" title="検索"><span class="material-symbols-outlined">search</span></button>
-            <button class="hbtn" id="sort-btn" title="並べ替え"><span class="material-symbols-outlined">tune</span></button>
-            <button class="hbtn" id="more-btn" title="メニュー"><span class="material-symbols-outlined">more_vert</span></button>
+        <div class="head-left">
+            <button class="plain-btn hidden" id="back-btn" title="戻る"><span class="material-symbols-outlined">arrow_back</span></button>
+            <div class="head-title" id="head-title"></div>
+        </div>
+        <div class="head-actions" id="head-actions">
+            <button class="plain-btn" id="search-btn" title="検索"><span class="material-symbols-outlined">search</span></button>
+            <button class="plain-btn" id="sort-btn" title="並べ替え"><span class="material-symbols-outlined">tune</span></button>
+            <button class="plain-btn" id="more-btn" title="メニュー"><span class="material-symbols-outlined">more_vert</span></button>
         </div>
     </header>
 
-    <div class="sel-bar" id="sel-bar">
-        <div class="sel-left">
-            <button class="hbtn" id="sel-close" title="選択を終了"><span class="material-symbols-outlined">close</span></button>
-            <span id="sel-count">0 件選択中</span>
-        </div>
-        <div class="sel-right">
-            <button class="hbtn" id="sel-all" title="すべて選択"><span class="material-symbols-outlined">select_all</span></button>
-            <button class="hbtn" id="sel-copy" title="コピー"><span class="material-symbols-outlined">content_copy</span></button>
-            <button class="hbtn" id="sel-cut" title="移動"><span class="material-symbols-outlined">drive_file_move</span></button>
-            <button class="hbtn" id="sel-zip" title="ZIPに圧縮"><span class="material-symbols-outlined">archive</span></button>
-            <button class="hbtn" id="sel-rename" title="名前の変更"><span class="material-symbols-outlined">edit</span></button>
-            <button class="hbtn" id="sel-delete" title="削除"><span class="material-symbols-outlined">delete</span></button>
-        </div>
+    <div class="sel-header hidden" id="sel-header">
+        <button class="plain-btn" id="sel-close" title="選択を解除"><span class="material-symbols-outlined">close</span></button>
+        <div class="sel-title" id="sel-title">0 件選択中</div>
+        <button class="text-btn" id="sel-all">すべて選択</button>
+    </div>
+
+    <div class="menu" id="menu">
+        <button data-m="upload"><span class="material-symbols-outlined">upload_file</span>ファイルを追加</button>
+        <button data-m="folder"><span class="material-symbols-outlined">create_new_folder</span>新規フォルダ</button>
+        <button data-m="select"><span class="material-symbols-outlined">checklist</span>複数選択</button>
+        <button data-m="settings"><span class="material-symbols-outlined">settings</span>設定</button>
+    </div>
+
+    <div class="searchbar hidden" id="searchbar">
+        <input type="text" class="glass-input" id="search-input" placeholder="ファイル・フォルダを検索" autocomplete="off">
+        <button class="plain-btn" id="search-close"><span class="material-symbols-outlined">close</span></button>
     </div>
 
     <main id="main-scroll-area"><div id="overscroll-wrapper">
+        <h1 class="big-title" id="big-title">ストレージ</h1>
 
         <!-- 最近 -->
         <section class="view" id="view-recent">
-            <div class="big-title">最近</div>
-            <div class="glass-card mascot" id="mascot-card">
-                <div class="ball" id="mascot-ball"><img id="mascot-img" alt=""></div>
-                <div style="flex:1;min-width:0;">
+            <div class="mascot" id="mascot">
+                <div class="ball"><img id="mascot-img" alt=""></div>
+                <div>
                     <div class="mascot-label" id="mascot-label">PB Companion</div>
-                    <div class="mascot-text" id="mascot-text">ファイルはこの端末のブラウザ内に安全に保存されます。</div>
+                    <div class="mascot-text" id="mascot-dialogue">IndexedDBへようこそ！ファイルを安全に管理します。</div>
                 </div>
             </div>
+            <div class="list-head"><div class="crumbs"><span class="crumb last">最近のファイル</span></div></div>
             <div id="recent-list"></div>
         </section>
 
         <!-- ストレージ -->
         <section class="view active" id="view-storage">
-            <div class="big-title" id="storage-title">ストレージ</div>
-            <div class="crumbs" id="crumbs" style="display:none;"></div>
-            <div class="searchbar" id="searchbar">
-                <span class="material-symbols-outlined">search</span>
-                <input type="text" class="glass-input" id="search-input" placeholder="すべてのファイルを検索" autocomplete="off">
-            </div>
-            <div id="type-section">
-                <div class="list-head"><span>タイプ</span></div>
-                <div class="type-grid" id="type-grid"></div>
+            <div id="type-block">
+                <div class="type-head"><span>タイプ</span></div>
+                <div class="type-grid">
+                    <button class="type-card" data-cat="docs"><span class="material-symbols-outlined" style="color:#FFB020">description</span>ドキュメント</button>
+                    <button class="type-card" data-cat="images"><span class="material-symbols-outlined" style="color:#FF6B6B">image</span>画像</button>
+                    <button class="type-card" data-cat="videos"><span class="material-symbols-outlined" style="color:#7C6CF6">play_circle</span>動画</button>
+                    <button class="type-card" data-cat="music"><span class="material-symbols-outlined" style="color:#1DBF8E">music_note</span>音楽</button>
+                </div>
             </div>
             <div class="list-head">
-                <span id="list-label">内部ストレージ</span>
-                <span id="list-actions">
-                    <button class="hbtn" id="new-folder-btn" title="新規フォルダ"><span class="material-symbols-outlined">create_new_folder</span></button>
-                    <button class="hbtn" id="upload-btn" title="ファイルを追加"><span class="material-symbols-outlined">upload_file</span></button>
-                </span>
+                <div class="crumbs" id="crumbs"></div>
+                <button class="plain-btn" id="new-folder-btn" title="新規フォルダ"><span class="material-symbols-outlined">create_new_folder</span></button>
             </div>
-            <div id="file-list"></div>
+            <div id="storage-list"></div>
+        </section>
+
+        <!-- カテゴリ -->
+        <section class="view" id="view-category">
+            <div id="cat-list"></div>
         </section>
 
         <!-- ツール -->
         <section class="view" id="view-tools">
-            <div class="big-title">ツール</div>
             <div class="glass-card">
-                <h2><span class="material-symbols-outlined">lock</span>Tangle 暗号化</h2>
-                <p>パスワードのSHA-256ハッシュを鍵にして、テキストを .tangle ファイルとして保存します。簡易的な暗号化なので、重要な情報の保護には向きません。</p>
-                <label class="field-label" for="tg-name">ファイル名</label>
-                <input type="text" class="glass-input" id="tg-name" value="secret.tangle">
-                <label class="field-label" for="tg-pass">パスワード</label>
-                <input type="password" class="glass-input" id="tg-pass" autocomplete="new-password">
-                <label class="field-label" for="tg-text">暗号化する内容</label>
-                <textarea class="glass-input" id="tg-text" rows="4"></textarea>
-                <div style="margin-top:14px;display:flex;justify-content:flex-end;">
-                    <button class="ai-btn" id="tg-create"><span class="material-symbols-outlined">key</span>作成して保存</button>
+                <h2><span class="material-symbols-outlined">lock</span>Tangle 暗号化スタジオ</h2>
+                <p>テキストをパスワードで保護して、.tangle ファイルとして保存します。保存先: <b id="tangle-dest">/</b></p>
+                <label class="field-label" for="tangle-filename" style="margin-top:0;">ファイル名</label>
+                <input type="text" class="glass-input" id="tangle-filename" value="secret.tangle">
+                <label class="field-label" for="tangle-password">パスワード</label>
+                <input type="password" class="glass-input" id="tangle-password" autocomplete="new-password">
+                <label class="field-label" for="tangle-content">暗号化するテキスト</label>
+                <textarea class="glass-input" id="tangle-content" rows="4"></textarea>
+                <div class="btn-row" style="margin-top:16px;justify-content:flex-end;">
+                    <button class="ai-btn" id="tangle-create"><span class="material-symbols-outlined">key</span>作成して保存</button>
                 </div>
+                <p style="margin:14px 0 0;font-size:12px;">※ Tangle は簡易的な保護形式です。強い機密情報の保管には向きません。</p>
             </div>
             <div class="glass-card">
                 <h2><span class="material-symbols-outlined">storage</span>ストレージ情報</h2>
-                <p id="storage-text" style="margin-bottom:6px;">計算中...</p>
-                <div class="bar"><div id="storage-bar"></div></div>
+                <p id="storage-stats-text" style="margin-bottom:8px;">計算中...</p>
+                <div class="progress"><div id="storage-bar"></div></div>
                 <div class="btn-row" style="margin-top:16px;">
-                    <button class="ai-btn ai-btn-secondary" id="seed-btn"><span class="material-symbols-outlined">restart_alt</span>初期フォルダを再生成</button>
-                    <button class="ai-btn ai-btn-danger" id="wipe-btn"><span class="material-symbols-outlined">delete_forever</span>全データを消去</button>
+                    <button class="ai-btn ai-btn-secondary" id="seed-btn"><span class="material-symbols-outlined">restart_alt</span>初期フォルダを作成</button>
+                    <button class="ai-btn ai-btn-danger" id="wipe-btn"><span class="material-symbols-outlined">delete_forever</span>全データ削除</button>
                 </div>
             </div>
         </section>
 
         <!-- 設定 -->
         <section class="view" id="view-settings">
-            <div class="big-title">設定</div>
             <div class="glass-card">
                 <h2><span class="material-symbols-outlined">palette</span>デザイン</h2>
-                <div class="row"><div class="row-title">ダークモード</div><label class="switch"><input type="checkbox" id="set-dark"><span class="slider"></span></label></div>
+                <div class="setting-row">
+                    <div><div class="row-title">ダークモード</div></div>
+                    <label class="switch"><input type="checkbox" id="set-dark"><span class="slider"></span></label>
+                </div>
                 <label class="field-label">アクセントカラー</label>
                 <div class="color-grid" id="accent-grid">
                     <div class="color-swatch" data-c="#3381FF" style="background:#3381FF"></div>
@@ -330,67 +325,74 @@
                 </div>
             </div>
             <div class="glass-card">
-                <h2><span class="material-symbols-outlined">face</span>コンパニオン</h2>
-                <p>「最近」画面に表示するPolandballを選べます。</p>
-                <div class="ball big"><img id="companion-img" alt=""></div>
-                <label class="field-label" for="country-select">国</label>
+                <h2><span class="material-symbols-outlined">face</span>Polandball コンパニオン</h2>
+                <div style="text-align:center;margin:6px 0 16px;">
+                    <div class="ball big"><img id="companion-img" alt=""></div>
+                    <div style="font-weight:700;margin-top:10px;" id="companion-name"></div>
+                </div>
+                <label class="field-label" for="country-select" style="margin-top:0;">国</label>
                 <select class="glass-input" id="country-select"></select>
-                <label class="field-label" for="expr-select">表情</label>
-                <select class="glass-input" id="expr-select"></select>
-            </div>
-            <div class="glass-card">
-                <h2><span class="material-symbols-outlined">info</span>PB File Manager</h2>
-                <p style="margin:0;">ファイルは、このブラウザの IndexedDB に保存されます。ブラウザのデータを消去すると、中身も消えます。</p>
+                <label class="field-label" for="expression-select">表情</label>
+                <select class="glass-input" id="expression-select"></select>
             </div>
         </section>
 
-        <!-- プレビュー -->
-        <section class="view" id="view-preview">
-            <div class="big-title" id="preview-title" style="font-size:26px;">ファイル</div>
-            <div class="preview-box" id="preview-box"></div>
-            <div class="preview-actions">
-                <button class="ai-btn" id="preview-dl"><span class="material-symbols-outlined">download</span>ダウンロード</button>
-                <button class="ai-btn ai-btn-secondary" id="preview-close"><span class="material-symbols-outlined">close</span>閉じる</button>
+        <!-- ビューア -->
+        <section class="view" id="view-viewer">
+            <div class="viewer-box" id="viewer-box"></div>
+            <div class="viewer-actions">
+                <button class="ai-btn ai-btn-secondary" id="viewer-download"><span class="material-symbols-outlined">download</span>ダウンロード</button>
+                <button class="ai-btn" id="viewer-close"><span class="material-symbols-outlined">close</span>閉じる</button>
             </div>
         </section>
-
     </div></main>
 
-    <div class="paste-pill" id="paste-pill">
-        <span id="paste-text">0 件</span>
-        <button class="go" id="paste-go">ここに貼り付け</button>
-        <button class="no" id="paste-cancel">取消</button>
+    <div class="bottom-bar" id="nav-bar">
+        <button class="bar-item" data-tab="recent"><span class="material-symbols-outlined">schedule</span><span class="lbl">最近</span></button>
+        <button class="bar-item active" data-tab="storage"><span class="material-symbols-outlined">smartphone</span><span class="lbl">ストレージ</span></button>
+        <button class="bar-item" data-tab="tools"><span class="material-symbols-outlined">build</span><span class="lbl">ツール</span></button>
     </div>
-
-    <div class="bottom-nav-container">
-        <div class="nav-item" data-tab="recent"><span class="material-symbols-outlined">schedule</span><span class="nav-label">最近</span></div>
-        <div class="nav-item active" data-tab="storage"><span class="material-symbols-outlined">smartphone</span><span class="nav-label">ストレージ</span></div>
-        <div class="nav-item" data-tab="tools"><span class="material-symbols-outlined">build</span><span class="nav-label">ツール</span></div>
-        <div class="nav-item" data-tab="settings"><span class="material-symbols-outlined">settings</span><span class="nav-label">設定</span></div>
+    <div class="bottom-bar bar-over hidden" id="sel-bar">
+        <button class="bar-item" data-a="copy"><span class="material-symbols-outlined">content_copy</span><span class="lbl">コピー</span></button>
+        <button class="bar-item" data-a="cut"><span class="material-symbols-outlined">content_cut</span><span class="lbl">移動</span></button>
+        <button class="bar-item" data-a="zip"><span class="material-symbols-outlined">archive</span><span class="lbl">圧縮</span></button>
+        <button class="bar-item" data-a="rename"><span class="material-symbols-outlined">edit</span><span class="lbl">名前変更</span></button>
+        <button class="bar-item danger" data-a="delete"><span class="material-symbols-outlined">delete</span><span class="lbl">削除</span></button>
+    </div>
+    <div class="bottom-bar bar-over hidden" id="paste-bar">
+        <button class="bar-item" id="paste-cancel"><span class="material-symbols-outlined">close</span><span class="lbl">キャンセル</span></button>
+        <button class="bar-item active" id="paste-do"><span class="material-symbols-outlined">content_paste</span><span class="lbl" id="paste-label">ここに貼り付け</span></button>
     </div>
 </div>
 
-<input type="file" id="native-file" multiple>
+<input type="file" id="native-file-input" multiple style="display:none;">
 
-<div class="overlay center" id="dialog-overlay"><div class="glass-dialog">
-    <h2 id="dialog-title" style="margin-bottom:8px;">確認</h2>
-    <p id="dialog-body" style="margin-bottom:0;"></p>
-    <input class="glass-input" id="dialog-input" style="margin-top:14px;display:none;">
-    <div class="dialog-actions" id="dialog-actions"></div>
-</div></div>
-
-<div class="overlay bottom" id="sheet-overlay"><div class="sheet">
-    <div class="sheet-grip"></div>
-    <div class="sheet-title" id="sheet-title"></div>
-    <div id="sheet-body"></div>
-</div></div>
-
+<div class="dialog-overlay" id="dlg">
+    <div class="glass-dialog">
+        <h2 id="dlg-title" style="margin-bottom:8px;"></h2>
+        <p id="dlg-body" style="margin-bottom:12px;"></p>
+        <input class="glass-input" id="dlg-input" autocomplete="off">
+        <div class="dialog-actions">
+            <button class="ai-btn ai-btn-secondary" id="dlg-cancel">キャンセル</button>
+            <button class="ai-btn" id="dlg-ok">OK</button>
+        </div>
+    </div>
+</div>
+<div class="dialog-overlay" id="sort-dlg">
+    <div class="glass-dialog">
+        <h2><span class="material-symbols-outlined">sort</span>並べ替え</h2>
+        <label class="field-label" style="margin-top:0;">基準</label>
+        <div class="seg" id="sort-key"><button data-k="name">名前</button><button data-k="date">日付</button><button data-k="size">サイズ</button></div>
+        <label class="field-label">順序</label>
+        <div class="seg" id="sort-dir"><button data-d="1">昇順</button><button data-d="-1">降順</button></div>
+        <div class="dialog-actions"><button class="ai-btn" id="sort-close">閉じる</button></div>
+    </div>
+</div>
 <div class="toast" id="toast"></div>
 
 <script>
 const $ = id => document.getElementById(id);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
-const pad = n => String(n).padStart(2, '0');
 
 /* ---------- 設定 ---------- */
 const LS = {
@@ -399,96 +401,77 @@ const LS = {
 };
 const settings = Object.assign({
     dark: window.matchMedia('(prefers-color-scheme: dark)').matches, accent: '#3381FF',
-    country: 'japan', expr: 'normal.png', sort: 'name'
+    country: 'japan', expression: 'normal.png', sortKey: 'name', sortDir: 1
 }, LS.get('pbfm_settings_v1', {}));
 const saveSettings = () => LS.set('pbfm_settings_v1', settings);
 
-const COUNTRIES = [
-    ['japan', '日本'], ['germany', 'ドイツ'], ['china', '中国'], ['italy', 'イタリア'], ['sierraleone', 'シエラレオネ'],
-    ['russia', 'ロシア'], ['france', 'フランス'], ['poland', 'ポーランド'], ['england472x600', 'イギリス (UK)'],
-    ['usa', 'アメリカ'], ['korea', '韓国'], ['austria', 'オーストリア']
-];
-const EXPRS = [
-    ['normal.png', '通常'], ['happy.png', '幸せ'], ['smile.png', '笑顔'], ['lol.png', '爆笑'], ['surprise.png', '驚き'],
-    ['anger.png', '怒り'], ['dissatisfaction.png', '不満'], ['itome.png', '糸目'], ['plot.png', '企み'], ['sample', 'サンプル']
-];
-const BASE = 'https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/';
-
 /* ---------- 共通UI ---------- */
 let toastTimer;
-function toast(m) { const t = $('toast'); t.textContent = m; t.classList.add('active'); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('active'), 2400); }
-function applyTheme() {
+function showToast(m) { const t = $('toast'); t.textContent = m; t.classList.add('active'); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('active'), 2400); }
+const say = t => { $('mascot-dialogue').textContent = t; };
+function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+function fmtSize(b) { if (!b) return '0 B'; const k = 1024, u = ['B', 'KB', 'MB', 'GB'], i = Math.min(3, Math.floor(Math.log(b) / Math.log(k))); return parseFloat((b / Math.pow(k, i)).toFixed(1)) + ' ' + u[i]; }
+function fmtDate(ts) { const d = new Date(ts); return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`; }
+const extOf = n => (n.includes('.') ? n.split('.').pop().toLowerCase() : '');
+
+let dlgResolve = null;
+function askDialog({ title, body = '', input = false, value = '', type = 'text', ok = 'OK', danger = false }) {
+    return new Promise(res => {
+        dlgResolve = res;
+        $('dlg-title').textContent = title; $('dlg-body').textContent = body; $('dlg-body').style.display = body ? '' : 'none';
+        const inp = $('dlg-input'); inp.style.display = input ? '' : 'none'; inp.type = type; inp.value = value;
+        const okb = $('dlg-ok'); okb.textContent = ok; okb.classList.toggle('ai-btn-danger', danger);
+        $('dlg').classList.add('active');
+        if (input) setTimeout(() => { inp.focus(); inp.select(); }, 150);
+    });
+}
+function closeDlg(result) { $('dlg').classList.remove('active'); if (dlgResolve) { const r = dlgResolve; dlgResolve = null; r(result); } }
+$('dlg-ok').onclick = () => closeDlg($('dlg-input').style.display === 'none' ? true : $('dlg-input').value);
+$('dlg-cancel').onclick = () => closeDlg(null);
+$('dlg').addEventListener('click', e => { if (e.target === $('dlg')) closeDlg(null); });
+$('dlg-input').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) $('dlg-ok').click(); });
+
+function shade(hex, pct) { const f = i => clamp(Math.round(parseInt(hex.substr(i, 2), 16) * (100 + pct) / 100), 0, 255).toString(16).padStart(2, '0'); return '#' + f(1) + f(3) + f(5); }
+function applySettings() {
     document.body.classList.toggle('dark-mode', settings.dark);
     $('set-dark').checked = settings.dark;
     document.documentElement.style.setProperty('--accent-primary', settings.accent);
     document.querySelectorAll('#accent-grid .color-swatch').forEach(s => s.classList.toggle('active', s.dataset.c === settings.accent));
-    $('theme-color-meta').setAttribute('content', settings.dark ? '#121212' : '#F7F7F7');
+    $('theme-color-meta').setAttribute('content', settings.dark ? '#000000' : '#F7F7F7');
 }
-$('set-dark').onchange = e => { settings.dark = e.target.checked; saveSettings(); applyTheme(); };
-document.querySelectorAll('#accent-grid .color-swatch').forEach(s => s.onclick = () => { settings.accent = s.dataset.c; saveSettings(); applyTheme(); });
+$('set-dark').onchange = e => { settings.dark = e.target.checked; saveSettings(); applySettings(); };
+document.querySelectorAll('#accent-grid .color-swatch').forEach(s => s.onclick = () => { settings.accent = s.dataset.c; saveSettings(); applySettings(); });
 
-let dialogCb = null;
-function openDialog({ title, body = '', input = null, ok = 'OK', danger = false, onOk }) {
-    $('dialog-title').textContent = title; $('dialog-body').textContent = body; $('dialog-body').style.display = body ? '' : 'none';
-    const inp = $('dialog-input');
-    if (input) { inp.style.display = ''; inp.type = input.type || 'text'; inp.value = input.value || ''; inp.placeholder = input.placeholder || ''; }
-    else inp.style.display = 'none';
-    const box = $('dialog-actions'); box.innerHTML = '';
-    const mk = (t, c, f) => { const b = document.createElement('button'); b.className = 'ai-btn ' + c; b.textContent = t; b.onclick = f; box.appendChild(b); };
-    mk('キャンセル', 'ai-btn-secondary', closeDialog);
-    dialogCb = async () => { const v = inp.value; const keep = await onOk(input ? v : undefined); if (keep !== false) closeDialog(); };
-    mk(ok, danger ? 'ai-btn-danger' : '', dialogCb);
-    $('dialog-overlay').classList.add('active');
-    if (input) setTimeout(() => { inp.focus(); inp.select(); }, 120);
+/* ---------- マスコット ---------- */
+const COUNTRIES = [['japan', '日本'], ['germany', 'ドイツ'], ['china', '中国'], ['italy', 'イタリア'], ['sierraleone', 'シエラレオネ'], ['russia', 'ロシア'], ['france', 'フランス'], ['poland', 'ポーランド'], ['england472x600', 'イギリス'], ['usa', 'アメリカ'], ['korea', '韓国'], ['austria', 'オーストリア']];
+const EXPRS = [['normal.png', '通常'], ['happy.png', '笑顔'], ['smile.png', 'スマイル'], ['lol.png', '爆笑'], ['surprise.png', '驚き'], ['anger.png', '怒り'], ['dissatisfaction.png', '不満'], ['itome.png', '糸目'], ['plot.png', '企み'], ['sample', 'サンプル']];
+const BASE = 'https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/balls/';
+function ballUrl(c, e) { return `${BASE}${c}/${e}`; }
+function setBallImg(img, c, e) {
+    img.classList.toggle('uk-ball', c === 'england472x600');
+    img.onerror = () => { img.onerror = null; img.classList.remove('uk-ball'); img.src = ballUrl('poland', 'normal.png'); };
+    img.src = ballUrl(c, e);
 }
-function closeDialog() { $('dialog-overlay').classList.remove('active'); dialogCb = null; }
-$('dialog-input').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing && dialogCb) { e.preventDefault(); dialogCb(); } });
-$('dialog-overlay').addEventListener('click', e => { if (e.target === $('dialog-overlay')) closeDialog(); });
-
-function openSheet(title, options) {
-    $('sheet-title').textContent = title;
-    const body = $('sheet-body'); body.innerHTML = '';
-    options.forEach(o => {
-        const b = document.createElement('button'); b.className = 'sheet-opt' + (o.on ? ' on' : '');
-        b.innerHTML = '<span class="material-symbols-outlined"></span><span></span>';
-        b.children[0].textContent = o.icon; b.children[1].textContent = o.label;
-        b.onclick = () => { closeSheet(); o.fn(); };
-        body.appendChild(b);
-    });
-    $('sheet-overlay').classList.add('active');
+function updateCompanion() {
+    setBallImg($('mascot-img'), settings.country, settings.expression);
+    setBallImg($('companion-img'), settings.country, settings.expression);
+    const cn = (COUNTRIES.find(c => c[0] === settings.country) || [])[1] || settings.country;
+    $('mascot-label').textContent = `PB Companion (${cn})`;
+    $('companion-name').textContent = `${cn} - ${(EXPRS.find(e => e[0] === settings.expression) || [])[1] || settings.expression}`;
 }
-function closeSheet() { $('sheet-overlay').classList.remove('active'); }
-$('sheet-overlay').addEventListener('click', e => { if (e.target === $('sheet-overlay')) closeSheet(); });
-
-/* ---------- ボール ---------- */
-function ballUrl(country, expr) { return BASE + country + '/' + expr; }
-function setBall(img) {
-    img.classList.toggle('is-uk', settings.country === 'england472x600');
-    img.onerror = () => { img.onerror = null; img.classList.remove('is-uk'); img.src = BASE + 'poland/normal.png'; };
-    img.src = ballUrl(settings.country, settings.expr);
-}
-const LINES = [
-    'ファイルはこの端末のブラウザ内に安全に保存されます。', 'フォルダを長押しすると、まとめて操作できるよ！',
-    '大事なメモは Tangle で暗号化してね。', 'ZIPの圧縮と解凍もできるんよ！'
-];
-function renderMascot() {
-    setBall($('mascot-img')); setBall($('companion-img'));
-    const c = COUNTRIES.find(x => x[0] === settings.country);
-    $('mascot-label').textContent = 'PB Companion · ' + (c ? c[1] : settings.country);
-}
-$('mascot-ball').onclick = () => { $('mascot-text').textContent = LINES[Math.floor(Math.random() * LINES.length)]; };
-function fillSelect(id, items, val, fn) {
-    const s = $(id); s.innerHTML = '';
-    items.forEach(([v, n]) => { const o = document.createElement('option'); o.value = v; o.textContent = n; s.appendChild(o); });
-    s.value = val; s.onchange = () => { fn(s.value); saveSettings(); renderMascot(); toast('キャラを更新しました'); };
-}
-fillSelect('country-select', COUNTRIES, settings.country, v => settings.country = v);
-fillSelect('expr-select', EXPRS, settings.expr, v => settings.expr = v);
+(function () {
+    const cs = $('country-select'), es = $('expression-select');
+    COUNTRIES.forEach(([v, n]) => cs.add(new Option(`${n} (${v})`, v)));
+    EXPRS.forEach(([v, n]) => es.add(new Option(n, v)));
+    cs.value = settings.country; es.value = settings.expression;
+    cs.onchange = es.onchange = () => { settings.country = cs.value; settings.expression = es.value; saveSettings(); updateCompanion(); showToast('キャラと表情を更新しました'); };
+})();
+$('mascot').onclick = () => openSettings();
 
 /* ---------- IndexedDB ---------- */
 let db = null;
 function initDB() {
-    return new Promise((res, rej) => {
+    return new Promise((resolve, reject) => {
         const r = indexedDB.open('PBFileManagerDB', 1);
         r.onupgradeneeded = e => {
             const d = e.target.result;
@@ -497,446 +480,498 @@ function initDB() {
                 s.createIndex('path', 'path', { unique: false }); s.createIndex('name', 'name', { unique: false });
             }
         };
-        r.onsuccess = e => { db = e.target.result; res(); };
-        r.onerror = () => rej(r.error);
+        r.onsuccess = e => { db = e.target.result; resolve(); };
+        r.onerror = () => reject(r.error);
     });
 }
-const tx = (mode, fn) => new Promise((res, rej) => {
-    const t = db.transaction('files', mode), s = t.objectStore('files'); const r = fn(s);
-    t.oncomplete = () => res(r && r.result); t.onerror = () => rej(t.error); t.onabort = () => rej(t.error);
-});
-const dbAll = () => tx('readonly', s => s.getAll());
-const dbGet = id => tx('readonly', s => s.get(id));
-const dbPut = item => tx('readwrite', s => s.put(item));
-const dbDel = id => tx('readwrite', s => s.delete(id));
-const fullPath = it => it.path === '/' ? '/' + it.name : it.path + '/' + it.name;
-const isUnder = (p, base) => p === base || p.startsWith(base + '/');
-const extOf = n => n.includes('.') ? n.split('.').pop().toLowerCase() : '';
-function uniqueName(all, path, name, isFolder) {
-    const names = new Set(all.filter(i => i.path === path).map(i => i.name));
+const store = mode => db.transaction('files', mode || 'readonly').objectStore('files');
+const rq = r => new Promise((res, rej) => { r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+const getRec = id => rq(store().get(id));
+const putRec = rec => rq(store('readwrite').put(rec));
+const delRec = id => rq(store('readwrite').delete(id));
+function metaOf(rec) { const m = Object.assign({}, rec); delete m.content; return m; }
+// 内容(ArrayBuffer)を持ち出さずにメタ情報だけ集める
+function listMeta(filter, path) {
+    return new Promise((res, rej) => {
+        const out = [], s = store();
+        const cur = path !== undefined ? s.index('path').openCursor(IDBKeyRange.only(path)) : s.openCursor();
+        cur.onsuccess = e => { const c = e.target.result; if (!c) return res(out); const m = metaOf(c.value); if (!filter || filter(m)) out.push(m); c.continue(); };
+        cur.onerror = () => rej(cur.error);
+    });
+}
+const countIn = path => rq(store().index('path').count(IDBKeyRange.only(path)));
+const fullPath = it => (it.path === '/' ? '' : it.path) + '/' + it.name;
+const descendants = async folder => { const fp = fullPath(folder); return listMeta(m => m.path === fp || m.path.startsWith(fp + '/')); };
+async function uniqueName(name, path) {
+    const names = new Set((await listMeta(null, path)).map(m => m.name));
     if (!names.has(name)) return name;
-    const dot = !isFolder && name.lastIndexOf('.') > 0 ? name.lastIndexOf('.') : -1;
-    const base = dot > 0 ? name.slice(0, dot) : name, ext = dot > 0 ? name.slice(dot) : '';
+    const dot = name.lastIndexOf('.'), base = dot > 0 ? name.slice(0, dot) : name, ext = dot > 0 ? name.slice(dot) : '';
     for (let n = 2; ; n++) { const c = `${base} (${n})${ext}`; if (!names.has(c)) return c; }
 }
-const DEFAULT_FOLDERS = ['PBPARK', 'Download', 'Picture', 'Music', 'PBUI', 'Document'];
-async function seedFolders(announce) {
-    const all = await dbAll(); let added = 0;
-    for (const f of DEFAULT_FOLDERS) {
-        if (!all.some(i => i.path === '/' && i.isFolder && i.name === f)) {
-            await dbPut({ name: f, path: '/', isFolder: true, size: 0, type: 'folder', updatedAt: Date.now() }); added++;
-        }
+async function ensureDir(base, parts) {
+    let p = base;
+    for (const part of parts) {
+        const found = (await listMeta(null, p)).find(m => m.isFolder && m.name === part);
+        if (!found) await putRec({ name: part, path: p, isFolder: true, size: 0, type: 'folder', updatedAt: Date.now() });
+        p = (p === '/' ? '' : p) + '/' + part;
     }
-    if (announce) toast(added ? `${added} 個のフォルダを作成しました` : 'すべて作成済みです');
+    return p;
+}
+async function seedDefaultFolders(silent) {
+    for (const n of ['PBPARK', 'Download', 'Picture', 'Music', 'PBUI', 'Document']) await ensureDir('/', [n]);
+    if (!silent) showToast('デフォルトフォルダを作成・確認しました');
+    refresh();
 }
 
-/* ---------- 状態 ---------- */
+/* ---------- ファイル種別 ---------- */
 const CATS = {
-    docs: { name: 'ドキュメント', icon: 'description', color: '#FFB300', exts: ['txt', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'md', 'csv', 'json', 'html', 'css', 'js', 'tangle', 'zip'] },
-    images: { name: '画像', icon: 'image', color: '#FF6B6B', exts: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp'] },
-    videos: { name: '動画', icon: 'play_arrow', color: '#7B6CF6', exts: ['mp4', 'webm', 'mkv', 'mov'] },
-    music: { name: 'ミュージック', icon: 'music_note', color: '#2DC98F', exts: ['mp3', 'wav', 'ogg', 'm4a', 'flac'] }
+    docs: { label: 'ドキュメント', exts: ['txt', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'md', 'csv', 'json', 'html', 'css', 'js', 'java', 'jre', 'tangle'] },
+    images: { label: '画像', exts: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp'] },
+    videos: { label: '動画', exts: ['mp4', 'webm', 'mkv', 'mov'] },
+    music: { label: '音楽', exts: ['mp3', 'wav', 'ogg', 'm4a', 'flac', 'aac'] }
 };
-const SORTS = {
-    name: ['名前順', 'sort_by_alpha'], new: ['更新日が新しい順', 'schedule'], old: ['更新日が古い順', 'history'], size: ['サイズが大きい順', 'data_usage']
-};
-let tab = 'storage', path = '/', cat = null, query = '';
-let selMode = false; const selected = new Set();
-let clip = { action: null, ids: [] };
-let cache = [];
-let preview = null, previewUrls = [];
-
-/* ---------- 表示ヘルパ ---------- */
-function folderSvg() {
-    return '<svg viewBox="0 0 54 54"><path d="M6 14a5 5 0 0 1 5-5h10.5a4 4 0 0 1 3 1.4l2.2 2.6H43a5 5 0 0 1 5 5v1H6z" fill="var(--folder-tab)"/><rect x="6" y="17" width="42" height="28" rx="5" fill="var(--folder)"/><rect x="14" y="23" width="12" height="2.4" rx="1.2" fill="#fff" opacity=".75"/></svg>';
-}
-function iconFor(it) {
+function iconOf(it) {
+    if (it.isFolder) return { icon: 'folder', color: '#FFB020' };
     const e = extOf(it.name);
-    for (const k in CATS) if (CATS[k].exts.includes(e) && k !== 'docs') return { icon: CATS[k].icon, color: CATS[k].color };
-    if (e === 'pdf') return { icon: 'picture_as_pdf', color: '#E5484D' };
-    if (e === 'zip') return { icon: 'folder_zip', color: '#8D6E63' };
-    if (e === 'tangle') return { icon: 'key', color: '#8B5CF6' };
+    if (CATS.images.exts.includes(e)) return { icon: 'image', color: '#FF6B6B' };
+    if (CATS.music.exts.includes(e)) return { icon: 'music_note', color: '#1DBF8E' };
+    if (CATS.videos.exts.includes(e)) return { icon: 'play_circle', color: '#7C6CF6' };
+    if (e === 'pdf') return { icon: 'picture_as_pdf', color: '#F5553D' };
+    if (e === 'zip') return { icon: 'folder_zip', color: '#A1887F' };
+    if (e === 'tangle') return { icon: 'key', color: '#3381FF' };
     if (e === 'apk') return { icon: 'android', color: '#3DDC84' };
-    return { icon: 'description', color: '#FFB300' };
-}
-function fmtSize(b) {
-    if (!b) return '0 B'; const u = ['B', 'KB', 'MB', 'GB'], i = Math.min(3, Math.floor(Math.log(b) / Math.log(1024)));
-    return parseFloat((b / Math.pow(1024, i)).toFixed(1)) + ' ' + u[i];
-}
-function fmtDate(t) { const d = new Date(t); return `${d.getFullYear()}/${d.getMonth() + 1}/${pad(d.getDate())}`; }
-function sortItems(arr) {
-    const s = settings.sort;
-    return arr.sort((a, b) => {
-        if (a.isFolder !== b.isFolder) return a.isFolder ? -1 : 1;
-        if (s === 'new') return b.updatedAt - a.updatedAt;
-        if (s === 'old') return a.updatedAt - b.updatedAt;
-        if (s === 'size') return (b.size || 0) - (a.size || 0);
-        return a.name.localeCompare(b.name, 'ja', { numeric: true });
-    });
-}
-function makeRow(it, counts, showPath) {
-    const row = document.createElement('div'); row.className = 'item' + (selected.has(it.id) ? ' selected' : '');
-    const ic = document.createElement('div'); ic.className = 'item-icon';
-    if (it.isFolder) ic.innerHTML = folderSvg();
-    else {
-        const i = iconFor(it); ic.innerHTML = '<div class="tile"><span class="material-symbols-outlined"></span></div>';
-        ic.firstChild.style.background = i.color; ic.querySelector('span').textContent = i.icon;
-        if (/^(png|jpe?g|gif|webp|bmp)$/.test(extOf(it.name)) && it.content && it.size < 4e6) {
-            const u = URL.createObjectURL(new Blob([it.content], { type: it.type })); previewUrls.push(u);
-            ic.innerHTML = ''; const im = document.createElement('img'); im.className = 'thumb'; im.src = u; im.alt = ''; ic.appendChild(im);
-        }
-    }
-    const info = document.createElement('div'); info.className = 'item-info';
-    const nm = document.createElement('div'); nm.className = 'item-name'; nm.textContent = it.name;
-    const mt = document.createElement('div'); mt.className = 'item-meta';
-    const meta = it.isFolder ? `${counts[fullPath(it)] || 0} 項目` : fmtSize(it.size);
-    mt.textContent = `${fmtDate(it.updatedAt)}  |  ${meta}` + (showPath ? `  |  ${it.path === '/' ? '内部ストレージ' : it.path.slice(1)}` : '');
-    info.append(nm, mt);
-    const chev = document.createElement('span'); chev.className = 'material-symbols-outlined item-chev'; chev.textContent = 'chevron_right';
-    const chk = document.createElement('div'); chk.className = 'check'; chk.innerHTML = '<span class="material-symbols-outlined">check</span>';
-    row.append(ic, info, chev, chk);
-    // 長押しで選択モード
-    let timer = null, long = false, sx = 0, sy = 0;
-    row.addEventListener('pointerdown', e => { long = false; sx = e.clientX; sy = e.clientY; timer = setTimeout(() => { long = true; if (navigator.vibrate) try { navigator.vibrate(15); } catch (er) {} enterSel(it.id); }, 450); });
-    const cancel = () => clearTimeout(timer);
-    row.addEventListener('pointerup', cancel); row.addEventListener('pointerleave', cancel); row.addEventListener('pointercancel', cancel);
-    row.addEventListener('pointermove', e => { if (Math.abs(e.clientX - sx) > 8 || Math.abs(e.clientY - sy) > 8) cancel(); });
-    row.addEventListener('contextmenu', e => e.preventDefault());
-    row.addEventListener('click', () => { if (long) { long = false; return; } onItem(it); });
-    return row;
+    if (['html', 'css', 'js', 'json', 'java', 'jre'].includes(e)) return { icon: 'code', color: '#26A69A' };
+    return { icon: 'description', color: '#FFB020' };
 }
 
-/* ---------- 描画 ---------- */
-function revokeUrls() { previewUrls.forEach(u => URL.revokeObjectURL(u)); previewUrls = []; }
-async function render() {
-    cache = await dbAll();
-    document.body.classList.toggle('sel-mode', selMode);
-    document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + (preview ? 'preview' : tab)));
-    document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.tab === tab));
-    $('sel-bar').classList.toggle('active', selMode);
-    $('sel-count').textContent = `${selected.size} 件選択中`;
-    $('sel-rename').style.display = selected.size === 1 ? '' : 'none';
-    $('back-btn').classList.toggle('hidden', !canBack());
-    $('head-actions').classList.toggle('hidden', tab !== 'storage' || !!preview);
-    updatePaste();
-    if (tab === 'storage' && !preview) renderStorage();
-    if (tab === 'recent' && !preview) renderRecent();
-    if (tab === 'tools' && !preview) updateStorageStats();
-}
-function canBack() { return !!preview || (tab === 'storage' && (path !== '/' || cat || query)); }
-function renderStorage() {
-    revokeUrls();
-    const counts = {}; cache.forEach(i => { counts[i.path] = (counts[i.path] || 0) + 1; });
-    const list = $('file-list'); list.innerHTML = '';
-    let items, showPath = false, label, title = 'ストレージ';
-    const root = path === '/' && !cat && !query;
-    if (query) { items = cache.filter(i => i.name.toLowerCase().includes(query.toLowerCase())); showPath = true; label = `検索結果 (${items.length})`; title = '検索結果'; }
-    else if (cat) { items = cache.filter(i => !i.isFolder && CATS[cat].exts.includes(extOf(i.name))); showPath = true; label = CATS[cat].name; title = CATS[cat].name; }
-    else { items = cache.filter(i => i.path === path); label = root ? '内部ストレージ' : '内容'; if (!root) title = path.split('/').pop(); }
-    $('storage-title').textContent = title;
-    $('type-section').style.display = root ? '' : 'none';
-    $('list-label').textContent = label;
-    $('list-actions').style.display = (cat || query) ? 'none' : '';
-    const cr = $('crumbs');
-    if (!root && !cat && !query) {
-        cr.style.display = ''; cr.innerHTML = '';
-        const mk = (t, p) => { const b = document.createElement('button'); b.textContent = t; b.onclick = () => go(p); return b; };
-        cr.appendChild(mk('内部ストレージ', '/'));
-        let acc = ''; path.split('/').filter(Boolean).forEach(p => { acc += '/' + p; const sep = document.createElement('span'); sep.textContent = '›'; cr.append(sep, mk(p, acc)); });
-    } else cr.style.display = 'none';
-    sortItems(items);
-    if (!items.length) { list.innerHTML = '<div class="empty"><span class="material-symbols-outlined">folder_off</span>ここには何もありません</div>'; return; }
-    items.forEach(it => list.appendChild(makeRow(it, counts, showPath)));
-}
-function buildTypeGrid() {
-    const g = $('type-grid'); g.innerHTML = '';
-    Object.entries(CATS).forEach(([k, c]) => {
-        const b = document.createElement('button'); b.className = 'type-card';
-        b.innerHTML = '<div class="tile"><span class="material-symbols-outlined"></span></div><span></span>';
-        b.querySelector('.tile').style.background = c.color; b.querySelector('.tile span').textContent = c.icon; b.children[1].textContent = c.name;
-        b.onclick = () => { cat = k; path = '/'; query = ''; $('search-input').value = ''; render(); };
-        g.appendChild(b);
-    });
-}
-function renderRecent() {
-    revokeUrls();
-    const box = $('recent-list'); box.innerHTML = '';
-    const files = cache.filter(i => !i.isFolder).sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 50);
-    if (!files.length) { box.innerHTML = '<div class="empty"><span class="material-symbols-outlined">schedule</span>最近のファイルはありません</div>'; return; }
-    files.forEach(it => box.appendChild(makeRow(it, {}, true)));
-}
+/* ---------- 状態/ナビ ---------- */
+let view = 'storage', tab = 'storage', path = '/', category = null, returnView = 'storage';
+let query = '', selActive = false; const sel = new Set();
+let clip = { action: null, ids: [] };
 
-/* ---------- ナビ ---------- */
-function go(p) { path = p; cat = null; query = ''; $('search-input').value = ''; clearSel(false); render(); }
-function switchTab(t) { closePreview(false); tab = t; clearSel(false); $('main-scroll-area').scrollTo({ top: 0 }); render(); }
-document.querySelectorAll('.nav-item').forEach(n => n.onclick = () => { if (n.dataset.tab === 'storage' && tab === 'storage') { go('/'); return; } switchTab(n.dataset.tab); });
+const VIEW_TITLES = { recent: '最近', tools: 'ツール', settings: '設定' };
+function currentTitle() {
+    if (view === 'storage') return path === '/' ? 'ストレージ' : path.split('/').pop();
+    if (view === 'category') return CATS[category].label;
+    return VIEW_TITLES[view] || '';
+}
+function updateChrome() {
+    const isViewer = view === 'viewer';
+    $('big-title').classList.toggle('hidden', isViewer);
+    const t = isViewer ? (activeFile ? activeFile.name : '') : currentTitle();
+    $('big-title').textContent = t; $('head-title').textContent = t;
+    $('head-title').classList.toggle('show', isViewer || $('main-scroll-area').scrollTop > 40);
+    const canBack = view === 'viewer' || view === 'category' || view === 'settings' || (view === 'storage' && path !== '/');
+    $('back-btn').classList.toggle('hidden', !canBack);
+    const listy = ['recent', 'storage', 'category'].includes(view);
+    $('search-btn').classList.toggle('hidden', !listy);
+    $('sort-btn').classList.toggle('hidden', !['storage', 'category'].includes(view));
+    $('head-actions').classList.toggle('hidden', isViewer);
+    if (!listy) closeSearch();
+    $('type-block').classList.toggle('hidden', !(view === 'storage' && path === '/' && !query));
+    $('new-folder-btn').classList.toggle('hidden', !!query);
+    document.querySelectorAll('#nav-bar .bar-item').forEach(b => b.classList.toggle('active', b.dataset.tab === tab && view !== 'settings'));
+    const inSel = selActive;
+    $('sel-header').classList.toggle('hidden', !inSel);
+    const pasting = clip.ids.length > 0 && view === 'storage' && !inSel;
+    $('sel-bar').classList.toggle('hidden', !inSel);
+    $('paste-bar').classList.toggle('hidden', !pasting);
+    if (pasting) $('paste-label').textContent = `${clip.action === 'copy' ? 'コピー' : '移動'}を貼り付け (${clip.ids.length})`;
+}
+function show(v) {
+    view = v;
+    document.querySelectorAll('.view').forEach(el => el.classList.toggle('active', el.id === 'view-' + v));
+    $('main-scroll-area').scrollTo({ top: 0 });
+    updateChrome(); refresh();
+}
+function switchTab(t) { exitSelection(); tab = t; query = ''; $('search-input').value = ''; if (t === 'storage') path = path || '/'; show(t); }
+document.querySelectorAll('#nav-bar .bar-item').forEach(b => b.onclick = () => switchTab(b.dataset.tab));
+function openSettings() { exitSelection(); returnView = view; show('settings'); }
 function goBack() {
-    if (selMode) { clearSel(); return; }
-    if (preview) { closePreview(); return; }
-    if (tab === 'storage') {
-        if (query) { query = ''; $('search-input').value = ''; $('searchbar').classList.remove('active'); }
-        else if (cat) cat = null;
-        else if (path !== '/') path = path.slice(0, path.lastIndexOf('/')) || '/';
-        render();
-    }
+    if (selActive) { exitSelection(); return; }
+    if ($('searchbar') && !$('searchbar').classList.contains('hidden')) { closeSearch(); return; }
+    if (view === 'viewer') { closeViewer(); show(returnView); }
+    else if (view === 'settings') show(returnView === 'settings' ? tab : returnView);
+    else if (view === 'category') show('storage');
+    else if (view === 'storage' && path !== '/') { path = path.slice(0, path.lastIndexOf('/')) || '/'; show('storage'); }
 }
 $('back-btn').onclick = goBack;
-$('search-btn').onclick = () => { const s = $('searchbar'); s.classList.toggle('active'); if (s.classList.contains('active')) $('search-input').focus(); else { query = ''; $('search-input').value = ''; render(); } };
-$('search-input').addEventListener('input', e => { query = e.target.value.trim(); render(); });
-$('sort-btn').onclick = () => openSheet('並べ替え', Object.entries(SORTS).map(([k, [n, ic]]) => ({ label: n, icon: settings.sort === k ? 'check' : ic, on: settings.sort === k, fn: () => { settings.sort = k; saveSettings(); render(); } })));
-$('more-btn').onclick = () => openSheet('メニュー', [
-    { label: '新規フォルダ', icon: 'create_new_folder', fn: newFolder },
-    { label: 'ファイルを追加', icon: 'upload_file', fn: () => $('native-file').click() },
-    { label: '複数選択', icon: 'checklist', fn: () => { selMode = true; render(); toast('項目をタップして選択'); } },
-    { label: 'ツールを開く', icon: 'build', fn: () => switchTab('tools') }
-]);
-$('new-folder-btn').onclick = newFolder; $('upload-btn').onclick = () => $('native-file').click();
+document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    if ($('dlg').classList.contains('active')) closeDlg(null);
+    else if ($('sort-dlg').classList.contains('active')) $('sort-dlg').classList.remove('active');
+    else goBack();
+});
+$('main-scroll-area').addEventListener('scroll', () => { if (view !== 'viewer') $('head-title').classList.toggle('show', $('main-scroll-area').scrollTop > 40); }, { passive: true });
+document.querySelectorAll('.type-card').forEach(b => b.onclick = () => { category = b.dataset.cat; returnView = 'storage'; show('category'); });
 
-/* ---------- 選択 ---------- */
-function enterSel(id) { selMode = true; selected.add(id); render(); }
-function clearSel(r = true) { selMode = false; selected.clear(); if (r) render(); }
-function toggleSel(id) { selected.has(id) ? selected.delete(id) : selected.add(id); if (!selected.size) selMode = false; render(); }
-$('sel-close').onclick = () => clearSel();
-$('sel-all').onclick = () => {
-    const rows = document.querySelectorAll('#view-' + tab + ' .item');
-    // 現在表示中の項目を全選択 (再描画のため名前一致でなくIDを再取得)
-    let items;
-    if (tab === 'recent') items = cache.filter(i => !i.isFolder);
-    else if (query) items = cache.filter(i => i.name.toLowerCase().includes(query.toLowerCase()));
-    else if (cat) items = cache.filter(i => !i.isFolder && CATS[cat].exts.includes(extOf(i.name)));
-    else items = cache.filter(i => i.path === path);
-    const all = items.every(i => selected.has(i.id));
-    items.forEach(i => all ? selected.delete(i.id) : selected.add(i.id));
-    if (!selected.size) selMode = false; render();
-};
-function onItem(it) {
-    if (selMode) { toggleSel(it.id); return; }
-    if (it.isFolder) { go(fullPath(it)); return; }
-    openPreview(it);
+/* ---------- 検索・並べ替え・メニュー ---------- */
+function closeSearch() { if ($('searchbar').classList.contains('hidden')) return; $('searchbar').classList.add('hidden'); if (query) { query = ''; $('search-input').value = ''; if (view !== 'viewer') { updateChrome(); refresh(); } } }
+$('search-btn').onclick = () => { $('searchbar').classList.remove('hidden'); $('search-input').focus(); };
+$('search-close').onclick = closeSearch;
+let searchT;
+$('search-input').addEventListener('input', e => { clearTimeout(searchT); searchT = setTimeout(() => { query = e.target.value.trim().toLowerCase(); updateChrome(); refresh(); }, 150); });
+function syncSortUI() {
+    document.querySelectorAll('#sort-key button').forEach(b => b.classList.toggle('active', b.dataset.k === settings.sortKey));
+    document.querySelectorAll('#sort-dir button').forEach(b => b.classList.toggle('active', +b.dataset.d === settings.sortDir));
+}
+$('sort-btn').onclick = () => { syncSortUI(); $('sort-dlg').classList.add('active'); };
+document.querySelectorAll('#sort-key button').forEach(b => b.onclick = () => { settings.sortKey = b.dataset.k; saveSettings(); syncSortUI(); refresh(); });
+document.querySelectorAll('#sort-dir button').forEach(b => b.onclick = () => { settings.sortDir = +b.dataset.d; saveSettings(); syncSortUI(); refresh(); });
+$('sort-close').onclick = () => $('sort-dlg').classList.remove('active');
+$('sort-dlg').addEventListener('click', e => { if (e.target === $('sort-dlg')) $('sort-dlg').classList.remove('active'); });
+
+$('more-btn').onclick = e => { e.stopPropagation(); $('menu').classList.toggle('open'); };
+document.addEventListener('click', e => { if (!$('menu').contains(e.target)) $('menu').classList.remove('open'); });
+$('menu').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return; $('menu').classList.remove('open');
+    ({ upload: () => $('native-file-input').click(), folder: newFolder, select: () => { selActive = true; updateSelUI(); }, settings: openSettings })[b.dataset.m]();
+});
+
+/* ---------- リスト描画 ---------- */
+function sorter(foldersFirst) {
+    const k = settings.sortKey, d = settings.sortDir;
+    return (a, b) => {
+        if (foldersFirst && a.isFolder !== b.isFolder) return a.isFolder ? -1 : 1;
+        let r = k === 'date' ? a.updatedAt - b.updatedAt : k === 'size' ? (a.size || 0) - (b.size || 0) : a.name.localeCompare(b.name, 'ja', { numeric: true });
+        return r * d;
+    };
+}
+let renderSeq = 0;
+async function refresh() {
+    const seq = ++renderSeq;
+    if (view === 'storage') await renderStorage(seq);
+    else if (view === 'recent') await renderRecent(seq);
+    else if (view === 'category') await renderCategory(seq);
+    else if (view === 'tools') updateStorageStats();
+    if (view === 'tools') $('tangle-dest').textContent = path;
+}
+async function buildRows(box, items, opts, seq) {
+    const frag = document.createDocumentFragment();
+    for (const it of items) {
+        const row = document.createElement('div'); row.className = 'file-row' + (sel.has(it.id) ? ' selected' : ''); row.dataset.id = it.id;
+        const ic = iconOf(it);
+        let sub = fmtDate(it.updatedAt) + ' | ';
+        if (it.isFolder) { const n = await countIn(fullPath(it)); sub += `${n} 件`; } else sub += fmtSize(it.size);
+        if (opts.showPath) sub += ' | ' + it.path;
+        row.innerHTML = `<div class="file-ico"><span class="material-symbols-outlined" style="color:${ic.color}">${ic.icon}</span></div>
+            <div class="file-info"><div class="file-name"></div><div class="file-sub"></div></div>
+            <div class="file-end"></div>`;
+        row.querySelector('.file-name').textContent = it.name; row.querySelector('.file-sub').textContent = sub;
+        updateEnd(row, it);
+        attachRowEvents(row, it);
+        frag.appendChild(row);
+    }
+    if (seq !== renderSeq) return;
+    box.innerHTML = '';
+    if (!items.length) box.innerHTML = `<div class="empty-box"><span class="material-symbols-outlined">${opts.emptyIcon || 'folder_off'}</span>${esc(opts.empty || 'ファイルがありません')}</div>`;
+    else box.appendChild(frag);
+}
+function updateEnd(row, it) {
+    const end = row.querySelector('.file-end');
+    end.innerHTML = selActive ? '<div class="check"><span class="material-symbols-outlined">check</span></div>' : (it.isFolder ? '<span class="material-symbols-outlined">chevron_right</span>' : '');
+}
+async function renderStorage(seq) {
+    // パンくず
+    const cr = $('crumbs'); cr.innerHTML = '';
+    if (query) { cr.innerHTML = '<span class="crumb last">検索結果</span>'; }
+    else {
+        const parts = path.split('/').filter(Boolean); let acc = '';
+        const mk = (label, p, last) => { const s = document.createElement('span'); s.className = 'crumb' + (last ? ' last' : ''); s.textContent = label; s.onclick = () => { if (!last) { path = p; show('storage'); } }; cr.appendChild(s); };
+        mk('内部ストレージ', '/', parts.length === 0);
+        parts.forEach((pt, i) => { acc += '/' + pt; const sep = document.createElement('span'); sep.className = 'crumb-sep'; sep.textContent = '›'; cr.appendChild(sep); mk(pt, acc, i === parts.length - 1); });
+    }
+    let items = query ? await listMeta(m => m.name.toLowerCase().includes(query)) : await listMeta(null, path);
+    items.sort(sorter(true));
+    await buildRows($('storage-list'), items, { showPath: !!query, empty: query ? '見つかりませんでした' : 'このフォルダは空です', emptyIcon: query ? 'search_off' : 'folder_off' }, seq);
+}
+async function renderRecent(seq) {
+    let items = await listMeta(m => !m.isFolder && (!query || m.name.toLowerCase().includes(query)));
+    items.sort((a, b) => b.updatedAt - a.updatedAt); items = items.slice(0, 40);
+    await buildRows($('recent-list'), items, { showPath: true, empty: 'まだファイルがありません', emptyIcon: 'schedule' }, seq);
+}
+async function renderCategory(seq) {
+    const exts = CATS[category].exts;
+    let items = await listMeta(m => !m.isFolder && exts.includes(extOf(m.name)) && (!query || m.name.toLowerCase().includes(query)));
+    items.sort(sorter(false));
+    await buildRows($('cat-list'), items, { showPath: true, empty: `${CATS[category].label}はありません`, emptyIcon: 'inventory_2' }, seq);
 }
 
-/* ---------- 操作 ---------- */
-$('native-file').onchange = async e => {
+/* ---------- 行イベント (タップ / 長押し) ---------- */
+function attachRowEvents(row, it) {
+    let timer = null, fired = false, sx = 0, sy = 0;
+    const clear = () => { clearTimeout(timer); timer = null; };
+    row.addEventListener('pointerdown', e => {
+        fired = false; sx = e.clientX; sy = e.clientY;
+        timer = setTimeout(() => { fired = true; if (!selActive) { selActive = true; } toggleSel(it.id, row, true); if (navigator.vibrate) { try { navigator.vibrate(15); } catch (e) {} } }, 480);
+    });
+    row.addEventListener('pointermove', e => { if (timer && Math.hypot(e.clientX - sx, e.clientY - sy) > 8) clear(); });
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach(n => row.addEventListener(n, clear));
+    row.addEventListener('contextmenu', e => e.preventDefault());
+    row.addEventListener('click', () => {
+        if (fired) { fired = false; return; }
+        if (selActive) { toggleSel(it.id, row); return; }
+        if (it.isFolder) { path = fullPath(it); query = ''; $('search-input').value = ''; $('searchbar').classList.add('hidden'); if (view !== 'storage') { tab = 'storage'; } show('storage'); }
+        else { returnView = view; openViewer(it.id); }
+    });
+}
+function toggleSel(id, row, forceOn) {
+    if (forceOn || !sel.has(id)) sel.add(id); else sel.delete(id);
+    updateSelUI(true);
+}
+function updateSelUI(light) {
+    if (!light) { /* モード切替時は全行の末尾アイコンを更新 */ }
+    document.querySelectorAll('.file-row').forEach(r => {
+        const id = +r.dataset.id; r.classList.toggle('selected', sel.has(id));
+        const end = r.querySelector('.file-end'); const isFolder = r.querySelector('.file-ico .material-symbols-outlined').textContent === 'folder';
+        end.innerHTML = selActive ? '<div class="check"><span class="material-symbols-outlined">check</span></div>' : (isFolder ? '<span class="material-symbols-outlined">chevron_right</span>' : '');
+    });
+    $('sel-title').textContent = `${sel.size} 件選択中`;
+    $('sel-bar').querySelector('[data-a="rename"]').disabled = sel.size === 0;
+    ['copy', 'cut', 'zip', 'delete'].forEach(a => $('sel-bar').querySelector(`[data-a="${a}"]`).disabled = sel.size === 0);
+    updateChrome();
+}
+function exitSelection() { selActive = false; sel.clear(); updateSelUI(); }
+$('sel-close').onclick = exitSelection;
+$('sel-all').onclick = () => { const rows = [...document.querySelectorAll('.view.active .file-row')]; const all = rows.every(r => sel.has(+r.dataset.id)); rows.forEach(r => all ? sel.delete(+r.dataset.id) : sel.add(+r.dataset.id)); updateSelUI(true); };
+
+/* ---------- ファイル操作 ---------- */
+const targetPath = () => (view === 'storage' ? path : '/Download');
+$('native-file-input').onchange = async e => {
     const files = [...e.target.files]; if (!files.length) return;
-    const dest = (tab === 'storage' && !cat && !query) ? path : '/Download';
-    let all = await dbAll();
+    const dest = targetPath(); await ensureDir('/', dest === '/Download' ? ['Download'] : []);
     for (const f of files) {
-        const buf = await f.arrayBuffer();
-        const name = uniqueName(all, dest, f.name, false);
-        const id = await dbPut({ name, path: dest, isFolder: false, size: f.size, type: f.type || 'application/octet-stream', content: buf, updatedAt: Date.now() });
-        all.push({ id, name, path: dest });
+        const name = await uniqueName(f.name, dest);
+        await putRec({ name, path: dest, isFolder: false, size: f.size, type: f.type || 'application/octet-stream', content: await f.arrayBuffer(), updatedAt: Date.now() });
     }
-    e.target.value = ''; render(); toast(`${files.length} 件を追加しました`);
+    e.target.value = ''; refresh(); showToast(`${files.length} 件を ${dest} に追加しました`); say('ファイルを保存したんよ！');
 };
-function newFolder() {
-    const dest = (!cat && !query) ? path : '/';
-    openDialog({ title: '新規フォルダ', input: { value: 'New Folder' }, ok: '作成', onOk: async v => {
-        const name = (v || '').trim().replace(/\//g, '');
-        if (!name) { toast('名前を入力してください'); return false; }
-        const all = await dbAll();
-        if (all.some(i => i.path === dest && i.name === name)) { toast('同じ名前がすでにあります'); return false; }
-        await dbPut({ name, path: dest, isFolder: true, size: 0, type: 'folder', updatedAt: Date.now() });
-        render(); toast(`「${name}」を作成しました`);
-    } });
+async function newFolder() {
+    const name = await askDialog({ title: '新規フォルダ', input: true, value: 'New Folder', ok: '作成' });
+    if (!name || !name.trim()) return;
+    const dest = targetPath();
+    await putRec({ name: await uniqueName(name.trim().replace(/[\/\\]/g, '_'), dest), path: dest, isFolder: true, size: 0, type: 'folder', updatedAt: Date.now() });
+    refresh(); showToast(`フォルダを作成しました`);
 }
-async function descendants(it) { const base = fullPath(it); return (await dbAll()).filter(i => isUnder(i.path, base)); }
-$('sel-rename').onclick = async () => {
-    const it = await dbGet([...selected][0]); if (!it) return;
-    openDialog({ title: '名前の変更', input: { value: it.name }, ok: '適用', onOk: async v => {
-        const name = (v || '').trim().replace(/\//g, '');
-        if (!name) { toast('名前を入力してください'); return false; }
-        const all = await dbAll();
-        if (name !== it.name && all.some(i => i.path === it.path && i.name === name)) { toast('同じ名前がすでにあります'); return false; }
-        const oldFull = fullPath(it);
-        if (it.isFolder) { const newFull = (it.path === '/' ? '' : it.path) + '/' + name; for (const d of all.filter(i => isUnder(i.path, oldFull))) { d.path = newFull + d.path.slice(oldFull.length); await dbPut(d); } }
-        it.name = name; it.updatedAt = Date.now(); await dbPut(it);
-        clearSel(false); render(); toast('名前を変更しました');
-    } });
-};
-$('sel-delete').onclick = () => {
-    const n = selected.size; if (!n) return;
-    openDialog({ title: '削除の確認', body: `${n} 件を削除します。フォルダの中身も一緒に削除されます。`, ok: '削除', danger: true, onOk: async () => {
-        const all = await dbAll(); const del = new Set();
-        for (const id of selected) { const it = all.find(i => i.id === id); if (!it) continue; del.add(id); if (it.isFolder) all.filter(i => isUnder(i.path, fullPath(it))).forEach(d => del.add(d.id)); }
-        for (const id of del) await dbDel(id);
-        clearSel(false); render(); toast(`${n} 件を削除しました`);
-    } });
-};
-function setClip(action) { clip = { action, ids: [...selected] }; clearSel(false); render(); toast(`${clip.ids.length} 件を${action === 'copy' ? 'コピー' : '移動'}対象にしました。貼り付け先のフォルダを開いてください`); }
-$('sel-copy').onclick = () => setClip('copy'); $('sel-cut').onclick = () => setClip('cut');
-function updatePaste() {
-    const on = clip.ids.length > 0 && tab === 'storage' && !preview && !selMode;
-    $('paste-pill').classList.toggle('active', on);
-    $('paste-text').textContent = `${clip.ids.length} 件を${clip.action === 'copy' ? 'コピー' : '移動'}`;
-}
-$('paste-cancel').onclick = () => { clip = { action: null, ids: [] }; render(); };
-$('paste-go').onclick = async () => {
-    const dest = (!cat && !query) ? path : '/';
-    let all = await dbAll(), n = 0;
-    for (const id of clip.ids) {
-        const it = all.find(i => i.id === id); if (!it) continue;
-        const oldFull = fullPath(it);
-        if (it.isFolder && isUnder(dest, oldFull)) { toast(`「${it.name}」は自分の中には貼り付けできません`); continue; }
-        if (clip.action === 'cut') {
-            if (it.path === dest) continue;
-            const name = uniqueName(all, dest, it.name, it.isFolder); const newFull = (dest === '/' ? '' : dest) + '/' + name;
-            if (it.isFolder) for (const d of all.filter(i => isUnder(i.path, oldFull))) { d.path = newFull + d.path.slice(oldFull.length); await dbPut(d); }
-            it.path = dest; it.name = name; it.updatedAt = Date.now(); await dbPut(it); n++;
-        } else {
-            const name = uniqueName(all, dest, it.name, it.isFolder); const newFull = (dest === '/' ? '' : dest) + '/' + name;
-            const kids = it.isFolder ? all.filter(i => isUnder(i.path, oldFull)) : [];
-            const nid = await dbPut({ name, path: dest, isFolder: it.isFolder, size: it.size, type: it.type, content: it.content, updatedAt: Date.now() });
-            all.push({ id: nid, name, path: dest });
-            for (const d of kids) { const c = Object.assign({}, d); delete c.id; c.path = newFull + d.path.slice(oldFull.length); await dbPut(c); }
-            n++;
-        }
-        all = await dbAll();
-    }
-    toast(`${n} 件を${clip.action === 'copy' ? 'コピー' : '移動'}しました`);
-    clip = { action: null, ids: [] }; render();
-};
-$('sel-zip').onclick = async () => {
-    if (typeof JSZip === 'undefined') { toast('JSZip を読み込めませんでした'); return; }
-    const zip = new JSZip(); let n = 0;
-    for (const id of selected) { const it = await dbGet(id); if (it && !it.isFolder && it.content) { zip.file(it.name, it.content); n++; } }
-    if (!n) { toast('圧縮できるファイルが選ばれていません (フォルダは非対応です)'); return; }
-    const buf = await zip.generateAsync({ type: 'arraybuffer' });
-    const dest = (!cat && !query) ? path : '/';
-    const name = uniqueName(await dbAll(), dest, `Archive_${Date.now()}.zip`, false);
-    await dbPut({ name, path: dest, isFolder: false, size: buf.byteLength, type: 'application/zip', content: buf, updatedAt: Date.now() });
-    clearSel(false); render(); toast(`「${name}」を作成しました`);
-};
+$('new-folder-btn').onclick = newFolder;
 
-/* ---------- プレビュー ---------- */
-const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-let pvUrl = null;
-async function openPreview(it) {
-    preview = it; $('preview-title').textContent = it.name; $('main-scroll-area').scrollTo({ top: 0 });
-    await render(); await renderPreview(it);
+async function doRename() {
+    const ids = [...sel];
+    if (ids.length === 1) {
+        const rec = await getRec(ids[0]); if (!rec) return;
+        const nn = await askDialog({ title: '名前を変更', input: true, value: rec.name, ok: '適用' });
+        if (!nn || !nn.trim() || nn.trim() === rec.name) return;
+        const name = nn.trim().replace(/[\/\\]/g, '_');
+        if ((await listMeta(m => m.name === name && m.id !== rec.id, rec.path)).length) { showToast('同じ名前がすでに存在します'); return; }
+        if (rec.isFolder) {
+            const oldFp = fullPath(rec), newFp = (rec.path === '/' ? '' : rec.path) + '/' + name;
+            for (const d of await descendants(rec)) { const full = await getRec(d.id); full.path = newFp + full.path.slice(oldFp.length); await putRec(full); }
+        }
+        rec.name = name; rec.updatedAt = Date.now(); await putRec(rec);
+        showToast('名前を変更しました');
+    } else {
+        const prefix = await askDialog({ title: '一括リネーム', body: '「接頭辞 + 連番」に変更します。', input: true, value: 'File_', ok: '一括適用' });
+        if (prefix === null) return;
+        let n = 1;
+        for (const id of ids) {
+            const rec = await getRec(id); if (!rec) continue;
+            if (rec.isFolder) continue; // フォルダは中身のパス整合のため一括では変更しない
+            const ext = extOf(rec.name) ? '.' + extOf(rec.name) : '';
+            rec.name = `${prefix}${n++}${ext}`; rec.updatedAt = Date.now(); await putRec(rec);
+        }
+        showToast('一括リネームが完了しました (フォルダは対象外)');
+    }
+    exitSelection(); refresh();
 }
-function closePreview(r = true) {
-    if (!preview) return; preview = null;
-    if (pvUrl) { URL.revokeObjectURL(pvUrl); pvUrl = null; }
-    $('preview-box').innerHTML = ''; if (r) render();
+async function doDelete() {
+    const ids = [...sel];
+    const ok = await askDialog({ title: '削除の確認', body: `${ids.length} 件を削除します。この操作は元に戻せません。`, ok: '削除する', danger: true });
+    if (!ok) return;
+    for (const id of ids) {
+        const m = await getRec(id); if (!m) continue;
+        if (m.isFolder) for (const d of await descendants(m)) await delRec(d.id);
+        await delRec(id);
+    }
+    showToast(`${ids.length} 件を削除しました`); exitSelection(); refresh();
 }
-async function renderPreview(it, decrypted) {
-    const box = $('preview-box'); box.innerHTML = '';
-    if (decrypted != null) { const p = document.createElement('pre'); p.textContent = decrypted; box.appendChild(p); return; }
-    const e = extOf(it.name);
-    if (e === 'tangle') { box.innerHTML = '<div class="empty" style="padding:20px;"><span class="material-symbols-outlined">lock</span>暗号化されたファイルです</div>'; const b = document.createElement('button'); b.className = 'ai-btn'; b.textContent = 'パスワードを入力'; b.onclick = askTangle; box.appendChild(b); askTangle(); return; }
-    if (!it.content) { box.innerHTML = '<div class="empty">プレビューできるデータがありません</div>'; return; }
-    if (pvUrl) URL.revokeObjectURL(pvUrl);
-    pvUrl = URL.createObjectURL(new Blob([it.content], { type: it.type }));
-    if (/^(png|jpe?g|gif|webp|svg|bmp)$/.test(e)) box.innerHTML = `<img src="${pvUrl}" alt="${esc(it.name)}">`;
-    else if (/^(mp3|wav|ogg|m4a|flac)$/.test(e)) box.innerHTML = `<audio controls src="${pvUrl}" style="width:100%"></audio>`;
-    else if (/^(mp4|webm|mov)$/.test(e)) box.innerHTML = `<video controls src="${pvUrl}"></video>`;
-    else if (e === 'pdf') box.innerHTML = `<iframe src="${pvUrl}"></iframe>`;
-    else if (/^(txt|md|csv|html|css|js|json|java|jre)$/.test(e)) { const p = document.createElement('pre'); p.textContent = new TextDecoder().decode(it.content); box.appendChild(p); }
+function doClip(action) {
+    clip = { action, ids: [...sel] }; showToast(`${clip.ids.length} 件を${action === 'copy' ? 'コピー' : '移動'}にセットしました`);
+    exitSelection(); if (view !== 'storage') { tab = 'storage'; show('storage'); showToast('貼り付け先のフォルダを開いてください'); } else updateChrome();
+}
+async function doPaste() {
+    const dest = path; let done = 0;
+    for (const id of clip.ids) {
+        const rec = await getRec(id); if (!rec) continue;
+        const oldFp = rec.isFolder ? fullPath(rec) : null;
+        if (rec.isFolder && (dest === oldFp || dest.startsWith(oldFp + '/'))) { showToast('フォルダ自身の中には貼り付けできません'); continue; }
+        if (clip.action === 'cut' && rec.path === dest) continue;
+        const kids = rec.isFolder ? await descendants(rec) : [];
+        const name = await uniqueName(rec.name, dest);
+        const newFp = (dest === '/' ? '' : dest) + '/' + name;
+        if (clip.action === 'copy') {
+            const copy = Object.assign({}, rec); delete copy.id; copy.name = name; copy.path = dest; copy.updatedAt = Date.now(); await putRec(copy);
+            for (const k of kids) { const kr = await getRec(k.id); const c2 = Object.assign({}, kr); delete c2.id; c2.path = newFp + kr.path.slice(oldFp.length); await putRec(c2); }
+        } else {
+            rec.name = name; rec.path = dest; rec.updatedAt = Date.now(); await putRec(rec);
+            for (const k of kids) { const kr = await getRec(k.id); kr.path = newFp + kr.path.slice(oldFp.length); await putRec(kr); }
+        }
+        done++;
+    }
+    showToast(`${done} 件を${clip.action === 'copy' ? 'コピー' : '移動'}しました`);
+    clip = { action: null, ids: [] }; updateChrome(); refresh();
+}
+async function doZip() {
+    if (typeof JSZip === 'undefined') { showToast('JSZipを読み込めませんでした (オフライン?)'); return; }
+    const zip = new JSZip(); let n = 0;
+    for (const id of sel) {
+        const rec = await getRec(id); if (!rec) continue;
+        if (!rec.isFolder) { zip.file(rec.name, rec.content); n++; continue; }
+        const fp = fullPath(rec); zip.folder(rec.name);
+        for (const d of await descendants(rec)) {
+            if (d.isFolder) { zip.folder(rec.name + d.path.slice(fp.length) + '/' + d.name); continue; }
+            const full = await getRec(d.id); zip.file(rec.name + full.path.slice(fp.length) + '/' + full.name, full.content); n++;
+        }
+    }
+    if (!n) { showToast('圧縮できるファイルがありません'); return; }
+    const buf = await zip.generateAsync({ type: 'arraybuffer' });
+    const dest = view === 'storage' ? path : '/Download'; await ensureDir('/', dest === '/Download' ? ['Download'] : []);
+    const name = await uniqueName(`Archive_${Date.now()}.zip`, dest);
+    await putRec({ name, path: dest, isFolder: false, size: buf.byteLength, type: 'application/zip', content: buf, updatedAt: Date.now() });
+    showToast(`「${name}」を作成しました`); exitSelection(); refresh();
+}
+$('sel-bar').addEventListener('click', e => {
+    const b = e.target.closest('.bar-item'); if (!b || b.disabled) return;
+    ({ copy: () => doClip('copy'), cut: () => doClip('cut'), zip: doZip, rename: doRename, delete: doDelete })[b.dataset.a]();
+});
+$('paste-do').onclick = doPaste;
+$('paste-cancel').onclick = () => { clip = { action: null, ids: [] }; updateChrome(); };
+
+/* ---------- ビューア ---------- */
+let activeFile = null, blobUrl = null;
+function closeViewer() { if (blobUrl) { URL.revokeObjectURL(blobUrl); blobUrl = null; } activeFile = null; $('viewer-box').innerHTML = ''; }
+async function openViewer(id) {
+    const rec = await getRec(id); if (!rec) return;
+    closeViewer(); activeFile = rec; show('viewer');
+    const box = $('viewer-box'); box.innerHTML = '';
+    if (extOf(rec.name) === 'tangle') { await tangleOpen(rec); return; }
+    await renderPreview(rec, box);
+}
+function placeholder(box, icon, title, sub) {
+    box.innerHTML = `<div style="text-align:center;padding:20px;"><span class="material-symbols-outlined" style="font-size:64px;color:var(--accent-primary)">${icon}</span><h3 style="margin:8px 0 4px;word-break:break-all;"></h3><p style="margin:0;font-size:12px;"></p></div>`;
+    box.querySelector('h3').textContent = title; box.querySelector('p').textContent = sub || '';
+}
+async function renderPreview(rec, box) {
+    if (!rec.content) { placeholder(box, 'draft', rec.name, 'プレビューデータがありません'); return; }
+    const e = extOf(rec.name), blob = new Blob([rec.content], { type: rec.type || '' });
+    blobUrl = URL.createObjectURL(blob);
+    if (CATS.images.exts.includes(e)) { const i = document.createElement('img'); i.src = blobUrl; i.alt = rec.name; box.appendChild(i); }
+    else if (CATS.music.exts.includes(e)) { const a = document.createElement('audio'); a.controls = true; a.src = blobUrl; a.style.width = '100%'; box.appendChild(a); }
+    else if (CATS.videos.exts.includes(e)) { const v = document.createElement('video'); v.controls = true; v.src = blobUrl; box.appendChild(v); }
+    else if (['txt', 'html', 'css', 'js', 'json', 'java', 'jre', 'md', 'csv'].includes(e)) { const p = document.createElement('pre'); p.textContent = new TextDecoder().decode(rec.content); box.appendChild(p); }
+    else if (e === 'pdf') { const f = document.createElement('iframe'); f.src = blobUrl; box.appendChild(f); }
+    else if (e === 'apk') placeholder(box, 'android', rec.name, `Android パッケージ · ${fmtSize(rec.size)}`);
     else if (e === 'zip' && typeof JSZip !== 'undefined') {
         try {
-            const z = await JSZip.loadAsync(it.content); const ul = document.createElement('ul'); let n = 0;
-            z.forEach(p => { const li = document.createElement('li'); li.textContent = p; ul.appendChild(li); n++; });
-            const h = document.createElement('div'); h.style.cssText = 'font-weight:700;margin-bottom:8px;align-self:flex-start'; h.textContent = `ZIP の中身 (${n})`;
-            const b = document.createElement('button'); b.className = 'ai-btn'; b.innerHTML = '<span class="material-symbols-outlined">unarchive</span>このフォルダに解凍'; b.onclick = () => extractZip(it);
-            box.append(h, ul, b);
-        } catch (er) { box.innerHTML = '<div class="empty">ZIP を読み込めませんでした</div>'; }
-    } else {
-        const i = iconFor(it);
-        box.innerHTML = `<div class="empty"><span class="material-symbols-outlined">${i.icon}</span>${esc(it.name)}<br><small>${fmtSize(it.size)} · プレビューは利用できません</small></div>`;
-    }
+            const zip = await JSZip.loadAsync(rec.content);
+            const wrap = document.createElement('div'); wrap.style.width = '100%';
+            const h = document.createElement('h3'); h.style.margin = '0 0 8px'; h.textContent = 'ZIP の内容'; wrap.appendChild(h);
+            const ul = document.createElement('ul'); ul.className = 'zip-list';
+            Object.keys(zip.files).forEach(n => { const li = document.createElement('li'); li.textContent = n; ul.appendChild(li); });
+            wrap.appendChild(ul);
+            const b = document.createElement('button'); b.className = 'ai-btn'; b.innerHTML = '<span class="material-symbols-outlined">unarchive</span>ここに展開';
+            b.onclick = () => extractZip(rec); wrap.appendChild(b); box.appendChild(wrap);
+        } catch (err) { placeholder(box, 'error', rec.name, 'ZIPを読み込めませんでした'); }
+    } else placeholder(box, 'draft', rec.name, 'このファイルのプレビューはできません');
 }
-$('preview-close').onclick = () => closePreview();
-$('preview-dl').onclick = () => {
-    if (!preview || !preview.content) { toast('ダウンロードできるデータがありません'); return; }
-    const u = URL.createObjectURL(new Blob([preview.content], { type: preview.type })); const a = document.createElement('a');
-    a.href = u; a.download = preview.name; a.click(); setTimeout(() => URL.revokeObjectURL(u), 3000); toast('ダウンロードを開始しました');
-};
-async function extractZip(it) {
+async function extractZip(rec) {
     try {
-        const z = await JSZip.loadAsync(it.content); let all = await dbAll(), n = 0;
-        for (const p of Object.keys(z.files)) {
-            const ent = z.files[p]; if (ent.dir) continue;
-            const buf = await ent.async('arraybuffer'); const name = uniqueName(all, it.path, p.split('/').pop(), false);
-            const id = await dbPut({ name, path: it.path, isFolder: false, size: buf.byteLength, type: 'application/octet-stream', content: buf, updatedAt: Date.now() });
-            all.push({ id, name, path: it.path }); n++;
+        const zip = await JSZip.loadAsync(rec.content); let n = 0;
+        for (const rel of Object.keys(zip.files)) {
+            const ent = zip.files[rel]; if (ent.dir) { await ensureDir(rec.path, rel.split('/').filter(Boolean)); continue; }
+            const parts = rel.split('/'), fname = parts.pop(), dir = await ensureDir(rec.path, parts.filter(Boolean));
+            const buf = await ent.async('arraybuffer');
+            await putRec({ name: await uniqueName(fname, dir), path: dir, isFolder: false, size: buf.byteLength, type: 'application/octet-stream', content: buf, updatedAt: Date.now() }); n++;
         }
-        toast(`${n} 個のファイルを解凍しました`); closePreview();
-    } catch (er) { toast('解凍に失敗しました'); }
+        showToast(`${n} 個のファイルを展開しました`); closeViewer(); show(returnView);
+    } catch (e) { showToast('展開に失敗しました'); }
 }
+$('viewer-close').onclick = goBack;
+$('viewer-download').onclick = () => {
+    if (!activeFile || !activeFile.content) return;
+    const a = document.createElement('a'); const u = URL.createObjectURL(new Blob([activeFile.content], { type: activeFile.type || '' }));
+    a.href = u; a.download = activeFile.name; a.click(); setTimeout(() => URL.revokeObjectURL(u), 2000); showToast('ダウンロードを開始しました');
+};
 
 /* ---------- Tangle ---------- */
 async function sha256(s) { const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)); return [...new Uint8Array(h)].map(b => b.toString(16).padStart(2, '0')).join(''); }
-$('tg-create').onclick = async () => {
-    const pwd = $('tg-pass').value, text = $('tg-text').value;
-    if (!pwd) { toast('パスワードを入力してください'); return; }
-    let name = $('tg-name').value.trim() || 'secret.tangle'; if (!name.endsWith('.tangle')) name += '.tangle';
-    const key = await sha256(pwd); let hex = '';
-    for (let i = 0; i < text.length; i++) hex += (text.charCodeAt(i) ^ key.charCodeAt(i % key.length)).toString(16).padStart(4, '0');
-    const buf = new TextEncoder().encode(JSON.stringify({ version: 'PB_TANGLE_V1', hashVerification: await sha256(key), payload: hex })).buffer;
-    const dest = (tab === 'storage' && !cat && !query) ? path : '/';
-    name = uniqueName(await dbAll(), dest, name, false);
-    await dbPut({ name, path: dest, isFolder: false, size: buf.byteLength, type: 'application/tangle', content: buf, updatedAt: Date.now() });
-    $('tg-pass').value = ''; $('tg-text').value = ''; toast(`「${name}」を保存しました`); render();
-};
-function askTangle() {
-    openDialog({ title: 'パスワードを入力', body: 'このファイルは暗号化されています。', input: { type: 'password', placeholder: 'パスワード' }, ok: '復号して開く', onOk: async pwd => {
-        if (!pwd || !preview) return false;
-        try {
-            const obj = JSON.parse(new TextDecoder().decode(preview.content)); const key = await sha256(pwd);
-            if (obj.hashVerification !== await sha256(key)) { toast('パスワードが正しくありません'); return false; }
-            let out = ''; for (let i = 0; i < obj.payload.length; i += 4) out += String.fromCharCode(parseInt(obj.payload.substr(i, 4), 16) ^ key.charCodeAt((i / 4) % key.length));
-            renderPreview(preview, out); toast('復号しました');
-        } catch (er) { toast('復号に失敗しました'); return false; }
-    } });
+async function tangleOpen(rec) {
+    const box = $('viewer-box');
+    placeholder(box, 'lock', rec.name, 'パスワードで保護されています');
+    const b = document.createElement('button'); b.className = 'ai-btn'; b.style.marginTop = '12px'; b.innerHTML = '<span class="material-symbols-outlined">key</span>パスワードを入力';
+    b.onclick = () => tangleOpen(rec); box.firstChild.appendChild(b);
+    const pwd = await askDialog({ title: '復号化', body: 'このファイルはパスワードで保護されています。', input: true, type: 'password', ok: '復号して開く' });
+    if (!pwd) return;
+    try {
+        const obj = JSON.parse(new TextDecoder().decode(rec.content));
+        const keyHash = await sha256(pwd);
+        if (obj.hashVerification !== await sha256(keyHash)) { showToast('パスワードが正しくありません'); return; }
+        let out = ''; const hex = obj.payload;
+        for (let i = 0; i < hex.length; i += 4) out += String.fromCharCode(parseInt(hex.substr(i, 4), 16) ^ keyHash.charCodeAt((i / 4) % keyHash.length));
+        box.innerHTML = ''; const p = document.createElement('pre'); p.textContent = out; box.appendChild(p); showToast('復号化に成功しました');
+    } catch (e) { showToast('復号化に失敗しました'); }
 }
+$('tangle-create').onclick = async () => {
+    const pwd = $('tangle-password').value, text = $('tangle-content').value;
+    if (!pwd) { showToast('パスワードを入力してください'); return; }
+    if (!text) { showToast('暗号化するテキストを入力してください'); return; }
+    let name = $('tangle-filename').value.trim() || 'secret.tangle'; if (!name.endsWith('.tangle')) name += '.tangle';
+    const keyHash = await sha256(pwd); let enc = '';
+    for (let i = 0; i < text.length; i++) enc += (text.charCodeAt(i) ^ keyHash.charCodeAt(i % keyHash.length)).toString(16).padStart(4, '0');
+    const bytes = new TextEncoder().encode(JSON.stringify({ version: 'PB_TANGLE_V1', hashVerification: await sha256(keyHash), payload: enc }));
+    const buf = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+    const dest = path; await putRec({ name: await uniqueName(name, dest), path: dest, isFolder: false, size: buf.byteLength, type: 'application/tangle', content: buf, updatedAt: Date.now() });
+    $('tangle-password').value = ''; $('tangle-content').value = ''; showToast(`「${name}」を ${dest} に保存しました`); say('暗号化して保存したんよ！');
+};
 
 /* ---------- ストレージ情報 ---------- */
 async function updateStorageStats() {
-    const files = cache.filter(i => !i.isFolder); const used = files.reduce((s, i) => s + (i.size || 0), 0);
-    let text = `ファイル ${files.length} 個 / フォルダ ${cache.length - files.length} 個 · ${fmtSize(used)}`, pct = 0;
-    if (navigator.storage && navigator.storage.estimate) {
-        try { const e = await navigator.storage.estimate(); pct = e.quota ? e.usage / e.quota : 0; text += `\n端末の割り当て: ${(e.usage / 1048576).toFixed(1)} MB / ${(e.quota / 1048576).toFixed(0)} MB`; } catch (er) {}
-    }
-    $('storage-text').style.whiteSpace = 'pre-line'; $('storage-text').textContent = text; $('storage-bar').style.width = Math.max(1, pct * 100) + '%';
+    if (!navigator.storage || !navigator.storage.estimate) { $('storage-stats-text').textContent = '使用量を取得できません'; return; }
+    const est = await navigator.storage.estimate(); const used = est.usage || 0, quota = est.quota || 1;
+    $('storage-stats-text').textContent = `使用量: ${fmtSize(used)} / ${fmtSize(quota)}`;
+    $('storage-bar').style.width = Math.max(1, used / quota * 100) + '%';
 }
-$('seed-btn').onclick = async () => { await seedFolders(true); render(); };
-$('wipe-btn').onclick = () => openDialog({ title: '全データを消去', body: '保存したファイルとフォルダがすべて消えます。元に戻せません。', ok: '消去する', danger: true, onOk: async () => {
-    await tx('readwrite', s => s.clear()); await seedFolders(false); path = '/'; cat = null; query = ''; clearSel(false); render(); toast('消去しました');
-} });
+$('seed-btn').onclick = () => seedDefaultFolders();
+$('wipe-btn').onclick = async () => {
+    const ok = await askDialog({ title: '全データ削除', body: '保存されているファイルとフォルダをすべて削除します。この操作は元に戻せません。', ok: '削除する', danger: true });
+    if (!ok) return;
+    await rq(store('readwrite').clear()); clip = { action: null, ids: [] }; path = '/'; await seedDefaultFolders(true); showToast('データベースを初期化しました'); updateStorageStats();
+};
 
-/* ---------- 弾性スクロール・キー ---------- */
+/* ---------- 弾性オーバースクロール ---------- */
 const area = $('main-scroll-area'), wrap = $('overscroll-wrapper');
 let startY = 0, pulling = false;
 area.addEventListener('touchstart', e => { if (e.touches.length === 1) { startY = e.touches[0].clientY; wrap.classList.remove('spring-back'); } }, { passive: true });
 area.addEventListener('touchmove', e => {
     if (e.touches.length !== 1) return;
-    const dy = e.touches[0].clientY - startY, top = area.scrollTop <= 0, bot = Math.abs(area.scrollHeight - area.clientHeight - area.scrollTop) < 2;
-    if ((top && dy > 0) || (bot && dy < 0)) { wrap.style.transform = `translateY(${dy * 0.38}px)`; pulling = true; }
+    const dy = e.touches[0].clientY - startY, atTop = area.scrollTop <= 0, atBot = Math.abs(area.scrollHeight - area.clientHeight - area.scrollTop) < 2;
+    if ((atTop && dy > 0) || (atBot && dy < 0)) { wrap.style.transform = `translateY(${dy * 0.38}px)`; pulling = true; }
 }, { passive: true });
 area.addEventListener('touchend', () => { if (pulling) { wrap.classList.add('spring-back'); wrap.style.transform = 'translateY(0)'; pulling = false; } });
 let wT = null, wS = 0;
 area.addEventListener('wheel', e => {
-    const top = area.scrollTop <= 0, bot = Math.abs(area.scrollHeight - area.clientHeight - area.scrollTop) < 2;
-    if ((top && e.deltaY < 0) || (bot && e.deltaY > 0)) {
+    const atTop = area.scrollTop <= 0, atBot = Math.abs(area.scrollHeight - area.clientHeight - area.scrollTop) < 2;
+    if ((atTop && e.deltaY < 0) || (atBot && e.deltaY > 0)) {
         wS = clamp(wS - e.deltaY * 0.25, -60, 60); wrap.classList.remove('spring-back'); wrap.style.transform = `translateY(${wS}px)`;
         clearTimeout(wT); wT = setTimeout(() => { wrap.classList.add('spring-back'); wrap.style.transform = 'translateY(0)'; wS = 0; }, 120);
     }
 }, { passive: true });
-document.addEventListener('keydown', e => {
-    if (e.key !== 'Escape') return;
-    if ($('dialog-overlay').classList.contains('active')) closeDialog();
-    else if ($('sheet-overlay').classList.contains('active')) closeSheet();
-    else goBack();
-});
 
 /* ---------- 初期化 ---------- */
-(async () => {
-    applyTheme(); buildTypeGrid(); renderMascot();
-    try {
-        await initDB();
-        if (!LS.get('pbfm_seeded_v1', false)) { await seedFolders(false); LS.set('pbfm_seeded_v1', true); }
-    } catch (e) { toast('ストレージを開けませんでした (プライベートモードかもしれません)'); }
-    if (db) render();
+(async function init() {
+    applySettings(); updateCompanion();
+    try { await initDB(); await seedDefaultFolders(true); }
+    catch (e) { showToast('ストレージを開けませんでした (プライベートモード?)'); }
+    updateChrome(); refresh();
 })();
 </script>
 </body>
