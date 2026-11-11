@@ -2,1501 +2,797 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="theme-color" id="theme-color-meta" content="#f6f2f7">
-    <title>FilesPrint - 工作・デカール印刷スタジオ</title>
-
-    <!-- Google Sans Flex & Material Symbols Outlined -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wdth,wght,GRAD,ROND@6..144,87.5,1..1000,100,100&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" id="theme-color-meta" content="#F7F7F7">
+    <title>FilesPrint</title>
+    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/PolandBallHub-Operator/pbpark/refs/heads/main/tools/print/file.png">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
-
-    <!-- PDF.js for rendering PDF files into canvas/printable images -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-
-    <!-- Import Map for Material Web Components & Material Color Utilities -->
-    <script type="importmap">
-    {
-        "imports": {
-            "@material/web/": "https://esm.run/@material/web/",
-            "@material/material-color-utilities": "https://esm.run/@material/material-color-utilities"
-        }
-    }
-    </script>
-
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         :root {
-            /* M3 Dynamic Tokens */
-            --md-sys-color-primary: #6750a4;
-            --md-sys-color-on-primary: #ffffff;
-            --md-sys-color-primary-container: #eaddff;
-            --md-sys-color-on-primary-container: #21005d;
-            --md-sys-color-secondary: #625b71;
-            --md-sys-color-on-secondary: #ffffff;
-            --md-sys-color-secondary-container: #e8def8;
-            --md-sys-color-on-secondary-container: #1d192b;
-            --md-sys-color-tertiary: #7d5260;
-            --md-sys-color-on-tertiary: #ffffff;
-            --md-sys-color-tertiary-container: #ffd8e4;
-            --md-sys-color-on-tertiary-container: #31111d;
-            --md-sys-color-error: #b3261e;
-            --md-sys-color-on-error: #ffffff;
-            --md-sys-color-error-container: #f9dedc;
-            --md-sys-color-on-error-container: #410e0b;
-            --md-sys-color-background: #f6f2f7;
-            --md-sys-color-on-background: #1c1b1f;
-            --md-sys-color-surface: #fffbfe;
-            --md-sys-color-on-surface: #1c1b1f;
-            --md-sys-color-surface-variant: #e7e0ec;
-            --md-sys-color-on-surface-variant: #49454f;
-            --md-sys-color-surface-container-lowest: #ffffff;
-            --md-sys-color-surface-container-low: #f7f2fa;
-            --md-sys-color-surface-container: #f3edf7;
-            --md-sys-color-surface-container-high: #ece6f0;
-            --md-sys-color-surface-container-highest: #e6e0e9;
-            --md-sys-color-outline: #79747e;
-            --md-sys-color-outline-variant: #c4c7c5;
-            --md-sys-color-inverse-surface: #313033;
-            --md-sys-color-inverse-on-surface: #f4f0f4;
-            --md-sys-color-inverse-primary: #d0bcff;
-
-            /* Expressive Google Sans Flex Font Settings */
-            --md-ref-typeface-brand: 'Google Sans Flex', sans-serif;
-            --md-ref-typeface-plain: 'Google Sans Flex', sans-serif;
-
-            /* Motion Duration */
-            --transition-duration: 0.35s;
-            --m3-easing-standard: cubic-bezier(0.2, 0, 0, 1);
-            --m3-easing-emphasized: cubic-bezier(0.3, 0, 0, 1);
-
-            /* MWC Component Design Token Mappings */
-            --md-elevated-button-container-color: var(--md-sys-color-surface-container-low);
-            --md-elevated-button-label-text-color: var(--md-sys-color-primary);
-            
-            --md-filled-text-field-container-color: var(--md-sys-color-surface-container-highest);
-            --md-filled-text-field-input-text-color: var(--md-sys-color-on-surface);
-            --md-filled-text-field-label-text-color: var(--md-sys-color-on-surface-variant);
-            --md-filled-text-field-active-indicator-color: var(--md-sys-color-primary);
-
-            --md-outlined-text-field-outline-color: var(--md-sys-color-outline);
-            --md-outlined-text-field-focus-outline-color: var(--md-sys-color-primary);
-            --md-outlined-text-field-input-text-color: var(--md-sys-color-on-surface);
-
-            /* Switch Off / On colors */
-            --md-switch-unselected-track-color: var(--md-sys-color-surface-container-highest);
-            --md-switch-unselected-handle-color: var(--md-sys-color-outline);
-            --md-switch-unselected-icon-color: var(--md-sys-color-surface-container-highest);
-            --md-switch-selected-track-color: var(--md-sys-color-primary);
-            --md-switch-selected-handle-color: var(--md-sys-color-on-primary);
-            --md-switch-selected-icon-color: var(--md-sys-color-primary-container);
-
-            /* Slider tracks */
-            --md-slider-active-track-color: var(--md-sys-color-primary);
-            --md-slider-inactive-track-color: var(--md-sys-color-surface-container-highest);
-            --md-slider-handle-color: var(--md-sys-color-primary);
-
-            /* Menus, Selects & Dialogs */
-            --md-menu-container-color: var(--md-sys-color-surface-container-high);
-            --md-dialog-container-color: var(--md-sys-color-surface-container-high);
-            --md-filled-select-container-color: var(--md-sys-color-surface-container-highest);
-            --md-outlined-select-outline-color: var(--md-sys-color-outline);
-            --md-select-option-container-color: var(--md-sys-color-surface-container-high);
+            --accent-primary: #3381FF;
+            --ptz-card-radius: 24px;
+            --ptz-toggle-width: 54px; --ptz-toggle-height: 30px; --ptz-toggle-knob-radius: 50%; --ptz-toggle-knob-width: 22px;
+            --bg-base: #F7F7F7; --glass-bg: #FFFFFF; --text-main: #000000; --text-sub: #666666; --bg-secondary: #EEEEEE;
+            --nav-bg: #FFFFFF; --nav-icon-active: #000000; --danger: #E5484D;
+            --m3-easing: cubic-bezier(0.32, 0.72, 0, 1); --transition-smooth: 0.35s var(--m3-easing); --nav-h: 72px;
         }
+        .dark-mode { --bg-base: #000000; --glass-bg: #1C1C1E; --text-main: #FFFFFF; --text-sub: #A1A1A6; --bg-secondary: #2C2C2E; --nav-bg: #1C1C1E; --nav-icon-active: #FFFFFF; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { margin: 0; font-family: 'Plus Jakarta Sans', 'Noto Sans JP', sans-serif; background: var(--bg-base); color: var(--text-main); overflow: hidden; height: 100vh; width: 100vw; transition: background-color var(--transition-smooth), color var(--transition-smooth); }
+        .material-symbols-outlined { display: inline-block; width: 1em; height: 1em; overflow: hidden; white-space: nowrap; line-height: 1; flex-shrink: 0; }
+        .hidden { display: none !important; }
+        #app-viewport { height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        header { height: 64px; padding: 0 16px; padding-top: env(safe-area-inset-top); display: flex; align-items: center; justify-content: center; background: var(--bg-base); flex-shrink: 0; position: relative; z-index: 10; transition: background-color var(--transition-smooth); }
+        .logo { font-weight: 700; font-size: 18px; letter-spacing: -0.4px; display: flex; align-items: center; gap: 8px; }
+        .logo img { width: 30px; height: 30px; object-fit: contain; border-radius: 8px; }
+        .round-btn { position: absolute; right: 16px; width: 40px; height: 40px; border-radius: 50%; border: none; background: var(--bg-secondary); color: var(--text-main); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.2s; }
+        .round-btn:active { transform: scale(0.92); }
+        main { flex-grow: 1; overflow-y: auto; padding: 8px 16px calc(var(--nav-h) + 28px); max-width: 860px; width: 100%; margin: 0 auto; -webkit-overflow-scrolling: touch; overscroll-behavior-y: none; }
+        #overscroll-wrapper { transform-origin: center top; }
+        #overscroll-wrapper.spring-back { transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .glass-card { background: var(--glass-bg); border-radius: var(--ptz-card-radius); padding: 20px; margin-bottom: 16px; box-shadow: none !important; border: none !important; transition: background-color var(--transition-smooth); }
+        h2 { font-size: 17px; margin: 0 0 10px; font-weight: 700; letter-spacing: -0.3px; display: flex; align-items: center; gap: 8px; }
+        h2 .material-symbols-outlined { color: var(--accent-primary); }
+        p { font-size: 13px; line-height: 1.55; margin: 0 0 12px; color: var(--text-sub); }
+        .view { display: none; }
+        .view.active { display: block; animation: viewIn 0.3s var(--m3-easing); }
+        @keyframes viewIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
-        *, *::before, *::after {
-            font-family: "Google Sans Flex", sans-serif;
-            font-optical-sizing: auto;
-            font-style: normal;
-            font-variation-settings:
-                "slnt" 0,
-                "wdth" 87.5,
-                "GRAD" 100,
-                "ROND" 100;
-            user-select: none;
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            box-sizing: border-box;
-        }
+        .field-label { font-size: 12px; font-weight: 600; margin: 0 0 6px; display: block; color: var(--text-sub); }
+        .glass-input, select.glass-input { width: 100%; padding: 12px 14px; border-radius: 14px; border: none; background: var(--bg-secondary); color: var(--text-main); font-size: 15px; font-family: inherit; -webkit-appearance: none; appearance: none; }
+        select.glass-input { background-image: linear-gradient(45deg, transparent 50%, var(--text-sub) 50%), linear-gradient(135deg, var(--text-sub) 50%, transparent 50%); background-position: calc(100% - 20px) 50%, calc(100% - 15px) 50%; background-size: 5px 5px; background-repeat: no-repeat; padding-right: 36px; }
+        .glass-input:focus { outline: 2px solid var(--accent-primary); }
+        .glass-input.bad { outline: 2px solid var(--danger); }
+        .ai-btn { border: none; outline: none; padding: 11px 18px; border-radius: 14px; font-weight: 600; font-size: 14px; font-family: inherit; color: #FFF; cursor: pointer; background: var(--accent-primary); transition: opacity 0.2s, transform 0.15s; display: inline-flex; align-items: center; gap: 8px; justify-content: center; }
+        .ai-btn:active:not(:disabled) { opacity: 0.88; transform: scale(0.97); }
+        .ai-btn:disabled { opacity: 0.4; }
+        .ai-btn-secondary { background: var(--bg-secondary); color: var(--text-main); }
+        .ai-btn-danger { background: var(--danger); }
+        .ai-btn-block { width: 100%; height: 50px; font-size: 15px; border-radius: 16px; }
+        .ai-btn .material-symbols-outlined { font-size: 20px; }
+        .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+        .btn-row > .ai-btn { flex: 1; min-width: 120px; }
+        .icon-btn { width: 38px; height: 38px; border-radius: 50%; border: none; cursor: pointer; flex-shrink: 0; overflow: hidden; background: var(--bg-secondary); color: var(--text-main); display: flex; align-items: center; justify-content: center; transition: transform 0.15s, opacity 0.2s; }
+        .icon-btn:active:not(:disabled) { transform: scale(0.9); } .icon-btn:disabled { opacity: 0.35; } .icon-btn.on { background: var(--accent-primary); color: #FFF; } .icon-btn.danger { color: var(--danger); }
+        .icon-btn .material-symbols-outlined { font-size: 20px; }
+        .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+        .chip { border: none; background: var(--bg-secondary); color: var(--text-main); font-family: inherit; padding: 8px 12px; border-radius: 12px; font-size: 12.5px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
+        .chip:active { transform: scale(0.95); } .chip .material-symbols-outlined { font-size: 17px; }
+        .seg { display: flex; gap: 4px; background: var(--bg-secondary); padding: 4px; border-radius: 14px; }
+        .seg button { flex: 1; border: none; background: transparent; color: var(--text-main); font-family: inherit; font-weight: 600; font-size: 13px; padding: 9px 4px; border-radius: 11px; cursor: pointer; transition: background 0.25s, color 0.25s; }
+        .seg button.active { background: var(--accent-primary); color: #FFF; }
+        .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; } .grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+        .mt { margin-top: 14px; } .mt-s { margin-top: 8px; }
+        .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0; }
+        .row-title { font-weight: 700; font-size: 14px; } .row-desc { font-size: 12px; color: var(--text-sub); margin-top: 2px; }
+        .switch { position: relative; display: inline-block; flex-shrink: 0; width: var(--ptz-toggle-width); height: var(--ptz-toggle-height); }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; inset: 0; background: var(--bg-secondary); transition: var(--transition-smooth); border-radius: calc(var(--ptz-toggle-height) / 2); }
+        .slider:before { position: absolute; content: ""; height: var(--ptz-toggle-knob-width); width: var(--ptz-toggle-knob-width); left: 4px; bottom: calc((var(--ptz-toggle-height) - var(--ptz-toggle-knob-width)) / 2); background: #FFF; transition: var(--transition-smooth); border-radius: var(--ptz-toggle-knob-radius); box-shadow: 0 1px 3px rgba(0,0,0,0.15); }
+        input:checked + .slider { background: var(--accent-primary); }
+        input:checked + .slider:before { transform: translateX(calc(var(--ptz-toggle-width) - var(--ptz-toggle-knob-width) - 8px)); }
+        .color-grid { display: flex; gap: 10px; flex-wrap: wrap; } .color-swatch { width: 36px; height: 36px; border-radius: 50%; cursor: pointer; border: 3px solid transparent; } .color-swatch.active { border-color: var(--text-main); }
 
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: var(--md-sys-color-surface-container-low);
-            color: var(--md-sys-color-on-background);
-            transition: background-color var(--transition-duration), color var(--transition-duration);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            overflow-x: hidden;
-            -webkit-font-smoothing: antialiased;
-        }
+        /* シート */
+        .sheet-tools { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+        .tool-group { display: flex; align-items: center; gap: 6px; }
+        .zoom-label { min-width: 52px; text-align: center; font-size: 13px; font-weight: 700; }
+        .viewport { background: var(--bg-secondary); border-radius: 18px; padding: 10px; overflow: auto; text-align: center; min-height: 240px; position: relative; touch-action: pan-x pan-y; }
+        .viewport.drop { outline: 3px dashed var(--accent-primary); }
+        #sheet-wrap { display: inline-block; position: relative; vertical-align: top; }
+        #sheet { position: absolute; left: 0; top: 0; background: #FFF; transform-origin: 0 0; box-shadow: 0 6px 24px rgba(0,0,0,0.18); overflow: hidden; text-align: left; }
+        #sheet.transparent-bg { background-image: linear-gradient(45deg,#ddd 25%,transparent 25%),linear-gradient(-45deg,#ddd 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#ddd 75%),linear-gradient(-45deg,transparent 75%,#ddd 75%); background-size: 20px 20px; background-color: #FFF; }
+        #grid-layer { position: absolute; inset: 0; pointer-events: none; background-image: linear-gradient(to right, rgba(0,100,255,0.16) 1px, transparent 1px), linear-gradient(to bottom, rgba(0,100,255,0.16) 1px, transparent 1px); }
+        #margin-layer { position: absolute; pointer-events: none; border: 0.3mm dashed rgba(229,72,77,0.7); }
+        #items-layer { position: absolute; inset: 0; }
+        .item { position: absolute; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; outline: 1px dashed transparent; }
+        .item img { width: 100%; height: 100%; display: block; object-fit: fill; pointer-events: none; -webkit-user-drag: none; }
+        .item:hover { outline-color: rgba(51,129,255,0.6); }
+        .item.selected { outline: 2px solid var(--accent-primary); z-index: 5; }
+        .item.dragging { cursor: grabbing; opacity: 0.9; }
+        .item .handle { display: none; position: absolute; right: -9px; bottom: -9px; width: 20px; height: 20px; border-radius: 50%; background: var(--accent-primary); border: 3px solid #FFF; box-shadow: 0 1px 4px rgba(0,0,0,0.4); cursor: nwse-resize; touch-action: none; }
+        .item.selected .handle { display: block; }
+        .item .badge { display: none; position: absolute; left: 0; top: -22px; background: var(--accent-primary); color: #FFF; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 6px; white-space: nowrap; pointer-events: none; transform-origin: left bottom; }
+        .item.selected .badge, .item.dragging .badge { display: block; }
+        .sheet-info { font-size: 12px; color: var(--text-sub); margin-top: 8px; display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+        .empty-sheet { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; color: #888; font-size: 13px; padding: 20px; pointer-events: none; z-index: 0; }
 
-        body.dark-mode {
-            background-color: var(--md-sys-color-background);
-        }
+        .layer-row { display: flex; align-items: center; gap: 10px; padding: 8px 4px; border-radius: 14px; cursor: pointer; }
+        .layer-row.selected { background: var(--bg-secondary); }
+        .layer-thumb { width: 40px; height: 40px; border-radius: 10px; background: var(--bg-secondary); overflow: hidden; flex-shrink: 0; }
+        .layer-thumb img { width: 100%; height: 100%; object-fit: contain; display: block; }
+        .layer-info { flex: 1; min-width: 0; } .layer-name { font-size: 13.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .layer-sub { font-size: 11.5px; color: var(--text-sub); }
+        .empty { text-align: center; color: var(--text-sub); font-size: 13px; padding: 12px 0; }
 
-        header {
-            position: sticky;
-            top: 0;
-            z-index: 50;
-            height: 64px;
-            padding: 0 16px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background-color: transparent;
-            border-bottom: none;
-            box-shadow: none;
-        }
+        /* 検索 */
+        .search-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; margin-top: 14px; }
+        .result { background: var(--bg-secondary); border-radius: 18px; overflow: hidden; display: flex; flex-direction: column; }
+        .result .pic { aspect-ratio: 1; background: repeating-conic-gradient(rgba(128,128,128,0.15) 0% 25%, transparent 0% 50%) 50% / 16px 16px; display: flex; align-items: center; justify-content: center; }
+        .result .pic img { max-width: 100%; max-height: 100%; object-fit: contain; }
+        .result .meta { padding: 8px 10px 4px; font-size: 11.5px; line-height: 1.4; } .result .meta b { display: block; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .result .meta span { color: var(--text-sub); }
+        .result button { margin: 6px 10px 10px; padding: 8px; font-size: 13px; }
 
-        .top-bar-title-container {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: var(--nav-h); background: var(--nav-bg); border-top: 1px solid var(--bg-secondary); z-index: 500; display: flex; justify-content: space-around; align-items: center; padding-bottom: env(safe-area-inset-bottom); transition: background-color var(--transition-smooth); }
+        .nav-item { flex: 1; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; color: var(--text-sub); gap: 4px; transition: color 0.25s; }
+        .nav-item .material-symbols-outlined { font-size: 24px; font-variation-settings: 'FILL' 0, 'wght' 400; }
+        .nav-label { font-size: 10px; font-weight: 600; }
+        .nav-item.active { color: var(--nav-icon-active); } .nav-item.active .material-symbols-outlined { font-variation-settings: 'FILL' 1, 'wght' 700; }
 
-        .app-logo-img {
-            width: 32px;
-            height: 32px;
-            object-fit: contain;
-            border-radius: 8px;
-        }
+        .dialog-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: all 0.3s var(--m3-easing); }
+        .dialog-overlay.active { opacity: 1; visibility: visible; }
+        .glass-dialog { background: var(--glass-bg); border-radius: var(--ptz-card-radius); padding: 22px; max-width: 460px; width: 92%; max-height: 88vh; overflow-y: auto; transform: scale(0.9) translateY(20px); transition: all 0.4s var(--m3-easing); }
+        .dialog-overlay.active .glass-dialog { transform: none; }
+        .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+        .pdf-pages { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 10px; margin-top: 10px; }
+        .pdf-page { border: 3px solid transparent; border-radius: 12px; background: var(--bg-secondary); padding: 4px; cursor: pointer; text-align: center; font-size: 11px; font-weight: 700; }
+        .pdf-page.sel { border-color: var(--accent-primary); } .pdf-page canvas { width: 100%; height: auto; display: block; border-radius: 6px; background: #FFF; }
+        .toast { position: fixed; bottom: 88px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--text-main); color: var(--glass-bg); padding: 10px 20px; border-radius: 12px; font-size: 13px; font-weight: 600; opacity: 0; visibility: hidden; transition: all 0.3s var(--m3-easing); z-index: 2000; max-width: 90vw; text-align: center; pointer-events: none; }
+        .toast.active { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0); }
+        .busy { position: fixed; inset: 0; z-index: 1500; background: rgba(0,0,0,0.45); display: none; align-items: center; justify-content: center; color: #FFF; font-weight: 700; flex-direction: column; gap: 12px; }
+        .busy.active { display: flex; } .spinner { width: 38px; height: 38px; border: 4px solid rgba(255,255,255,0.3); border-top-color: #FFF; border-radius: 50%; animation: spin 0.9s linear infinite; } @keyframes spin { to { transform: rotate(360deg); } }
+        .steps { font-size: 13px; line-height: 1.7; color: var(--text-sub); margin: 0; padding-left: 20px; }
 
-        header h1 {
-            margin: 0;
-            font-size: 20px;
-            font-weight: 700;
-            letter-spacing: -0.3px;
-            color: var(--md-sys-color-on-background);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        /* Circular M3 Back Button Style */
-        .m3-circle-back-btn {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background-color: var(--md-sys-color-secondary-container);
-            color: var(--md-sys-color-on-secondary-container);
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            border: none;
-            outline: none;
-            transition: background-color 0.2s var(--m3-easing-standard), transform 0.2s var(--m3-easing-standard);
-        }
-
-        .m3-circle-back-btn:hover { opacity: 0.9; }
-        .m3-circle-back-btn:active { transform: scale(0.92); }
-        .m3-circle-back-btn.hidden { display: none !important; }
-
-        .floating-nav-container {
-            position: fixed;
-            bottom: 24px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 100;
-            width: auto;
-            max-width: 95vw;
-        }
-
-        .custom-nav {
-            display: flex;
-            align-items: center;
-            background-color: var(--md-sys-color-surface);
-            padding: 8px;
-            border-radius: 36px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
-            border: none;
-            transition: all 0.4s var(--m3-easing-emphasized);
-        }
-
-        body.dark-mode .custom-nav {
-            background-color: var(--md-sys-color-surface-container-high);
-        }
-
-        .nav-item {
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-width: 72px;
-            height: 48px;
-            cursor: pointer;
-            border-radius: 24px;
-            transition: all 0.2s var(--m3-easing-standard);
-        }
-
-        .nav-icon-container {
-            width: 52px;
-            height: 32px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            border-radius: 20px;
-            transition: background-color 0.3s var(--m3-easing-standard);
-        }
-
-        .nav-item .material-symbols-outlined {
-            font-size: 24px;
-            font-variation-settings: 'FILL' 0, 'wght' 400;
-            color: var(--md-sys-color-on-surface-variant);
-        }
-
-        .nav-item.active .nav-icon-container {
-            background-color: var(--md-sys-color-secondary-container);
-        }
-
-        .nav-item.active .material-symbols-outlined {
-            font-variation-settings: 'FILL' 1;
-            color: var(--md-sys-color-on-secondary-container);
-        }
-
-        @media (min-width: 900px) {
-            .floating-nav-container {
-                left: 24px;
-                bottom: auto;
-                top: 50%;
-                transform: translateY(-50%);
-            }
-            .custom-nav {
-                flex-direction: column;
-                border-radius: 32px;
-                padding: 12px 8px;
-            }
-            .nav-item { margin: 4px 0; }
-            body { margin-left: 100px; }
-        }
-
-        main {
-            flex: 1;
-            padding: 16px 16px 120px 16px;
-            max-width: 1100px;
-            margin: 0 auto;
-            width: 100%;
-            box-sizing: border-box;
-        }
-
-        .view-section {
-            display: none;
-            animation: m3-expressive-in 0.35s var(--m3-easing-emphasized) forwards;
-        }
-        .view-section.active { display: block; }
-
-        @keyframes m3-expressive-in {
-            from { opacity: 0; transform: scale(0.97) translateY(8px); }
-            to { opacity: 1; transform: scale(1) translateY(0); }
-        }
-
-        /* Solid Expressive Cards */
-        .solid-card {
-            background-color: var(--md-sys-color-surface);
-            border-radius: 28px;
-            padding: 24px;
-            margin-bottom: 20px;
-            border: none !important;
-            box-shadow: none !important;
-            transition: background-color 0.3s var(--m3-easing-standard);
-        }
-
-        body.dark-mode .solid-card {
-            background-color: var(--md-sys-color-surface-container);
-        }
-
-        .section-title {
-            font-size: 20px;
-            font-weight: 700;
-            margin-bottom: 16px;
-            color: var(--md-sys-color-primary);
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .sub-activity-card {
-            background-color: var(--md-sys-color-surface-container-high);
-            border-radius: 24px;
-            padding: 20px;
-            margin-top: 16px;
-        }
-
-        md-filled-button, md-elevated-button, md-outlined-button, md-filled-tonal-button, md-text-button {
-            --md-filled-button-container-shape: 20px;
-            margin: 4px;
-            font-weight: 600;
-        }
-
-        md-outlined-text-field, md-filled-text-field, md-filled-select, md-outlined-select {
-            width: 100%;
-            margin-bottom: 16px;
-        }
-
-        md-slider { width: 100%; }
-
-        .badge-craft {
-            background-color: var(--md-sys-color-tertiary-container);
-            color: var(--md-sys-color-on-tertiary-container);
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 13px;
-            font-weight: 700;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        /* Printable Paper Viewport Container */
-        .paper-viewport {
-            background-color: var(--md-sys-color-surface-container-highest);
-            border-radius: 24px;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: flex-start;
-            overflow: auto;
-            position: relative;
-            min-height: 540px;
-        }
-
-        /* Paper Base Element - Dynamic Size Sheet */
-        .printable-paper {
-            background-color: #ffffff;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.12);
-            color: #000000;
-            position: relative;
-            box-sizing: border-box;
-            padding: 0;
-            margin: 0 auto;
-            transform-origin: top center;
-            transition: width 0.3s ease, min-height 0.3s ease, transform 0.3s ease;
-            overflow: hidden;
-            border: 1px solid #dcdcdc;
-            /* Default A4 Dimensions */
-            width: 210mm;
-            min-height: 297mm;
-        }
-
-        .paper-scaled {
-            transform: scale(0.6);
-            margin-bottom: -110mm;
-        }
-
-        @media (max-width: 600px) {
-            .paper-scaled {
-                transform: scale(0.38);
-                margin-bottom: -180mm;
-            }
-        }
-
-        /* Grid Overlay on Paper for Crafting & Decals */
-        .paper-grid {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-image: 
-                linear-gradient(to right, rgba(0, 100, 255, 0.1) 1px, transparent 1px),
-                linear-gradient(to bottom, rgba(0, 100, 255, 0.1) 1px, transparent 1px);
-            background-size: 10mm 10mm;
-            pointer-events: none;
-            z-index: 1;
-        }
-
-        .paper-content-layer {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            z-index: 2;
-            width: 100%;
-            height: 100%;
-        }
-
-        /* Studio Interactive Draggable Items Placed inside Paper */
-        .studio-item-wrapper {
-            position: absolute;
-            cursor: grab;
-            border: 2px dashed transparent;
-            transition: border-color 0.15s ease, box-shadow 0.15s ease;
-            display: inline-block;
-            touch-action: none !important; /* Disables page scroll interference */
-            user-select: none !important;
-            -webkit-user-select: none !important;
-            box-sizing: border-box;
-            will-change: left, top;
-        }
-
-        .studio-item-wrapper:hover {
-            border-color: var(--md-sys-color-outline-variant);
-        }
-
-        .studio-item-wrapper.selected {
-            border-color: var(--md-sys-color-primary);
-            box-shadow: 0 0 0 2px rgba(103, 80, 164, 0.4);
-            z-index: 10;
-        }
-
-        .studio-item-wrapper.dragging {
-            cursor: grabbing !important;
-            opacity: 0.88;
-            z-index: 100 !important;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
-            border-style: solid;
-            transition: none !important; /* Ensures instantaneous pointer movement */
-        }
-
-        .studio-item-wrapper img {
-            width: 100%;
-            height: 100%;
-            display: block;
-            object-fit: contain;
-            pointer-events: none !important;
-            user-select: none !important;
-            -webkit-user-drag: none !important;
-        }
-
-        /* Item Coordinates Badge Overlay */
-        .item-coord-badge {
-            position: absolute;
-            top: -20px;
-            left: 0;
-            background-color: var(--md-sys-color-primary);
-            color: var(--md-sys-color-on-primary);
-            font-size: 10px;
-            font-weight: 700;
-            padding: 2px 6px;
-            border-radius: 6px;
-            white-space: nowrap;
-            pointer-events: none;
-            display: none;
-        }
-
-        .studio-item-wrapper.selected .item-coord-badge,
-        .studio-item-wrapper.dragging .item-coord-badge {
-            display: block;
-        }
-
-        /* Desktop UI Layout Enhancements */
-        body.pro-desktop-mode main {
-            max-width: 1400px;
-        }
-
-        body.pro-desktop-mode .studio-layout-grid {
-            display: grid;
-            grid-template-columns: 380px 1fr;
-            gap: 20px;
-            align-items: start;
-        }
-
-        .file-drop-zone {
-            border: 2px dashed var(--md-sys-color-outline);
-            border-radius: 20px;
-            padding: 32px 16px;
-            text-align: center;
-            background-color: var(--md-sys-color-surface-container-low);
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .file-drop-zone:hover {
-            border-color: var(--md-sys-color-primary);
-            background-color: var(--md-sys-color-surface-container);
-        }
-
-        /* System Print Styles Rules */
+        /* 印刷: 専用の #print-root だけを実寸で出力 */
+        #print-root { display: none; }
         @media print {
-            @page {
-                margin: 0;
-            }
-            header, .floating-nav-container, .no-print, md-fab {
-                display: none !important;
-            }
-            body {
-                background: white !important;
-                color: black !important;
-                margin: 0 !important;
-                padding: 0 !important;
-            }
-            main {
-                max-width: none !important;
-                padding: 0 !important;
-                margin: 0 !important;
-            }
-            .paper-viewport {
-                background: none !important;
-                padding: 0 !important;
-                overflow: visible !important;
-            }
-            .printable-paper {
-                transform: none !important;
-                box-shadow: none !important;
-                border: none !important;
-                margin: 0 !important;
-                page-break-after: always;
-            }
-            .paper-grid {
-                display: none !important;
-            }
-            .studio-item-wrapper {
-                border: none !important;
-                box-shadow: none !important;
-            }
-            .item-coord-badge {
-                display: none !important;
-            }
+            html, body { height: auto !important; width: auto !important; overflow: visible !important; background: #FFF !important; margin: 0 !important; padding: 0 !important; }
+            #app-viewport, .toast, .dialog-overlay, .busy { display: none !important; }
+            #print-root { display: block !important; }
+            * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         }
     </style>
+    <style id="page-style"></style>
 </head>
 <body>
-
+<div id="app-viewport">
     <header>
-        <div class="top-bar-title-container">
-            <button id="top-bar-back-btn" class="m3-circle-back-btn hidden" onclick="window.goBack()" aria-label="戻る">
-                <span class="material-symbols-outlined">chevron_left</span>
-            </button>
-            <md-icon-button id="top-bar-icon-main">
-                <img src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbpark/refs/heads/main/tools/print/file.png" class="app-logo-img" alt="FilesPrint Logo" onerror="this.src='https://placehold.co/64x64/6750a4/ffffff?text=FP'">
-            </md-icon-button>
-            <h1 id="top-bar-title">FilesPrint</h1>
-        </div>
-        <div style="display:flex; align-items:center; position:relative;">
-            <input type="color" id="source-color-picker" value="#6750a4" style="width:0; height:0; visibility:hidden; position:absolute;">
-            <md-icon-button onclick="document.getElementById('source-color-picker').click()" title="テーマ色選択">
-                <span class="material-symbols-outlined">palette</span>
-            </md-icon-button>
-            <md-icon-button onclick="window.toggleDarkMode()" title="ダークモード切り替え">
-                <span class="material-symbols-outlined" id="theme-icon">dark_mode</span>
-            </md-icon-button>
-            
-            <md-icon-button id="overflow-menu-anchor" onclick="document.getElementById('overflow-menu').open = !document.getElementById('overflow-menu').open">
-                <span class="material-symbols-outlined">more_vert</span>
-            </md-icon-button>
-
-            <md-menu id="overflow-menu" anchor="overflow-menu-anchor">
-                <md-menu-item onclick="window.updateTheme('#6750a4')">
-                    <div slot="headline">クラフトパープル</div>
-                </md-menu-item>
-                <md-menu-item onclick="window.updateTheme('#006a6a')">
-                    <div slot="headline">工作ティール</div>
-                </md-menu-item>
-                <md-menu-item onclick="window.updateTheme('#b02f00')">
-                    <div slot="headline">プラモオレンジ</div>
-                </md-menu-item>
-                <md-menu-item onclick="window.openDemoDialog()">
-                    <div slot="headline">アプリについて</div>
-                </md-menu-item>
-            </md-menu>
-        </div>
+        <div class="logo"><img src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbpark/refs/heads/main/tools/print/file.png" alt="" onerror="this.style.display='none'">FilesPrint</div>
+        <button class="round-btn" id="theme-btn" title="テーマ"><span class="material-symbols-outlined">light_mode</span></button>
     </header>
 
-    <main id="main-content">
-        <!-- HOME VIEW -->
-        <section id="view-home" class="view-section active">
-            <div class="solid-card">
-                <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+    <main id="main-scroll-area"><div id="overscroll-wrapper">
+
+        <!-- レイアウト -->
+        <section class="view active" id="view-layout">
+            <div class="glass-card">
+                <div class="grid2">
                     <div>
-                        <div class="badge-craft" style="margin-bottom:8px;">
-                            <span class="material-symbols-outlined" style="font-size:16px;">precision_manufacturing</span>
-                            図工部に大人気！おかげさまで3000アクセス突破！
-                        </div>
-                        <div class="section-title" style="margin-bottom:4px;">
-                            FilesPrint - 実寸高精度レイアウト＆印刷
-                        </div>
-                        <p style="margin:0; opacity: 0.85; font-size:14px;">
-                            画像・PDF・HTML 用紙上にミリ単位で自由にドラッグ配置＆高精細印刷！
-                        </p>
+                        <label class="field-label" for="paper-select">用紙サイズ</label>
+                        <select class="glass-input" id="paper-select"></select>
                     </div>
-                    <md-filled-button onclick="window.triggerPrint()">
-                        <md-icon slot="icon"><span class="material-symbols-outlined">print</span></md-icon>
-                        システム印刷実行
-                    </md-filled-button>
+                    <div>
+                        <label class="field-label">向き</label>
+                        <div class="seg" id="orient-seg"><button data-o="p" class="active">縦</button><button data-o="l">横</button></div>
+                    </div>
+                </div>
+                <div class="grid2 mt-s hidden" id="custom-size">
+                    <div><label class="field-label" for="custom-w">幅 (mm)</label><input class="glass-input" id="custom-w" type="number" step="0.1" min="10" max="2000" inputmode="decimal" value="210"></div>
+                    <div><label class="field-label" for="custom-h">高さ (mm)</label><input class="glass-input" id="custom-h" type="number" step="0.1" min="10" max="2000" inputmode="decimal" value="297"></div>
                 </div>
             </div>
 
-            <!-- Paper Size Selection Bar -->
-            <div class="solid-card" style="padding:16px 24px;">
-                <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
-                    <div style="flex:1; min-width:200px;">
-                        <md-filled-select id="paper-size-select-home" label="印刷用紙サイズを選択" onchange="window.changePaperSize(this.value)">
-                            <md-select-option value="A4" selected><div slot="headline">A4 (210 x 297 mm)</div></md-select-option>
-                            <md-select-option value="A3"><div slot="headline">A3 (297 x 420 mm)</div></md-select-option>
-                            <md-select-option value="A5"><div slot="headline">A5 (148 x 210 mm)</div></md-select-option>
-                            <md-select-option value="B4"><div slot="headline">B4 (257 x 364 mm)</div></md-select-option>
-                            <md-select-option value="B5"><div slot="headline">B5 (182 x 257 mm)</div></md-select-option>
-                            <md-select-option value="L_PHOTO"><div slot="headline">L判 写真 (89 x 127 mm)</div></md-select-option>
-                            <md-select-option value="HAGAKI"><div slot="headline">ハガキ (100 x 148 mm)</div></md-select-option>
-                        </md-filled-select>
+            <div class="glass-card">
+                <div class="sheet-tools">
+                    <div class="tool-group">
+                        <button class="icon-btn" id="undo-btn" title="元に戻す (Ctrl+Z)"><span class="material-symbols-outlined">undo</span></button>
+                        <button class="icon-btn" id="redo-btn" title="やり直す (Ctrl+Y)"><span class="material-symbols-outlined">redo</span></button>
                     </div>
-                    <div style="font-size:13px; opacity:0.8; display:flex; align-items:center; gap:6px;">
-                        <span class="material-symbols-outlined" style="font-size:18px;">aspect_ratio</span>
-                        現在の設定: <span id="paper-dim-label" style="font-weight:700;">210 x 297 mm</span>
+                    <div class="tool-group">
+                        <button class="icon-btn" id="zoom-out" title="縮小"><span class="material-symbols-outlined">remove</span></button>
+                        <span class="zoom-label" id="zoom-label">100%</span>
+                        <button class="icon-btn" id="zoom-in" title="拡大"><span class="material-symbols-outlined">add</span></button>
+                        <button class="icon-btn" id="zoom-fit" title="用紙全体を表示"><span class="material-symbols-outlined">fit_screen</span></button>
+                    </div>
+                    <div class="tool-group">
+                        <button class="icon-btn" id="grid-btn" title="グリッド"><span class="material-symbols-outlined">grid_4x4</span></button>
+                        <button class="icon-btn" id="snap-btn" title="グリッドに吸着"><span class="material-symbols-outlined">magnet_with_sound</span></button>
                     </div>
                 </div>
-            </div>
-
-            <!-- Drag and Drop & File Upload Area -->
-            <div class="solid-card">
-                <div class="section-title">
-                    <span class="material-symbols-outlined">upload_file</span>
-                    印刷ファイルの追加 (画像 / PDF / HTML)
-                </div>
-                
-                <div class="file-drop-zone" id="quick-file-dropzone" onclick="document.getElementById('quick-file-input').click()">
-                    <span class="material-symbols-outlined" style="font-size: 48px; color: var(--md-sys-color-primary);">cloud_upload</span>
-                    <h3 style="margin: 8px 0 4px 0;">ファイルをドラッグ＆ドロップ</h3>
-                    <p style="margin:0; font-size:13px; opacity:0.7;">またはクリックして選択 (PNG, JPG, WEBP, PDF, HTML)</p>
-                    <input type="file" id="quick-file-input" style="display:none;" accept="image/*,.pdf,.html,.htm" onchange="window.handleQuickFileSelect(event)">
-                </div>
-            </div>
-
-            <!-- Paper Live Preview Container -->
-            <div class="solid-card">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap;">
-                    <div class="section-title" style="margin-bottom:0;">
-                        <span class="material-symbols-outlined">description</span>
-                        リアルタイム印刷プレビュー
-                    </div>
-                    <div style="display:flex; gap:8px; align-items:center;">
-                        <md-filter-chip label="ガイド格子表示" id="grid-toggle-chip" selected onclick="window.togglePaperGrid()"></md-filter-chip>
-                        <md-text-button onclick="window.clearPaper()">クリア</md-text-button>
-                    </div>
-                </div>
-
-                <div class="paper-viewport">
-                    <div class="printable-paper paper-scaled" id="home-paper-sheet">
-                        <div class="paper-grid" id="home-paper-grid"></div>
-                        <div class="paper-content-layer" id="home-paper-content">
-                            <div id="default-paper-placeholder" style="text-align:center; padding-top: 60mm;">
-                                <img src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbpark/refs/heads/main/tools/print/file.png" style="width:70px; opacity:0.8; margin-bottom:12px;" alt="Logo">
-                                <h2 style="margin:0; color:#444;" id="paper-title-placeholder">FilesPrint 用紙</h2>
-                                <p style="color:#777; font-size:14px; margin-top:8px;">ファイルを追加すると、ここに選択サイズの前面に配置されます</p>
-                            </div>
+                <div class="viewport" id="viewport">
+                    <div id="sheet-wrap">
+                        <div id="sheet">
+                            <div id="grid-layer"></div>
+                            <div id="margin-layer"></div>
+                            <div class="empty-sheet" id="empty-sheet">画像・PDFを追加すると、ここに実寸で配置されます</div>
+                            <div id="items-layer"></div>
                         </div>
                     </div>
+                </div>
+                <div class="sheet-info"><span id="sheet-dim">210 × 297 mm</span><span>1マス = <span id="grid-size-label">5</span> mm · ドラッグで移動 / ●で拡大縮小</span></div>
+                <div class="btn-row mt">
+                    <button class="ai-btn" id="add-image-btn"><span class="material-symbols-outlined">add_photo_alternate</span>画像を追加</button>
+                    <button class="ai-btn ai-btn-secondary" id="add-pdf-btn"><span class="material-symbols-outlined">picture_as_pdf</span>PDFを追加</button>
+                    <button class="ai-btn ai-btn-secondary" id="goto-search-btn"><span class="material-symbols-outlined">image_search</span>画像検索</button>
+                </div>
+                <input type="file" id="image-input" accept="image/*" multiple style="display:none;">
+                <input type="file" id="pdf-input" accept="application/pdf,.pdf" style="display:none;">
+            </div>
+
+            <div class="glass-card">
+                <h2><span class="material-symbols-outlined">straighten</span>寸法・位置 (mm)</h2>
+                <div id="insp-empty" class="empty">シート上の画像をタップして選択してください</div>
+                <div id="insp-body" class="hidden">
+                    <div class="grid4">
+                        <div><label class="field-label" for="f-w">横 W</label><input class="glass-input" id="f-w" type="number" step="0.1" inputmode="decimal"></div>
+                        <div><label class="field-label" for="f-h">縦 H</label><input class="glass-input" id="f-h" type="number" step="0.1" inputmode="decimal"></div>
+                        <div><label class="field-label" for="f-x">X</label><input class="glass-input" id="f-x" type="number" step="0.1" inputmode="decimal"></div>
+                        <div><label class="field-label" for="f-y">Y</label><input class="glass-input" id="f-y" type="number" step="0.1" inputmode="decimal"></div>
+                    </div>
+                    <div style="display:flex;gap:10px;align-items:flex-end;margin-top:10px;">
+                        <div style="flex:1;"><label class="field-label" for="f-rot">回転 (度)</label><input class="glass-input" id="f-rot" type="number" step="1" inputmode="decimal"></div>
+                        <button class="icon-btn" id="rot90" title="90°回転" style="width:46px;height:46px;"><span class="material-symbols-outlined">rotate_right</span></button>
+                        <button class="icon-btn on" id="lock-btn" title="縦横比を固定" style="width:46px;height:46px;"><span class="material-symbols-outlined">lock</span></button>
+                    </div>
+                    <label class="field-label mt">サイズをすばやく設定</label>
+                    <div class="chips">
+                        <button class="chip" id="fit-width"><span class="material-symbols-outlined">width</span>用紙の幅いっぱい</button>
+                        <button class="chip" id="fit-page"><span class="material-symbols-outlined">fit_screen</span>用紙に収める</button>
+                        <button class="chip" id="real-size"><span class="material-symbols-outlined">straighten</span>実寸</button>
+                        <input class="glass-input" id="f-dpi" type="number" min="30" max="1200" value="300" style="width:92px;padding:8px 10px;" title="画像の解像度(dpi)">
+                        <span style="align-self:center;font-size:12px;color:var(--text-sub)">dpi</span>
+                    </div>
+                    <label class="field-label mt">整列</label>
+                    <div class="chips">
+                        <button class="chip" data-al="left"><span class="material-symbols-outlined">align_horizontal_left</span>左</button>
+                        <button class="chip" data-al="hcenter"><span class="material-symbols-outlined">align_horizontal_center</span>中央</button>
+                        <button class="chip" data-al="right"><span class="material-symbols-outlined">align_horizontal_right</span>右</button>
+                        <button class="chip" data-al="top"><span class="material-symbols-outlined">align_vertical_top</span>上</button>
+                        <button class="chip" data-al="vcenter"><span class="material-symbols-outlined">align_vertical_center</span>中央</button>
+                        <button class="chip" data-al="bottom"><span class="material-symbols-outlined">align_vertical_bottom</span>下</button>
+                    </div>
+                    <div class="btn-row mt">
+                        <button class="ai-btn ai-btn-secondary" id="dup-btn"><span class="material-symbols-outlined">content_copy</span>複製</button>
+                        <button class="ai-btn ai-btn-secondary" id="front-btn"><span class="material-symbols-outlined">flip_to_front</span>前面へ</button>
+                        <button class="ai-btn ai-btn-secondary" id="back-btn"><span class="material-symbols-outlined">flip_to_back</span>背面へ</button>
+                        <button class="ai-btn ai-btn-danger" id="del-btn"><span class="material-symbols-outlined">delete</span>削除</button>
+                    </div>
+                    <div class="btn-row mt-s">
+                        <button class="ai-btn ai-btn-secondary" id="tile-btn"><span class="material-symbols-outlined">grid_view</span>この画像を用紙に敷き詰める (間隔 <input id="tile-gap" type="number" value="2" step="0.5" min="0" style="width:46px;border:none;background:transparent;color:inherit;font:inherit;font-weight:700;text-align:center;" onclick="event.stopPropagation()"> mm)</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-card">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                    <h2 style="margin:0;"><span class="material-symbols-outlined">layers</span>レイヤー</h2>
+                    <button class="chip" id="clear-btn"><span class="material-symbols-outlined">delete_sweep</span>すべて消去</button>
+                </div>
+                <div id="layer-list"></div>
+            </div>
+        </section>
+
+        <!-- 画像検索 -->
+        <section class="view" id="view-search">
+            <div class="glass-card">
+                <h2><span class="material-symbols-outlined">image_search</span>画像を検索して追加</h2>
+                <p>Wikimedia Commons から、自由に使える画像を探せます(クレジットやライセンス条件は各画像で確認してください)。</p>
+                <div style="display:flex;gap:8px;">
+                    <input class="glass-input" id="search-q" type="search" placeholder="例: 戦艦、ロゴ、桜、ネジ" autocomplete="off">
+                    <button class="ai-btn" id="search-go" style="flex-shrink:0;"><span class="material-symbols-outlined">search</span>検索</button>
+                </div>
+                <div class="search-grid" id="search-grid"></div>
+                <p class="empty" id="search-status"></p>
+                <button class="ai-btn ai-btn-secondary ai-btn-block hidden" id="search-more">もっと見る</button>
+            </div>
+        </section>
+
+        <!-- 出力 -->
+        <section class="view" id="view-output">
+            <div class="glass-card">
+                <h2><span class="material-symbols-outlined">print</span>実寸で印刷</h2>
+                <p>用紙サイズに合わせて、1mm単位の位置とサイズのまま印刷します。印刷ダイアログでは、<b>「倍率 100%(実際のサイズ)」「余白 なし」</b>を選んでください。</p>
+                <button class="ai-btn ai-btn-block" id="print-btn"><span class="material-symbols-outlined">print</span>印刷する</button>
+                <div class="row mt-s"><div><div class="row-title">切り取り線(枠)を付ける</div><div class="row-desc">画像のまわりに細い線を引きます (印刷・書き出し)</div></div><label class="switch"><input type="checkbox" id="opt-cut"><span class="slider"></span></label></div>
+            </div>
+
+            <div class="glass-card">
+                <h2><span class="material-symbols-outlined">ios_share</span>書き出し (PNG / PDF)</h2>
+                <label class="field-label">形式</label>
+                <div class="seg" id="fmt-seg"><button data-f="png" class="active">PNG</button><button data-f="pdf">PDF</button></div>
+                <label class="field-label mt">解像度</label>
+                <div class="seg" id="dpi-seg"><button data-d="150">150 dpi</button><button data-d="300" class="active">300 dpi</button><button data-d="600">600 dpi</button></div>
+                <div class="row mt-s" id="row-transparent"><div><div class="row-title">背景を透明にする</div><div class="row-desc">PNGのみ。デカール素材などに</div></div><label class="switch"><input type="checkbox" id="opt-transparent"><span class="slider"></span></label></div>
+                <div class="row" id="row-pdfpng"><div><div class="row-title">PDFを可逆圧縮にする</div><div class="row-desc">細かい文字や線がきれい。ファイルは大きめ</div></div><label class="switch"><input type="checkbox" id="opt-pdfpng"><span class="slider"></span></label></div>
+                <p style="font-size:12px;margin:6px 0 12px;">PNGには解像度(dpi)情報を埋め込み、PDFのページは用紙サイズぴったりに作ります。どちらも実寸のまま印刷できます。</p>
+                <button class="ai-btn ai-btn-block" id="export-btn"><span class="material-symbols-outlined">download</span>書き出す</button>
+            </div>
+
+            <div class="glass-card">
+                <h2><span class="material-symbols-outlined">tune</span>プリンターの寸法補正</h2>
+                <p>プリンターによっては、印刷結果が数 % ずれます。校正シートを印刷して定規で測り、補正値を入れると正確な寸法になります。補正は「印刷」と「PDF」に反映されます。</p>
+                <ol class="steps">
+                    <li>「校正シートを印刷」を、100%・余白なしで印刷</li>
+                    <li>横線・縦線の長さを定規で測る (本来は 100 mm)</li>
+                    <li>補正値(%) = 100 ÷ 測った長さ × 100 を入力 (例: 99.5 mm → 100.5 %)</li>
+                </ol>
+                <div class="grid2 mt">
+                    <div><label class="field-label" for="corr-x">横の補正 (%)</label><input class="glass-input" id="corr-x" type="number" step="0.1" min="90" max="110" value="100" inputmode="decimal"></div>
+                    <div><label class="field-label" for="corr-y">縦の補正 (%)</label><input class="glass-input" id="corr-y" type="number" step="0.1" min="90" max="110" value="100" inputmode="decimal"></div>
+                </div>
+                <div class="btn-row mt">
+                    <button class="ai-btn ai-btn-secondary" id="calib-btn"><span class="material-symbols-outlined">square_foot</span>校正シートを印刷</button>
+                    <button class="ai-btn ai-btn-secondary" id="corr-reset"><span class="material-symbols-outlined">restart_alt</span>補正をリセット</button>
                 </div>
             </div>
         </section>
 
-        <!-- STUDIO VIEW -->
-        <section id="view-studio" class="view-section">
-            <div class="solid-card">
-                <div class="section-title">
-                    <span class="material-symbols-outlined">content_cut</span>
-                    印刷スタジオ - デカール・自由ドラッグ移動＆レイアウト
+        <!-- 設定 -->
+        <section class="view" id="view-settings">
+            <div class="glass-card">
+                <h2><span class="material-symbols-outlined">grid_4x4</span>配置</h2>
+                <label class="field-label">グリッド・吸着の間隔</label>
+                <div class="seg" id="gridsize-seg"><button data-g="1">1 mm</button><button data-g="5">5 mm</button><button data-g="10">10 mm</button></div>
+                <div class="grid2 mt">
+                    <div><label class="field-label" for="set-margin">余白ガイド (mm)</label><input class="glass-input" id="set-margin" type="number" min="0" max="50" step="0.5" value="0" inputmode="decimal"></div>
+                    <div><label class="field-label" for="set-adddpi">追加時の解像度 (dpi)</label><input class="glass-input" id="set-adddpi" type="number" min="30" max="1200" value="300" inputmode="numeric"></div>
                 </div>
-                <p style="margin-top:0; opacity:0.85; line-height:1.5;">
-                    プラモのデカールや工作パーツを用紙上でドラッグして自由に移動・配置！ミリ単位の精密数値指定や一括整列で高画質印刷できます。
-                </p>
+                <p style="margin:10px 2px 0;font-size:12px;">家庭用プリンターは、紙のふちまで印刷できないことが多いです。余白ガイド(赤い点線)の内側に配置すると、切れません。</p>
             </div>
-
-            <div class="studio-layout-grid">
-                <!-- Studio Control Panel -->
-                <div class="solid-card">
-                    <div class="section-title" style="font-size:16px;">
-                        <span class="material-symbols-outlined">straighten</span>
-                        寸法＆位置精密インスペクター
-                    </div>
-
-                    <md-filled-select id="paper-size-select-studio" label="用紙サイズ" onchange="window.changePaperSize(this.value)">
-                        <md-select-option value="A4" selected><div slot="headline">A4 (210 x 297 mm)</div></md-select-option>
-                        <md-select-option value="A3"><div slot="headline">A3 (297 x 420 mm)</div></md-select-option>
-                        <md-select-option value="A5"><div slot="headline">A5 (148 x 210 mm)</div></md-select-option>
-                        <md-select-option value="B4"><div slot="headline">B4 (257 x 364 mm)</div></md-select-option>
-                        <md-select-option value="B5"><div slot="headline">B5 (182 x 257 mm)</div></md-select-option>
-                        <md-select-option value="L_PHOTO"><div slot="headline">L判 (89 x 127 mm)</div></md-select-option>
-                        <md-select-option value="HAGAKI"><div slot="headline">ハガキ (100 x 148 mm)</div></md-select-option>
-                    </md-filled-select>
-
-                    <md-filled-button style="width:100%; margin:0 0 12px 0;" onclick="document.getElementById('studio-file-input').click()">
-                        <md-icon slot="icon"><span class="material-symbols-outlined">add_photo_alternate</span></md-icon>
-                        画像を追加する
-                    </md-filled-button>
-                    <input type="file" id="studio-file-input" style="display:none;" accept="image/*" multiple onchange="window.handleStudioFilesAdd(event)">
-
-                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; background:var(--md-sys-color-surface-container-high); padding:10px 16px; border-radius:16px;">
-                        <span style="font-size:13px; font-weight:600;">5mmグリッド吸着 (スナップ)</span>
-                        <md-switch id="snap-grid-switch" onchange="window.toggleSnapGrid(event)"></md-switch>
-                    </div>
-
-                    <div id="selected-item-controls" style="background-color: var(--md-sys-color-surface-container-high); padding:16px; border-radius:20px; margin-bottom:16px;">
-                        <span style="font-size:12px; font-weight:700; color:var(--md-sys-color-primary); display:block; margin-bottom:12px;">選択中の要素プロパティ (mm)</span>
-                        
-                        <!-- Dimension Inputs -->
-                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
-                            <md-outlined-text-field id="item-width-mm" label="横幅 W (mm)" type="number" value="50" oninput="window.updateSelectedItemSize()"></md-outlined-text-field>
-                            <md-outlined-text-field id="item-height-mm" label="縦幅 H (mm)" type="number" value="30" oninput="window.updateSelectedItemSize()"></md-outlined-text-field>
-                        </div>
-
-                        <!-- Position Inputs -->
-                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-                            <md-outlined-text-field id="item-x-mm" label="X位置 (mm)" type="number" value="10" oninput="window.updateSelectedItemPosition()"></md-outlined-text-field>
-                            <md-outlined-text-field id="item-y-mm" label="Y位置 (mm)" type="number" value="10" oninput="window.updateSelectedItemPosition()"></md-outlined-text-field>
-                        </div>
-
-                        <div style="margin-top:10px;">
-                            <span style="font-size:12px; opacity:0.8;">クイックプリセット:</span>
-                            <div style="display:flex; gap:4px; flex-wrap:wrap; margin-top:4px;">
-                                <md-assist-chip label="縦 30mm" onclick="window.applyPresetSize(null, 30)"></md-assist-chip>
-                                <md-assist-chip label="縦 5mm (ミニデカール)" onclick="window.applyPresetSize(null, 5)"></md-assist-chip>
-                                <md-assist-chip label="横 100mm" onclick="window.applyPresetSize(100, null)"></md-assist-chip>
-                            </div>
-                        </div>
-
-                        <div style="margin-top:16px; display:flex; gap:8px;">
-                            <md-outlined-button style="flex:1;" onclick="window.duplicateSelectedItem()">
-                                <md-icon slot="icon"><span class="material-symbols-outlined">content_copy</span></md-icon>
-                                複製
-                            </md-outlined-button>
-                            <md-outlined-button style="flex:1;" onclick="window.deleteSelectedItem()">
-                                <md-icon slot="icon"><span class="material-symbols-outlined">delete</span></md-icon>
-                                削除
-                            </md-outlined-button>
-                        </div>
-                    </div>
-
-                    <div style="display:flex; flex-direction:column; gap:8px;">
-                        <md-filled-tonal-button onclick="window.autoFillGrid()">
-                            <md-icon slot="icon"><span class="material-symbols-outlined">grid_view</span></md-icon>
-                            用紙全体にグリッド敷き詰め
-                        </md-filled-tonal-button>
-
-                        <md-filled-button onclick="window.triggerPrint()">
-                            <md-icon slot="icon"><span class="material-symbols-outlined">print</span></md-icon>
-                            スタジオ印刷実行
-                        </md-filled-button>
-                    </div>
+            <div class="glass-card">
+                <h2><span class="material-symbols-outlined">palette</span>デザイン</h2>
+                <div class="row"><div class="row-title">ダークモード</div><label class="switch"><input type="checkbox" id="set-dark"><span class="slider"></span></label></div>
+                <label class="field-label mt-s">アクセントカラー</label>
+                <div class="color-grid" id="accent-grid">
+                    <div class="color-swatch" data-c="#3381FF" style="background:#3381FF"></div><div class="color-swatch" data-c="#10B981" style="background:#10B981"></div>
+                    <div class="color-swatch" data-c="#8B5CF6" style="background:#8B5CF6"></div><div class="color-swatch" data-c="#F59E0B" style="background:#F59E0B"></div>
+                    <div class="color-swatch" data-c="#EC4899" style="background:#EC4899"></div><div class="color-swatch" data-c="#DC143C" style="background:#DC143C"></div>
                 </div>
-
-                <!-- Studio Paper View -->
-                <div class="solid-card" style="padding:16px;">
-                    <div class="paper-viewport" style="min-height:580px;">
-                        <div class="printable-paper paper-scaled" id="studio-paper-sheet">
-                            <div class="paper-grid"></div>
-                            <div class="paper-content-layer" id="studio-paper-content">
-                                <!-- Studio Draggable Items Rendered Here -->
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            </div>
+            <div class="glass-card">
+                <h2><span class="material-symbols-outlined">info</span>FilesPrint について</h2>
+                <p style="margin:0;">工作・デカール・ペーパークラフト向けの、実寸レイアウト＆印刷アプリです。作業内容はこの端末のブラウザに自動保存されます。画像検索を使うとき以外、データが外に送られることはありません。</p>
+                <div class="btn-row mt"><button class="ai-btn ai-btn-secondary" id="tips-btn"><span class="material-symbols-outlined">keyboard</span>キーボード操作</button></div>
             </div>
         </section>
 
-        <!-- PRO VIEW -->
-        <section id="view-pro" class="view-section">
-            <div class="solid-card">
-                <div class="section-title">
-                    <span class="material-symbols-outlined">workspace_premium</span>
-                    Proモード & デスクトップUI設定
-                </div>
-                <p style="margin-top:0; line-height: 1.6; opacity:0.88;">
-                    PC作業に最適な拡張サイドインスペクター表示に切り替えます。
-                </p>
+    </div></main>
 
-                <div style="background-color: var(--md-sys-color-surface-container-high); padding:20px; border-radius:24px; margin:16px 0;">
-                    <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px;">
-                        <div>
-                            <div style="font-size:18px; font-weight:700;">Desktop 向け Pro UI</div>
-                            <div style="font-size:13px; opacity:0.75;">大画面PC・工作作業に最適な2カラム表示</div>
-                        </div>
-                        <md-switch id="pro-mode-switch" icons onchange="window.toggleProDesktopMode(event)"></md-switch>
-                    </div>
-                </div>
-
-                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:16px; margin-top:20px;">
-                    <div style="background:var(--md-sys-color-surface-container-low); padding:16px; border-radius:20px;">
-                        <span class="material-symbols-outlined" style="color:var(--md-sys-color-primary); font-size:32px;">high_quality</span>
-                        <h4 style="margin:8px 0 4px 0;">高画質印刷エンジン</h4>
-                        <p style="margin:0; font-size:12px; opacity:0.75;">極小デカール文字も滲まず精密プリント</p>
-                    </div>
-                    <div style="background:var(--md-sys-color-surface-container-low); padding:16px; border-radius:20px;">
-                        <span class="material-symbols-outlined" style="color:var(--md-sys-color-primary); font-size:32px;">touch_app</span>
-                        <h4 style="margin:8px 0 4px 0;">ポインター追従レスポンス</h4>
-                        <p style="margin:0; font-size:12px; opacity:0.75;">タッチ・マウス・ペンで滑らかなミリ単位移動</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- SUB ACTIVITY VIEW -->
-        <section id="view-sub-activity" class="view-section">
-            <div class="solid-card">
-                <div class="section-title" id="sub-activity-title-text">詳細情報</div>
-                <p style="line-height: 1.6; opacity: 0.9;">
-                    FilesPrintは、図工や模型制作、ペーパークラフト、デカール作製のための高精度印刷コンパニオンです。
-                </p>
-
-                <div class="sub-activity-card">
-                    <h3 style="margin-top:0; color: var(--md-sys-color-primary);">機能概要</h3>
-                    <p style="margin-bottom:0; line-height: 1.8; font-size:14px;">
-                        ・<strong>対応ファイル:</strong> PNG, JPG, JPEG, WEBP, GIF, SVG, HTML, PDF<br>
-                        ・<strong>対応用紙サイズ:</strong> A3, A4, A5, B4, B5, L判写真, ハガキ<br>
-                        ・<strong>移動エンジン:</strong> ポインターキャプチャによる絶対座標計算・ミリメートル即時反映<br>
-                        ・<strong>スナップ機能:</strong> 5mm単位の整列吸着機能付き
-                    </p>
-                </div>
-
-                <div style="margin-top:20px; display:flex; justify-content: flex-end;">
-                    <md-filled-button onclick="window.goBack()">
-                        <md-icon slot="icon"><span class="material-symbols-outlined">arrow_back</span></md-icon>
-                        戻る
-                    </md-filled-button>
-                </div>
-            </div>
-        </section>
-    </main>
-
-    <!-- M3 Dialog Component -->
-    <md-dialog id="demo-dialog">
-        <div slot="headline">FilesPrint について</div>
-        <form slot="content" id="form-id" method="dialog">
-            「工作・デカール好きの人へ！」<br>
-            FilesPrintは、高精度なサイズ合わせと複数画像のミリ単位ドラッグ移動がスムーズに行えるアプリです！
-        </form>
-        <div slot="actions">
-            <md-filled-button form="form-id" value="ok">閉じる</md-filled-button>
-        </div>
-    </md-dialog>
-
-    <!-- Floating Navigation Bar -->
-    <div class="floating-nav-container">
-        <nav class="custom-nav">
-            <div class="nav-item active" id="nav-home" onclick="window.switchTab('home')" title="メイン印刷">
-                <div class="nav-icon-container">
-                    <span class="material-symbols-outlined">print</span>
-                </div>
-            </div>
-            <div class="nav-item" id="nav-studio" onclick="window.switchTab('studio')" title="印刷スタジオ">
-                <div class="nav-icon-container">
-                    <span class="material-symbols-outlined">square_foot</span>
-                </div>
-            </div>
-            <div class="nav-item" id="nav-pro" onclick="window.switchTab('pro')" title="Pro設定">
-                <div class="nav-icon-container">
-                    <span class="material-symbols-outlined">tune</span>
-                </div>
-            </div>
-        </nav>
+    <div class="bottom-nav">
+        <div class="nav-item active" data-view="layout"><span class="material-symbols-outlined">square_foot</span><span class="nav-label">レイアウト</span></div>
+        <div class="nav-item" data-view="search"><span class="material-symbols-outlined">image_search</span><span class="nav-label">画像検索</span></div>
+        <div class="nav-item" data-view="output"><span class="material-symbols-outlined">print</span><span class="nav-label">出力</span></div>
+        <div class="nav-item" data-view="settings"><span class="material-symbols-outlined">settings</span><span class="nav-label">設定</span></div>
     </div>
+</div>
 
-    <script type="module">
-        import '@material/web/all.js';
-        import { 
-            argbFromHex, 
-            themeFromSourceColor, 
-            hexFromArgb
-        } from "@material/material-color-utilities";
+<div id="print-root"></div>
 
-        // Setup PDF.js Worker
-        if (window.pdfjsLib) {
-            window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+<div class="dialog-overlay" id="dlg">
+    <div class="glass-dialog">
+        <h2 id="dlg-title" style="margin-bottom:8px;"></h2>
+        <p id="dlg-body" style="margin-bottom:0;white-space:pre-wrap;"></p>
+        <div class="dialog-actions"><button class="ai-btn ai-btn-secondary" id="dlg-cancel">キャンセル</button><button class="ai-btn" id="dlg-ok">OK</button></div>
+    </div>
+</div>
+<div class="dialog-overlay" id="pdf-dlg">
+    <div class="glass-dialog">
+        <h2><span class="material-symbols-outlined">picture_as_pdf</span><span id="pdf-title">PDFのページを選択</span></h2>
+        <p style="margin-bottom:0;">配置するページをタップして選びます。ページは、PDF本来の寸法(mm)で追加されます。</p>
+        <div class="pdf-pages" id="pdf-pages"></div>
+        <div class="dialog-actions"><button class="ai-btn ai-btn-secondary" id="pdf-cancel">キャンセル</button><button class="ai-btn" id="pdf-add" disabled>追加</button></div>
+    </div>
+</div>
+<div class="busy" id="busy"><div class="spinner"></div><div id="busy-text">処理中...</div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const r1 = v => Math.round(v * 10) / 10;
+const MMPX = 96 / 25.4;                       // CSS 1mm = 3.7795px (印刷でも実寸)
+const PAPER = { A3: { w: 297, h: 420 }, A4: { w: 210, h: 297 }, A5: { w: 148, h: 210 }, A6: { w: 105, h: 148 }, B4: { w: 257, h: 364 }, B5: { w: 182, h: 257 }, L: { w: 89, h: 127 }, '2L': { w: 127, h: 178 }, HAGAKI: { w: 100, h: 148 }, MEISHI: { w: 55, h: 91 } };
+const PAPER_NAMES = { A3: 'A3 (297×420)', A4: 'A4 (210×297)', A5: 'A5 (148×210)', A6: 'A6 (105×148)', B4: 'B4 (257×364)', B5: 'B5 (182×257)', L: 'L判 (89×127)', '2L': '2L判 (127×178)', HAGAKI: 'ハガキ (100×148)', MEISHI: '名刺 (55×91)', CUSTOM: 'カスタム (mm指定)' };
+
+/* ---------- 設定 ---------- */
+const LS = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} } };
+const S = Object.assign({ dark: window.matchMedia('(prefers-color-scheme: dark)').matches, accent: '#3381FF', grid: true, snap: false, gridSize: 5, margin: 0, corrX: 100, corrY: 100, addDpi: 300, cut: false, fmt: 'png', dpi: 300, transparent: false, pdfPng: false }, (() => { try { return JSON.parse(LS.get('fp_settings_v1') || '{}'); } catch (e) { return {}; } })());
+const saveS = () => LS.set('fp_settings_v1', JSON.stringify(S));
+
+/* ---------- UI共通 ---------- */
+let toastTimer;
+function toast(m) { const t = $('toast'); t.textContent = m; t.classList.add('active'); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('active'), 2600); }
+let dlgRes = null;
+function ask({ title, body, ok = 'OK', cancel = true, danger = false }) { return new Promise(res => { dlgRes = res; $('dlg-title').textContent = title; $('dlg-body').textContent = body; $('dlg-ok').textContent = ok; $('dlg-ok').classList.toggle('ai-btn-danger', danger); $('dlg-cancel').classList.toggle('hidden', !cancel); $('dlg').classList.add('active'); }); }
+const closeDlg = r => { $('dlg').classList.remove('active'); if (dlgRes) { const f = dlgRes; dlgRes = null; f(r); } };
+$('dlg-ok').onclick = () => closeDlg(true); $('dlg-cancel').onclick = () => closeDlg(false); $('dlg').addEventListener('click', e => { if (e.target === $('dlg')) closeDlg(false); });
+const busy = (on, t) => { $('busy').classList.toggle('active', on); if (t) $('busy-text').textContent = t; };
+const nextFrame = () => new Promise(r => requestAnimationFrame(() => setTimeout(r, 0)));
+
+function applyUI() {
+    document.body.classList.toggle('dark-mode', S.dark); $('theme-btn').querySelector('span').textContent = S.dark ? 'dark_mode' : 'light_mode';
+    $('set-dark').checked = S.dark; document.documentElement.style.setProperty('--accent-primary', S.accent);
+    document.querySelectorAll('#accent-grid .color-swatch').forEach(s => s.classList.toggle('active', s.dataset.c === S.accent));
+    $('theme-color-meta').setAttribute('content', S.dark ? '#000000' : '#F7F7F7');
+    $('grid-btn').classList.toggle('on', S.grid); $('snap-btn').classList.toggle('on', S.snap);
+    document.querySelectorAll('#gridsize-seg button').forEach(b => b.classList.toggle('active', +b.dataset.g === S.gridSize));
+    $('set-margin').value = S.margin; $('set-adddpi').value = S.addDpi; $('corr-x').value = S.corrX; $('corr-y').value = S.corrY; $('opt-cut').checked = S.cut;
+    document.querySelectorAll('#fmt-seg button').forEach(b => b.classList.toggle('active', b.dataset.f === S.fmt));
+    document.querySelectorAll('#dpi-seg button').forEach(b => b.classList.toggle('active', +b.dataset.d === S.dpi));
+    $('opt-transparent').checked = S.transparent; $('opt-pdfpng').checked = S.pdfPng;
+    $('row-transparent').classList.toggle('hidden', S.fmt !== 'png'); $('row-pdfpng').classList.toggle('hidden', S.fmt !== 'pdf');
+    $('grid-layer').style.display = S.grid ? '' : 'none'; $('grid-layer').style.backgroundSize = `${S.gridSize}mm ${S.gridSize}mm`; $('grid-size-label').textContent = S.gridSize;
+    const m = $('margin-layer'); m.style.display = S.margin > 0 ? '' : 'none'; m.style.inset = S.margin + 'mm'; m.style.position = 'absolute';
+}
+$('theme-btn').onclick = () => { S.dark = !S.dark; saveS(); applyUI(); };
+$('set-dark').onchange = e => { S.dark = e.target.checked; saveS(); applyUI(); };
+document.querySelectorAll('#accent-grid .color-swatch').forEach(s => s.onclick = () => { S.accent = s.dataset.c; saveS(); applyUI(); });
+$('grid-btn').onclick = () => { S.grid = !S.grid; saveS(); applyUI(); };
+$('snap-btn').onclick = () => { S.snap = !S.snap; saveS(); applyUI(); toast(S.snap ? `${S.gridSize}mm グリッドに吸着します` : '吸着をオフにしました'); };
+document.querySelectorAll('#gridsize-seg button').forEach(b => b.onclick = () => { S.gridSize = +b.dataset.g; saveS(); applyUI(); });
+$('set-margin').onchange = e => { S.margin = clamp(parseFloat(e.target.value) || 0, 0, 50); saveS(); applyUI(); };
+$('set-adddpi').onchange = e => { S.addDpi = clamp(parseInt(e.target.value) || 300, 30, 1200); saveS(); applyUI(); };
+$('corr-x').onchange = e => { S.corrX = clamp(parseFloat(e.target.value) || 100, 90, 110); saveS(); applyUI(); };
+$('corr-y').onchange = e => { S.corrY = clamp(parseFloat(e.target.value) || 100, 90, 110); saveS(); applyUI(); };
+$('corr-reset').onclick = () => { S.corrX = S.corrY = 100; saveS(); applyUI(); toast('補正を 100% に戻しました'); };
+$('opt-cut').onchange = e => { S.cut = e.target.checked; saveS(); };
+$('opt-transparent').onchange = e => { S.transparent = e.target.checked; saveS(); $('sheet').classList.toggle('transparent-bg', false); };
+$('opt-pdfpng').onchange = e => { S.pdfPng = e.target.checked; saveS(); };
+document.querySelectorAll('#fmt-seg button').forEach(b => b.onclick = () => { S.fmt = b.dataset.f; saveS(); applyUI(); });
+document.querySelectorAll('#dpi-seg button').forEach(b => b.onclick = () => { S.dpi = +b.dataset.d; saveS(); applyUI(); });
+$('tips-btn').onclick = () => ask({ title: 'キーボード操作', body: '矢印キー: 0.5mm 移動 (Shift: 5mm)\nDelete: 削除\nCtrl+D: 複製\nCtrl+Z / Ctrl+Y: 元に戻す / やり直す\nCtrl+V: 画像を貼り付け\nファイルをシートにドラッグ&ドロップでも追加できます', cancel: false });
+
+/* ---------- 永続化 (IndexedDB) ---------- */
+const KV = {
+    db: null,
+    open() { return new Promise(res => { try { const r = indexedDB.open('FilesPrintDB', 1); r.onupgradeneeded = () => r.result.createObjectStore('kv'); r.onsuccess = () => { KV.db = r.result; res(); }; r.onerror = () => res(); } catch (e) { res(); } }); },
+    tx(m) { return KV.db.transaction('kv', m).objectStore('kv'); },
+    get(k) { return new Promise(res => { if (!KV.db) return res(null); const r = KV.tx('readonly').get(k); r.onsuccess = () => res(r.result || null); r.onerror = () => res(null); }); },
+    set(k, v) { return new Promise(res => { if (!KV.db) return res(); const r = KV.tx('readwrite').put(v, k); r.onsuccess = r.onerror = () => res(); }); },
+    del(k) { return new Promise(res => { if (!KV.db) return res(); const r = KV.tx('readwrite').delete(k); r.onsuccess = r.onerror = () => res(); }); },
+    keys() { return new Promise(res => { if (!KV.db) return res([]); const r = KV.tx('readonly').getAllKeys(); r.onsuccess = () => res(r.result || []); r.onerror = () => res([]); }); }
+};
+let saveT; const scheduleSave = () => { clearTimeout(saveT); saveT = setTimeout(() => KV.set('project', { v: 1, items, paper }), 500); };
+
+/* ---------- モデル ---------- */
+let paper = { key: 'A4', landscape: false, cw: 210, ch: 297 };
+let items = [];                // {id, aid, name, x, y, w, h, rot, lock}
+const assets = new Map();      // aid -> {blob, url, nw, nh, name}
+let selId = null, zoom = 1, fitMode = true;
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+function dims() { if (paper.key === 'CUSTOM') return { w: paper.cw, h: paper.ch }; const b = PAPER[paper.key] || PAPER.A4; return paper.landscape ? { w: b.h, h: b.w } : { w: b.w, h: b.h }; }
+const selItem = () => items.find(i => i.id === selId) || null;
+
+/* 元に戻す/やり直す */
+const undoS = [], redoS = []; let lastPush = 0;
+const snapshot = () => JSON.stringify({ items, paper, selId });
+function pushHistory(force) { const n = Date.now(); if (!force && n - lastPush < 700) return; lastPush = n; undoS.push(snapshot()); if (undoS.length > 100) undoS.shift(); redoS.length = 0; updateUndoUI(); }
+function restore(s) { const o = JSON.parse(s); items = o.items; paper = o.paper; selId = items.find(i => i.id === o.selId) ? o.selId : null; syncPaperUI(); renderAll(); scheduleSave(); }
+function undo() { if (!undoS.length) return; redoS.push(snapshot()); restore(undoS.pop()); updateUndoUI(); lastPush = 0; }
+function redo() { if (!redoS.length) return; undoS.push(snapshot()); restore(redoS.pop()); updateUndoUI(); lastPush = 0; }
+function updateUndoUI() { $('undo-btn').disabled = !undoS.length; $('redo-btn').disabled = !redoS.length; }
+$('undo-btn').onclick = undo; $('redo-btn').onclick = redo;
+
+/* ---------- 描画 ---------- */
+const viewportEl = $('viewport'), sheet = $('sheet'), wrapEl = $('sheet-wrap'), layer = $('items-layer');
+function layoutSheet() {
+    const d = dims(); if (viewportEl.clientWidth < 40) return;
+    if (fitMode) zoom = clamp((viewportEl.clientWidth - 22) / (d.w * MMPX), 0.1, 4);
+    sheet.style.width = d.w + 'mm'; sheet.style.height = d.h + 'mm'; sheet.style.transform = `scale(${zoom})`;
+    wrapEl.style.width = d.w * MMPX * zoom + 'px'; wrapEl.style.height = d.h * MMPX * zoom + 'px';
+    $('zoom-label').textContent = Math.round(zoom * 100) + '%'; $('sheet-dim').textContent = `${r1(d.w)} × ${r1(d.h)} mm`;
+}
+function setZoom(z, fit) { fitMode = !!fit; zoom = clamp(z, 0.1, 4); layoutSheet(); }
+$('zoom-in').onclick = () => setZoom(zoom * 1.25, false); $('zoom-out').onclick = () => setZoom(zoom / 1.25, false); $('zoom-fit').onclick = () => { fitMode = true; layoutSheet(); };
+viewportEl.addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); setZoom(zoom * (e.deltaY < 0 ? 1.1 : 0.9), false); }, { passive: false });
+window.addEventListener('resize', () => layoutSheet());
+
+function posItem(el, it) {
+    el.style.left = it.x + 'mm'; el.style.top = it.y + 'mm'; el.style.width = it.w + 'mm'; el.style.height = it.h + 'mm'; el.style.transform = it.rot ? `rotate(${it.rot}deg)` : '';
+    const b = el.querySelector('.badge'); b.textContent = `${r1(it.x)}, ${r1(it.y)} · ${r1(it.w)}×${r1(it.h)} mm`;
+    b.style.transform = `scale(${1 / (zoom * 1)})`; // ズームしても読みやすい大きさ
+}
+function renderItems() {
+    layer.innerHTML = '';
+    items.forEach(it => {
+        const a = assets.get(it.aid); const el = document.createElement('div'); el.className = 'item' + (it.id === selId ? ' selected' : ''); el.dataset.id = it.id;
+        const img = new Image(); img.draggable = false; img.alt = ''; img.src = a ? a.url : ''; el.appendChild(img);
+        const badge = document.createElement('div'); badge.className = 'badge'; el.appendChild(badge);
+        const h = document.createElement('div'); h.className = 'handle'; el.appendChild(h);
+        posItem(el, it);
+        el.addEventListener('pointerdown', e => { if (e.button !== undefined && e.button !== 0) return; startDrag(e, it, el, e.target === h ? 'resize' : 'move'); });
+        layer.appendChild(el);
+    });
+    $('empty-sheet').style.display = items.length ? 'none' : '';
+}
+const itemEl = id => layer.querySelector(`.item[data-id="${id}"]`);
+function select(id) { selId = id; layer.querySelectorAll('.item').forEach(e => e.classList.toggle('selected', e.dataset.id === id)); renderInspector(); renderLayers(); }
+function renderAll() { layoutSheet(); applyUI(); renderItems(); renderInspector(); renderLayers(); updateUndoUI(); }
+
+function bboxHalf(it) { const t = it.rot * Math.PI / 180, c = Math.abs(Math.cos(t)), s = Math.abs(Math.sin(t)); return { hw: (it.w * c + it.h * s) / 2, hh: (it.w * s + it.h * c) / 2 }; }
+function placeClamped(it, nx, ny) { // 回転も考慮して用紙の内側に収める
+    const d = dims(), { hw, hh } = bboxHalf(it); let cx = nx + it.w / 2, cy = ny + it.h / 2;
+    cx = hw * 2 > d.w ? d.w / 2 : clamp(cx, hw, d.w - hw); cy = hh * 2 > d.h ? d.h / 2 : clamp(cy, hh, d.h - hh);
+    it.x = cx - it.w / 2; it.y = cy - it.h / 2;
+}
+const snapV = v => Math.round(v / S.gridSize) * S.gridSize;
+function startDrag(e, it, el, mode) {
+    e.preventDefault(); e.stopPropagation(); select(it.id); pushHistory(true);
+    try { el.setPointerCapture(e.pointerId); } catch (err) {}
+    el.classList.add('dragging');
+    const sx = e.clientX, sy = e.clientY, s0 = { x: it.x, y: it.y, w: it.w, h: it.h }, k = 1 / (zoom * MMPX), t = it.rot * Math.PI / 180, cos = Math.cos(t), sin = Math.sin(t);
+    const move = ev => {
+        if (ev.pointerId !== e.pointerId) return; const dx = (ev.clientX - sx) * k, dy = (ev.clientY - sy) * k;
+        if (mode === 'move') { let nx = s0.x + dx, ny = s0.y + dy; if (S.snap) { nx = snapV(nx); ny = snapV(ny); } placeClamped(it, nx, ny); }
+        else { const lx = dx * cos + dy * sin, ly = -dx * sin + dy * cos; let nw = Math.max(2, s0.w + lx), nh = Math.max(2, s0.h + ly); if (it.lock) nh = nw * (s0.h / s0.w); it.w = nw; it.h = nh; }
+        posItem(el, it); syncInspector();
+    };
+    const up = ev => { if (ev.pointerId !== e.pointerId) return; try { el.releasePointerCapture(ev.pointerId); } catch (err) {} el.classList.remove('dragging'); el.removeEventListener('pointermove', move); el.removeEventListener('pointerup', up); el.removeEventListener('pointercancel', up); scheduleSave(); renderLayers(); };
+    el.addEventListener('pointermove', move); el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
+}
+viewportEl.addEventListener('pointerdown', e => { if (e.target === viewportEl || e.target === wrapEl || e.target === sheet || e.target === layer || e.target.id === 'grid-layer') { if (selId) select(null); } });
+
+/* ---------- インスペクター ---------- */
+const F = { w: $('f-w'), h: $('f-h'), x: $('f-x'), y: $('f-y'), rot: $('f-rot') };
+function renderInspector() {
+    const it = selItem(); $('insp-empty').classList.toggle('hidden', !!it); $('insp-body').classList.toggle('hidden', !it); if (it) syncInspector(true);
+}
+function syncInspector(force) {
+    const it = selItem(); if (!it) return;
+    for (const k of ['w', 'h', 'x', 'y', 'rot']) if (force || document.activeElement !== F[k]) F[k].value = k === 'rot' ? Math.round(it.rot * 10) / 10 : Math.round(it[k] * 100) / 100;
+    $('lock-btn').classList.toggle('on', it.lock); $('lock-btn').querySelector('span').textContent = it.lock ? 'lock' : 'lock_open';
+    const d = dims(), out = it.x < -0.01 || it.y < -0.01 || it.x + it.w > d.w + 0.01 || it.y + it.h > d.h + 0.01;
+    F.x.classList.toggle('bad', out); F.y.classList.toggle('bad', out);
+}
+function onField(k) {
+    const it = selItem(); if (!it) return; pushHistory(); let v = parseFloat(F[k].value); if (!isFinite(v)) return;
+    if (k === 'w' || k === 'h') { v = Math.max(0.5, v); const ratio = it.h / it.w; if (k === 'w') { it.w = v; if (it.lock) { it.h = v * ratio; F.h.value = r1(it.h); } } else { it.h = v; if (it.lock) { it.w = v / ratio; F.w.value = r1(it.w); } } }
+    else it[k] = v;
+    const el = itemEl(it.id); if (el) posItem(el, it); syncInspector(); scheduleSave(); renderLayers();
+}
+Object.keys(F).forEach(k => F[k].addEventListener('input', () => onField(k)));
+$('lock-btn').onclick = () => { const it = selItem(); if (!it) return; pushHistory(true); it.lock = !it.lock; syncInspector(true); scheduleSave(); };
+$('rot90').onclick = () => { const it = selItem(); if (!it) return; pushHistory(true); it.rot = (Math.round(it.rot / 90) * 90 + 90) % 360; const el = itemEl(it.id); posItem(el, it); syncInspector(true); scheduleSave(); };
+function setSize(it, w, h) { pushHistory(true); it.w = w; it.h = h; const el = itemEl(it.id); if (el) posItem(el, it); syncInspector(true); scheduleSave(); renderLayers(); }
+$('fit-width').onclick = () => { const it = selItem(), d = dims(); if (!it) return; const r = it.h / it.w; setSize(it, d.w, d.w * r); it.x = 0; posItem(itemEl(it.id), it); syncInspector(true); };
+$('fit-page').onclick = () => { const it = selItem(), d = dims(); if (!it) return; const s = Math.min(d.w / it.w, d.h / it.h); setSize(it, it.w * s, it.h * s); placeClamped(it, (d.w - it.w) / 2, (d.h - it.h) / 2); posItem(itemEl(it.id), it); syncInspector(true); };
+$('real-size').onclick = () => { const it = selItem(), a = it && assets.get(it.aid); if (!a) return; const dpi = clamp(parseFloat($('f-dpi').value) || 300, 30, 1200); setSize(it, a.nw / dpi * 25.4, a.nh / dpi * 25.4); toast(`${dpi}dpi の実寸 (${r1(it.w)}×${r1(it.h)} mm) にしました`); };
+document.querySelectorAll('[data-al]').forEach(b => b.onclick = () => {
+    const it = selItem(); if (!it) return; pushHistory(true); const d = dims(), { hw, hh } = bboxHalf(it), cx0 = it.x + it.w / 2, cy0 = it.y + it.h / 2; let cx = cx0, cy = cy0;
+    ({ left: () => cx = hw, hcenter: () => cx = d.w / 2, right: () => cx = d.w - hw, top: () => cy = hh, vcenter: () => cy = d.h / 2, bottom: () => cy = d.h - hh })[b.dataset.al]();
+    it.x = cx - it.w / 2; it.y = cy - it.h / 2; posItem(itemEl(it.id), it); syncInspector(true); scheduleSave();
+});
+$('dup-btn').onclick = duplicate; $('del-btn').onclick = removeSelected;
+$('front-btn').onclick = () => reorder(1); $('back-btn').onclick = () => reorder(-1);
+function duplicate() { const it = selItem(); if (!it) return; pushHistory(true); const c = Object.assign({}, it, { id: uid(), x: it.x + 5, y: it.y + 5 }); placeClamped(c, c.x, c.y); items.push(c); selId = c.id; renderItems(); renderInspector(); renderLayers(); scheduleSave(); }
+function removeSelected() { if (!selId) return; pushHistory(true); items = items.filter(i => i.id !== selId); selId = null; renderItems(); renderInspector(); renderLayers(); scheduleSave(); }
+function reorder(dir) { const i = items.findIndex(x => x.id === selId); if (i < 0) return; const j = dir > 0 ? items.length - 1 : 0; if (i === j) return; pushHistory(true); const [it] = items.splice(i, 1); if (dir > 0) items.push(it); else items.unshift(it); renderItems(); renderLayers(); scheduleSave(); }
+$('tile-btn').onclick = async () => {
+    const it = selItem(); if (!it) return; const d = dims(), gap = Math.max(0, parseFloat($('tile-gap').value) || 0), m = S.margin;
+    const bw = it.w, bh = it.h, cols = Math.floor((d.w - 2 * m + gap) / (bw + gap)), rows = Math.floor((d.h - 2 * m + gap) / (bh + gap));
+    if (cols < 1 || rows < 1) { toast('画像が用紙より大きいため、敷き詰められません'); return; }
+    if (items.length > 1 && !await ask({ title: '敷き詰め', body: `他の画像は消えて、${cols}×${rows} = ${cols * rows} 枚に置き換わります。(元に戻せます)`, ok: '敷き詰める' })) return;
+    pushHistory(true); const base = Object.assign({}, it, { rot: it.rot }); items = [];
+    const gw = cols * bw + (cols - 1) * gap, gh = rows * bh + (rows - 1) * gap, ox = (d.w - gw) / 2, oy = (d.h - gh) / 2; // 用紙中央に寄せる
+    for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) items.push(Object.assign({}, base, { id: uid(), x: ox + c * (bw + gap), y: oy + r * (bh + gap) }));
+    selId = items[0].id; renderItems(); renderInspector(); renderLayers(); scheduleSave(); toast(`${cols * rows} 枚を敷き詰めました`);
+};
+$('clear-btn').onclick = async () => { if (!items.length) return; if (!await ask({ title: 'すべて消去', body: 'シート上の画像をすべて消去します。(元に戻せます)', ok: '消去する', danger: true })) return; pushHistory(true); items = []; selId = null; renderItems(); renderInspector(); renderLayers(); scheduleSave(); };
+function renderLayers() {
+    const box = $('layer-list'); box.innerHTML = ''; if (!items.length) { box.innerHTML = '<div class="empty">まだ画像がありません</div>'; return; }
+    [...items].reverse().forEach(it => {
+        const a = assets.get(it.aid), row = document.createElement('div'); row.className = 'layer-row' + (it.id === selId ? ' selected' : '');
+        row.innerHTML = '<div class="layer-thumb"><img alt=""></div><div class="layer-info"><div class="layer-name"></div><div class="layer-sub"></div></div>';
+        row.querySelector('img').src = a ? a.url : ''; row.querySelector('.layer-name').textContent = it.name; row.querySelector('.layer-sub').textContent = `${r1(it.w)} × ${r1(it.h)} mm · (${r1(it.x)}, ${r1(it.y)})`;
+        row.onclick = () => select(it.id); box.appendChild(row);
+    });
+}
+
+/* ---------- 用紙 ---------- */
+(function () { const s = $('paper-select'); Object.keys(PAPER_NAMES).forEach(k => s.add(new Option(PAPER_NAMES[k], k))); })();
+function syncPaperUI() { $('paper-select').value = paper.key; $('custom-size').classList.toggle('hidden', paper.key !== 'CUSTOM'); $('custom-w').value = paper.cw; $('custom-h').value = paper.ch; document.querySelectorAll('#orient-seg button').forEach(b => b.classList.toggle('active', (b.dataset.o === 'l') === paper.landscape)); $('orient-seg').style.opacity = paper.key === 'CUSTOM' ? 0.4 : 1; layoutSheet(); }
+function changePaper(fn) { pushHistory(true); fn(); syncPaperUI(); items.forEach(it => { if (it.x + it.w > dims().w || it.y + it.h > dims().h) placeClamped(it, it.x, it.y); }); renderItems(); renderLayers(); renderInspector(); scheduleSave(); }
+$('paper-select').onchange = e => changePaper(() => { paper.key = e.target.value; if (paper.key === 'CUSTOM') { const d = dims(); } });
+document.querySelectorAll('#orient-seg button').forEach(b => b.onclick = () => { if (paper.key === 'CUSTOM') return; changePaper(() => paper.landscape = b.dataset.o === 'l'); });
+['custom-w', 'custom-h'].forEach(id => $(id).addEventListener('change', e => { changePaper(() => { paper.cw = clamp(parseFloat($('custom-w').value) || 210, 10, 2000); paper.ch = clamp(parseFloat($('custom-h').value) || 297, 10, 2000); }); }));
+
+/* ---------- 画像・PDFの追加 ---------- */
+function makeAsset(aid, rec) { const url = URL.createObjectURL(rec.blob); assets.set(aid, { blob: rec.blob, url, nw: rec.nw, nh: rec.nh, name: rec.name }); }
+function loadImageEl(url) { return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error('image load')); i.src = url; }); }
+async function addBlob(blob, name, opt = {}) {
+    const url = URL.createObjectURL(blob); let img; try { img = await loadImageEl(url); } catch (e) { URL.revokeObjectURL(url); throw e; }
+    const nw = img.naturalWidth || 300, nh = img.naturalHeight || 300, aid = uid(); URL.revokeObjectURL(url);
+    makeAsset(aid, { blob, nw, nh, name }); KV.set('asset:' + aid, { blob, nw, nh, name });
+    const d = dims(); let w = opt.wMm || nw / S.addDpi * 25.4, h = opt.hMm || nh / S.addDpi * 25.4, s = Math.min(1, (d.w * 0.9) / w, (d.h * 0.9) / h); w *= s; h *= s;
+    const n = items.length; pushHistory(true);
+    const it = { id: uid(), aid, name, x: 0, y: 0, w, h, rot: 0, lock: true }; placeClamped(it, (d.w - w) / 2 + (n * 6) % 30, (d.h - h) / 2 + (n * 6) % 30);
+    items.push(it); selId = it.id; renderItems(); renderInspector(); renderLayers(); scheduleSave(); return it;
+}
+async function addFiles(files) {
+    const list = [...files]; let ok = 0;
+    for (const f of list) {
+        if (f.type === 'application/pdf' || /\.pdf$/i.test(f.name)) { await openPdf(f); continue; }
+        if (!f.type.startsWith('image/')) { toast(`${f.name}: 対応していない形式です`); continue; }
+        try { await addBlob(f, f.name); ok++; } catch (e) { toast(`${f.name}: 読み込めませんでした`); }
+    }
+    if (ok) toast(`${ok} 件を追加しました`);
+}
+$('add-image-btn').onclick = () => $('image-input').click(); $('add-pdf-btn').onclick = () => $('pdf-input').click();
+$('image-input').onchange = e => { addFiles(e.target.files); e.target.value = ''; }; $('pdf-input').onchange = e => { addFiles(e.target.files); e.target.value = ''; };
+$('goto-search-btn').onclick = () => switchTab('search');
+['dragenter', 'dragover'].forEach(n => viewportEl.addEventListener(n, e => { e.preventDefault(); viewportEl.classList.add('drop'); }));
+['dragleave', 'drop'].forEach(n => viewportEl.addEventListener(n, e => { e.preventDefault(); viewportEl.classList.remove('drop'); }));
+viewportEl.addEventListener('drop', e => { if (e.dataTransfer.files.length) addFiles(e.dataTransfer.files); });
+document.addEventListener('paste', e => { if (currentView !== 'layout') return; const fs = [...(e.clipboardData ? e.clipboardData.files : [])].filter(f => f.type.startsWith('image/')); if (fs.length) { e.preventDefault(); addFiles(fs); } });
+
+/* PDF */
+const pdfReady = () => !!window.pdfjsLib;
+let pdfDoc = null, pdfName = '', pdfSel = new Set();
+async function openPdf(file) {
+    if (!pdfReady()) { toast('PDF.js を読み込めませんでした (オフライン?)'); return; }
+    try {
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        busy(true, 'PDFを読み込み中...'); const task = window.pdfjsLib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) });
+        task.onPassword = async (update, reason) => { busy(false); const pw = prompt(reason === 2 ? 'パスワードが違います。もう一度入力してください' : 'このPDFのパスワードを入力してください'); if (pw === null) { task.destroy(); return; } busy(true); update(pw); };
+        pdfDoc = await task.promise; pdfName = file.name.replace(/\.pdf$/i, ''); pdfSel = new Set();
+        const box = $('pdf-pages'); box.innerHTML = ''; $('pdf-add').disabled = true; $('pdf-title').textContent = `${file.name} (${pdfDoc.numPages}ページ)`;
+        $('pdf-dlg').classList.add('active'); busy(false);
+        const n = Math.min(pdfDoc.numPages, 60);
+        for (let i = 1; i <= n; i++) {
+            const page = await pdfDoc.getPage(i), vp0 = page.getViewport({ scale: 1 }), vp = page.getViewport({ scale: 140 / vp0.width }), c = document.createElement('canvas'); c.width = Math.floor(vp.width); c.height = Math.floor(vp.height);
+            const cell = document.createElement('div'); cell.className = 'pdf-page'; cell.appendChild(c); const lb = document.createElement('div'); lb.textContent = `${i}`; cell.appendChild(lb);
+            cell.onclick = () => { if (pdfSel.has(i)) pdfSel.delete(i); else pdfSel.add(i); cell.classList.toggle('sel', pdfSel.has(i)); $('pdf-add').disabled = !pdfSel.size; $('pdf-add').textContent = pdfSel.size ? `${pdfSel.size} ページを追加` : '追加'; };
+            box.appendChild(cell); await page.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise;
         }
-
-        let isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-        let currentSourceColor = '#6750a4';
-        let navigationStack = ['home'];
-
-        // Paper Preset Sizes (width x height in mm)
-        const PAPER_SIZES = {
-            'A3': { w: 297, h: 420 },
-            'A4': { w: 210, h: 297 },
-            'A5': { w: 148, h: 210 },
-            'B4': { w: 257, h: 364 },
-            'B5': { w: 182, h: 257 },
-            'L_PHOTO': { w: 89, h: 127 },
-            'HAGAKI': { w: 100, h: 148 }
-        };
-        let currentPaperKey = 'A4';
-
-        // Studio State Engine
-        let studioItems = [];
-        let selectedStudioItemId = null;
-        window.snapToGridEnabled = false;
-
-        window.updateTheme = function(hexColor) {
-            currentSourceColor = hexColor;
-
-            const argb = argbFromHex(hexColor);
-            const theme = themeFromSourceColor(argb);
-            const scheme = isDarkMode ? theme.schemes.dark : theme.schemes.light;
-            const palettes = theme.palettes;
-
-            const root = document.documentElement;
-            
-            const tokens = {
-                'primary': scheme.primary,
-                'on-primary': scheme.onPrimary,
-                'primary-container': scheme.primaryContainer,
-                'on-primary-container': scheme.onPrimaryContainer,
-                'secondary': scheme.secondary,
-                'on-secondary': scheme.onSecondary,
-                'secondary-container': scheme.secondaryContainer,
-                'on-secondary-container': scheme.onSecondaryContainer,
-                'tertiary': scheme.tertiary,
-                'on-tertiary': scheme.onTertiary,
-                'tertiary-container': scheme.tertiaryContainer,
-                'on-tertiary-container': scheme.onTertiaryContainer,
-                'error': scheme.error,
-                'on-error': scheme.onError,
-                'error-container': scheme.errorContainer,
-                'on-error-container': scheme.onErrorContainer,
-                'background': scheme.background,
-                'on-background': scheme.onBackground,
-                'surface': scheme.surface,
-                'on-surface': scheme.onSurface,
-                'surface-variant': scheme.surfaceVariant,
-                'on-surface-variant': scheme.onSurfaceVariant,
-                'outline': scheme.outline,
-                'outline-variant': scheme.outlineVariant,
-                'inverse-surface': scheme.inverseSurface,
-                'inverse-on-surface': scheme.inverseOnSurface,
-                'inverse-primary': scheme.inversePrimary,
-            };
-
-            for (const [key, value] of Object.entries(tokens)) {
-                const hex = hexFromArgb(value);
-                root.style.setProperty(`--md-sys-color-${key}`, hex);
-            }
-
-            const n = palettes.neutral;
-            const bgHex = hexFromArgb(n.tone(isDarkMode ? 10 : 96));
-            root.style.setProperty('--md-sys-color-surface-container-lowest', hexFromArgb(n.tone(isDarkMode ? 4 : 100)));
-            root.style.setProperty('--md-sys-color-surface-container-low', bgHex);
-            root.style.setProperty('--md-sys-color-surface-container', hexFromArgb(n.tone(isDarkMode ? 12 : 94)));
-            root.style.setProperty('--md-sys-color-surface-container-high', hexFromArgb(n.tone(isDarkMode ? 17 : 92)));
-            root.style.setProperty('--md-sys-color-surface-container-highest', hexFromArgb(n.tone(isDarkMode ? 22 : 90)));
-
-            const metaTheme = document.getElementById('theme-color-meta');
-            if (metaTheme) {
-                metaTheme.setAttribute('content', bgHex);
-            }
-
-            const picker = document.getElementById('source-color-picker');
-            if(picker) picker.value = hexColor;
-        };
-
-        window.toggleDarkMode = function() {
-            isDarkMode = !isDarkMode;
-            document.body.classList.toggle('dark-mode', isDarkMode);
-            
-            const icon = document.getElementById('theme-icon');
-            if(icon) icon.textContent = isDarkMode ? 'light_mode' : 'dark_mode';
-            
-            window.updateTheme(currentSourceColor);
-        };
-
-        function updateTopBarState() {
-            const backBtn = document.getElementById('top-bar-back-btn');
-            const mainIcon = document.getElementById('top-bar-icon-main');
-            const titleEl = document.getElementById('top-bar-title');
-
-            if (navigationStack.length > 1) {
-                backBtn.classList.remove('hidden');
-                mainIcon.style.display = 'none';
-            } else {
-                backBtn.classList.add('hidden');
-                mainIcon.style.display = 'inline-flex';
-                titleEl.textContent = "FilesPrint";
-            }
+        if (pdfDoc.numPages > n) { const p = document.createElement('p'); p.style.gridColumn = '1/-1'; p.textContent = `先頭の ${n} ページだけ表示しています。`; box.appendChild(p); }
+    } catch (e) { busy(false); console.error(e); toast('PDFを開けませんでした'); }
+}
+$('pdf-cancel').onclick = () => { $('pdf-dlg').classList.remove('active'); pdfDoc = null; };
+$('pdf-add').onclick = async () => {
+    const pages = [...pdfSel].sort((a, b) => a - b); $('pdf-dlg').classList.remove('active'); busy(true, 'ページを変換中...');
+    try {
+        for (const pn of pages) {
+            const page = await pdfDoc.getPage(pn), v1 = page.getViewport({ scale: 1 }), wMm = v1.width / 72 * 25.4, hMm = v1.height / 72 * 25.4;
+            let scale = 250 / 72; const px = v1.width * scale * v1.height * scale; if (px > 20e6) scale *= Math.sqrt(20e6 / px); // 250dpi相当(上限あり)
+            const vp = page.getViewport({ scale }), c = document.createElement('canvas'); c.width = Math.floor(vp.width); c.height = Math.floor(vp.height);
+            const ctx = c.getContext('2d'); ctx.fillStyle = '#FFF'; ctx.fillRect(0, 0, c.width, c.height); await page.render({ canvasContext: ctx, viewport: vp }).promise;
+            const blob = await new Promise(r => c.toBlob(r, 'image/png')); await addBlob(blob, `${pdfName} p${pn}`, { wMm, hMm });
         }
+        toast(`${pages.length} ページを追加しました`);
+    } catch (e) { console.error(e); toast('PDFの変換に失敗しました'); } finally { busy(false); pdfDoc = null; }
+};
 
-        window.switchTab = function(tabId, pushStack = true) {
-            if (pushStack) {
-                navigationStack = [tabId];
-            }
+/* ---------- 画像検索 (Wikimedia Commons) ---------- */
+let searchQ = '', searchOffset = 0, searchLoading = false;
+async function commonsSearch(q, offset) {
+    const url = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrsearch=${encodeURIComponent(q + ' filetype:bitmap|drawing')}&gsrlimit=24&gsroffset=${offset}&prop=imageinfo&iiprop=url|size|mime|extmetadata&iiurlwidth=360&iiextmetadatafilter=LicenseShortName|Artist&format=json&origin=*`;
+    const r = await fetch(url); if (!r.ok) throw new Error('HTTP ' + r.status); const d = await r.json();
+    const pages = d.query ? Object.values(d.query.pages).sort((a, b) => a.index - b.index) : [];
+    return { pages, next: d.continue ? d.continue.gsroffset : null };
+}
+async function doSearch(more) {
+    if (searchLoading) return; const q = more ? searchQ : $('search-q').value.trim(); if (!q) { toast('検索ワードを入力してください'); return; }
+    if (!more) { searchQ = q; searchOffset = 0; $('search-grid').innerHTML = ''; } searchLoading = true; $('search-status').textContent = '検索中...'; $('search-more').classList.add('hidden');
+    try {
+        const { pages, next } = await commonsSearch(searchQ, searchOffset); searchOffset = next;
+        pages.forEach(p => { const ii = p.imageinfo && p.imageinfo[0]; if (!ii || !/^image\/(png|jpeg|gif|webp|svg\+xml)$/.test(ii.mime)) return; $('search-grid').appendChild(resultCard(p, ii)); });
+        $('search-status').textContent = $('search-grid').children.length ? '' : '見つかりませんでした。別のキーワードで試してください。';
+        $('search-more').classList.toggle('hidden', next == null);
+    } catch (e) { console.error(e); $('search-status').textContent = '検索に失敗しました。通信環境を確認してください。'; } finally { searchLoading = false; }
+}
+function resultCard(p, ii) {
+    const title = p.title.replace(/^File:/, '').replace(/\.[a-z0-9]+$/i, ''), em = ii.extmetadata || {}, lic = em.LicenseShortName ? em.LicenseShortName.value : '', c = document.createElement('div'); c.className = 'result';
+    c.innerHTML = '<div class="pic"><img loading="lazy" alt=""></div><div class="meta"><b></b><span></span></div><button class="ai-btn"><span class="material-symbols-outlined">add</span>シートに追加</button>';
+    c.querySelector('img').src = ii.thumburl || ii.url; c.querySelector('b').textContent = title; c.querySelector('span').textContent = `${ii.width}×${ii.height}px${lic ? ' · ' + lic : ''}`;
+    const btn = c.querySelector('button');
+    btn.onclick = async () => {
+        btn.disabled = true; busy(true, '画像を取得中...');
+        try {
+            const r = await fetch(`https://commons.wikimedia.org/w/api.php?action=query&titles=${encodeURIComponent(p.title)}&prop=imageinfo&iiprop=url|mime&iiurlwidth=2400&format=json&origin=*`), d = await r.json(), pg = Object.values(d.query.pages)[0].imageinfo[0];
+            const src = (pg.thumburl && ii.width > 2400) || pg.mime === 'image/svg+xml' ? (pg.thumburl || pg.url) : pg.url; const res = await fetch(src); if (!res.ok) throw new Error('HTTP ' + res.status);
+            await addBlob(await res.blob(), title); switchTab('layout'); toast(`「${title}」を追加しました${lic ? ' (' + lic + ')' : ''}`);
+        } catch (e) { console.error(e); toast('画像を取得できませんでした'); } finally { busy(false); btn.disabled = false; }
+    };
+    return c;
+}
+$('search-go').onclick = () => doSearch(false); $('search-q').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) doSearch(false); }); $('search-more').onclick = () => doSearch(true);
 
-            document.querySelectorAll('.view-section').forEach(el => {
-                el.classList.remove('active');
-            });
-            const targetView = document.getElementById('view-' + tabId);
-            if(targetView) targetView.classList.add('active');
-
-            document.querySelectorAll('.nav-item').forEach(el => {
-                el.classList.remove('active');
-            });
-            const targetNav = document.getElementById('nav-' + tabId);
-            if(targetNav) targetNav.classList.add('active');
-            
-            updateTopBarState();
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        };
-
-        window.openSubActivity = function(title) {
-            const subTitleEl = document.getElementById('sub-activity-title-text');
-            const topBarTitleEl = document.getElementById('top-bar-title');
-            if (subTitleEl) subTitleEl.textContent = title;
-            if (topBarTitleEl) topBarTitleEl.textContent = title;
-
-            navigationStack.push('sub-activity');
-
-            document.querySelectorAll('.view-section').forEach(el => {
-                el.classList.remove('active');
-            });
-            const subView = document.getElementById('view-sub-activity');
-            if (subView) subView.classList.add('active');
-
-            updateTopBarState();
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        };
-
-        window.goBack = function() {
-            if (navigationStack.length > 1) {
-                navigationStack.pop();
-                const previousView = navigationStack[navigationStack.length - 1];
-                
-                if (previousView === 'sub-activity') {
-                    document.getElementById('view-sub-activity').classList.add('active');
-                } else {
-                    window.switchTab(previousView, false);
-                }
-            }
-        };
-
-        window.openDemoDialog = function() {
-            const dialog = document.getElementById('demo-dialog');
-            if (dialog) dialog.show();
-        };
-
-        window.changePaperSize = function(sizeKey) {
-            if (!PAPER_SIZES[sizeKey]) return;
-            currentPaperKey = sizeKey;
-            const size = PAPER_SIZES[sizeKey];
-
-            const homeSelect = document.getElementById('paper-size-select-home');
-            const studioSelect = document.getElementById('paper-size-select-studio');
-            if (homeSelect) homeSelect.value = sizeKey;
-            if (studioSelect) studioSelect.value = sizeKey;
-
-            const labelEl = document.getElementById('paper-dim-label');
-            if (labelEl) labelEl.textContent = `${size.w} x ${size.h} mm`;
-
-            const titlePlaceholder = document.getElementById('paper-title-placeholder');
-            if (titlePlaceholder) titlePlaceholder.textContent = `FilesPrint ${sizeKey} 用紙`;
-
-            const sheets = [document.getElementById('home-paper-sheet'), document.getElementById('studio-paper-sheet')];
-            sheets.forEach(sheet => {
-                if (sheet) {
-                    sheet.style.width = size.w + 'mm';
-                    sheet.style.minHeight = size.h + 'mm';
-                }
-            });
-
-            // Re-render studio items to ensure bounds remain valid
-            renderStudioItems();
-        };
-
-        window.handleQuickFileSelect = function(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            processFileAndAddToPaper(file, 'home-paper-content');
-        };
-
-        const dropZone = document.getElementById('quick-file-dropzone');
-        if (dropZone) {
-            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-                dropZone.addEventListener(eventName, (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                }, false);
-            });
-
-            dropZone.addEventListener('drop', (e) => {
-                const dt = e.dataTransfer;
-                const files = dt.files;
-                if (files && files.length > 0) {
-                    processFileAndAddToPaper(files[0], 'home-paper-content');
-                }
-            });
+/* ---------- 出力: 印刷 / PNG / PDF ---------- */
+const loadedImgs = new Map();
+async function imgFor(aid) { if (loadedImgs.has(aid)) return loadedImgs.get(aid); const a = assets.get(aid), i = await loadImageEl(a.url); loadedImgs.set(aid, i); return i; }
+async function renderSheetCanvas({ dpi, transparent, cut, corr }) {
+    const d = dims(); let w = d.w / 25.4 * dpi, h = d.h / 25.4 * dpi; const MAXPX = 16e6; if (w * h > MAXPX) { const s = Math.sqrt(MAXPX / (w * h)); dpi = dpi * s; w *= s; h *= s; }
+    const c = document.createElement('canvas'); c.width = Math.round(w); c.height = Math.round(h); const ctx = c.getContext('2d'), pxMm = dpi / 25.4;
+    if (!transparent) { ctx.fillStyle = '#FFF'; ctx.fillRect(0, 0, c.width, c.height); }
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high'; ctx.scale(pxMm * (corr ? S.corrX / 100 : 1), pxMm * (corr ? S.corrY / 100 : 1));
+    for (const it of items) {
+        const img = await imgFor(it.aid); ctx.save(); ctx.translate(it.x + it.w / 2, it.y + it.h / 2); ctx.rotate(it.rot * Math.PI / 180);
+        ctx.drawImage(img, -it.w / 2, -it.h / 2, it.w, it.h);
+        if (cut) { ctx.lineWidth = 0.2; ctx.strokeStyle = '#000'; ctx.strokeRect(-it.w / 2, -it.h / 2, it.w, it.h); } ctx.restore();
+    }
+    return { canvas: c, dpi };
+}
+function crcTable() { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; }
+async function pngWithDpi(blob, dpi) {
+    const buf = new Uint8Array(await blob.arrayBuffer()); if (new TextDecoder('latin1').decode(buf.subarray(0, 200)).includes('pHYs')) return blob;
+    const ppm = Math.round(dpi / 0.0254), chunk = new Uint8Array(21), dv = new DataView(chunk.buffer); dv.setUint32(0, 9); chunk.set([0x70, 0x48, 0x59, 0x73], 4); dv.setUint32(8, ppm); dv.setUint32(12, ppm); chunk[16] = 1;
+    const T = crcTable(); let crc = 0xFFFFFFFF; for (let i = 4; i < 17; i++) crc = T[(crc ^ chunk[i]) & 255] ^ (crc >>> 8); dv.setUint32(17, (crc ^ 0xFFFFFFFF) >>> 0);
+    const out = new Uint8Array(buf.length + 21); out.set(buf.subarray(0, 33), 0); out.set(chunk, 33); out.set(buf.subarray(33), 54); return new Blob([out], { type: 'image/png' });
+}
+function download(blob, name) { const a = document.createElement('a'), u = URL.createObjectURL(blob); a.href = u; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 3000); }
+$('export-btn').onclick = async () => {
+    if (!items.length) { toast('先に画像を配置してください'); return; }
+    busy(true, '書き出し中...'); await nextFrame();
+    try {
+        const stamp = `${paper.key}${paper.landscape ? '_L' : ''}`;
+        if (S.fmt === 'png') {
+            const { canvas, dpi } = await renderSheetCanvas({ dpi: S.dpi, transparent: S.transparent, cut: S.cut, corr: false });
+            const blob = await new Promise(r => canvas.toBlob(r, 'image/png')), out = await pngWithDpi(blob, dpi); download(out, `filesprint_${stamp}_${Math.round(dpi)}dpi.png`);
+            toast(`PNG を書き出しました (${canvas.width}×${canvas.height}px · ${Math.round(dpi)}dpi)`);
+        } else {
+            if (!window.jspdf) throw new Error('jsPDF not loaded'); const d = dims(), { canvas, dpi } = await renderSheetCanvas({ dpi: S.dpi, transparent: false, cut: S.cut, corr: true });
+            const pdf = new window.jspdf.jsPDF({ unit: 'mm', format: [d.w, d.h], orientation: d.w > d.h ? 'l' : 'p', compress: true });
+            pdf.addImage(S.pdfPng ? canvas.toDataURL('image/png') : canvas.toDataURL('image/jpeg', 0.95), S.pdfPng ? 'PNG' : 'JPEG', 0, 0, d.w, d.h, undefined, 'FAST');
+            pdf.save(`filesprint_${stamp}.pdf`); toast(`PDF を書き出しました (${r1(d.w)}×${r1(d.h)} mm · ${Math.round(dpi)}dpi)`);
         }
+    } catch (e) { console.error(e); toast(e.message === 'jsPDF not loaded' ? 'PDF作成ライブラリを読み込めませんでした (オフライン?)' : '書き出しに失敗しました'); } finally { busy(false); }
+};
 
-        function processFileAndAddToPaper(file, targetContainerId) {
-            const container = document.getElementById(targetContainerId);
-            const placeholder = document.getElementById('default-paper-placeholder');
-            if (placeholder) placeholder.style.display = 'none';
+// 印刷: 画面とは別の「実寸の用紙」を作ってから印刷する
+function printHtml(inner, d) {
+    $('page-style').textContent = `@page { size: ${d.w}mm ${d.h}mm; margin: 0; }`;
+    const root = $('print-root'); root.innerHTML = inner;
+    const finish = () => { window.removeEventListener('afterprint', finish); root.innerHTML = ''; $('page-style').textContent = ''; };
+    window.addEventListener('afterprint', finish); setTimeout(() => window.print(), 50);
+}
+$('print-btn').onclick = async () => {
+    if (!items.length) { toast('先に画像を配置してください'); return; }
+    const d = dims(); busy(true, '印刷の準備中...'); await nextFrame();
+    try {
+        await Promise.all(items.map(it => imgFor(it.aid)));
+        const body = items.map(it => { const a = assets.get(it.aid); return `<div style="position:absolute;left:${it.x}mm;top:${it.y}mm;width:${it.w}mm;height:${it.h}mm;transform:${it.rot ? `rotate(${it.rot}deg)` : 'none'};${S.cut ? 'outline:0.2mm solid #000;outline-offset:-0.1mm;' : ''}"><img src="${a.url}" style="width:100%;height:100%;display:block;object-fit:fill;"></div>`; }).join('');
+        // 末尾の余分な白紙ページを防ぐため、高さをわずかに小さくする
+        printHtml(`<div style="position:relative;width:${d.w}mm;height:${d.h - 0.5}mm;overflow:hidden;background:#fff;"><div style="position:absolute;left:0;top:0;width:${d.w}mm;height:${d.h}mm;transform-origin:0 0;transform:scale(${S.corrX / 100},${S.corrY / 100});">${body}</div></div>`, d);
+    } catch (e) { console.error(e); toast('印刷の準備に失敗しました'); } finally { busy(false); }
+};
+$('calib-btn').onclick = () => {
+    const d = dims(), W = d.w, H = d.h, L = Math.min(100, W - 30, H - 30), x0 = 15, y0 = 25, tick = (len, vert) => { let s = ''; for (let i = 0; i <= len; i += 10) s += vert ? `<line x1="${x0 - 3}" y1="${y0 + i}" x2="${x0}" y2="${y0 + i}"/>` : `<line x1="${x0 + i}" y1="${y0 - 3}" x2="${x0 + i}" y2="${y0}"/>`; return s; };
+    printHtml(`<svg xmlns="http://www.w3.org/2000/svg" width="${W}mm" height="${H - 0.5}mm" viewBox="0 0 ${W} ${H - 0.5}" style="display:block;background:#fff"><g stroke="#000" stroke-width="0.25" fill="none"><rect x="${x0}" y="${y0}" width="${L}" height="${L}"/>${tick(L, false)}${tick(L, true)}</g><g font-family="sans-serif" font-size="4" fill="#000"><text x="${x0}" y="${y0 - 8}">FilesPrint calibration</text><text x="${x0}" y="${y0 + L + 8}">The square should be ${L} mm x ${L} mm. Measure and enter the correction.</text><text x="${x0}" y="${y0 + L + 14}">Print at 100% (actual size), no margins.</text></g></svg>`, d);
+    toast(`${Math.round(Math.min(100, d.w - 30, d.h - 30))}mm の正方形を印刷します。定規で測ってください`);
+};
 
-            const fileType = file.type;
+/* ---------- ナビ・キーボード ---------- */
+let currentView = 'layout';
+function switchTab(id) { currentView = id; document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.view === id)); document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + id)); $('main-scroll-area').scrollTo({ top: 0 }); if (id === 'layout') requestAnimationFrame(() => { layoutSheet(); renderItems(); }); }
+document.querySelectorAll('.nav-item').forEach(n => n.onclick = () => switchTab(n.dataset.view));
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { $('pdf-dlg').classList.remove('active'); closeDlg(false); return; }
+    if (currentView !== 'layout' || ['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName)) return;
+    const mod = e.ctrlKey || e.metaKey;
+    if (mod && e.key.toLowerCase() === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo(); }
+    else if (mod && e.key.toLowerCase() === 'y') { e.preventDefault(); redo(); }
+    else if (mod && e.key.toLowerCase() === 'd') { e.preventDefault(); duplicate(); }
+    else if (e.key === 'Delete' || e.key === 'Backspace') { if (selId) { e.preventDefault(); removeSelected(); } }
+    else if (e.key.startsWith('Arrow') && selId) {
+        e.preventDefault(); const it = selItem(), st = e.shiftKey ? 5 : 0.5; pushHistory(); const dx = e.key === 'ArrowLeft' ? -st : e.key === 'ArrowRight' ? st : 0, dy = e.key === 'ArrowUp' ? -st : e.key === 'ArrowDown' ? st : 0;
+        placeClamped(it, it.x + dx, it.y + dy); posItem(itemEl(it.id), it); syncInspector(true); scheduleSave();
+    }
+});
 
-            if (fileType.startsWith('image/')) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    // Auto transfer uploaded image to studio items for drag capability
-                    addStudioItem(e.target.result);
-                    window.switchTab('studio');
-                };
-                reader.readAsDataURL(file);
-            } else if (fileType === 'application/pdf') {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const typedarray = new Uint8Array(e.target.result);
-                    window.pdfjsLib.getDocument(typedarray).promise.then(function(pdf) {
-                        pdf.getPage(1).then(function(page) {
-                            const viewport = page.getViewport({ scale: 1.5 });
-                            const canvas = document.createElement('canvas');
-                            const context = canvas.getContext('2d');
-                            canvas.height = viewport.height;
-                            canvas.width = viewport.width;
-                            canvas.style.maxWidth = '100%';
-                            canvas.style.display = 'block';
-                            canvas.style.margin = '0 auto';
+/* 弾性オーバースクロール */
+const area = $('main-scroll-area'), wrap = $('overscroll-wrapper'); let startY = 0, pulling = false;
+area.addEventListener('touchstart', e => { if (e.touches.length === 1) { startY = e.touches[0].clientY; wrap.classList.remove('spring-back'); } }, { passive: true });
+area.addEventListener('touchmove', e => { if (e.touches.length !== 1 || e.target.closest('.item')) return; const dy = e.touches[0].clientY - startY, top = area.scrollTop <= 0, bot = Math.abs(area.scrollHeight - area.clientHeight - area.scrollTop) < 2; if ((top && dy > 0) || (bot && dy < 0)) { wrap.style.transform = `translateY(${dy * 0.38}px)`; pulling = true; } }, { passive: true });
+area.addEventListener('touchend', () => { if (pulling) { wrap.classList.add('spring-back'); wrap.style.transform = 'translateY(0)'; pulling = false; } });
 
-                            page.render({
-                                canvasContext: context,
-                                viewport: viewport
-                            }).promise.then(function() {
-                                container.appendChild(canvas);
-                            });
-                        });
-                    });
-                };
-                reader.readAsArrayBuffer(file);
-            } else if (fileType.includes('html')) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const iframe = document.createElement('iframe');
-                    iframe.style.width = '100%';
-                    iframe.style.height = '250mm';
-                    iframe.style.border = 'none';
-                    container.appendChild(iframe);
-                    iframe.contentWindow.document.open();
-                    iframe.contentWindow.document.write(e.target.result);
-                    iframe.contentWindow.document.close();
-                };
-                reader.readAsText(file);
-            }
+/* ---------- 起動 ---------- */
+(async function init() {
+    applyUI(); syncPaperUI(); renderAll();
+    await KV.open();
+    try {
+        const p = await KV.get('project');
+        if (p && Array.isArray(p.items)) {
+            for (const it of p.items) if (!assets.has(it.aid)) { const rec = await KV.get('asset:' + it.aid); if (rec) makeAsset(it.aid, rec); }
+            items = p.items.filter(i => assets.has(i.aid)); if (p.paper) paper = p.paper;
+            const used = new Set(items.map(i => 'asset:' + i.aid)); (await KV.keys()).forEach(k => { if (String(k).startsWith('asset:') && !used.has(k)) KV.del(k); });
+            syncPaperUI(); renderAll(); if (items.length) toast('前回の作業を復元しました');
         }
-
-        window.handleStudioFilesAdd = function(event) {
-            const files = event.target.files;
-            if (!files || files.length === 0) return;
-
-            Array.from(files).forEach(file => {
-                if (file.type.startsWith('image/')) {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        addStudioItem(e.target.result);
-                    };
-                    reader.readAsDataURL(file);
-                }
-            });
-        };
-
-        function addStudioItem(srcUrl, widthMm = 50, heightMm = 30) {
-            const id = 'item-' + Date.now() + '-' + Math.floor(Math.random()*1000);
-            const newItem = {
-                id: id,
-                src: srcUrl,
-                widthMm: widthMm,
-                heightMm: heightMm,
-                xMm: 10 + (studioItems.length * 8) % 120,
-                yMm: 10 + (studioItems.length * 8) % 150
-            };
-
-            studioItems.push(newItem);
-            renderStudioItems();
-            selectStudioItem(id, false); // Select without DOM wipe
-        }
-
-        /* Selecting studio item without wiping DOM during drag start */
-        function selectStudioItem(id, shouldRebuildDom = false) {
-            selectedStudioItemId = id;
-
-            const container = document.getElementById('studio-paper-content');
-            if (container) {
-                const wrappers = container.querySelectorAll('.studio-item-wrapper');
-                wrappers.forEach(w => {
-                    if (w.dataset.itemId === id) {
-                        w.classList.add('selected');
-                    } else {
-                        w.classList.remove('selected');
-                    }
-                });
-            }
-
-            const item = studioItems.find(i => i.id === id);
-            const wInput = document.getElementById('item-width-mm');
-            const hInput = document.getElementById('item-height-mm');
-            const xInput = document.getElementById('item-x-mm');
-            const yInput = document.getElementById('item-y-mm');
-
-            if (item) {
-                if (wInput) wInput.value = Math.round(item.widthMm * 10) / 10;
-                if (hInput) hInput.value = Math.round(item.heightMm * 10) / 10;
-                if (xInput) xInput.value = Math.round(item.xMm * 10) / 10;
-                if (yInput) yInput.value = Math.round(item.yMm * 10) / 10;
-            }
-
-            if (shouldRebuildDom) {
-                renderStudioItems();
-            }
-        }
-
-        function renderStudioItems() {
-            const container = document.getElementById('studio-paper-content');
-            if(!container) return;
-            container.innerHTML = '';
-
-            studioItems.forEach(item => {
-                const wrapper = document.createElement('div');
-                wrapper.className = 'studio-item-wrapper' + (item.id === selectedStudioItemId ? ' selected' : '');
-                wrapper.dataset.itemId = item.id;
-                wrapper.style.width = item.widthMm + 'mm';
-                wrapper.style.height = item.heightMm + 'mm';
-                wrapper.style.left = item.xMm + 'mm';
-                wrapper.style.top = item.yMm + 'mm';
-
-                // Realtime Coordinates Badge
-                const coordBadge = document.createElement('div');
-                coordBadge.className = 'item-coord-badge';
-                coordBadge.textContent = `${Math.round(item.xMm)}, ${Math.round(item.yMm)} mm`;
-                wrapper.appendChild(coordBadge);
-
-                const img = document.createElement('img');
-                img.src = item.src;
-                img.draggable = false;
-                wrapper.appendChild(img);
-
-                // High Precision Pointer Event Drag Engine
-                wrapper.addEventListener('pointerdown', (e) => {
-                    if (e.button !== undefined && e.button !== 0) return; // Primary touch/click only
-                    
-                    e.preventDefault();
-                    e.stopPropagation();
-
-                    // Select item visually without clearing DOM innerHTML
-                    selectStudioItem(item.id, false);
-
-                    // Capture pointer to ensure smooth drag even outside bounds
-                    try {
-                        wrapper.setPointerCapture(e.pointerId);
-                    } catch(err) {}
-
-                    wrapper.classList.add('dragging');
-
-                    const startX = e.clientX;
-                    const startY = e.clientY;
-                    const startLeft = item.xMm;
-                    const startTop = item.yMm;
-
-                    const paperSheet = document.getElementById('studio-paper-sheet');
-
-                    const onPointerMove = (moveEv) => {
-                        if (moveEv.pointerId !== e.pointerId) return;
-
-                        const deltaXPx = moveEv.clientX - startX;
-                        const deltaYPx = moveEv.clientY - startY;
-
-                        // Calculate exact mm per pixel in scaled paper coordinate space
-                        const paperRect = paperSheet ? paperSheet.getBoundingClientRect() : null;
-                        const paperWidthPx = (paperRect && paperRect.width > 0) ? paperRect.width : 300;
-                        const currentPaperMm = PAPER_SIZES[currentPaperKey].w;
-                        const mmPerPx = currentPaperMm / paperWidthPx;
-
-                        let newXMm = startLeft + deltaXPx * mmPerPx;
-                        let newYMm = startTop + deltaYPx * mmPerPx;
-
-                        // Grid snap if enabled
-                        if (window.snapToGridEnabled) {
-                            newXMm = Math.round(newXMm / 5) * 5;
-                            newYMm = Math.round(newYMm / 5) * 5;
-                        }
-
-                        // Clamp inside printable sheet bounds
-                        const maxXMm = Math.max(0, PAPER_SIZES[currentPaperKey].w - item.widthMm);
-                        const maxYMm = Math.max(0, PAPER_SIZES[currentPaperKey].h - item.heightMm);
-
-                        item.xMm = Math.max(0, Math.min(maxXMm, newXMm));
-                        item.yMm = Math.max(0, Math.min(maxYMm, newYMm));
-
-                        wrapper.style.left = item.xMm + 'mm';
-                        wrapper.style.top = item.yMm + 'mm';
-
-                        // Update badge & input controls in real-time
-                        coordBadge.textContent = `${Math.round(item.xMm)}, ${Math.round(item.yMm)} mm`;
-                        
-                        const xInput = document.getElementById('item-x-mm');
-                        const yInput = document.getElementById('item-y-mm');
-                        if (xInput && yInput) {
-                            xInput.value = Math.round(item.xMm * 10) / 10;
-                            yInput.value = Math.round(item.yMm * 10) / 10;
-                        }
-                    };
-
-                    const onPointerUp = (upEv) => {
-                        if (upEv.pointerId !== e.pointerId) return;
-
-                        try {
-                            if (wrapper.hasPointerCapture(upEv.pointerId)) {
-                                wrapper.releasePointerCapture(upEv.pointerId);
-                            }
-                        } catch(err) {}
-
-                        wrapper.classList.remove('dragging');
-                        wrapper.removeEventListener('pointermove', onPointerMove);
-                        wrapper.removeEventListener('pointerup', onPointerUp);
-                        wrapper.removeEventListener('pointercancel', onPointerUp);
-                    };
-
-                    wrapper.addEventListener('pointermove', onPointerMove);
-                    wrapper.addEventListener('pointerup', onPointerUp);
-                    wrapper.addEventListener('pointercancel', onPointerUp);
-                });
-
-                container.appendChild(wrapper);
-            });
-        }
-
-        window.updateSelectedItemSize = function() {
-            if (!selectedStudioItemId) return;
-            const item = studioItems.find(i => i.id === selectedStudioItemId);
-            if (!item) return;
-
-            const wVal = parseFloat(document.getElementById('item-width-mm').value) || 10;
-            const hVal = parseFloat(document.getElementById('item-height-mm').value) || 10;
-
-            item.widthMm = wVal;
-            item.heightMm = hVal;
-
-            const wrapper = document.querySelector(`.studio-item-wrapper[data-item-id="${item.id}"]`);
-            if (wrapper) {
-                wrapper.style.width = item.widthMm + 'mm';
-                wrapper.style.height = item.heightMm + 'mm';
-            }
-        };
-
-        window.updateSelectedItemPosition = function() {
-            if (!selectedStudioItemId) return;
-            const item = studioItems.find(i => i.id === selectedStudioItemId);
-            if (!item) return;
-
-            const xVal = parseFloat(document.getElementById('item-x-mm').value) || 0;
-            const yVal = parseFloat(document.getElementById('item-y-mm').value) || 0;
-
-            item.xMm = xVal;
-            item.yMm = yVal;
-
-            const wrapper = document.querySelector(`.studio-item-wrapper[data-item-id="${item.id}"]`);
-            if (wrapper) {
-                wrapper.style.left = item.xMm + 'mm';
-                wrapper.style.top = item.yMm + 'mm';
-                const badge = wrapper.querySelector('.item-coord-badge');
-                if (badge) badge.textContent = `${Math.round(item.xMm)}, ${Math.round(item.yMm)} mm`;
-            }
-        };
-
-        window.applyPresetSize = function(wMm, hMm) {
-            if (!selectedStudioItemId) return;
-            const item = studioItems.find(i => i.id === selectedStudioItemId);
-            if (!item) return;
-
-            if (wMm !== null) item.widthMm = wMm;
-            if (hMm !== null) item.heightMm = hMm;
-
-            selectStudioItem(selectedStudioItemId, false);
-            window.updateSelectedItemSize();
-        };
-
-        window.duplicateSelectedItem = function() {
-            if (!selectedStudioItemId) return;
-            const item = studioItems.find(i => i.id === selectedStudioItemId);
-            if (item) {
-                addStudioItem(item.src, item.widthMm, item.heightMm);
-            }
-        };
-
-        window.deleteSelectedItem = function() {
-            if (!selectedStudioItemId) return;
-            studioItems = studioItems.filter(i => i.id !== selectedStudioItemId);
-            selectedStudioItemId = null;
-            renderStudioItems();
-        };
-
-        window.toggleSnapGrid = function(event) {
-            window.snapToGridEnabled = event.target.selected;
-        };
-
-        window.autoFillGrid = function() {
-            if (studioItems.length === 0) return;
-            const sourceItem = studioItems.find(i => i.id === selectedStudioItemId) || studioItems[0];
-            
-            const itemW = sourceItem.widthMm + 2;
-            const itemH = sourceItem.heightMm + 2;
-
-            const paperDim = PAPER_SIZES[currentPaperKey];
-            const paperW = paperDim.w - 20;
-            const paperH = paperDim.h - 20;
-
-            const cols = Math.floor(paperW / itemW);
-            const rows = Math.floor(paperH / itemH);
-
-            studioItems = [];
-
-            for (let r = 0; r < rows; r++) {
-                for (let c = 0; c < cols; c++) {
-                    studioItems.push({
-                        id: 'item-grid-' + r + '-' + c,
-                        src: sourceItem.src,
-                        widthMm: sourceItem.widthMm,
-                        heightMm: sourceItem.heightMm,
-                        xMm: 10 + c * itemW,
-                        yMm: 10 + r * itemH
-                    });
-                }
-            }
-            renderStudioItems();
-        };
-
-        window.triggerPrint = function() {
-            window.print();
-        };
-
-        window.clearPaper = function() {
-            const homeContent = document.getElementById('home-paper-content');
-            if (homeContent) {
-                homeContent.innerHTML = `
-                    <div id="default-paper-placeholder" style="text-align:center; padding-top: 60mm;">
-                        <img src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbpark/refs/heads/main/tools/print/file.png" style="width:70px; opacity:0.8; margin-bottom:12px;" alt="Logo">
-                        <h2 style="margin:0; color:#444;" id="paper-title-placeholder">FilesPrint ${currentPaperKey} 用紙</h2>
-                        <p style="color:#777; font-size:14px; margin-top:8px;">ファイルを追加すると、ここに選択サイズの前面に配置されます</p>
-                    </div>
-                `;
-            }
-            studioItems = [];
-            selectedStudioItemId = null;
-            renderStudioItems();
-        };
-
-        window.togglePaperGrid = function() {
-            const grid = document.getElementById('home-paper-grid');
-            if (grid) {
-                grid.style.display = grid.style.display === 'none' ? 'block' : 'none';
-            }
-        };
-
-        window.toggleProDesktopMode = function(event) {
-            const isChecked = event.target.selected;
-            document.body.classList.toggle('pro-desktop-mode', isChecked);
-        };
-
-        document.getElementById('source-color-picker').addEventListener('input', (e) => {
-            window.updateTheme(e.target.value);
-        });
-
-        window.addEventListener('DOMContentLoaded', () => {
-            if(isDarkMode) {
-                document.body.classList.add('dark-mode');
-            }
-            window.updateTheme(currentSourceColor);
-            updateTopBarState();
-            window.changePaperSize('A4');
-        });
-    </script>
+    } catch (e) { console.warn('restore failed', e); }
+    setTimeout(layoutSheet, 100);
+})();
+</script>
 </body>
 </html>
