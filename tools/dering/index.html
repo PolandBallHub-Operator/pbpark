@@ -36,24 +36,21 @@
             color: #ffffff;
         }
 
-        /* 3D Bird's View Viewport Strategy (Prevent black bounds) */
+        /* 3D Bird's View: 傾けても黒い縁が出ない最小限のサイズ(JSで計算) */
         #viewport-container {
             position: relative;
             width: 100vw;
             height: 100vh;
+            height: 100dvh;
             overflow: hidden;
             perspective: 1200px;
+            background: linear-gradient(#bfdbfe, #e0f2fe);
         }
 
-        /* Oversized Map Container extended to 400vw x 400vh to cover far off-screen horizons */
         #map-oversized-wrapper {
             position: absolute;
-            width: 400vw;
-            height: 400vh;
-            top: -150vh;
-            left: -150vw;
             transform-style: preserve-3d;
-            transition: transform 0.1s linear;
+            transition: transform 0.45s ease;
         }
 
         #leaflet-map {
@@ -86,17 +83,10 @@
             animation: bounce 2s infinite ease-in-out;
         }
 
-        .ball-img-wrapper img {
+        .ball-img-wrapper canvas {
             width: 100%;
             height: 100%;
-            object-fit: contain;
-        }
-
-        /* Special UK Handling: 472x600 cropped to 472x472 (Top portion) */
-        .ball-img-wrapper.uk-crop img {
-            object-fit: cover;
-            object-position: top;
-            height: 127%; /* Crop bottom part */
+            display: block;
         }
 
         .ball-shadow {
@@ -198,7 +188,76 @@
             0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; }
             100% { transform: translate(-50%, -50%) scale(2.2); opacity: 0; }
         }
-    </style>
+
+        /* ---- 追加: ボールの見え方 / 正面向き / HUD ---- */
+        .upright {
+            transform: rotate(calc(var(--hd, 0deg) * -1)) scaleY(1.55);
+            transform-origin: 50% 100%;
+            transition: transform 0.45s ease;
+        }
+        .ball-leaflet-icon.state-hidden { visibility: hidden !important; pointer-events: none !important; }
+        .ball-leaflet-icon.state-hint .ball-img-wrapper canvas { filter: brightness(0) opacity(0.45); }
+        .ball-q {
+            display: none; position: absolute; inset: 0; align-items: center; justify-content: center;
+            font-weight: 900; font-size: 30px; color: #fff; text-shadow: 0 2px 6px rgba(0,0,0,0.5);
+        }
+        .ball-leaflet-icon.state-hint .ball-q { display: flex; }
+        #fog-top {
+            position: absolute; top: 0; left: 0; right: 0; height: 34%; z-index: 5; pointer-events: none;
+            background: linear-gradient(to bottom, #bfdbfe 0%, rgba(191,219,254,0.92) 12%, rgba(224,242,254,0.55) 28%, rgba(224,242,254,0) 100%);
+        }
+        #toast { animation: toastIn 0.25s ease-out; }
+        @keyframes toastIn { from { opacity: 0; } to { opacity: 1; } }
+        .dp { height: 40px; background: rgba(255,255,255,0.95); border-radius: 12px; font-weight: 900; color: #334155; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+        .dp:active { transform: scale(0.92); }
+        #ring-touch-area { touch-action: none; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { scrollbar-width: none; }
+    
+        /* ---- dialog / shell ---- */
+        .m3-scrim { position: fixed; inset: 0; z-index: 99990; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; font-family: Roboto, "Google Sans", system-ui, sans-serif; }
+        .m3-dialog { background: #ece6f0; border-radius: 28px; padding: 24px; width: min(86vw, 320px); box-shadow: 0 8px 24px rgba(0,0,0,0.25); }
+        .m3-title { font-size: 24px; line-height: 32px; color: #1d1b20; margin: 0 0 16px; font-weight: 400; }
+        .m3-body { font-size: 14px; line-height: 20px; color: #49454f; margin: 0 0 24px; }
+        .m3-actions { display: flex; justify-content: flex-end; gap: 8px; }
+        .m3-btn { background: none; border: 0; color: #6750a4; font: 500 14px Roboto, system-ui, sans-serif; padding: 10px 12px; border-radius: 20px; cursor: pointer; }
+        .m3-btn:active { background: rgba(103,80,164,0.12); }
+        #sh-root { position: fixed; inset: 0; z-index: 99999; background: #000; color: #cfcfcf; opacity: 0; transition: opacity 0.8s; overflow: hidden; }
+        #sh-boot { height: 100%; display: flex; flex-direction: column; padding: 12px; box-sizing: border-box; font: 12px/1.35 ui-monospace, Menlo, Consolas, monospace; }
+        #sh-boot img { width: 48px; height: 48px; margin-bottom: 8px; flex-shrink: 0; }
+        #sh-boot .sh-log { flex: 1; overflow: hidden; white-space: pre-wrap; word-break: break-all; }
+        #twm { position: absolute; inset: 0; background: #6c7b8b; font: 13px "Helvetica Neue", Helvetica, Arial, sans-serif; color: #000; user-select: none; -webkit-user-select: none; touch-action: none; }
+        .twm-win { position: absolute; background: #b0c4de; border: 1px solid #000; display: flex; flex-direction: column; box-shadow: 2px 2px 0 rgba(0,0,0,0.35); }
+        .twm-title { background: #fff; border-bottom: 1px solid #000; height: 22px; display: flex; align-items: center; justify-content: space-between; padding: 0 4px; cursor: move; touch-action: none; font-weight: 700; font-size: 12px; }
+        .twm-x { width: 16px; height: 16px; border: 1px solid #000; background: #b0c4de; line-height: 13px; text-align: center; cursor: pointer; font-size: 12px; }
+        .twm-body { padding: 6px; overflow: auto; flex: 1; min-height: 0; }
+        .twm-menu { position: absolute; z-index: 5000; border: 1px solid #000; background: #b0c4de; min-width: 120px; }
+        .twm-menu .t { background: #fff; border-bottom: 1px solid #000; text-align: center; padding: 2px 8px; font-weight: 700; }
+        .twm-menu .i { padding: 3px 8px; display: flex; justify-content: space-between; align-items: center; gap: 12px; cursor: pointer; }
+        .twm-menu .i:active, .twm-menu .i.on { background: #000; color: #fff; }
+        .twm-menu .mk { width: 9px; height: 9px; border: 1px solid currentColor; }
+        .twm-row { padding: 3px 4px; cursor: pointer; font-family: ui-monospace, monospace; }
+        .twm-row:active { background: #000; color: #fff; }
+        .twm-win textarea { width: 100%; box-sizing: border-box; border: 1px solid #000; background: #fff; font: 12px/1.4 ui-monospace, monospace; resize: none; }
+        .twm-btn { border: 1px solid #000; background: #fff; padding: 2px 10px; font: 12px sans-serif; cursor: pointer; }
+
+        /* ---- 付近のボール ---- */
+        .nb-backdrop { position: fixed; inset: 0; z-index: 800; background: rgba(0,0,0,0.35); display: none; align-items: flex-end; justify-content: center; }
+        .nb-panel { width: min(100%, 480px); max-height: 72vh; background: #fff; border-radius: 24px 24px 0 0; display: flex; flex-direction: column; box-shadow: 0 -8px 24px rgba(0,0,0,0.2); }
+        .nb-head { display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; font-weight: 900; color: #334155; border-bottom: 1px solid #e2e8f0; }
+        .nb-close { border: 0; background: #f1f5f9; border-radius: 50%; width: 32px; height: 32px; font-weight: 900; color: #475569; }
+        .nb-list { overflow: auto; padding: 8px 12px 16px; }
+        .nb-row { display: flex; align-items: center; gap: 12px; padding: 8px; border-radius: 16px; }
+        .nb-row:nth-child(odd) { background: #f8fafc; }
+        .nb-ball { width: 56px; height: 56px; flex-shrink: 0; }
+        .nb-ball canvas { width: 100%; height: 100%; display: block; }
+        .nb-dark .nb-ball canvas { filter: brightness(0.55) saturate(0.7); }
+        .nb-name { font-weight: 900; color: #1e293b; }
+        .nb-sub { font-size: 12px; color: #64748b; }
+        .nb-empty { padding: 24px; text-align: center; color: #64748b; font-weight: 700; line-height: 1.6; }
+        .nb-hint { padding: 8px 18px 0; font-size: 11px; color: #94a3b8; font-weight: 700; }
+        .mk-chip { background: rgba(255,255,255,0.95); border: 1px solid #fecaca; border-radius: 999px; padding: 4px 10px; font-size: 11px; font-weight: 800; color: #b91c1c; box-shadow: 0 2px 8px rgba(0,0,0,0.15); align-self: flex-start; }
+</style>
 </head>
 <body class="bg-slate-950 text-white select-none overflow-hidden">
 
@@ -229,8 +288,7 @@
             <div class="relative z-10 my-auto flex flex-col items-center">
                 <div class="relative w-40 h-40 flex items-center justify-center">
                     <div class="de-ring animate-spin" style="animation-duration: 15s;"></div>
-                    <img src="https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/germany/happy.png" 
-                         alt="Germany Ball" class="absolute w-24 h-24 object-contain drop-shadow-2xl">
+                    <canvas id="start-ball" width="220" height="220" class="absolute w-24 h-24 drop-shadow-2xl"></canvas>
                 </div>
             </div>
 
@@ -253,14 +311,34 @@
                 </div>
             </div>
 
+            <div id="fog-top"></div>
+
+            <!-- 現在地さがし中 -->
+            <div id="loading-overlay" class="absolute inset-0 z-30 flex flex-col items-center justify-center gap-3 bg-sky-100/95 text-slate-700 p-6 text-center">
+                <div class="text-5xl animate-bounce">🧭</div>
+                <p id="loading-msg" class="font-black text-lg">現在地をさがしているよ…</p>
+                <p class="text-xs text-slate-500">位置情報の許可を求められたら「許可」してね</p>
+                <div id="loading-actions" class="hidden flex flex-col gap-2 w-full max-w-xs mt-2">
+                    <button id="btn-retry" class="py-3 rounded-2xl bg-amber-400 text-slate-900 font-black shadow">もう一度さがす</button>
+                    <button id="btn-demo" class="py-3 rounded-2xl bg-white text-slate-700 font-bold border border-slate-200 shadow">デモ(ベルリン)であそぶ</button>
+                </div>
+            </div>
+
+            <!-- トースト -->
+            <div id="toast" class="hidden absolute top-20 left-1/2 -translate-x-1/2 z-30 max-w-[90%] bg-slate-900/90 text-white text-sm font-bold px-4 py-2.5 rounded-full shadow-xl flex items-center gap-2 pointer-events-none"></div>
+
+            <button id="btn-nearby" class="absolute left-4 top-24 z-20 bg-white/95 border border-slate-200 rounded-2xl shadow-xl px-3 py-2 text-sm font-black text-slate-700 flex items-center gap-1.5"><i class="fa-solid fa-location-crosshairs text-amber-500"></i>付近のボール</button>
+
+            <div id="mark-chips" class="absolute left-4 top-36 z-20 flex flex-col gap-1 pointer-events-none"></div>
+
             <!-- MAP HUD TOP BAR -->
             <div class="absolute top-4 left-4 right-4 z-20 flex justify-between items-center pointer-events-auto">
                 <!-- Status Badge -->
-                <div class="bg-slate-900/90 backdrop-blur border border-slate-700/80 rounded-2xl px-4 py-2 flex items-center gap-3 shadow-xl">
+                <div class="bg-white/95 backdrop-blur border border-slate-200 rounded-2xl px-4 py-2 flex items-center gap-3 shadow-xl">
                     <div class="w-3 h-3 rounded-full bg-emerald-400 animate-pulse"></div>
                     <div>
-                        <div class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">現在地トラッキング</div>
-                        <div id="gps-status" class="text-xs font-bold text-gray-200">GPSを取得中...</div>
+                        <div class="text-[10px] text-slate-400 font-bold tracking-wider">📍 げんざい地</div>
+                        <div id="gps-status" class="text-xs font-bold text-slate-700">GPSをさがし中…</div>
                     </div>
                 </div>
 
@@ -268,32 +346,47 @@
                 <button id="btn-open-zukan" class="bg-gradient-to-r from-yellow-500 to-amber-600 text-slate-950 font-black px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 border border-yellow-300 active:scale-95 transition">
                     <i class="fa-solid fa-book-bookmark text-lg"></i>
                     <span class="text-sm">図鑑</span>
-                    <span id="zukan-count-badge" class="bg-black text-yellow-400 text-xs px-2 py-0.5 rounded-full ml-1">0/99</span>
+                    <span id="zukan-count-badge" class="bg-black text-yellow-400 text-xs px-2 py-0.5 rounded-full ml-1">0/0</span>
                 </button>
             </div>
 
             <!-- MAP CONTROLS (ROTATION & ZOOM) RIGHT SIDE -->
             <div class="absolute right-4 top-1/2 -translate-y-1/2 z-20 flex flex-col gap-3 pointer-events-auto">
-                <button id="btn-zoom-in" class="w-12 h-12 bg-slate-900/90 border border-slate-700 rounded-2xl text-white font-bold flex items-center justify-center shadow-xl active:scale-95 text-xl">
+                <button id="btn-zoom-in" class="w-12 h-12 bg-white/95 border border-slate-200 rounded-2xl text-slate-700 font-bold flex items-center justify-center shadow-xl active:scale-95 text-xl">
                     <i class="fa-solid fa-plus"></i>
                 </button>
-                <button id="btn-zoom-out" class="w-12 h-12 bg-slate-900/90 border border-slate-700 rounded-2xl text-white font-bold flex items-center justify-center shadow-xl active:scale-95 text-xl">
+                <button id="btn-zoom-out" class="w-12 h-12 bg-white/95 border border-slate-200 rounded-2xl text-slate-700 font-bold flex items-center justify-center shadow-xl active:scale-95 text-xl">
                     <i class="fa-solid fa-minus"></i>
                 </button>
-                <button id="btn-rotate-left" class="w-12 h-12 bg-slate-900/90 border border-slate-700 rounded-2xl text-yellow-400 font-bold flex items-center justify-center shadow-xl active:scale-95">
+                <button id="btn-rotate-left" class="w-12 h-12 bg-white/95 border border-slate-200 rounded-2xl text-amber-600 font-bold flex items-center justify-center shadow-xl active:scale-95">
                     <i class="fa-solid fa-rotate-left"></i>
                 </button>
-                <button id="btn-rotate-right" class="w-12 h-12 bg-slate-900/90 border border-slate-700 rounded-2xl text-yellow-400 font-bold flex items-center justify-center shadow-xl active:scale-95">
+                <button id="btn-rotate-right" class="w-12 h-12 bg-white/95 border border-slate-200 rounded-2xl text-amber-600 font-bold flex items-center justify-center shadow-xl active:scale-95">
                     <i class="fa-solid fa-rotate-right"></i>
                 </button>
             </div>
 
-            <!-- MAP BOTTOM CONTROLS & INFO -->
-            <div class="absolute bottom-6 left-4 right-4 z-20 flex flex-col items-center gap-3 pointer-events-none">
-                <div class="bg-slate-900/90 backdrop-blur px-4 py-2 rounded-full border border-slate-700 text-xs text-gray-300 shadow-xl pointer-events-auto flex items-center gap-2">
-                    <i class="fa-solid fa-compass text-yellow-400"></i>
-                    <span>見回し: 右ボタン / ズーム: +-ボタン</span>
+            <!-- ボールのけはい(あったかメーター) -->
+            <div class="absolute bottom-6 left-4 right-4 z-20 flex justify-center pointer-events-none">
+                <div id="radar-card" class="w-full max-w-sm bg-white/95 border border-slate-200 rounded-3xl shadow-xl px-4 py-3 pointer-events-auto">
+                    <div class="flex items-center gap-3">
+                        <div id="radar-icon" class="text-3xl">🧭</div>
+                        <div class="flex-1 min-w-0">
+                            <div class="text-[10px] font-bold text-slate-400 tracking-wider">ボールのけはい</div>
+                            <div id="radar-msg" class="text-sm font-black text-slate-800 leading-snug">さがしています…</div>
+                        </div>
+                    </div>
+                    <div class="mt-2 h-2.5 rounded-full bg-slate-200 overflow-hidden">
+                        <div id="radar-bar" class="h-full rounded-full bg-gradient-to-r from-sky-400 via-amber-400 to-red-500 transition-all duration-500" style="width:0%"></div>
+                    </div>
                 </div>
+            </div>
+
+            <!-- デモモード用 十字ボタン -->
+            <div id="dpad" class="hidden absolute left-4 bottom-40 z-20 grid grid-cols-3 gap-1 w-32 pointer-events-auto">
+                <span></span><button data-d="0,1" class="dp">▲</button><span></span>
+                <button data-d="-1,0" class="dp">◀</button><span></span><button data-d="1,0" class="dp">▶</button>
+                <span></span><button data-d="0,-1" class="dp">▼</button><span></span>
             </div>
         </div>
 
@@ -307,15 +400,17 @@
                 <div class="text-center">
                     <span id="target-country-name" class="text-xs font-bold text-yellow-400 tracking-widest uppercase">ドイツボール</span>
                     <h2 id="target-ball-title" class="text-xl font-black text-white">野生のボールが現れた！</h2>
+                    <div id="throw-stars" class="text-xs font-bold text-amber-300 mt-0.5"></div>
                 </div>
                 <div class="w-10"></div>
             </div>
 
             <!-- Target Area (Ball Floating) -->
             <div id="target-area" class="relative w-full h-64 flex items-center justify-center my-auto">
+                <div id="target-band" class="absolute top-2 bottom-2 left-1/2 -translate-x-1/2 border-x-2 border-dashed border-yellow-300/70 bg-yellow-300/10 rounded-xl pointer-events-none" style="width:100px"></div>
                 <div id="target-ball-box" class="relative flex flex-col items-center">
                     <div id="target-img-container" class="w-36 h-36 relative transition-transform duration-300">
-                        <img id="target-ball-img" src="" alt="Target Ball" class="w-full h-full object-contain drop-shadow-2xl">
+                        <canvas id="target-ball-canvas" width="220" height="220" class="w-full h-full drop-shadow-2xl"></canvas>
                     </div>
                     <!-- Catch Status Message Overlay -->
                     <div id="catch-msg" class="absolute -bottom-10 bg-yellow-400 text-black font-black px-4 py-1.5 rounded-full text-sm shadow-xl hidden animate-bounce">
@@ -330,7 +425,7 @@
             <!-- Throw Controls & Canvas Container -->
             <div class="w-full flex flex-col items-center mb-6 z-10 gap-4">
                 <p id="throw-hint" class="text-xs font-bold text-gray-300 bg-slate-800/80 px-4 py-1.5 rounded-full border border-slate-700">
-                    左右に動くボールのタイミングに合わせてDE-Ringを投げよう！
+                    ボールが点線の中に来たら、リングを上へスワイプ！(タップでもOK)
                 </p>
 
                 <!-- Throwing Ring Visual / Drag Area -->
@@ -348,7 +443,7 @@
                     <h2 class="text-xl font-black text-yellow-400 flex items-center gap-2">
                         <i class="fa-solid fa-book"></i> ポーランドボール図鑑
                     </h2>
-                    <p id="zukan-sub-title" class="text-xs text-gray-400">集めた仲間の図鑑 (全99種)</p>
+                    <p id="zukan-sub-title" class="text-xs text-gray-400">集めた国のボール図鑑</p>
                 </div>
                 <button id="btn-close-zukan" class="w-10 h-10 bg-slate-800 rounded-full text-gray-300 flex items-center justify-center border border-slate-700">
                     <i class="fa-solid fa-xmark text-lg"></i>
@@ -385,33 +480,204 @@
     </div>
 
     <script>
-        const BASE_IMAGE_URL = 'https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/';
-
-        const COUNTRIES = [
-            { id: 'germany', name: 'ドイツ', flag: '🇩🇪' },
-            { id: 'austria', name: 'オーストリア', flag: '🇦🇹' },
-            { id: 'japan', name: '日本', flag: '🇯🇵' },
-            { id: 'china', name: '中国', flag: '🇨🇳' },
-            { id: 'italy', name: 'イタリア', flag: '🇮🇹' },
-            { id: 'sierraleone', name: 'シエラレオネ', flag: '🇸🇱' },
-            { id: 'russia', name: 'ロシア', flag: '🇷🇺' },
-            { id: 'france', name: 'フランス', flag: '🇫🇷' },
-            { id: 'poland', name: 'ポーランド', flag: '🇵🇱' },
-            { id: 'england472x600', name: 'イギリス', flag: '🇬🇧', isUK: true },
-            { id: 'usa', name: 'アメリカ', flag: '🇺🇸' }
+        /* =================================================================
+           1. 国データ (現存する国のみ・歴史的国家なし)  id = ISO 3166-1 alpha-2
+           ================================================================= */
+        const REGION_DATA = [
+            { id: 'asia', name: 'アジア', list: 'af:アフガニスタン,am:アルメニア,az:アゼルバイジャン,bh:バーレーン,bd:バングラデシュ,bt:ブータン,bn:ブルネイ,kh:カンボジア,cn:中国,cy:キプロス,ge:ジョージア,in:インド,id:インドネシア,ir:イラン,iq:イラク,il:イスラエル,jp:日本,jo:ヨルダン,kz:カザフスタン,kw:クウェート,kg:キルギス,la:ラオス,lb:レバノン,my:マレーシア,mv:モルディブ,mn:モンゴル,mm:ミャンマー,np:ネパール,kp:北朝鮮,om:オマーン,pk:パキスタン,ps:パレスチナ,ph:フィリピン,qa:カタール,sa:サウジアラビア,sg:シンガポール,kr:韓国,lk:スリランカ,sy:シリア,tw:台湾,tj:タジキスタン,th:タイ,tl:東ティモール,tr:トルコ,tm:トルクメニスタン,ae:アラブ首長国連邦,uz:ウズベキスタン,vn:ベトナム,ye:イエメン' },
+            { id: 'europe', name: 'ヨーロッパ', list: 'al:アルバニア,ad:アンドラ,at:オーストリア,by:ベラルーシ,be:ベルギー,ba:ボスニア・ヘルツェゴビナ,bg:ブルガリア,hr:クロアチア,cz:チェコ,dk:デンマーク,ee:エストニア,fi:フィンランド,fr:フランス,de:ドイツ,gr:ギリシャ,hu:ハンガリー,is:アイスランド,ie:アイルランド,it:イタリア,xk:コソボ,lv:ラトビア,li:リヒテンシュタイン,lt:リトアニア,lu:ルクセンブルク,mt:マルタ,md:モルドバ,mc:モナコ,me:モンテネグロ,nl:オランダ,mk:北マケドニア,no:ノルウェー,pl:ポーランド,pt:ポルトガル,ro:ルーマニア,ru:ロシア,sm:サンマリノ,rs:セルビア,sk:スロバキア,si:スロベニア,es:スペイン,se:スウェーデン,ch:スイス,ua:ウクライナ,gb:イギリス,va:バチカン' },
+            { id: 'africa', name: 'アフリカ', list: 'dz:アルジェリア,ao:アンゴラ,bj:ベナン,bw:ボツワナ,bf:ブルキナファソ,bi:ブルンジ,cm:カメルーン,cv:カーボベルデ,cf:中央アフリカ,td:チャド,km:コモロ,cg:コンゴ共和国,cd:コンゴ民主共和国,ci:コートジボワール,dj:ジブチ,eg:エジプト,gq:赤道ギニア,er:エリトリア,sz:エスワティニ,et:エチオピア,ga:ガボン,gm:ガンビア,gh:ガーナ,gn:ギニア,gw:ギニアビサウ,ke:ケニア,ls:レソト,lr:リベリア,ly:リビア,mg:マダガスカル,mw:マラウイ,ml:マリ,mr:モーリタニア,mu:モーリシャス,ma:モロッコ,mz:モザンビーク,na:ナミビア,ne:ニジェール,ng:ナイジェリア,rw:ルワンダ,st:サントメ・プリンシペ,sn:セネガル,sc:セーシェル,sl:シエラレオネ,so:ソマリア,za:南アフリカ,ss:南スーダン,sd:スーダン,tz:タンザニア,tg:トーゴ,tn:チュニジア,ug:ウガンダ,zm:ザンビア,zw:ジンバブエ' },
+            { id: 'americas', name: '南北アメリカ', list: 'ag:アンティグア・バーブーダ,ar:アルゼンチン,bs:バハマ,bb:バルバドス,bz:ベリーズ,bo:ボリビア,br:ブラジル,ca:カナダ,cl:チリ,co:コロンビア,cr:コスタリカ,cu:キューバ,dm:ドミニカ国,do:ドミニカ共和国,ec:エクアドル,sv:エルサルバドル,gd:グレナダ,gt:グアテマラ,gy:ガイアナ,ht:ハイチ,hn:ホンジュラス,jm:ジャマイカ,mx:メキシコ,ni:ニカラグア,pa:パナマ,py:パラグアイ,pe:ペルー,kn:セントクリストファー・ネイビス,lc:セントルシア,vc:セントビンセント・グレナディーン,sr:スリナム,tt:トリニダード・トバゴ,us:アメリカ,uy:ウルグアイ,ve:ベネズエラ' },
+            { id: 'oceania', name: 'オセアニア', list: 'au:オーストラリア,fj:フィジー,ki:キリバス,mh:マーシャル諸島,fm:ミクロネシア連邦,nr:ナウル,nz:ニュージーランド,pw:パラオ,pg:パプアニューギニア,ws:サモア,sb:ソロモン諸島,to:トンガ,tv:ツバル,vu:バヌアツ' }
         ];
+        const COUNTRIES = [];
+        REGION_DATA.forEach(r => r.list.split(',').forEach(s => {
+            const [id, name] = s.split(':');
+            const flag = String.fromCodePoint(...[...id.toUpperCase()].map(ch => 0x1F1E6 + ch.charCodeAt(0) - 65));
+            COUNTRIES.push({ id, name, region: r.id, flag });
+        }));
+        // 旧バージョンの保存データ(国ID)を新IDへ引き継ぐ
+        const OLD_ID_MAP = { germany: 'de', austria: 'at', japan: 'jp', china: 'cn', italy: 'it', sierraleone: 'sl', russia: 'ru', france: 'fr', poland: 'pl', england472x600: 'gb', usa: 'us' };
 
-        const EMOTIONS = [
-            { id: 'normal.png', name: 'ふつう' },
-            { id: 'smile.png', name: 'にっこり' },
-            { id: 'happy.png', name: 'まんめん' },
-            { id: 'surprise.png', name: 'びっくり' },
-            { id: 'anger.png', name: 'おこり' },
-            { id: 'dissatisfaction.png', name: 'ふまん' },
-            { id: 'lol.png', name: 'わらい' },
-            { id: 'itome.png', name: '糸目' },
-            { id: 'plot.png', name: 'たくらみ' }
-        ];
+        /* =================================================================
+           1b. カントリーボール作成システム: frame.png(体の枠) + 旗(枠の内側) + eye.png(目)
+               ※ 描画によるフォールバックは無し。PNG素材が読めない場合は表示せず通知する
+           ================================================================= */
+        const ASSET = 'https://raw.githubusercontent.com/PolandBallHub-Operator/pbpark/refs/heads/main/AI/historyai/';
+        function loadImg(src, cors) {
+            return new Promise(res => { const i = new Image(); if (cors) i.crossOrigin = 'anonymous'; i.onload = () => res(i); i.onerror = () => res(null); i.src = src; });
+        }
+        // 透明領域を連結成分に分け、外側(画像の端につながる領域)と内側(閉じた領域)を見分ける
+        function emptyComponents(img, size) {
+            const c = document.createElement('canvas'); c.width = c.height = size; const x = c.getContext('2d'); x.drawImage(img, 0, 0, size, size);
+            const d = x.getImageData(0, 0, size, size).data, N = size * size, label = new Int32Array(N).fill(-1), comps = [];
+            for (let s = 0; s < N; s++) {
+                if (label[s] !== -1 || d[s * 4 + 3] >= 40) continue;
+                const id = comps.length, stack = [s]; label[s] = id; let area = 0, sx = 0, sy = 0, edge = false, minX = size, maxX = 0, minY = size, maxY = 0;
+                while (stack.length) {
+                    const p = stack.pop(), px = p % size, py = (p / size) | 0; area++; sx += px; sy += py;
+                    if (px === 0 || py === 0 || px === size - 1 || py === size - 1) edge = true;
+                    if (px < minX) minX = px; if (px > maxX) maxX = px; if (py < minY) minY = py; if (py > maxY) maxY = py;
+                    for (const q of [p - 1, p + 1, p - size, p + size]) {
+                        if (q < 0 || q >= N) continue; if ((q === p - 1 && px === 0) || (q === p + 1 && px === size - 1)) continue;
+                        if (label[q] === -1 && d[q * 4 + 3] < 40) { label[q] = id; stack.push(q); }
+                    }
+                }
+                comps.push({ id, area, cx: sx / area, cy: sy / area, edge, minX, maxX, minY, maxY });
+            }
+            return { label, comps, size };
+        }
+        const EYE_FILES = { normal: 'eye.png', anger: 'anger.png', lol: 'lol.png', sad: 'sad.png', smile: 'smile.png' };
+        function buildEyeCanvas(img, S) {
+            // 目: 内側の閉じた領域を白で塗る
+            const ec = emptyComponents(img, S), eyes = ec.comps.filter(c => !c.edge && c.area > 80).sort((a, b) => a.cx - b.cx).slice(0, 2);
+            const ids = new Set(eyes.map(e => e.id));
+            const cv = document.createElement('canvas'); cv.width = cv.height = S; const x = cv.getContext('2d'), d = x.createImageData(S, S);
+            for (let i = 0; i < S * S; i++) { if (ids.has(ec.label[i])) { d.data[i * 4] = d.data[i * 4 + 1] = d.data[i * 4 + 2] = 255; d.data[i * 4 + 3] = 255; } }
+            x.putImageData(d, 0, 0); x.drawImage(img, 0, 0, S, S);
+            return cv;
+        }
+        async function loadAssets() {
+            const names = Object.keys(EYE_FILES);
+            const [frame, ...eyeImgs] = await Promise.all([loadImg(ASSET + 'frame.png', true), ...names.map(n => loadImg(ASSET + EYE_FILES[n], true))]);
+            const A = { frame, size: 220, ok: false, eyes: {} };
+            if (!frame || !eyeImgs[0]) return A;
+            try {
+                const S = A.size;
+                // 体マスク = 枠の外側以外(枠の線と内側)
+                const fc = emptyComponents(frame, S), outside = new Set(fc.comps.filter(c => c.edge).map(c => c.id));
+                const mask = document.createElement('canvas'); mask.width = mask.height = S; const mx = mask.getContext('2d'), md = mx.createImageData(S, S);
+                let minX = S, maxX = 0, minY = S, maxY = 0;
+                for (let i = 0; i < S * S; i++) {
+                    if (!outside.has(fc.label[i])) { md.data[i * 4 + 3] = 255; const px = i % S, py = (i / S) | 0; if (px < minX) minX = px; if (px > maxX) maxX = px; if (py < minY) minY = py; if (py > maxY) maxY = py; }
+                }
+                mx.putImageData(md, 0, 0); A.mask = mask; A.body = { x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1 };
+                names.forEach((n, i) => { if (eyeImgs[i]) { try { A.eyes[n] = buildEyeCanvas(eyeImgs[i], S); } catch (e) { console.warn(n, e); } } });
+                A.ok = !!A.eyes.normal;
+            } catch (e) { console.warn('ball asset analysis failed', e); }
+            return A;
+        }
+        let assetsPromise = null, assetErrShown = false, assetsA = null;
+        function getAssets() {
+            if (assetsPromise) return assetsPromise;
+            const p = loadAssets(); assetsPromise = p;
+            p.then(A => { if (A.ok) assetsA = A; else if (assetsPromise === p) assetsPromise = null; }); // 失敗時は次回再試行
+            return p;
+        }
+        function paintFlag(ctx, flag, box) {
+            const { x, y, w, h } = box;
+            if (flag === 'poland') { // ポーランドボールは上下が逆(赤が上)
+                ctx.fillStyle = '#DC143C'; ctx.fillRect(x, y, w, h / 2); ctx.fillStyle = '#FFFFFF'; ctx.fillRect(x, y + h / 2, w, h / 2); return;
+            }
+            if (!flag) { ctx.fillStyle = '#C9CDD2'; ctx.fillRect(x, y, w, h); return; } // 旗の取得中は灰色
+            const s = Math.max(w / flag.naturalWidth, h / flag.naturalHeight), dw = flag.naturalWidth * s, dh = flag.naturalHeight * s;
+            ctx.drawImage(flag, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
+        }
+        const tmpFlag = document.createElement('canvas'), tmpEye = document.createElement('canvas');
+        tmpFlag.width = tmpFlag.height = tmpEye.width = tmpEye.height = 220;
+        // lx, ly: -1〜1 の視線。目と旗を少しずらして「振り返る」動きにする
+        function renderBall(canvas, A, flag, expr, lx, ly) {
+            const S = 220; if (canvas.width !== S) canvas.width = S; if (canvas.height !== S) canvas.height = S;
+            lx = lx || 0; ly = ly || 0;
+            const ctx = canvas.getContext('2d'); ctx.clearRect(0, 0, S, S);
+            const fx = tmpFlag.getContext('2d'); fx.globalCompositeOperation = 'source-over'; fx.clearRect(0, 0, S, S);
+            paintFlag(fx, flag, { x: A.body.x - 12 + lx * 9, y: A.body.y, w: A.body.w + 24, h: A.body.h });
+            fx.globalCompositeOperation = 'destination-in'; fx.drawImage(A.mask, 0, 0); // 旗を体の形に切り抜き
+            ctx.drawImage(tmpFlag, 0, 0); ctx.drawImage(A.frame, 0, 0, S, S);
+            const ex = tmpEye.getContext('2d'); ex.globalCompositeOperation = 'source-over'; ex.clearRect(0, 0, S, S);
+            ex.drawImage(A.eyes[expr] || A.eyes.normal, lx * 11, ly * 7);
+            ex.globalCompositeOperation = 'destination-in'; ex.drawImage(A.mask, 0, 0);
+            ctx.drawImage(tmpEye, 0, 0);
+        }
+
+        /* 国旗の取得: flagcdn → 日本語版Wikipedia の順 */
+        const flagImgs = new Map(), flagTasks = new Map();
+        async function wikiThumb(host, title) {
+            const url = `https://${host}/w/api.php?action=query&prop=pageimages&redirects=1&titles=${encodeURIComponent(title)}&format=json&pithumbsize=400&origin=*`;
+            const r = await fetch(url); if (!r.ok) return null; const d = await r.json(), pages = d.query && d.query.pages; if (!pages) return null;
+            const p = pages[Object.keys(pages)[0]]; return p && p.thumbnail ? p.thumbnail.source : null;
+        }
+        function getFlag(c) {
+            if (c.id === 'pl') return Promise.resolve('poland');
+            if (flagTasks.has(c.id)) return flagTasks.get(c.id);
+            const p = (async () => {
+                if (c.custom) {
+                    if (c.flagUrl) { const u = await loadImg(c.flagUrl, true) || await loadImg(c.flagUrl, false); if (u) return u; }
+                } else {
+                    const a = await loadImg(`https://flagcdn.com/w320/${c.id}.png`, true); if (a) return a;
+                }
+                try { const u = await wikiThumb('ja.wikipedia.org', `${c.name}の国旗`); if (u) { const b = await loadImg(u, true); if (b) return b; } } catch (e) { /* 取得できなければ灰色のまま */ }
+                return null;
+            })();
+            p.then(f => { if (!f) flagTasks.delete(c.id); });
+            flagTasks.set(c.id, p); return p;
+        }
+
+        /* canvas にその国のボールを描く。canvas._pb に表情・視線の状態を保持 */
+        const EXPRS = ['normal', 'anger', 'lol', 'sad', 'smile'];
+        const EXPR_WEIGHTS = [['normal', 60], ['smile', 15], ['lol', 10], ['sad', 8], ['anger', 7]];
+        const liveBalls = new Set();
+        function refreshBall(canvas) {
+            const s = canvas._pb; if (!s || !assetsA) return;
+            renderBall(canvas, assetsA, s.flag, s.expr, s.lx, s.ly);
+        }
+        async function drawBall(canvas, country, opts) {
+            const prev = canvas._pb;
+            const s = canvas._pb = {
+                country, expr: (opts && opts.expr) || 'normal', lx: prev ? prev.lx : 0, ly: prev ? prev.ly : 0,
+                flag: country.id === 'pl' ? 'poland' : (flagImgs.get(country.id) || null)
+            };
+            liveBalls.add(canvas);
+            const A = await getAssets();
+            if (!A.ok) {
+                if (!assetErrShown) { assetErrShown = true; showDialog('ボール画像を読み込めませんでした', '通信状態を確認して、ページを再読み込みしてね。', 'fa-triangle-exclamation'); }
+                return false;
+            }
+            assetsA = A;
+            if (canvas._pb !== s) return false;
+            refreshBall(canvas);
+            if (!s.flag) {
+                const f = await getFlag(country);
+                if (f) { flagImgs.set(country.id, f); if (canvas._pb === s) { s.flag = f; refreshBall(canvas); } }
+            }
+            return true;
+        }
+        function setBallExpr(canvas, expr) { if (canvas && canvas._pb) { canvas._pb.expr = expr; refreshBall(canvas); } }
+        function makeBallCanvas(country, cls, expr) {
+            const c = document.createElement('canvas'); c.width = c.height = 220; if (cls) c.className = cls;
+            drawBall(c, country, { expr }); return c;
+        }
+
+        /* 触れた方向を見る(目と旗を少しずらして、ちょっと振り返る) */
+        let lookPt = null, lookDown = false, lookHold = 0, lookRaf = null;
+        function lookStep(now) {
+            lookRaf = null;
+            if (lookPt && !lookDown && now > lookHold) lookPt = null;
+            let busy = !!lookPt, n = 0;
+            const vw = innerWidth, vh = innerHeight;
+            for (const c of liveBalls) {
+                if (!c.isConnected) { liveBalls.delete(c); continue; }
+                const s = c._pb; if (!s || n >= 40) continue;
+                const r = c.getBoundingClientRect();
+                if (r.width < 4 || r.bottom < 0 || r.top > vh || r.right < 0 || r.left > vw) continue;
+                if (c.closest('.state-hidden')) continue;
+                let tx = 0, ty = 0;
+                if (lookPt) {
+                    const dx = lookPt.x - (r.left + r.width / 2), dy = lookPt.y - (r.top + r.height / 2);
+                    const d = Math.hypot(dx, dy) || 1, k = Math.min(1, d / 140);
+                    tx = dx / d * k; ty = dy / d * k;
+                }
+                const nx = s.lx + (tx - s.lx) * 0.2, ny = s.ly + (ty - s.ly) * 0.2;
+                if (Math.abs(nx - s.lx) > 0.005 || Math.abs(ny - s.ly) > 0.005) { s.lx = nx; s.ly = ny; refreshBall(c); busy = true; n++; }
+            }
+            if (busy) lookRaf = requestAnimationFrame(lookStep);
+        }
+        function lookKick() { if (!lookRaf) lookRaf = requestAnimationFrame(lookStep); }
+        window.addEventListener('pointerdown', e => { lookPt = { x: e.clientX, y: e.clientY }; lookDown = true; lookKick(); }, true);
+        window.addEventListener('pointermove', e => { if (lookDown) { lookPt = { x: e.clientX, y: e.clientY }; lookKick(); } }, true);
+        const lookEnd = () => { lookDown = false; lookHold = performance.now() + 700; lookKick(); };
+        window.addEventListener('pointerup', lookEnd, true);
+        window.addEventListener('pointercancel', lookEnd, true);
 
         const CAUGHT_DIALOGUES = [
             "元気なんよ！",
@@ -450,13 +716,12 @@
                 });
             }
 
-            async saveBall(countryId, emotionId) {
+            async saveBall(countryId) {
                 if (!this.db) return;
-                const key = `${countryId}_${emotionId}`;
+                const key = countryId;
                 const item = {
                     key: key,
                     countryId: countryId,
-                    emotionId: emotionId,
                     caughtAt: new Date().toISOString()
                 };
                 return new Promise((resolve, reject) => {
@@ -479,9 +744,9 @@
                 });
             }
 
-            async isCaught(countryId, emotionId) {
+            async isCaught(countryId) {
                 if (!this.db) return false;
-                const key = `${countryId}_${emotionId}`;
+                const key = countryId;
                 return new Promise((resolve) => {
                     const tx = this.db.transaction('caught_balls', 'readonly');
                     const store = tx.objectStore('caught_balls');
@@ -507,11 +772,6 @@
         let caughtKeysSet = new Set(); // Local cache of caught keys
         let activeThrowBall = null; // Currently attempting ball
 
-        /* Helper to get Ball Image URL */
-        function getBallImageUrl(countryId, emotionId) {
-            return `${BASE_IMAGE_URL}${countryId}/${emotionId}`;
-        }
-
         /* Show Custom Modal Dialog */
         function showDialog(title, text, iconClass = 'fa-info-circle') {
             document.getElementById('dialog-title').innerText = title;
@@ -530,19 +790,12 @@
         function initStartScreen() {
             const container = document.getElementById('floating-balls-bg');
             container.innerHTML = '';
+            drawBall(byId('start-ball'), COUNTRIES.find(c => c.id === 'de'));
             
             // Generate 12 random floating balls
             for (let i = 0; i < 12; i++) {
                 const country = COUNTRIES[Math.floor(Math.random() * COUNTRIES.length)];
-                const emotion = EMOTIONS[Math.floor(Math.random() * EMOTIONS.length)];
-                const img = document.createElement('img');
-                img.src = getBallImageUrl(country.id, emotion.id);
-                img.className = 'floating-ball';
-                
-                if (country.isUK) {
-                    img.style.objectFit = 'cover';
-                    img.style.objectPosition = 'top';
-                }
+                const img = makeBallCanvas(country, 'floating-ball', EXPRS[Math.floor(Math.random() * EXPRS.length)]);
 
                 const size = 40 + Math.random() * 50;
                 img.style.width = `${size}px`;
@@ -551,99 +804,190 @@
                 img.style.top = `${Math.random() * 90}%`;
                 img.style.animationDuration = `${8 + Math.random() * 10}s`;
                 img.style.animationDelay = `${Math.random() * 5}s`;
-                
+
                 container.appendChild(img);
             }
         }
 
         /* =================================================================
-           5. 3D BIRD'S EYE MAP ENGINE
+           5. 3D BIRD'S EYE MAP ENGINE (軽量化・安定版)
            ================================================================= */
+        const byId = (id) => document.getElementById(id);
+        const rand = (a, b) => a + Math.random() * (b - a);
+
+        /* ★ 調整用の設定値 (距離はすべてメートル) */
+        const CFG = {
+            TILT: 50,            // マップの傾き
+            CENTER_Y: 0.62,      // 自分の位置(画面の縦位置 0~1)
+            CELL_DEG: 0.015,     // 1マスの大きさ(約1.7km四方)
+            STATION_BOOST: 0.12,  // 駅があるマスは出現率がほんの少しだけ上がる(確実ではない)
+            SPAWN_PROB: 0.6,     // 1マスにボールがいる確率(約1〜2kmに1体)
+            EPOCH_HOURS: 12,     // この時間ごとにボールの配置が入れ替わる
+            HINT_R: 120,         // この距離で「影」が見える
+            REVEAL_R: 45,        // この距離で姿がはっきり見える
+            CATCH_R: 25          // この距離以内でタップして捕獲開始
+        };
+
+        /* 捕まえる難しさ (出現時にランダムで決定) */
+        const DIFFS = [
+            { stars: 1, label: 'やさしい',   speed: [2.5, 3.5], margin: 56, erratic: 0,     w: 45 },
+            { stars: 2, label: 'ふつう',     speed: [3.5, 5.0], margin: 44, erratic: 0.004, w: 30 },
+            { stars: 3, label: 'むずかしい', speed: [5.0, 6.5], margin: 34, erratic: 0.010, w: 18 },
+            { stars: 4, label: 'げきむず',   speed: [6.5, 8.5], margin: 26, erratic: 0.018, w: 7 }
+        ];
+        function pickDiff() {
+            let r = Math.random() * 100;
+            for (const d of DIFFS) { if ((r -= d.w) < 0) return d; }
+            return DIFFS[0];
+        }
+
+        let userAcc = 0, gotFix = false, demoMode = false;
+        let viewPos = null, followRaf = null, playerCircle = null;
+        let nextBallId = 1, lastMaintain = 0, watchId = null, toastTimer = null;
+
+        function showToast(text, icon = 'fa-circle-info') {
+            const t = byId('toast');
+            t.innerHTML = `<i class="fa-solid ${icon} text-yellow-300"></i><span></span>`;
+            t.lastChild.textContent = text;
+            t.classList.remove('hidden');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => t.classList.add('hidden'), 2800);
+        }
+
+        /* 傾けたマップが画面をちょうど覆うサイズに調整(大きすぎると描画が崩れる) */
+        function layoutMap() {
+            const vp = byId('viewport-container');
+            const w = vp.clientWidth, h = vp.clientHeight;
+            const S = Math.round(Math.max(1900, w * 1.9, h * 2.2));
+            const wr = byId('map-oversized-wrapper');
+            wr.style.width = wr.style.height = S + 'px';
+            wr.style.left = (w / 2 - S / 2) + 'px';
+            wr.style.top = (h * CFG.CENTER_Y - S / 2) + 'px';
+            vp.style.perspectiveOrigin = `50% ${CFG.CENTER_Y * 100}%`;
+            if (map) map.invalidateSize({ animate: false });
+        }
+        window.addEventListener('resize', layoutMap);
+
         function initMap() {
             if (map) return;
+            layoutMap();
 
-            // Initialize Leaflet Map
             map = L.map('leaflet-map', {
                 zoomControl: false,
                 attributionControl: false,
-                dragging: false, // Map panning disabled per requirements
+                dragging: false,
                 touchZoom: false,
                 doubleClickZoom: false,
                 scrollWheelZoom: false,
                 boxZoom: false,
                 keyboard: false,
+                inertia: false,
                 fadeAnimation: false,
-                markerZoomAnimation: false
+                zoomAnimation: false,
+                markerZoomAnimation: false,
+                zoomSnap: 0.5,
+                zoomDelta: 0.5
             }).setView([userLat, userLng], mapZoom);
 
-            // OpenStreetMap Standard Tiles with high tile buffer for far-off rendering
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 maxZoom: 19,
-                minZoom: 12,
+                minZoom: 14,
                 subdomains: ['a', 'b', 'c'],
-                keepBuffer: 25, // Preloads and retains 25 tile rows/cols far beyond viewport
+                keepBuffer: 2,
                 updateWhenIdle: false,
-                updateWhenZooming: false
+                updateWhenZooming: false,
+                updateInterval: 150
             }).addTo(map);
 
-            // Custom Player Icon (Germany Flag Ball)
             const playerIcon = L.divIcon({
                 className: 'custom-player-marker',
                 html: `
-                    <div class="relative w-16 h-16 flex items-center justify-center">
-                        <div class="player-pulse"></div>
-                        <div class="ball-img-wrapper z-10">
-                            <img src="${getBallImageUrl('germany', 'smile.png')}" alt="Player">
+                    <div class="upright" style="transform-origin:50% 50%">
+                        <div class="relative w-16 h-16 flex items-center justify-center">
+                            <div class="player-pulse"></div>
+                            <div class="ball-img-wrapper z-10">
+                                <canvas class="player-canvas" width="220" height="220"></canvas>
+                            </div>
                         </div>
-                    </div>
-                `,
+                    </div>`,
                 iconSize: [64, 64],
                 iconAnchor: [32, 32]
             });
+            playerMarker = L.marker([userLat, userLng], { icon: playerIcon, zIndexOffset: 1000, interactive: false }).addTo(map);
+            playerCircle = L.circle([userLat, userLng], {
+                radius: CFG.REVEAL_R, color: '#f59e0b', weight: 2, dashArray: '6 6',
+                fillColor: '#fbbf24', fillOpacity: 0.12, interactive: false
+            }).addTo(map);
 
-            playerMarker = L.marker([userLat, userLng], { icon: playerIcon }).addTo(map);
-
+            const pc = playerMarker.getElement().querySelector('.player-canvas');
+            if (pc) drawBall(pc, COUNTRIES.find(c => c.id === 'de'));
             update3DTransform();
-            spawnInitialBalls();
         }
 
-        /* Apply 3D Perspective Tilt and Heading Rotation to Oversized Wrapper */
+        /* 傾き + 回転。ボールは回転に合わせて常に正面を向く(--hd を使用) */
         function update3DTransform() {
-            const wrapper = document.getElementById('map-oversized-wrapper');
-            if (wrapper) {
-                // perspective tilt 52deg, rotate heading
-                wrapper.style.transform = `rotateX(52deg) rotateZ(${mapHeading}deg)`;
-            }
+            const wr = byId('map-oversized-wrapper');
+            if (!wr) return;
+            wr.style.setProperty('--hd', mapHeading + 'deg');
+            wr.style.transform = `rotateX(${CFG.TILT}deg) rotateZ(${mapHeading}deg)`;
         }
 
-        /* Zoom and Rotation Button Event Listeners */
-        document.getElementById('btn-zoom-in').addEventListener('click', () => {
-            if (map && mapZoom < 19) {
-                mapZoom += 0.5;
-                map.setZoom(mapZoom);
+        byId('btn-zoom-in').addEventListener('click', () => {
+            if (map && mapZoom < 19) { mapZoom += 0.5; map.setZoom(mapZoom, { animate: false }); }
+        });
+        byId('btn-zoom-out').addEventListener('click', () => {
+            if (map && mapZoom > 15) { mapZoom -= 0.5; map.setZoom(mapZoom, { animate: false }); }
+        });
+        byId('btn-rotate-left').addEventListener('click', () => { mapHeading -= 45; update3DTransform(); });
+        byId('btn-rotate-right').addEventListener('click', () => { mapHeading += 45; update3DTransform(); });
+
+        /* ---- 自分の位置を滑らかに追従(panToのアニメ連打をやめて軽量化) ---- */
+        function applyView() {
+            const ll = [viewPos.lat, viewPos.lng];
+            playerMarker.setLatLng(ll);
+            playerCircle.setLatLng(ll);
+            map.panTo(ll, { animate: false, noMoveStart: true });
+        }
+
+        function followStep() {
+            followRaf = null;
+            const dLat = userLat - viewPos.lat, dLng = userLng - viewPos.lng;
+            if (Math.abs(dLat) < 2e-8 && Math.abs(dLng) < 2e-8) {
+                viewPos = { lat: userLat, lng: userLng };
+                applyView();
+                return;
             }
-        });
+            viewPos.lat += dLat * 0.15;
+            viewPos.lng += dLng * 0.15;
+            applyView();
+            followRaf = requestAnimationFrame(followStep);
+        }
 
-        document.getElementById('btn-zoom-out').addEventListener('click', () => {
-            if (map && mapZoom > 14) {
-                mapZoom -= 0.5;
-                map.setZoom(mapZoom);
+        function setPlayerPos(lat, lng, snap) {
+            userLat = lat; userLng = lng;
+            if (!map) return;
+            if (snap || !viewPos) {
+                viewPos = { lat, lng };
+                playerMarker.setLatLng([lat, lng]);
+                playerCircle.setLatLng([lat, lng]);
+                map.setView([lat, lng], mapZoom, { animate: false });
+                return;
             }
-        });
-
-        document.getElementById('btn-rotate-left').addEventListener('click', () => {
-            mapHeading -= 30;
-            update3DTransform();
-        });
-
-        document.getElementById('btn-rotate-right').addEventListener('click', () => {
-            mapHeading += 30;
-            update3DTransform();
-        });
+            // 遠くまで歩いてピクセル座標が膨らんだら基準点をリセット(表示崩れ対策)
+            const off = map.project(map.getCenter()).distanceTo(map.getPixelOrigin().add(map.getSize().divideBy(2)));
+            if (off > 2500) {
+                viewPos = { lat, lng };
+                playerMarker.setLatLng([lat, lng]);
+                playerCircle.setLatLng([lat, lng]);
+                map.setView([lat, lng], mapZoom, { reset: true, animate: false });
+                return;
+            }
+            if (!followRaf) followRaf = requestAnimationFrame(followStep);
+        }
 
         /* Haversine Formula for exact distance calculation in meters */
         function getDistanceInMeters(lat1, lon1, lat2, lon2) {
-            const R = 6371000; // Earth radius in meters
+            const R = 6371000;
             const dLat = (lat2 - lat1) * Math.PI / 180;
             const dLon = (lon2 - lon1) * Math.PI / 180;
             const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
@@ -654,333 +998,494 @@
         }
 
         /* =================================================================
-           6. SPATIAL BALL SPAWNING (Wider 300m - 3km Distribution)
+           6. BALL SPAWNING (現在地を中心にまばら / 見つけにくい)
            ================================================================= */
-        function spawnInitialBalls() {
-            // Clear existing markers
-            spawnedBalls.forEach(b => map.removeLayer(b.marker));
-            spawnedBalls = [];
+        function catchRadius() {
+            // GPS誤差が大きいときは少しだけ判定をゆるめる
+            return Math.max(CFG.CATCH_R, Math.min(userAcc || 0, 60));
+        }
 
-            // Spawn balls across a wider radius (300m to 3000m) with min 250m spacing between balls
-            const count = 12;
-            let attempts = 0;
+        /* 世界を約1.7km四方の「マス」に分け、マスごとにボールがいるかを決める。
+           同じ場所・同じ時間帯なら再読み込みしても同じ結果になる(リロードで増えない) */
+        function hashStr(s) {
+            let h = 1779033703 ^ s.length;
+            for (let i = 0; i < s.length; i++) { h = Math.imul(h ^ s.charCodeAt(i), 3432918353); h = (h << 13) | (h >>> 19); }
+            return h >>> 0;
+        }
+        function seededRng(seed) {
+            let a = seed;
+            return () => {
+                a |= 0; a = a + 0x6D2B79F5 | 0;
+                let t = Math.imul(a ^ a >>> 15, 1 | a);
+                t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+                return ((t ^ t >>> 14) >>> 0) / 4294967296;
+            };
+        }
+        const lngStepAt = (row) => CFG.CELL_DEG / Math.max(0.2, Math.cos((row + 0.5) * CFG.CELL_DEG * Math.PI / 180));
+        const currentEpoch = () => Math.floor(Date.now() / (CFG.EPOCH_HOURS * 3600000));
+        let caughtCells = new Set();
+        try { caughtCells = new Set(JSON.parse(localStorage.getItem('ringde_cells') || '[]')); } catch (e) {}
+        function saveCells() {
+            try { localStorage.setItem('ringde_cells', JSON.stringify([...caughtCells].slice(-300))); } catch (e) {}
+        }
 
-            while (spawnedBalls.length < count && attempts < 250) {
-                attempts++;
-                const distance = 300 + Math.random() * 2700; // 300m to 3000m wide spread
-                const angle = Math.random() * Math.PI * 2;
-                
-                const dLat = (distance * Math.cos(angle)) / 111000;
-                const dLng = (distance * Math.sin(angle)) / (111000 * Math.cos(userLat * Math.PI / 180));
+        function cellBall(row, col, epoch) {
+            const cellId = `${row}:${col}:${epoch}`;
+            if (caughtCells.has(cellId)) return { cellId, data: null };
+            const rng = seededRng(hashStr(cellId));
+            const st = stationCells.get(row + ':' + col);
+            if (rng() > CFG.SPAWN_PROB + (st ? CFG.STATION_BOOST : 0)) return { cellId, data: null };
+            let lat = (row + 0.1 + rng() * 0.8) * CFG.CELL_DEG;
+            let lng = (col + 0.1 + rng() * 0.8) * lngStepAt(row);
+            if (st && rng() < 0.5) { // 半分くらいは駅の近く(80〜300m)に出る
+                const sp = st[Math.floor(rng() * st.length)], a = rng() * Math.PI * 2, r = 80 + rng() * 220;
+                lat = sp[0] + r * Math.cos(a) / 111000;
+                lng = sp[1] + r * Math.sin(a) / (111000 * Math.cos(sp[0] * Math.PI / 180));
+            }
+            let c;
+            for (let i = 0; i < 8; i++) {
+                c = COUNTRIES[Math.floor(rng() * COUNTRIES.length)];
+                if (!caughtKeysSet.has(c.id)) break;
+            }
+            const key = c.id;
+            let r = rng() * 100, diff = DIFFS[0];
+            for (const d of DIFFS) { if ((r -= d.w) < 0) { diff = d; break; } }
+            let rr = rng() * 100, expr = 'normal';
+            for (const [k, w] of EXPR_WEIGHTS) { if ((rr -= w) < 0) { expr = k; break; } }
+            return { cellId, data: { cellId, country: c, key, lat, lng, diff, expr } };
+        }
 
-                const bLat = userLat + dLat;
-                const bLng = userLng + dLng;
-
-                // Ensure balls are spaced well apart from one another (at least 250m distance)
-                const isTooClose = spawnedBalls.some(b => getDistanceInMeters(bLat, bLng, b.lat, b.lng) < 250);
-                if (isTooClose) continue;
-
-                const country = COUNTRIES[Math.floor(Math.random() * COUNTRIES.length)];
-                const emotion = EMOTIONS[Math.floor(Math.random() * EMOTIONS.length)];
-                const key = `${country.id}_${emotion.id}`;
-
-                // Create Marker
-                const ukClass = country.isUK ? 'uk-crop' : '';
-                const ballHtml = `
-                    <div class="ball-marker-container" id="ball-marker-${spawnedBalls.length}">
-                        <div class="ball-img-wrapper ${ukClass}">
-                            <img src="${getBallImageUrl(country.id, emotion.id)}" alt="${country.name}">
+        function addBall(data) {
+            const id = nextBallId++;
+            const icon = L.divIcon({
+                className: 'ball-leaflet-icon state-hidden',
+                html: `
+                    <div class="ball-marker-container upright" id="ball-marker-${id}">
+                        <div class="ball-img-wrapper">
+                            <canvas width="220" height="220"></canvas>
+                            <span class="ball-q">?</span>
                         </div>
                         <div class="ball-shadow"></div>
-                    </div>
-                `;
+                    </div>`,
+                iconSize: [64, 76],
+                iconAnchor: [32, 68]
+            });
+            const marker = L.marker([data.lat, data.lng], { icon }).addTo(map);
+            const cv = marker.getElement().querySelector('canvas');
+            if (cv) drawBall(cv, data.country, { expr: data.expr });
+            const ball = { id, ...data, marker, state: 0, hinted: false };
+            marker.on('click', () => handleBallClick(ball));
+            spawnedBalls.push(ball);
+        }
 
-                const icon = L.divIcon({
-                    className: 'ball-leaflet-icon',
-                    html: ballHtml,
-                    iconSize: [64, 76],
-                    iconAnchor: [32, 68]
-                });
+        function removeBall(ball) {
+            clearMark(ball);
+            if (map && ball.marker) map.removeLayer(ball.marker);
+            spawnedBalls = spawnedBalls.filter(b => b !== ball);
+        }
 
-                const marker = L.marker([bLat, bLng], { icon: icon }).addTo(map);
-
-                const ballData = {
-                    id: spawnedBalls.length,
-                    country: country,
-                    emotion: emotion,
-                    key: key,
-                    lat: bLat,
-                    lng: bLng,
-                    marker: marker
-                };
-
-                // Click event on Polandball
-                marker.on('click', () => handleBallClick(ballData));
-                spawnedBalls.push(ballData);
+        /* 周囲3x3マスだけを読み込み、離れたマスのボールは消す */
+        function maintainBalls() {
+            if (!map || !gotFix) return;
+            ensureStations();
+            const epoch = currentEpoch();
+            const row0 = Math.floor(userLat / CFG.CELL_DEG);
+            const wanted = new Set();
+            for (let dr = -1; dr <= 1; dr++) {
+                const row = row0 + dr;
+                const col0 = Math.floor(userLng / lngStepAt(row));
+                for (let dc = -1; dc <= 1; dc++) {
+                    const { cellId, data } = cellBall(row, col0 + dc, epoch);
+                    wanted.add(cellId);
+                    if (data && !spawnedBalls.some(b => b.cellId === cellId)) addBall(data);
+                }
             }
+            spawnedBalls.slice().forEach(b => {
+                if (b !== activeThrowBall && !wanted.has(b.cellId)) removeBall(b);
+            });
+        }
+
+        /* 距離に応じて「見えない → 影 → 姿が見える」 */
+        function updateBallStates() {
+            if (!map) return;
+            const revealR = Math.max(CFG.REVEAL_R, catchRadius() + 10);
+            spawnedBalls.forEach(b => {
+                const d = getDistanceInMeters(userLat, userLng, b.lat, b.lng);
+                const s = d <= revealR ? 2 : d <= CFG.HINT_R ? 1 : 0;
+                if (s === b.state) return;
+                const prev = b.state;
+                b.state = s;
+                const el = b.marker.getElement();
+                if (el) {
+                    el.classList.toggle('state-hidden', s === 0);
+                    el.classList.toggle('state-hint', s === 1);
+                }
+                if (s === 2 && prev < 2) showToast(`${b.country.flag} ${b.country.name}ボールを見つけた！`, 'fa-star');
+                else if (s === 1 && prev === 0 && !b.hinted) { b.hinted = true; showToast('近くにボールのかげが…！', 'fa-eye'); }
+            });
+        }
+
+        /* 「あったかメーター」(方向は教えない) */
+        function updateRadar() {
+            let nearest = Infinity;
+            spawnedBalls.forEach(b => {
+                if (caughtKeysSet.has(b.key)) return;
+                nearest = Math.min(nearest, getDistanceInMeters(userLat, userLng, b.lat, b.lng));
+            });
+            let icon = '🧭', msg = 'ボールをさがしています…', pct = 0;
+            if (nearest === Infinity) { /* そのまま */ }
+            else if (nearest > 1500) { icon = '❄️'; msg = 'ボールの気配なし。遠くまで歩いてさがそう！'; pct = 5; }
+            else if (nearest > 600) { icon = '🌥️'; msg = 'どこかにいるかも…気配はまだ遠いよ'; pct = 20; }
+            else if (nearest > 250) { icon = '🌤️'; msg = '気配がしてきたよ！'; pct = 40; }
+            else if (nearest > CFG.HINT_R) { icon = '🌤️'; msg = 'けっこう近い！もう少し！'; pct = 60; }
+            else if (nearest > CFG.REVEAL_R) { icon = '🔥'; msg = 'かなり近い！ぼんやり影が見えるよ'; pct = 80; }
+            else { icon = '✨'; msg = 'すぐそこ！ボールをタップしてね'; pct = 100; }
+            byId('radar-icon').innerText = icon;
+            byId('radar-msg').innerText = msg;
+            byId('radar-bar').style.width = pct + '%';
+        }
+
+        function afterMove(force) {
+            if (typeof nbOpen !== 'undefined' && nbOpen) renderNearby(false);
+            updateBallStates();
+            const now = Date.now();
+            if (force || now - lastMaintain > 3000) {
+                lastMaintain = now;
+                maintainBalls();
+                updateBallStates();
+            }
+            updateRadar();
         }
 
         /* Handle Clicking a Polandball on the Map */
-        async function handleBallClick(ball) {
-            const isCaught = caughtKeysSet.has(ball.key);
-
-            if (isCaught) {
-                // Already Caught: Display Speech Bubble Dialogue
-                showBallSpeechBubble(ball);
-            } else {
-                // Strict 10m Proximity Check
-                const distance = getDistanceInMeters(userLat, userLng, ball.lat, ball.lng);
-                if (distance > 10) {
-                    showDialog(
-                        '距離が遠すぎます！',
-                        `ボールまであと約 ${Math.round(distance)}m です。\nゲットするには10m以内に近づいてタップしてください！`,
-                        'fa-location-dot'
-                    );
-                    return;
-                }
-
-                // Within 10m: Open Ring Throw Game Screen
-                startThrowGame(ball);
+        function handleBallClick(ball) {
+            if (caughtKeysSet.has(ball.key)) {
+                if (ball.state === 2) showBallSpeechBubble(ball);
+                else showToast('もう仲間のボールだよ。近づいてみよう！', 'fa-face-smile');
+                return;
             }
+            if (ball.state < 2) {
+                showToast('まだぼんやり…もっと近づいてみよう！', 'fa-eye');
+                return;
+            }
+            const d = getDistanceInMeters(userLat, userLng, ball.lat, ball.lng);
+            const r = catchRadius();
+            if (d > r) {
+                showToast(`あと約${Math.max(1, Math.round(d - r))}m！ もう少し近づいてタップしてね`, 'fa-person-walking');
+                return;
+            }
+            startThrowGame(ball);
         }
 
         /* Show Speech Bubble for Already Caught Balls */
         function showBallSpeechBubble(ball) {
-            const el = document.getElementById(`ball-marker-${ball.id}`);
+            const root = ball.marker.getElement();
+            const el = root && root.querySelector('.ball-marker-container');
             if (!el) return;
-
-            // Remove previous bubble if any
             const prev = el.querySelector('.speech-bubble');
             if (prev) prev.remove();
 
-            const dialogue = CAUGHT_DIALOGUES[Math.floor(Math.random() * CAUGHT_DIALOGUES.length)];
             const bubble = document.createElement('div');
             bubble.className = 'speech-bubble';
-            bubble.innerText = dialogue;
-
+            bubble.innerText = CAUGHT_DIALOGUES[Math.floor(Math.random() * CAUGHT_DIALOGUES.length)];
             el.appendChild(bubble);
-
-            setTimeout(() => {
-                bubble.remove();
-            }, 3000);
+            setTimeout(() => bubble.remove(), 3000);
         }
 
         /* =================================================================
            7. REAL GPS GEOLOCATION TRACKING
            ================================================================= */
+        function setGps(text) { byId('gps-status').innerText = text; }
+
+        function onPosition(pos) {
+            const { latitude, longitude, accuracy } = pos.coords;
+            if (gotFix && accuracy > 120) return; // 精度が悪すぎる値は無視(ワープ対策)
+            userAcc = accuracy || 0;
+            const first = !gotFix;
+            const jump = first ? Infinity : getDistanceInMeters(userLat, userLng, latitude, longitude);
+            gotFix = true;
+            setPlayerPos(latitude, longitude, jump > 200);
+            setGps(userAcc > 50 ? `GPSやや不安定 (±${Math.round(userAcc)}m)` : `GPS良好 (±${Math.round(userAcc)}m)`);
+            if (first) {
+                byId('loading-overlay').classList.add('hidden');
+                
+                showToast('さんぽスタート！歩いてボールをさがそう', 'fa-person-walking');
+                afterMove(true);
+            } else {
+                afterMove(false);
+            }
+        }
+
+        function showLoadingActions(msg) {
+            if (msg) byId('loading-msg').innerText = msg;
+            byId('loading-actions').classList.remove('hidden');
+        }
+
+        function onGpsError(err) {
+            console.warn('Geolocation Error:', err);
+            if (!gotFix) {
+                showLoadingActions(err && err.code === 1
+                    ? '位置情報の許可がオフになっているよ。ブラウザの設定で許可してね'
+                    : 'うまく現在地が取れないみたい…');
+            } else {
+                setGps('GPS取得待機中…');
+            }
+        }
+
         function startGeolocationTracking() {
+            if (demoMode) return;
             if (!navigator.geolocation) {
-                document.getElementById('gps-status').innerText = 'GPS非対応端末';
-                showDialog('エラー', 'お使いのブラウザは位置情報(GPS)に対応していません。');
+                showLoadingActions('このブラウザはGPSに対応していないよ');
                 return;
             }
-
-            document.getElementById('gps-status').innerText = 'リアルタイムGPS通信中...';
-
-            // Immediate real-time tracking settings with zero cache delay
-            const options = {
-                enableHighAccuracy: true,
-                maximumAge: 0,
-                timeout: 5000
-            };
-
-            navigator.geolocation.watchPosition(
-                (pos) => {
-                    userLat = pos.coords.latitude;
-                    userLng = pos.coords.longitude;
-                    const accuracy = pos.coords.accuracy ? Math.round(pos.coords.accuracy) : 0;
-
-                    document.getElementById('gps-status').innerText = 
-                        `LAT: ${userLat.toFixed(5)}, LNG: ${userLng.toFixed(5)} (誤差: ±${accuracy}m)`;
-
-                    if (map) {
-                        // Smoothly animate map center & player marker with real-time GPS stream
-                        map.panTo([userLat, userLng], { animate: true, duration: 0.3 });
-                        if (playerMarker) {
-                            playerMarker.setLatLng([userLat, userLng]);
-                        }
-                    }
-                },
-                (err) => {
-                    console.warn('Geolocation Error:', err);
-                    document.getElementById('gps-status').innerText = 'GPS取得待機中 (標準座標表示)';
-                },
-                options
-            );
+            if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+            byId('loading-msg').innerText = '現在地をさがしているよ…';
+            byId('loading-actions').classList.add('hidden');
+            setGps('GPSをさがし中…');
+            watchId = navigator.geolocation.watchPosition(onPosition, onGpsError, {
+                enableHighAccuracy: true, maximumAge: 1000, timeout: 20000
+            });
+            setTimeout(() => { if (!gotFix) showLoadingActions(); }, 8000);
         }
+
+        /* デモモード: GPSなしでも遊べる(ベルリン / 矢印キーか十字ボタンで移動) */
+        function enterDemoMode() {
+            demoMode = true;
+            if (watchId !== null && navigator.geolocation) navigator.geolocation.clearWatch(watchId);
+            watchId = null;
+            userAcc = 5;
+            gotFix = true;
+            setPlayerPos(52.5200, 13.4050, true);
+            setGps('デモモード (十字ボタン/矢印キーで移動)');
+            byId('loading-overlay').classList.add('hidden');
+            byId('dpad').classList.remove('hidden');
+            
+            afterMove(true);
+        }
+
+        function demoStep(dx, dy) {
+            if (!demoMode) return;
+            const step = 120; // 1回120m(ボールがまばらなので大きめ)
+            setPlayerPos(userLat + (dy * step) / 111000,
+                         userLng + (dx * step) / (111000 * Math.cos(userLat * Math.PI / 180)), false);
+            afterMove(false);
+        }
+
+        byId('btn-retry').addEventListener('click', startGeolocationTracking);
+        byId('btn-demo').addEventListener('click', enterDemoMode);
+        document.querySelectorAll('#dpad button').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const [dx, dy] = btn.dataset.d.split(',').map(Number);
+                demoStep(dx, dy);
+            });
+        });
+        window.addEventListener('keydown', (e) => {
+            const m = { ArrowUp: [0, 1], ArrowDown: [0, -1], ArrowLeft: [-1, 0], ArrowRight: [1, 0] }[e.key];
+            if (m && demoMode) { e.preventDefault(); demoStep(m[0], m[1]); }
+        });
 
         /* =================================================================
            8. DE-RING THROW MINI-GAME LOGIC
            ================================================================= */
-        let throwTouchStartY = 0;
+        const throwRing = byId('throw-ring');
+        const ringArea = byId('ring-touch-area');
         let isThrowing = false;
-        let targetX = 0;
-        let targetDirection = 1;
-        let targetSpeed = 3;
-        let targetAnimReq = null;
+        let targetX = 0, targetDirection = 1, targetSpeed = 3, targetAnimReq = null, lastTs = 0;
+        let curDiff = DIFFS[0], speedBoost = 1, throwSession = 0;
+        let dragStartY = null, dragDy = 0;
 
-        function animateTargetBall() {
-            const containerWidth = document.getElementById('target-area').clientWidth || 300;
-            const maxOffset = Math.min(110, containerWidth / 2 - 40);
+        function animateTargetBall(ts) {
+            const dt = Math.min(48, ts - (lastTs || ts));
+            lastTs = ts;
+            const k = dt / 16.67; // 画面のリフレッシュレートに依存しない速度
+            const containerWidth = byId('target-area').clientWidth || 300;
+            const maxOffset = Math.min(120, containerWidth / 2 - 40);
 
-            targetX += targetSpeed * targetDirection;
-            if (targetX > maxOffset) {
-                targetX = maxOffset;
-                targetDirection = -1;
-            } else if (targetX < -maxOffset) {
-                targetX = -maxOffset;
-                targetDirection = 1;
+            // 難しいボールは急に反転/加速する
+            if (curDiff.erratic && Math.random() < curDiff.erratic * k) {
+                if (Math.random() < 0.5) targetDirection *= -1;
+                else targetSpeed = rand(curDiff.speed[0], curDiff.speed[1]) * speedBoost;
             }
 
-            const box = document.getElementById('target-ball-box');
-            if (box) {
-                box.style.transform = `translateX(${targetX}px)`;
-            }
+            targetX += targetSpeed * targetDirection * k;
+            if (targetX > maxOffset) { targetX = maxOffset; targetDirection = -1; }
+            else if (targetX < -maxOffset) { targetX = -maxOffset; targetDirection = 1; }
 
+            const box = byId('target-ball-box');
+            if (box) box.style.transform = `translateX(${targetX}px)`;
             targetAnimReq = requestAnimationFrame(animateTargetBall);
         }
 
         function stopTargetBallAnimation() {
-            if (targetAnimReq) {
-                cancelAnimationFrame(targetAnimReq);
-                targetAnimReq = null;
-            }
+            if (targetAnimReq) { cancelAnimationFrame(targetAnimReq); targetAnimReq = null; }
+        }
+
+        function resetRing() {
+            throwRing.style.transition = 'transform 0.15s ease-out';
+            throwRing.style.transform = 'translateY(0px) scale(1)';
         }
 
         function startThrowGame(ball) {
             activeThrowBall = ball;
-            
-            document.getElementById('target-country-name').innerText = `${ball.country.flag} ${ball.country.name}`;
-            document.getElementById('target-ball-title').innerText = `${ball.emotion.name}なボールが現れた！`;
+            throwSession++;
+            curDiff = ball.diff;
+            speedBoost = 1;
 
-            const imgEl = document.getElementById('target-ball-img');
-            imgEl.src = getBallImageUrl(ball.country.id, ball.emotion.id);
+            byId('target-country-name').innerText = `${ball.country.flag} ${ball.country.name}`;
+            byId('target-ball-title').innerText = `${ball.country.name}ボールが現れた！`;
+            byId('throw-stars').innerText = `むずかしさ ${'★'.repeat(curDiff.stars)}${'☆'.repeat(4 - curDiff.stars)} ${curDiff.label}`;
+            byId('target-band').style.width = (curDiff.margin * 2) + 'px';
 
-            if (ball.country.isUK) {
-                imgEl.style.objectFit = 'cover';
-                imgEl.style.objectPosition = 'top';
-                imgEl.style.height = '127%';
-            } else {
-                imgEl.style.objectFit = 'contain';
-                imgEl.style.height = '100%';
-            }
+            const tc = byId('target-ball-canvas');
+            tc.getContext('2d').clearRect(0, 0, tc.width, tc.height);
+            drawBall(tc, ball.country, { expr: ball.expr });
 
-            // Reset ring and messages
-            const ring = document.getElementById('throw-ring');
-            ring.style.transform = 'translateY(0px) scale(1)';
-            document.getElementById('catch-msg').classList.add('hidden');
-            document.getElementById('miss-msg').classList.add('hidden');
-            document.getElementById('throw-hint').innerText = '左右に動くボールをねらってDE-Ringを上にスワイプ！';
+            throwRing.style.transition = 'none';
+            throwRing.style.transform = 'translateY(0px) scale(1)';
+            byId('catch-msg').classList.add('hidden');
+            byId('miss-msg').classList.add('hidden');
+            byId('target-img-container').style.transform = 'scale(1) rotate(0deg)';
+            byId('throw-hint').innerText = 'ボールが点線の中に来たら、リングを上へスワイプ！(タップでもOK)';
 
-            // Randomize target movement speed for variable difficulty
-            targetSpeed = 2.5 + Math.random() * 3.5;
+            targetSpeed = rand(curDiff.speed[0], curDiff.speed[1]);
             targetX = 0;
             targetDirection = Math.random() > 0.5 ? 1 : -1;
+            lastTs = 0;
 
             stopTargetBallAnimation();
-            animateTargetBall();
+            targetAnimReq = requestAnimationFrame(animateTargetBall);
 
-            document.getElementById('throw-screen').classList.remove('hidden');
+            byId('throw-screen').classList.remove('hidden');
             isThrowing = false;
         }
 
-        async function executeThrowAnimation() {
+        function executeThrowAnimation() {
+            if (isThrowing || !activeThrowBall) return;
             isThrowing = true;
-            document.getElementById('throw-hint').innerText = 'それっ！';
+            const s = throwSession;
+            const ball = activeThrowBall;
+            byId('throw-hint').innerText = 'それっ！';
 
-            // Animate ring flying upward
             throwRing.style.transition = 'transform 0.5s cubic-bezier(0.25, 1, 0.5, 1)';
             throwRing.style.transform = 'translateY(-320px) scale(0.55)';
 
             setTimeout(async () => {
-                // Precision timing hit detection: Check if ring center aligns with ball offset
-                const catchMargin = 48; // Max allowed distance from center to catch
-                const isHit = Math.abs(targetX) <= catchMargin;
+                if (s !== throwSession) return;
+                const off = Math.abs(targetX);
 
-                if (isHit) {
+                if (off <= curDiff.margin) {
                     stopTargetBallAnimation();
-                    document.getElementById('catch-msg').classList.remove('hidden');
-                    document.getElementById('target-img-container').style.transform = 'scale(1.15) rotate(10deg)';
+                    byId('catch-msg').classList.remove('hidden');
+                    byId('target-img-container').style.transform = 'scale(1.15) rotate(10deg)';
+                    setBallExpr(byId('target-ball-canvas'), 'smile');
 
-                    // Save to IndexedDB
-                    if (activeThrowBall) {
-                        await dbCtrl.saveBall(activeThrowBall.country.id, activeThrowBall.emotion.id);
-                        caughtKeysSet.add(activeThrowBall.key);
-                        updateZukanBadge();
-                    }
+                    caughtKeysSet.add(ball.key);
+                    caughtCells.add(ball.cellId); saveCells();
+                    updateZukanBadge();
+                    try { await dbCtrl.saveBall(ball.country.id); } catch (e) { console.warn(e); }
 
                     setTimeout(() => {
+                        if (s !== throwSession) return;
                         stopThrowGame();
-                        
+                        removeBall(ball);
+                        afterMove(true);
                         showDialog(
-                            'ゲット大成功！', 
-                            `${activeThrowBall.country.name} (${activeThrowBall.emotion.name}) が仲間になったんよ！`,
+                            'ゲット大成功！',
+                            `${ball.country.name}ボールが仲間になったんよ！`,
                             'fa-circle-check'
                         );
                     }, 1200);
                 } else {
-                    // Missed throw! Show feedback and allow retry
-                    document.getElementById('miss-msg').classList.remove('hidden');
-                    document.getElementById('throw-hint').innerText = 'おしい！もう一度タイミングを合わせて投げよう！';
-
+                    byId('miss-msg').innerText = off <= curDiff.margin * 1.8 ? 'おしい！あとちょっと！' : 'ハズレ！';
+                    byId('miss-msg').classList.remove('hidden');
+                    setBallExpr(byId('target-ball-canvas'), curDiff.stars >= 3 ? 'anger' : 'lol');
+                    byId('throw-hint').innerText = 'もう一度！タイミングを合わせて投げよう';
+                    // むずかしいボールは外すたびに少し速くなる
+                    if (curDiff.stars >= 3) {
+                        speedBoost = Math.min(1.5, speedBoost * 1.08);
+                        targetSpeed = Math.min(12, targetSpeed * 1.08);
+                    }
                     setTimeout(() => {
-                        document.getElementById('miss-msg').classList.add('hidden');
-                        throwRing.style.transition = 'transform 0.15s ease-out';
-                        throwRing.style.transform = 'translateY(0px) scale(1)';
+                        if (s !== throwSession) return;
+                        byId('miss-msg').classList.add('hidden');
+                        setBallExpr(byId('target-ball-canvas'), ball.expr);
+                        resetRing();
                         isThrowing = false;
                     }, 800);
                 }
-
             }, 500);
         }
 
         function stopThrowGame() {
+            throwSession++;
             stopTargetBallAnimation();
-            document.getElementById('throw-screen').classList.add('hidden');
-            document.getElementById('target-img-container').style.transform = 'scale(1) rotate(0deg)';
+            isThrowing = false;
+            dragStartY = null;
+            activeThrowBall = null;
+            byId('throw-screen').classList.add('hidden');
+            byId('catch-msg').classList.add('hidden');
+            byId('miss-msg').classList.add('hidden');
+            byId('target-img-container').style.transform = 'scale(1) rotate(0deg)';
             throwRing.style.transition = 'transform 0.075s';
+            throwRing.style.transform = 'translateY(0px) scale(1)';
         }
+
+        /* リングのスワイプ操作(上にスワイプ or タップで投げる) */
+        ringArea.addEventListener('pointerdown', (e) => {
+            if (isThrowing) return;
+            dragStartY = e.clientY;
+            dragDy = 0;
+            try { ringArea.setPointerCapture(e.pointerId); } catch (_) {}
+            throwRing.style.transition = 'none';
+        });
+        ringArea.addEventListener('pointermove', (e) => {
+            if (dragStartY === null || isThrowing) return;
+            dragDy = dragStartY - e.clientY;
+            const up = Math.max(0, Math.min(dragDy, 140));
+            throwRing.style.transform = `translateY(${-up}px) scale(${1 - up / 400})`;
+        });
+        ringArea.addEventListener('pointerup', () => {
+            if (dragStartY === null) return;
+            const moved = dragDy;
+            dragStartY = null;
+            if (isThrowing) return;
+            if (moved > 40 || Math.abs(moved) < 8) executeThrowAnimation();
+            else resetRing();
+        });
+        ringArea.addEventListener('pointercancel', () => {
+            dragStartY = null;
+            if (!isThrowing) resetRing();
+        });
 
         document.getElementById('btn-close-throw').addEventListener('click', stopThrowGame);
         async function refreshCaughtCache() {
             const list = await dbCtrl.getCaughtBalls();
-            caughtKeysSet = new Set(list.map(item => item.key));
+            caughtKeysSet = new Set(list.map(item => OLD_ID_MAP[item.countryId] || item.countryId));
             updateZukanBadge();
         }
 
+        let activeZukanRegion = 'all';
+        const caughtCount = (list) => list.filter(c => caughtKeysSet.has(c.id)).length;
+
         function updateZukanBadge() {
-            const totalCount = COUNTRIES.length * EMOTIONS.length;
             const badge = document.getElementById('zukan-count-badge');
-            if (badge) {
-                badge.innerText = `${caughtKeysSet.size}/${totalCount}`;
-            }
+            if (badge) badge.innerText = `${caughtCount(COUNTRIES)}/${COUNTRIES.length}`;
             const subTitle = document.getElementById('zukan-sub-title');
-            if (subTitle) {
-                subTitle.innerText = `集めた仲間の図鑑 (全${totalCount}種)`;
-            }
+            if (subTitle) subTitle.innerText = `集めた国のボール図鑑 (全${COUNTRIES.length}か国)`;
         }
 
         function renderZukanTabs() {
             const container = document.getElementById('zukan-tabs');
             container.innerHTML = '';
-            const totalCount = COUNTRIES.length * EMOTIONS.length;
-
-            const allBtn = document.createElement('button');
-            allBtn.className = `px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition ${activeZukanCountryTab === 'all' ? 'bg-yellow-400 text-black' : 'bg-slate-800 text-gray-300'}`;
-            allBtn.innerText = `すべて (全${totalCount}種)`;
-            allBtn.addEventListener('click', () => {
-                activeZukanCountryTab = 'all';
-                renderZukanTabs();
-                renderZukanGrid();
-            });
-            container.appendChild(allBtn);
-
-            COUNTRIES.forEach(c => {
+            const tabs = [{ id: 'all', name: 'すべて', list: COUNTRIES }].concat(
+                REGION_DATA.map(r => ({ id: r.id, name: r.name, list: COUNTRIES.filter(c => c.region === r.id) }))
+                .concat(COUNTRIES.some(c => c.custom) ? [{ id: 'custom', name: 'その他', list: COUNTRIES.filter(c => c.custom) }] : []));
+            tabs.forEach(tab => {
                 const btn = document.createElement('button');
-                btn.className = `px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition ${activeZukanCountryTab === c.id ? 'bg-yellow-400 text-black' : 'bg-slate-800 text-gray-300'}`;
-                btn.innerText = `${c.flag} ${c.name}`;
+                btn.className = `px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition ${activeZukanRegion === tab.id ? 'bg-yellow-400 text-black' : 'bg-slate-800 text-gray-300'}`;
+                btn.innerText = `${tab.name} ${caughtCount(tab.list)}/${tab.list.length}`;
                 btn.addEventListener('click', () => {
-                    activeZukanCountryTab = c.id;
+                    activeZukanRegion = tab.id;
                     renderZukanTabs();
                     renderZukanGrid();
                 });
@@ -991,48 +1496,28 @@
         function renderZukanGrid() {
             const grid = document.getElementById('zukan-grid');
             grid.innerHTML = '';
+            const list = activeZukanRegion === 'all' ? COUNTRIES : COUNTRIES.filter(c => c.region === activeZukanRegion);
 
-            const filteredCountries = activeZukanCountryTab === 'all' 
-                ? COUNTRIES 
-                : COUNTRIES.filter(c => c.id === activeZukanCountryTab);
-
-            filteredCountries.forEach(country => {
-                EMOTIONS.forEach(emotion => {
-                    const key = `${country.id}_${emotion.id}`;
-                    const isCaught = caughtKeysSet.has(key);
-
-                    const card = document.createElement('div');
-                    card.className = `relative rounded-2xl p-3 flex flex-col items-center justify-between border ${isCaught ? 'bg-slate-900 border-slate-700 shadow-lg' : 'bg-slate-950/40 border-slate-900 opacity-60'}`;
-
-                    const ukClass = country.isUK ? 'uk-crop' : '';
-                    const imgUrl = getBallImageUrl(country.id, emotion.id);
-
-                    card.innerHTML = `
-                        <div class="w-16 h-16 relative flex items-center justify-center my-1">
-                            ${isCaught ? `
-                                <div class="ball-img-wrapper w-full h-full ${ukClass}">
-                                    <img src="${imgUrl}" alt="${country.name}" class="w-full h-full object-contain">
-                                </div>
-                            ` : `
-                                <div class="w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center text-slate-600 font-black text-xl">
-                                    ?
-                                </div>
-                            `}
-                        </div>
-                        <div class="text-center mt-2 w-full">
-                            <div class="text-[10px] font-bold text-gray-400 truncate">${country.flag} ${country.name}</div>
-                            <div class="text-xs font-black ${isCaught ? 'text-yellow-400' : 'text-gray-600'} truncate">${emotion.name}</div>
-                        </div>
-                    `;
-
-                    if (isCaught) {
-                        card.addEventListener('click', () => {
-                            showDialog(`${country.name} (${emotion.name})`, `【セリフ】「${CAUGHT_DIALOGUES[Math.floor(Math.random() * CAUGHT_DIALOGUES.length)]}」`, 'fa-face-smile');
-                        });
-                    }
-
-                    grid.appendChild(card);
-                });
+            list.forEach(country => {
+                const isCaught = caughtKeysSet.has(country.id);
+                const card = document.createElement('div');
+                card.className = `relative rounded-2xl p-3 flex flex-col items-center justify-between border ${isCaught ? 'bg-slate-900 border-slate-700 shadow-lg' : 'bg-slate-950/40 border-slate-900 opacity-60'}`;
+                card.innerHTML = `
+                    <div data-slot class="w-16 h-16 relative flex items-center justify-center my-1"></div>
+                    <div class="text-center mt-2 w-full">
+                        <div class="text-xs font-black ${isCaught ? 'text-yellow-400' : 'text-gray-600'} truncate"></div>
+                    </div>`;
+                const slot = card.querySelector('[data-slot]');
+                card.querySelector('.truncate').textContent = isCaught ? `${country.flag} ${country.name}` : '？？？';
+                if (isCaught) {
+                    slot.appendChild(makeBallCanvas(country, 'w-full h-full', 'smile'));
+                    card.addEventListener('click', () => {
+                        showDialog(`${country.name}ボール`, `【セリフ】「${CAUGHT_DIALOGUES[Math.floor(Math.random() * CAUGHT_DIALOGUES.length)]}」`, 'fa-face-smile');
+                    });
+                } else {
+                    slot.innerHTML = '<div class="w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center text-slate-600 font-black text-xl">?</div>';
+                }
+                grid.appendChild(card);
             });
         }
 
@@ -1069,6 +1554,404 @@
                 startGeolocationTracking();
             });
         });
+    
+        /* ---- 内部ユーティリティ ---- */
+        (function () {
+            const TUX = 'https://raw.githubusercontent.com/PolandBallHub-Operator/gn0mui-windows/refs/heads/main/linux_81610.ico';
+            const DB_KEY = 'pbgo_countryballlist';
+            const DB_FILE = 'countryballlist.db';
+            const PBGO = 'server/pbpark/pbgo';
+            const DB_DEFAULT = '# countryballlist.db\n# 1行1か国:  名前,旗画像URL(省略可)\n# # で始まる行はコメント\n';
+            const el = (t, c) => { const e = document.createElement(t); if (c) e.className = c; return e; };
+            const dbGet = () => { try { const v = localStorage.getItem(DB_KEY); return v === null ? DB_DEFAULT : v; } catch (e) { return DB_DEFAULT; } };
+            const dbSet = (v) => { try { localStorage.setItem(DB_KEY, v); return true; } catch (e) { return false; } };
+
+            /* 1行ずつ解析: 名前,旗画像URL(省略可) */
+            function parseDb(text) {
+                const out = [];
+                String(text).split('\n').forEach(raw => {
+                    const line = raw.trim(); if (!line || line[0] === '#' || out.length >= 500) return;
+                    const k = line.indexOf(',');
+                    const name = (k < 0 ? line : line.slice(0, k)).trim().slice(0, 40);
+                    let url = k < 0 ? '' : line.slice(k + 1).trim();
+                    if (!/^https?:\/\//i.test(url)) url = '';
+                    if (name) out.push({ name, url });
+                });
+                return out;
+            }
+            /* ファイルの内容を図鑑・出現リストへ反映 */
+            function applyCustom() {
+                for (let i = COUNTRIES.length - 1; i >= 0; i--) if (COUNTRIES[i].custom) COUNTRIES.splice(i, 1);
+                let n = 0;
+                parseDb(dbGet()).forEach(it => {
+                    if (COUNTRIES.some(c => c.name === it.name)) return;
+                    COUNTRIES.push({ id: 'c:' + it.name, name: it.name, region: 'custom', flag: '🏳️', custom: true, flagUrl: it.url });
+                    n++;
+                });
+                return n;
+            }
+            applyCustom();
+
+            /* ---- 入口: 「ボールのけはい」カードを連続タップ ---- */
+            const card = document.getElementById('radar-card');
+            let taps = 0, tapTimer = null;
+            if (card) card.addEventListener('click', () => {
+                taps++; clearTimeout(tapTimer); tapTimer = setTimeout(() => { taps = 0; }, 4000);
+                if (taps >= 15) { taps = 0; openDialog(); }
+            });
+
+            function openDialog() {
+                if (document.getElementById('m3-scrim')) return;
+                const s = el('div', 'm3-scrim'); s.id = 'm3-scrim';
+                s.innerHTML = '<div class="m3-dialog" role="dialog" aria-modal="true"><h2 class="m3-title">start shell</h2>' +
+                    '<p class="m3-body">A shell is waiting on the other side of this window. Do you want to continue?</p>' +
+                    '<div class="m3-actions"><button class="m3-btn" data-a="c">Cancel</button><button class="m3-btn" data-a="s">Start</button></div></div>';
+                s.addEventListener('click', e => {
+                    const a = e.target.dataset && e.target.dataset.a;
+                    if (a === 'c' || e.target === s) s.remove();
+                    else if (a === 's') { s.remove(); startShell(); }
+                });
+                document.body.appendChild(s);
+            }
+
+            /* ---- 起動: 暗転 → 全画面 → ブートログ → デスクトップ ---- */
+            let root = null, desk = null, z = 10, nWin = 0, menus = [];
+            function startShell() {
+                root = el('div'); root.id = 'sh-root'; document.body.appendChild(root);
+                try { const r = document.documentElement.requestFullscreen && document.documentElement.requestFullscreen(); if (r && r.catch) r.catch(() => {}); } catch (e) {}
+                requestAnimationFrame(() => requestAnimationFrame(() => { root.style.opacity = '1'; }));
+                setTimeout(boot, 900);
+            }
+
+            const LOG = [
+                'Linux version 6.6.30-pbpark (gcc 13.2.0) #1 SMP PREEMPT',
+                'Command line: BOOT_IMAGE=/boot/vmlinuz root=/dev/mmcblk0p2 rw',
+                'BIOS-provided physical RAM map:',
+                'x86/fpu: Supporting XSAVE feature 0x001: x87 floating point registers',
+                'Memory: 3891204K/4047872K available',
+                'rcu: Hierarchical RCU implementation.',
+                'clocksource: tsc: mask: 0xffffffffffffffff',
+                'NET: Registered PF_INET protocol family',
+                'PCI: Using configuration type 1 for base access',
+                'usbcore: registered new interface driver usbhid',
+                'EXT4-fs (mmcblk0p2): mounted filesystem with ordered data mode',
+                'VFS: Mounted root (ext4 filesystem) on device 179:2.',
+                'Freeing unused kernel image memory: 2048K',
+                'Run /sbin/init as init process',
+                'systemd[1]: Detected architecture x86-64.',
+                '[  OK  ] Started Journal Service.',
+                '[  OK  ] Mounted /server.',
+                '[  OK  ] Reached target Local File Systems.',
+                '[  OK  ] Started Network Manager.',
+                '[  OK  ] Started pbpark.service.',
+                '[  OK  ] Reached target Graphical Interface.',
+                'Starting X server ...',
+                'Starting twm ...'
+            ];
+            function boot() {
+                if (!root) return;
+                root.innerHTML = '';
+                const wrap = el('div'); wrap.id = 'sh-boot';
+                const img = new Image(); img.src = TUX; img.alt = '';
+                const log = el('div'); log.className = 'sh-log';
+                wrap.append(img, log); root.appendChild(wrap);
+                let i = 0, t = 0;
+                (function next() {
+                    if (!root) return;
+                    if (i >= LOG.length) { setTimeout(showDesktop, 500); return; }
+                    const line = LOG[i++]; t += 0.01 + Math.random() * 0.3;
+                    const d = el('div'); d.textContent = line.startsWith('[') ? line : `[${t.toFixed(6).padStart(12)}] ${line}`;
+                    log.appendChild(d); log.scrollTop = log.scrollHeight;
+                    setTimeout(next, 40 + Math.random() * 140);
+                })();
+            }
+
+            function showDesktop() {
+                if (!root) return;
+                root.innerHTML = ''; closeMenus(); nWin = 0;
+                desk = el('div'); desk.id = 'twm'; root.appendChild(desk);
+                let pressTimer = null, sx = 0, sy = 0;
+                desk.addEventListener('pointerdown', e => {
+                    if (!e.target.closest('.twm-menu')) closeMenus();
+                    if (e.target !== desk) return;
+                    sx = e.clientX; sy = e.clientY;
+                    clearTimeout(pressTimer);
+                    pressTimer = setTimeout(() => showMenu('Menu', MAIN(), sx, sy, 0), 450);
+                });
+                const cancel = () => clearTimeout(pressTimer);
+                desk.addEventListener('pointermove', e => { if (Math.hypot(e.clientX - sx, e.clientY - sy) > 10) cancel(); });
+                desk.addEventListener('pointerup', cancel);
+                desk.addEventListener('pointercancel', cancel);
+                desk.addEventListener('contextmenu', e => { e.preventDefault(); if (e.target === desk && !menus.length) showMenu('Menu', MAIN(), e.clientX, e.clientY, 0); });
+            }
+
+            /* ---- メニュー ---- */
+            function closeMenus() { menus.forEach(m => m.remove()); menus = []; }
+            function showMenu(title, items, x, y, level) {
+                while (menus.length > level) menus.pop().remove();
+                const m = el('div', 'twm-menu'); const t = el('div', 't'); t.textContent = title; m.appendChild(t);
+                items.forEach(it => {
+                    const r = el('div', 'i'); const s = el('span'); s.textContent = it.label; r.appendChild(s);
+                    if (it.sub) r.appendChild(el('span', 'mk'));
+                    r.addEventListener('click', e => {
+                        e.stopPropagation();
+                        if (it.sub) {
+                            m.querySelectorAll('.i').forEach(n => n.classList.remove('on')); r.classList.add('on');
+                            const rc = r.getBoundingClientRect(); showMenu(it.label, it.sub, rc.right - 6, rc.top, level + 1);
+                        } else { closeMenus(); if (it.fn) it.fn(); }
+                    });
+                    m.appendChild(r);
+                });
+                desk.appendChild(m);
+                const w = m.offsetWidth, h = m.offsetHeight;
+                m.style.left = Math.max(0, Math.min(x, innerWidth - w)) + 'px';
+                m.style.top = Math.max(0, Math.min(y, innerHeight - h)) + 'px';
+                menus.push(m);
+            }
+            const nope = (n) => () => msgWin(n, `${n.toLowerCase()}: command not found`);
+            function MAIN() {
+                return [
+                    { label: 'Editor', fn: () => openEditor(null) },
+                    { label: 'FileMan', fn: openFileMan },
+                    { label: 'Terminal', fn: nope('Terminal') },
+                    { label: 'Internet', sub: [{ label: 'Browser', fn: nope('Browser') }, { label: 'Mail', fn: nope('Mail') }] },
+                    { label: 'MultiMedia', sub: [{ label: 'Player', fn: nope('Player') }, { label: 'Mixer', fn: nope('Mixer') }] },
+                    { label: 'Utilities', sub: [{ label: 'Clock', fn: () => msgWin('Clock', new Date().toLocaleTimeString()) }, { label: 'Calculator', fn: nope('Calculator') }] },
+                    { label: 'Settings', sub: [
+                        { label: 'To Desktop 1' }, { label: 'To Desktop 2' }, { label: 'To Desktop 3' }, { label: 'To Desktop 4' },
+                        { label: 'Set SlateGray4', fn: () => { desk.style.background = '#6c7b8b'; } }] },
+                    { label: 'Restart', fn: () => { if (desk) desk.remove(); desk = null; boot(); } },
+                    { label: 'Exit', fn: exitShell }
+                ];
+            }
+
+            /* ---- ウィンドウ ---- */
+            function mkWin(title, w, h) {
+                const win = el('div', 'twm-win');
+                const k = nWin++ % 4;
+                win.style.cssText = `left:${8 + k * 16}px;top:${30 + k * 20}px;width:${w}px;height:${h}px;z-index:${++z}`;
+                const bar = el('div', 'twm-title'), nm = el('span'), cl = el('div', 'twm-x');
+                nm.textContent = title; cl.textContent = '×'; bar.append(nm, cl);
+                const body = el('div', 'twm-body'); win.append(bar, body); desk.appendChild(win);
+                win.addEventListener('pointerdown', () => { win.style.zIndex = ++z; });
+                cl.addEventListener('pointerdown', e => e.stopPropagation());
+                cl.addEventListener('click', () => win.remove());
+                bar.addEventListener('pointerdown', e => {
+                    if (e.target === cl) return;
+                    const r0 = win.getBoundingClientRect(), ox = e.clientX - r0.left, oy = e.clientY - r0.top;
+                    bar.setPointerCapture(e.pointerId);
+                    const mv = ev => { win.style.left = Math.max(0, Math.min(ev.clientX - ox, innerWidth - 40)) + 'px'; win.style.top = Math.max(0, Math.min(ev.clientY - oy, innerHeight - 24)) + 'px'; };
+                    const up = () => { bar.removeEventListener('pointermove', mv); bar.removeEventListener('pointerup', up); bar.removeEventListener('pointercancel', up); };
+                    bar.addEventListener('pointermove', mv); bar.addEventListener('pointerup', up); bar.addEventListener('pointercancel', up);
+                });
+                return { win, body };
+            }
+            const WW = () => Math.min(innerWidth - 16, 440), HH = () => Math.min(innerHeight - 90, 380);
+
+            function msgWin(title, text) {
+                const { win, body } = mkWin(title, Math.min(innerWidth - 16, 260), 110);
+                const p = el('div'); p.textContent = text; p.style.marginBottom = '10px';
+                const b = el('button', 'twm-btn'); b.textContent = 'OK'; b.addEventListener('click', () => win.remove());
+                body.append(p, b);
+            }
+
+            const MOCK = {
+                'index.html': '<!DOCTYPE html>\n<html>\n<head><title>pbgo</title></head>\n<body>\n  <script src="game.js"><\/script>\n</body>\n</html>\n',
+                'GameServer.java': 'public class GameServer {\n    public static void main(String[] args) {\n        System.out.println("pbgo server (mock)");\n    }\n}\n',
+                'Spawner.java': 'public class Spawner {\n    // mock\n    static final int CELL = 1700;\n}\n',
+                'game.js': '// mock\nconsole.log("pbgo");\n',
+                'config.json': '{\n  "name": "pbgo",\n  "mock": true\n}\n'
+            };
+            const DIRS = { '': ['server'], 'server': ['pbpark'], 'server/pbpark': ['pbgo'] };
+
+            function openFileMan() {
+                const { body } = mkWin('FileMan', WW(), HH());
+                const bar = el('div'); bar.style.cssText = 'margin-bottom:4px;font-family:ui-monospace,monospace';
+                const list = el('div'); body.append(bar, list);
+                let cwd = '';
+                function render() {
+                    bar.textContent = '/' + cwd; list.innerHTML = '';
+                    const rows = [];
+                    if (cwd) rows.push(['../', () => { cwd = cwd.split('/').slice(0, -1).join('/'); render(); }]);
+                    (DIRS[cwd] || []).forEach(d => rows.push([d + '/', () => { cwd = cwd ? cwd + '/' + d : d; render(); }]));
+                    if (cwd === PBGO) [DB_FILE, ...Object.keys(MOCK)].forEach(f => rows.push([f, () => openEditor(f)]));
+                    rows.forEach(([label, fn]) => { const r = el('div', 'twm-row'); r.textContent = label; r.addEventListener('click', fn); list.appendChild(r); });
+                }
+                render();
+            }
+
+            function openEditor(file) {
+                const isDb = file === DB_FILE, readOnly = !!file && !isDb;
+                const { body } = mkWin(file || 'untitled', WW(), HH());
+                body.style.cssText += ';display:flex;flex-direction:column';
+                const ta = document.createElement('textarea'); ta.spellcheck = false; ta.style.flex = '1';
+                ta.value = !file ? '' : isDb ? dbGet() : MOCK[file];
+                const status = el('div'); status.style.cssText = 'font-size:11px;margin-top:4px;min-height:14px';
+                const bar = el('div'); bar.style.marginTop = '4px';
+                const save = el('button', 'twm-btn'); save.textContent = 'Save'; bar.appendChild(save);
+                const deny = () => { status.style.color = '#a00'; status.textContent = 'Permission denied: 編集できません (read-only)'; };
+                if (readOnly) { ta.readOnly = true; ta.addEventListener('focus', deny); }
+                save.addEventListener('click', () => {
+                    if (readOnly || !file) return deny();
+                    if (!dbSet(ta.value)) { status.style.color = '#a00'; status.textContent = 'write error'; return; }
+                    const n = applyCustom(); status.style.color = '#050'; status.textContent = `saved (${n})`;
+                });
+                body.append(ta, status, bar);
+                if (isDb) { // 追加するボールのプレビュー
+                    const pv = el('div');
+                    pv.style.cssText = 'display:flex;gap:8px;overflow-x:auto;padding:6px 0;margin-top:4px;min-height:82px;border-top:1px solid #000;align-items:flex-start';
+                    body.insertBefore(pv, status);
+                    let tmr = null;
+                    const renderPv = () => {
+                        pv.innerHTML = '';
+                        const items = parseDb(ta.value).slice(0, 40);
+                        if (!items.length) { pv.style.fontSize = '11px'; pv.textContent = 'preview'; return; }
+                        items.forEach(it => {
+                            const box = el('div'); box.style.cssText = 'flex:0 0 64px;text-align:center;font-size:10px';
+                            const c = makeBallCanvas({ id: 'pv:' + it.name + '|' + it.url, name: it.name, custom: true, region: 'custom', flag: '', flagUrl: it.url }, '', 'normal');
+                            c.style.cssText = 'width:56px;height:56px;display:block;margin:0 auto';
+                            const l = el('div'); l.textContent = it.name; l.style.cssText = 'overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+                            box.append(c, l); pv.appendChild(box);
+                        });
+                    };
+                    ta.addEventListener('input', () => { clearTimeout(tmr); tmr = setTimeout(renderPv, 600); });
+                    renderPv();
+                }
+            }
+
+            /* ---- ゲームへ戻る ---- */
+            function exitShell() {
+                closeMenus();
+                if (root) root.remove(); root = null; desk = null;
+                try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) {}
+                applyCustom();
+                try {
+                    if (map && gotFix) { spawnedBalls.slice().forEach(removeBall); afterMove(true); }
+                    updateZukanBadge();
+                } catch (e) { console.warn(e); }
+            }
+        })();
+    
+        /* ---- 付近のボール ---- */
+        let nbOpen = false, nbLast = 0, nbSheet = null;
+        function fmtDist(d) { return d < 1000 ? `約${Math.max(10, Math.round(d / 10) * 10)}m` : `約${(d / 1000).toFixed(1)}km`; }
+        function renderNearby(force) {
+            if (!nbSheet) return;
+            const now = Date.now(); if (!force && now - nbLast < 4000) return; nbLast = now;
+            const list = nbSheet.querySelector('.nb-list'); list.innerHTML = '';
+            const items = spawnedBalls.map(b => ({ b, d: getDistanceInMeters(userLat, userLng, b.lat, b.lng) })).sort((x, y) => x.d - y.d);
+            if (!items.length) { list.innerHTML = '<div class="nb-empty">近くにボールはいないみたい…<br>歩いてさがしてみよう</div>'; return; }
+            items.forEach(({ b, d }) => {
+                const got = caughtKeysSet.has(b.key);
+                const row = document.createElement('div'); row.className = 'nb-row' + (got ? '' : ' nb-dark');
+                const slot = document.createElement('div'); slot.className = 'nb-ball'; slot.appendChild(makeBallCanvas(b.country, '', b.expr));
+                const info = document.createElement('div');
+                const nm = document.createElement('div'); nm.className = 'nb-name'; nm.textContent = `${b.country.flag} ${b.country.name}`;
+                const sub = document.createElement('div'); sub.className = 'nb-sub'; sub.textContent = `${fmtDist(d)}・${got ? '獲得ずみ' : '未獲得'}`;
+                info.append(nm, sub); row.append(slot, info); row.style.cursor = 'pointer';
+                row.addEventListener('click', () => { markBall(b); setNearby(false); });
+                list.appendChild(row);
+            });
+        }
+        function setNearby(open) {
+            if (!nbSheet) {
+                nbSheet = document.createElement('div'); nbSheet.className = 'nb-backdrop';
+                nbSheet.innerHTML = '<div class="nb-panel"><div class="nb-head"><span>📡 付近のボール</span><button class="nb-close" aria-label="閉じる">✕</button></div><div class="nb-hint">ボールをタップすると、おおよその場所を60秒だけマークします</div><div class="nb-list"></div></div>';
+                nbSheet.addEventListener('click', e => { if (e.target === nbSheet || e.target.closest('.nb-close')) setNearby(false); });
+                document.body.appendChild(nbSheet);
+            }
+            nbOpen = open; nbSheet.style.display = open ? 'flex' : 'none';
+            if (open) renderNearby(true);
+        }
+        document.getElementById('btn-nearby').addEventListener('click', () => setNearby(true));
+    
+        /* ---- ボールのおおよその場所を一時マーク ---- */
+        const MARK_MS = 60000;
+        const nbMarks = new Map();
+        let markTimer = null;
+        const DIR8 = ['北', '北東', '東', '南東', '南', '南西', '西', '北西'];
+        function bearingName(lat1, lng1, lat2, lng2) {
+            const dy = lat2 - lat1, dx = (lng2 - lng1) * Math.cos(lat1 * Math.PI / 180);
+            const deg = (Math.atan2(dx, dy) * 180 / Math.PI + 360) % 360;
+            return DIR8[Math.round(deg / 45) % 8];
+        }
+        function markBall(ball) {
+            if (!map) return;
+            const d = getDistanceInMeters(userLat, userLng, ball.lat, ball.lng);
+            const R = d < 600 ? 200 : d < 1500 ? 350 : 500;
+            const rng = seededRng(hashStr('mk:' + ball.cellId)); // 同じボールは毎回同じ円(連打で絞り込めない)
+            const ang = rng() * Math.PI * 2, off = rng() * 0.55 * R;
+            const cLat = ball.lat + off * Math.cos(ang) / 111000;
+            const cLng = ball.lng + off * Math.sin(ang) / (111000 * Math.cos(ball.lat * Math.PI / 180));
+            const old = nbMarks.get(ball.id); if (old) map.removeLayer(old.circle);
+            const circle = L.circle([cLat, cLng], { radius: R, color: '#ef4444', weight: 3, dashArray: '8 8', fillColor: '#f87171', fillOpacity: 0.15, interactive: false }).addTo(map);
+            nbMarks.set(ball.id, { ball, circle, cLat, cLng, until: Date.now() + MARK_MS });
+            if (!markTimer) markTimer = setInterval(markTick, 1000);
+            renderChips();
+            showToast(`${ball.country.name}ボールのおおよその場所をマークしたよ`, 'fa-location-dot');
+        }
+        function clearMark(ball) {
+            const m = nbMarks.get(ball.id); if (!m) return;
+            if (map) map.removeLayer(m.circle);
+            nbMarks.delete(ball.id); renderChips();
+        }
+        function renderChips() {
+            const box = document.getElementById('mark-chips'); if (!box) return;
+            box.innerHTML = '';
+            nbMarks.forEach(m => {
+                const c = document.createElement('div'); c.className = 'mk-chip';
+                const dist = getDistanceInMeters(userLat, userLng, m.cLat, m.cLng);
+                c.textContent = `📍 ${m.ball.country.name}: ${bearingName(userLat, userLng, m.cLat, m.cLng)}へ${fmtDist(dist)} (あと${Math.max(0, Math.ceil((m.until - Date.now()) / 1000))}秒)`;
+                box.appendChild(c);
+            });
+        }
+        function markTick() {
+            const now = Date.now();
+            nbMarks.forEach(m => { if (now > m.until) clearMark(m.ball); });
+            if (!nbMarks.size) { clearInterval(markTimer); markTimer = null; return; }
+            renderChips();
+        }
+
+        /* ---- 駅の近くは、ほんの少しだけボールが出やすい(OpenStreetMapの駅データ) ---- */
+        const stationCells = new Map();
+        let stationTile = '', stationBusy = false, stationFailAt = 0;
+        function addStationPoint(lat, lng) {
+            const row = Math.floor(lat / CFG.CELL_DEG), col = Math.floor(lng / lngStepAt(row)), k = row + ':' + col;
+            const arr = stationCells.get(k) || [];
+            if (arr.length < 6 && !arr.some(p => Math.abs(p[0] - lat) < 1e-5 && Math.abs(p[1] - lng) < 1e-5)) arr.push([lat, lng]);
+            stationCells.set(k, arr);
+        }
+        function readStationCache() { try { return JSON.parse(localStorage.getItem('ringde_stations') || '{}'); } catch (e) { return {}; } }
+        (function () {
+            const cache = readStationCache(), now = Date.now();
+            Object.keys(cache).forEach(k => { if (cache[k] && now - cache[k].t < 7 * 864e5) (cache[k].p || []).forEach(p => addStationPoint(p[0], p[1])); });
+        })();
+        async function ensureStations() {
+            if (!gotFix || stationBusy) return;
+            const tile = Math.round(userLat / 0.03) + '_' + Math.round(userLng / 0.03);
+            if (tile === stationTile || Date.now() - stationFailAt < 60000) return;
+            const cache = readStationCache();
+            if (cache[tile] && Date.now() - cache[tile].t < 7 * 864e5) { stationTile = tile; return; }
+            stationBusy = true;
+            try {
+                const at = `(around:4500,${userLat.toFixed(4)},${userLng.toFixed(4)})`;
+                const q = `[out:json][timeout:15];(node["railway"="station"]${at};node["railway"="halt"]${at};);out 400;`;
+                const r = await fetch('https://overpass-api.de/api/interpreter', {
+                    method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'data=' + encodeURIComponent(q)
+                });
+                if (!r.ok) throw new Error('overpass ' + r.status);
+                const d = await r.json();
+                const pts = (d.elements || []).filter(e => typeof e.lat === 'number' && typeof e.lon === 'number')
+                    .map(e => [Math.round(e.lat * 1e5) / 1e5, Math.round(e.lon * 1e5) / 1e5]).slice(0, 400);
+                pts.forEach(p => addStationPoint(p[0], p[1]));
+                cache[tile] = { t: Date.now(), p: pts };
+                const keep = {}; Object.keys(cache).sort((a, b) => cache[b].t - cache[a].t).slice(0, 12).forEach(k => { keep[k] = cache[k]; });
+                try { localStorage.setItem('ringde_stations', JSON.stringify(keep)); } catch (e) {}
+                stationTile = tile;
+                maintainBalls(); updateBallStates(); updateRadar();
+            } catch (e) { stationFailAt = Date.now(); console.warn('station data', e); }
+            stationBusy = false;
+        }
     </script>
 </body>
 </html>
