@@ -257,7 +257,51 @@
         .nb-empty { padding: 24px; text-align: center; color: #64748b; font-weight: 700; line-height: 1.6; }
         .nb-hint { padding: 8px 18px 0; font-size: 11px; color: #94a3b8; font-weight: 700; }
         .mk-chip { background: rgba(255,255,255,0.95); border: 1px solid #fecaca; border-radius: 999px; padding: 4px 10px; font-size: 11px; font-weight: 800; color: #b91c1c; box-shadow: 0 2px 8px rgba(0,0,0,0.15); align-self: flex-start; }
+        .pb-body { padding: 12px 18px 20px; overflow: auto; }
+        .pb-balance-wrap { text-align: center; margin: 4px 0; }
+        .pb-balance { font-size: 44px; font-weight: 900; color: #6200ee; }
+        .pb-unit { font-weight: 800; color: #6200ee; margin-left: 4px; }
+        .pb-sub { font-size: 11px; color: #64748b; font-weight: 700; text-align: center; margin-bottom: 12px; }
+        .pb-title { font-weight: 900; color: #334155; margin: 6px 0; }
+        .pb-item { display: flex; align-items: center; gap: 12px; padding: 10px; border-radius: 16px; background: #f8fafc; margin-bottom: 8px; }
+        .pb-ico { font-size: 28px; }
+        .pb-txt { flex: 1; display: flex; flex-direction: column; font-size: 12px; color: #64748b; }
+        .pb-txt b { color: #1e293b; font-size: 14px; }
+        .pb-buy { background: #6200ee; color: #fff; border: 0; border-radius: 999px; padding: 8px 14px; font-weight: 900; }
+        .pb-buy:active { opacity: 0.85; }
+        .pb-hint { font-size: 11px; color: #94a3b8; font-weight: 700; text-align: right; }
 </style>
+    <script src="/pbpark/points/points.js"></script>
+    <script>
+        /* points.js が読み込めない場合の代替(Polalis と同じ。共通キー pb_user_points) */
+        if (!window.PBPoints && window.PointsSystem) window.PBPoints = window.PointsSystem;
+        if (!window.PBPoints) {
+            window.PBPoints = {
+                get: function () {
+                    const val = localStorage.getItem('pb_user_points');
+                    return val ? Math.max(0, parseInt(val, 10) || 0) : 0;
+                },
+                add: function (amount) {
+                    const next = Math.max(0, this.get() + amount);
+                    localStorage.setItem('pb_user_points', next.toString());
+                    window.dispatchEvent(new CustomEvent('pointsUpdated', { detail: next }));
+                    return next;
+                },
+                set: function (amount) {
+                    const next = Math.max(0, Math.floor(amount));
+                    localStorage.setItem('pb_user_points', next.toString());
+                    window.dispatchEvent(new CustomEvent('pointsUpdated', { detail: next }));
+                    return next;
+                },
+                onChange: function (cb) {
+                    const handler = () => cb(this.get());
+                    window.addEventListener('pointsUpdated', handler);
+                    window.addEventListener('storage', handler);
+                    return () => { window.removeEventListener('pointsUpdated', handler); window.removeEventListener('storage', handler); };
+                }
+            };
+        }
+    </script>
 </head>
 <body class="bg-slate-950 text-white select-none overflow-hidden">
 
@@ -328,6 +372,7 @@
             <div id="toast" class="hidden absolute top-20 left-1/2 -translate-x-1/2 z-30 max-w-[90%] bg-slate-900/90 text-white text-sm font-bold px-4 py-2.5 rounded-full shadow-xl flex items-center gap-2 pointer-events-none"></div>
 
             <button id="btn-nearby" class="absolute left-4 top-24 z-20 bg-white/95 border border-slate-200 rounded-2xl shadow-xl px-3 py-2 text-sm font-black text-slate-700 flex items-center gap-1.5"><i class="fa-solid fa-location-crosshairs text-amber-500"></i>付近のボール</button>
+            <button id="btn-pb" class="absolute left-44 top-24 z-20 bg-white/95 border border-slate-200 rounded-2xl shadow-xl px-3 py-2 text-sm font-black text-violet-700 flex items-center gap-1.5">🪙 <span id="pb-bal">0</span><span id="pb-scan" style="display:none">🔭</span></button>
 
             <div id="mark-chips" class="absolute left-4 top-36 z-20 flex flex-col gap-1 pointer-events-none"></div>
 
@@ -402,7 +447,7 @@
                     <h2 id="target-ball-title" class="text-xl font-black text-white">野生のボールが現れた！</h2>
                     <div id="throw-stars" class="text-xs font-bold text-amber-300 mt-0.5"></div>
                 </div>
-                <div class="w-10"></div>
+                <button id="snack-btn" class="h-10 px-3 rounded-full bg-amber-400 text-slate-900 font-black text-xs flex items-center justify-center gap-1 border border-amber-200" title="おやつをあげる (1pt)">🍪 1pt</button>
             </div>
 
             <!-- Target Area (Ball Floating) -->
@@ -824,8 +869,8 @@
             SPAWN_PROB: 0.6,     // 1マスにボールがいる確率(約1〜2kmに1体)
             EPOCH_HOURS: 12,     // この時間ごとにボールの配置が入れ替わる
             HINT_R: 120,         // この距離で「影」が見える
-            REVEAL_R: 45,        // この距離で姿がはっきり見える
-            CATCH_R: 25          // この距離以内でタップして捕獲開始
+            REVEAL_R: 55,        // この距離で姿がはっきり見える
+            CATCH_R: 40          // この距離以内でタップして捕獲開始
         };
 
         /* 捕まえる難しさ (出現時にランダムで決定) */
@@ -915,7 +960,7 @@
             });
             playerMarker = L.marker([userLat, userLng], { icon: playerIcon, zIndexOffset: 1000, interactive: false }).addTo(map);
             playerCircle = L.circle([userLat, userLng], {
-                radius: CFG.REVEAL_R, color: '#f59e0b', weight: 2, dashArray: '6 6',
+                radius: CFG.CATCH_R, color: '#f59e0b', weight: 2, dashArray: '6 6',
                 fillColor: '#fbbf24', fillOpacity: 0.12, interactive: false
             }).addTo(map);
 
@@ -1111,7 +1156,7 @@
             const revealR = Math.max(CFG.REVEAL_R, catchRadius() + 10);
             spawnedBalls.forEach(b => {
                 const d = getDistanceInMeters(userLat, userLng, b.lat, b.lng);
-                const s = d <= revealR ? 2 : d <= CFG.HINT_R ? 1 : 0;
+                const s = d <= revealR ? 2 : d <= (scanActive() ? CFG.HINT_R * 2 : CFG.HINT_R) ? 1 : 0;
                 if (s === b.state) return;
                 const prev = b.state;
                 b.state = s;
@@ -1307,7 +1352,7 @@
                 else targetSpeed = rand(curDiff.speed[0], curDiff.speed[1]) * speedBoost;
             }
 
-            targetX += targetSpeed * targetDirection * k;
+            targetX += targetSpeed * (performance.now() < snackUntil ? 0.5 : 1) * targetDirection * k;
             if (targetX > maxOffset) { targetX = maxOffset; targetDirection = -1; }
             else if (targetX < -maxOffset) { targetX = -maxOffset; targetDirection = 1; }
 
@@ -1355,6 +1400,7 @@
             stopTargetBallAnimation();
             targetAnimReq = requestAnimationFrame(animateTargetBall);
 
+            snackUntil = 0;
             byId('throw-screen').classList.remove('hidden');
             isThrowing = false;
         }
@@ -1952,6 +1998,74 @@
             } catch (e) { stationFailAt = Date.now(); console.warn('station data', e); }
             stationBusy = false;
         }
+    
+        /* =================================================================
+           PBポイント = PB Park 全体で共通のポイント (/pbpark/points/points.js の window.PBPoints)
+           消費は Polalis と同じく PBPoints.add(-n)
+           ================================================================= */
+        const PBP = {
+            get: () => (window.PBPoints ? window.PBPoints.get() : 0),
+            add: (n) => (window.PBPoints ? window.PBPoints.add(n) : 0),
+            spend: (n) => { if (!window.PBPoints || window.PBPoints.get() < n) return false; window.PBPoints.add(-n); return true; },
+            onChange: (cb) => (window.PBPoints && window.PBPoints.onChange ? window.PBPoints.onChange(() => cb(window.PBPoints.get())) : () => {})
+        };
+
+        /* 1ポイントでできること */
+        let scanUntil = 0, scanTimer = null, snackUntil = 0, pbSheet = null;
+        const scanActive = () => Date.now() < scanUntil;
+
+        function buySensor() { // 🔭 気配センサー: 90秒間、影が見える範囲が2倍
+            if (!PBP.spend(1)) { showToast('PBポイントが足りないよ。PB Parkでポイントを貯めてね', 'fa-coins'); return; }
+            scanUntil = Math.max(Date.now(), scanUntil) + 90000;
+            if (!scanTimer) scanTimer = setInterval(() => {
+                if (!scanActive()) { clearInterval(scanTimer); scanTimer = null; updateBallStates(); updateRadar(); }
+                updatePbUI();
+            }, 1000);
+            updateBallStates(); updateRadar(); updatePbUI();
+            showToast('気配センサーON！90秒、ボールの影が見える範囲が2倍になるよ', 'fa-binoculars');
+        }
+
+        const snackBtn = document.getElementById('snack-btn'); // 🍪 おやつ: 捕獲中の10秒、ボールがゆっくり
+        snackBtn.addEventListener('click', () => {
+            if (!activeThrowBall) return;
+            const hint = document.getElementById('throw-hint');
+            if (performance.now() < snackUntil) { hint.innerText = '🍪 おやつ中だよ！いまがチャンス'; return; }
+            if (!PBP.spend(1)) { hint.innerText = 'PBポイントが足りないよ'; return; }
+            snackUntil = performance.now() + 10000;
+            setBallExpr(document.getElementById('target-ball-canvas'), 'smile');
+            hint.innerText = '🍪 おやつをあげた！10秒ゆっくりになるよ';
+        });
+
+        function updatePbUI() {
+            const bal = document.getElementById('pb-bal'); if (bal) bal.textContent = PBP.get().toLocaleString();
+            const sc = document.getElementById('pb-scan'); if (sc) sc.style.display = scanActive() ? 'inline' : 'none';
+            if (pbSheet && pbSheet.style.display !== 'none') {
+                pbSheet.querySelector('.pb-balance').textContent = PBP.get().toLocaleString();
+                const rem = Math.max(0, Math.ceil((scanUntil - Date.now()) / 1000));
+                pbSheet.querySelector('.pb-scan-note').textContent = rem ? `(ON・あと${rem}秒)` : '';
+            }
+        }
+        function setPb(open) {
+            if (!pbSheet) {
+                pbSheet = document.createElement('div'); pbSheet.className = 'nb-backdrop';
+                pbSheet.innerHTML = '<div class="nb-panel"><div class="nb-head"><span>🪙 PBポイント</span><button class="nb-close" aria-label="閉じる">✕</button></div>' +
+                    '<div class="pb-body"><div class="pb-balance-wrap"><span class="pb-balance">0</span><span class="pb-unit">pt</span></div>' +
+                    '<div class="pb-sub">PB Park全体で共通のポイントです。このゲームではポイントは貯まらず、使うだけです</div>' +
+                    '<div class="pb-title">1ポイントでできること！</div>' +
+                    '<div class="pb-item"><div class="pb-ico">🔭</div><div class="pb-txt"><b>気配センサー</b><span>90秒間、ボールの影が見える範囲が約2倍 <i class="pb-scan-note"></i></span></div><button class="pb-buy" data-buy="sensor">1pt</button></div>' +
+                    '<div class="pb-item"><div class="pb-ico">🍪</div><div class="pb-txt"><b>おやつ</b><span>捕まえるとき、🍪ボタンで10秒ゆっくりに</span></div><div class="pb-hint">捕獲中に使う</div></div></div></div>';
+                pbSheet.addEventListener('click', e => {
+                    if (e.target === pbSheet || e.target.closest('.nb-close')) setPb(false);
+                    else if (e.target.closest('[data-buy="sensor"]')) buySensor();
+                });
+                document.body.appendChild(pbSheet);
+            }
+            pbSheet.style.display = open ? 'flex' : 'none';
+            updatePbUI();
+        }
+        document.getElementById('btn-pb').addEventListener('click', () => setPb(true));
+        PBP.onChange(updatePbUI);
+        updatePbUI();
     </script>
 </body>
 </html>
