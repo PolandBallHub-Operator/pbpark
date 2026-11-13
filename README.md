@@ -1,10 +1,6 @@
 国+ボールで、すべての人が世界の国々について知り、知見を増やしたり、海外旅行への関心の目的を目指した教育&ひといきつけるミニゲーム
-<h1>PBP5<h1>
-  風刺の完全除去修整！
-<h1>PBPark<h1>
-国ボール がテーマのWebアプリ！便利ツールの詰め合わせ！
-<br>NEW SITE https://polandballhub-operator.github.io/pbpark/
-<img src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/newballs/germany/normal.png">
+<h1>国々を知ろう！CountryPark<h1>
+国+ボール がテーマのWebアプリ！便利ツールの詰め合わせ！
 - 【登場する「国・地域」について】
 このゲームに登場する197のキャラクターは、日本の外務省が発表している「世界の国々・地域」のリストなどを参考に作成しています。
 世界の多様さや地理の面白さを子供たちに楽しく知ってもらうことを目的としており、特定の政治的立場や主張を示すものではありません。
