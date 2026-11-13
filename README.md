@@ -4,8 +4,11 @@
 <h1>PBPark<h1>
 国ボール がテーマのWebアプリ！便利ツールの詰め合わせ！
 <br>NEW SITE https://polandballhub-operator.github.io/pbpark/
-<img src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/newballs/germany/fronthaha.png">
 <img src="https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/newballs/germany/normal.png">
+- 【登場する「国・地域」について】
+このゲームに登場する197のキャラクターは、日本の外務省が発表している「世界の国々・地域」のリストなどを参考に作成しています。
+世界の多様さや地理の面白さを子供たちに楽しく知ってもらうことを目的としており、特定の政治的立場や主張を示すものではありません。
+- 地理のファンの5人でほそぼそと開発を続けています。誰もが不快なくたのしめるツールとなっています。
 <br>PBポイント,PBProについて
 <br>→これらはOpenSource向けのサンプル挙動です。是非参考にお使いください。
 <br>当ツールは「無料、オープンソース」を掲げています。
