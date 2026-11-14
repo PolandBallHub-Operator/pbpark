@@ -1,0 +1,2382 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>世界の！・クラウドランナー 3D！</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;800;900&display=swap" rel="stylesheet">
+  <!-- Three.js r128 読み込み -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <style>
+    /* ==========================================================================
+       独自のUIスタイル（Tailwind CSS不使用・スマホゲーム風ポップデザイン）
+       ========================================================================== */
+    :root {
+      --bg-sky-top: #4facfe;
+      --bg-sky-bottom: #00f2fe;
+      --primary: #ff6b6b;
+      --primary-dark: #ee5253;
+      --secondary: #1dd1a1;
+      --secondary-dark: #10ac84;
+      --accent: #feca57;
+      --accent-dark: #ff9f43;
+      --blue: #54a0ff;
+      --blue-dark: #2e86de;
+      --card-bg: rgba(255, 255, 255, 0.94);
+      --text-main: #222f3e;
+      --text-sub: #576574;
+    }
+
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: 'M PLUS Rounded 1c', system-ui, -apple-system, sans-serif;
+      background: linear-gradient(180deg, #2d3436 0%, #1e272e 100%);
+      color: var(--text-main);
+    }
+
+    #app-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      max-width: 540px;
+      margin: 0 auto;
+      background: linear-gradient(180deg, #74b9ff 0%, #a29bfe 100%);
+      box-shadow: 0 0 40px rgba(0, 0, 0, 0.45);
+      overflow: hidden;
+    }
+
+    /* Three.js メイン3Dキャンバス */
+    #three-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      display: block;
+      touch-action: none;
+    }
+
+    /* 画面共通レイアウト */
+    .screen {
+      position: absolute;
+      inset: 0;
+      z-index: 10;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px;
+      pointer-events: none;
+    }
+
+    .screen.active {
+      display: flex;
+    }
+
+    .screen > * {
+      pointer-events: auto;
+    }
+
+    /* 立体ポップボタン */
+    .pop-btn {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border: none;
+      border-radius: 999px;
+      padding: 14px 28px;
+      font-family: inherit;
+      font-weight: 900;
+      font-size: 18px;
+      color: #fff;
+      cursor: pointer;
+      transition: transform 0.1s ease, box-shadow 0.1s ease, filter 0.15s ease;
+      text-shadow: 0 2px 3px rgba(0, 0, 0, 0.25);
+    }
+
+    .pop-btn:active {
+      transform: translateY(4px);
+      box-shadow: 0 1px 0 rgba(0, 0, 0, 0.25) !important;
+    }
+
+    .pop-btn:disabled {
+      filter: grayscale(0.8);
+      opacity: 0.7;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-primary {
+      background: linear-gradient(180deg, #ff7675 0%, #d63031 100%);
+      box-shadow: 0 6px 0 #b33939, 0 10px 20px rgba(214, 48, 49, 0.35);
+    }
+
+    .btn-green {
+      background: linear-gradient(180deg, #55efc4 0%, #00b894 100%);
+      box-shadow: 0 6px 0 #00896f, 0 10px 20px rgba(0, 184, 148, 0.35);
+    }
+
+    .btn-gold {
+      background: linear-gradient(180deg, #ffeaa7 0%, #fdcb6e 100%);
+      color: #6c4300;
+      text-shadow: 0 1px 0 rgba(255, 255, 255, 0.6);
+      box-shadow: 0 6px 0 #e17055, 0 10px 20px rgba(253, 203, 110, 0.35);
+    }
+
+    /* ==========================================================================
+       1. 初回ダウンロードモーダル（拒否不可）
+       ========================================================================== */
+    #download-screen {
+      background: rgba(15, 23, 42, 0.82);
+      backdrop-filter: blur(8px);
+      justify-content: center;
+      z-index: 50;
+      pointer-events: auto;
+    }
+
+    .modal-card {
+      width: 100%;
+      max-width: 400px;
+      background: #ffffff;
+      border-radius: 28px;
+      padding: 28px 24px;
+      text-align: center;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+      border: 4px solid #74b9ff;
+      animation: popIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    @keyframes popIn {
+      0% { transform: scale(0.8); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .modal-icon {
+      font-size: 52px;
+      margin-bottom: 10px;
+      display: inline-block;
+      animation: bounce 1.5s infinite;
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+
+    .modal-title {
+      font-size: 22px;
+      font-weight: 900;
+      color: var(--text-main);
+      margin-bottom: 10px;
+    }
+
+    .modal-desc {
+      font-size: 14px;
+      color: var(--text-sub);
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+
+    .progress-wrap {
+      width: 100%;
+      background: #dfe6e9;
+      border-radius: 999px;
+      height: 18px;
+      overflow: hidden;
+      margin-bottom: 10px;
+      border: 2px solid #b2bec3;
+      display: none;
+    }
+
+    .progress-bar {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, #00b894, #55efc4);
+      transition: width 0.2s ease;
+    }
+
+    .progress-text {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--blue-dark);
+      margin-bottom: 16px;
+      min-height: 20px;
+    }
+
+    /* ==========================================================================
+       2. タイトル画面（3Dコース上に搭載キャラが集合して「ここを押してスタート」）
+       ========================================================================== */
+    #title-screen {
+      justify-content: space-between;
+      padding-top: 38px;
+      padding-bottom: 48px;
+      cursor: pointer;
+      pointer-events: auto;
+    }
+
+    .title-logo-box {
+      text-align: center;
+      background: rgba(255, 255, 255, 0.94);
+      padding: 16px 26px;
+      border-radius: 30px;
+      border: 4px solid #fff;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+      transform: rotate(-2deg);
+    }
+
+    .title-sub {
+      font-size: 13px;
+      font-weight: 800;
+      color: #e17055;
+      letter-spacing: 1px;
+      margin-bottom: 4px;
+    }
+
+    .title-main {
+      font-size: 27px;
+      font-weight: 900;
+      line-height: 1.15;
+      background: linear-gradient(180deg, #0984e3 0%, #6c5ce7 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .tap-start-badge {
+      background: linear-gradient(180deg, #ffeaa7 0%, #fdcb6e 100%);
+      color: #6c4300;
+      font-size: 22px;
+      font-weight: 900;
+      padding: 16px 36px;
+      border-radius: 999px;
+      border: 4px solid #ffffff;
+      box-shadow: 0 8px 0 #e17055, 0 15px 30px rgba(0, 0, 0, 0.35);
+      animation: pulseTap 1.4s infinite ease-in-out;
+    }
+
+    @keyframes pulseTap {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.07); }
+    }
+
+    /* ==========================================================================
+       3. スマホゲーム風ホーム画面
+       ========================================================================== */
+    #home-screen {
+      padding: 16px;
+      background: linear-gradient(180deg, rgba(116, 185, 255, 0.3) 0%, rgba(162, 155, 254, 0.55) 100%);
+      backdrop-filter: blur(4px);
+    }
+
+    .home-header {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.94);
+      padding: 8px 16px;
+      border-radius: 999px;
+      font-weight: 900;
+      font-size: 16px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      border: 2px solid #fff;
+    }
+
+    .coin-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: linear-gradient(180deg, #ffeaa7, #f39c12);
+      color: #7e5109;
+      font-size: 13px;
+      font-weight: 900;
+      box-shadow: inset 0 -2px 0 rgba(0,0,0,0.2);
+    }
+
+    .home-stage-card {
+      width: 100%;
+      background: var(--card-bg);
+      border-radius: 26px;
+      padding: 14px 18px;
+      text-align: center;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+      border: 3px solid #fff;
+      margin-top: 6px;
+    }
+
+    .stage-badge {
+      display: inline-block;
+      background: #0984e3;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 800;
+      padding: 4px 14px;
+      border-radius: 999px;
+      margin-bottom: 4px;
+    }
+
+    .gimmick-preview {
+      font-size: 12px;
+      font-weight: 800;
+      color: #e17055;
+      margin-top: 2px;
+      margin-bottom: 6px;
+    }
+
+    .leader-showcase {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin: 2px 0;
+    }
+
+    #home-leader-canvas {
+      width: 112px;
+      height: 112px;
+      filter: drop-shadow(0 8px 12px rgba(0, 0, 0, 0.22));
+      animation: floatLeader 2.2s infinite ease-in-out;
+    }
+
+    @keyframes floatLeader {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-7px); }
+    }
+
+    .leader-name-tag {
+      font-size: 18px;
+      font-weight: 900;
+      color: var(--text-main);
+      margin-top: 2px;
+    }
+
+    .char-selector-wrap {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 22px;
+      padding: 10px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+      border: 2px solid #fff;
+    }
+
+    .section-label {
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--text-sub);
+      margin-bottom: 8px;
+      text-align: center;
+    }
+
+    .char-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 6px;
+    }
+
+    .char-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: #f1f2f6;
+      border: 2px solid transparent;
+      border-radius: 14px;
+      padding: 6px 2px;
+      cursor: pointer;
+      transition: transform 0.12s ease, background 0.15s ease, border-color 0.15s ease;
+    }
+
+    .char-item:active {
+      transform: scale(0.93);
+    }
+
+    .char-item.selected {
+      background: #dff9fb;
+      border-color: #0984e3;
+      box-shadow: 0 3px 8px rgba(9, 132, 227, 0.25);
+    }
+
+    .char-item canvas {
+      width: 40px;
+      height: 40px;
+    }
+
+    .char-item span {
+      font-size: 10px;
+      font-weight: 800;
+      color: var(--text-main);
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+    }
+
+    .upgrade-row {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .upgrade-card {
+      background: var(--card-bg);
+      border-radius: 20px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      border: 2px solid #fff;
+      box-shadow: 0 6px 15px rgba(0, 0, 0, 0.12);
+    }
+
+    .upgrade-title {
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--text-sub);
+    }
+
+    .upgrade-val {
+      font-size: 16px;
+      font-weight: 900;
+      color: #0984e3;
+      margin: 2px 0 6px;
+    }
+
+    .upgrade-btn {
+      width: 100%;
+      padding: 8px 10px;
+      font-size: 13px;
+      border-radius: 14px;
+    }
+
+    .play-btn-area {
+      width: 100%;
+      padding-bottom: 4px;
+    }
+
+    .play-btn-big {
+      width: 100%;
+      padding: 16px;
+      font-size: 24px;
+      letter-spacing: 2px;
+    }
+
+    /* ==========================================================================
+       4. ゲームプレイ中のHUD
+       ========================================================================== */
+    #hud-screen {
+      justify-content: space-between;
+      padding: 16px;
+    }
+
+    .hud-top {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .hud-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .progress-track-box {
+      flex: 1;
+      margin: 0 12px;
+      background: rgba(255, 255, 255, 0.92);
+      padding: 6px 12px;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .stage-num-circle {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #0984e3;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .stage-bar-bg {
+      flex: 1;
+      height: 10px;
+      background: #dfe6e9;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .stage-bar-fill {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, #00b894, #55efc4);
+      border-radius: 999px;
+    }
+
+    .crowd-counter-badge {
+      align-self: center;
+      background: #0984e3;
+      color: #fff;
+      font-size: 22px;
+      font-weight: 900;
+      padding: 6px 22px;
+      border-radius: 999px;
+      border: 3px solid #fff;
+      box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
+      transition: transform 0.1s ease, background 0.15s ease;
+    }
+
+    .swipe-hint {
+      background: rgba(0, 0, 0, 0.55);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 800;
+      padding: 10px 22px;
+      border-radius: 999px;
+      margin-bottom: 24px;
+      animation: swipeAnim 1.6s infinite ease-in-out;
+    }
+
+    @keyframes swipeAnim {
+      0%, 100% { transform: translateX(-18px); }
+      50% { transform: translateX(18px); }
+    }
+
+    /* ==========================================================================
+       5. リザルト画面
+       ========================================================================== */
+    #result-screen {
+      background: rgba(15, 23, 42, 0.72);
+      backdrop-filter: blur(6px);
+      justify-content: center;
+      z-index: 30;
+      pointer-events: auto;
+    }
+
+    .result-card {
+      width: 100%;
+      max-width: 380px;
+      background: #fff;
+      border-radius: 30px;
+      padding: 28px 24px;
+      text-align: center;
+      border: 4px solid #ffeaa7;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+      animation: popIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .result-badge {
+      font-size: 48px;
+      margin-bottom: 6px;
+    }
+
+    .result-title {
+      font-size: 28px;
+      font-weight: 900;
+      color: #0984e3;
+      margin-bottom: 12px;
+    }
+
+    .result-stats {
+      background: #f1f2f6;
+      border-radius: 20px;
+      padding: 14px;
+      margin-bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .stat-line {
+      display: flex;
+      justify-content: space-between;
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+
+    /* トースト通知 */
+    #toast {
+      position: absolute;
+      top: 76px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-20px);
+      background: rgba(34, 47, 62, 0.92);
+      color: #fff;
+      padding: 8px 18px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 800;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease, transform 0.25s ease;
+      z-index: 60;
+      white-space: nowrap;
+    }
+
+    #toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+  </style>
+</head>
+<body>
+  <div id="app-container">
+    <!-- Three.js 3Dワールド描画キャンバス -->
+    <canvas id="three-canvas"></canvas>
+
+    <!-- トースト通知 -->
+    <div id="toast">メッセージ</div>
+
+    <!-- 1. 初回起動時ダウンロードモーダル（拒否不可） -->
+    <div id="download-screen" class="screen active">
+      <div class="modal-card">
+        <div class="modal-icon">🌍</div>
+        <h2 class="modal-title">追加コンテンツのダウンロード</h2>
+        <p class="modal-desc">
+          ゲームを遊ぶために、9か国のボールデータと国旗アセットをダウンロードします。<br>
+          （一度保存すると次回からすぐに遊べます！）
+        </p>
+        <div class="progress-wrap" id="dl-progress-wrap">
+          <div class="progress-bar" id="dl-progress-bar"></div>
+        </div>
+        <div class="progress-text" id="dl-progress-text">準備完了</div>
+        <button class="pop-btn btn-green" id="dl-start-btn" style="width: 100%;">
+          ダウンロード開始
+        </button>
+      </div>
+    </div>
+
+    <!-- 2. タイトル画面 -->
+    <div id="title-screen" class="screen">
+      <div class="title-logo-box">
+        <div class="title-sub">みんなで増える3D大行進！</div>
+        <h1 class="title-main">ボール<br>クラウドランナー</h1>
+      </div>
+      <div class="tap-start-badge">
+        ここを押してスタート！
+      </div>
+    </div>
+
+    <!-- 3. スマホゲーム風ホーム画面 -->
+    <div id="home-screen" class="screen">
+      <div class="home-header">
+        <div class="status-pill">
+          <span>🚩 ステージ</span>
+          <span id="home-stage-num" style="color:#0984e3;">1</span>
+        </div>
+        <div class="status-pill">
+          <span class="coin-icon">$</span>
+          <span id="home-coin-num">100</span>
+        </div>
+      </div>
+
+      <div class="home-stage-card">
+        <div class="stage-badge" id="home-stage-label">STAGE 1 - 草原コース</div>
+        <div class="gimmick-preview" id="home-gimmick-info">ギミック: 増減ゲート</div>
+        <div class="leader-showcase">
+          <canvas id="home-leader-canvas" width="220" height="220"></canvas>
+          <div class="leader-name-tag" id="home-leader-name">日本</div>
+        </div>
+      </div>
+
+      <div class="char-selector-wrap">
+        <div class="section-label">リーダー選択（全9か国）</div>
+        <div class="char-grid" id="char-grid"></div>
+      </div>
+
+      <div class="upgrade-row">
+        <div class="upgrade-card">
+          <div class="upgrade-title">スタート人数</div>
+          <div class="upgrade-val" id="upg-start-val">Lv.1 (1人)</div>
+          <button class="pop-btn btn-gold upgrade-btn" id="upg-start-btn">
+            <span class="coin-icon">$</span> <span id="upg-start-cost">50</span>
+          </button>
+        </div>
+        <div class="upgrade-card">
+          <div class="upgrade-title">コインボーナス</div>
+          <div class="upgrade-val" id="upg-coin-val">Lv.1 (1.0倍)</div>
+          <button class="pop-btn btn-gold upgrade-btn" id="upg-coin-btn">
+            <span class="coin-icon">$</span> <span id="upg-coin-cost">50</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="play-btn-area">
+        <button class="pop-btn btn-primary play-btn-big" id="home-play-btn">
+          ▶ PLAY!
+        </button>
+      </div>
+    </div>
+
+    <!-- 4. ゲームプレイ中のHUD -->
+    <div id="hud-screen" class="screen">
+      <div class="hud-top">
+        <div class="hud-row">
+          <div class="status-pill" style="padding: 6px 12px; font-size: 14px;">
+            <span id="hud-leader-flag">🇯🇵</span>
+            <span id="hud-leader-name">日本</span>
+          </div>
+          <div class="progress-track-box">
+            <div class="stage-num-circle" id="hud-stage-cur">1</div>
+            <div class="stage-bar-bg">
+              <div class="stage-bar-fill" id="hud-progress-fill"></div>
+            </div>
+            <span style="font-size: 15px;">🏁</span>
+          </div>
+          <div class="status-pill" style="padding: 6px 12px; font-size: 14px;">
+            <span class="coin-icon">$</span>
+            <span id="hud-coin-num">100</span>
+          </div>
+        </div>
+        <div class="crowd-counter-badge" id="hud-crowd-count">1</div>
+      </div>
+
+      <div class="swipe-hint" id="hud-swipe-hint">
+        ◀ 左右にスワイプして移動 ▶
+      </div>
+    </div>
+
+    <!-- 5. リザルト画面 -->
+    <div id="result-screen" class="screen">
+      <div class="result-card">
+        <div class="result-badge" id="res-emoji">🎉</div>
+        <h2 class="result-title" id="res-title">ステージクリア！</h2>
+        <div class="result-stats">
+          <div class="stat-line">
+            <span>ゴールした仲間</span>
+            <span id="res-crowd" style="color:#0984e3;">25 ボール</span>
+          </div>
+          <div class="stat-line">
+            <span>ボーナス倍率</span>
+            <span id="res-mult" style="color:#00b894;">× 1.5</span>
+          </div>
+          <div class="stat-line">
+            <span>獲得コイン</span>
+            <span id="res-coins" style="color:#e17055;">+ 120 $</span>
+          </div>
+        </div>
+        <button class="pop-btn btn-green" id="res-next-btn" style="width: 100%; font-size: 20px;">
+          つぎへ進む！
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /**
+     * ============================================================================
+     * 1. 搭載キャラクター定義（9か国・全年齢向け）
+     *    中国（cn）は左寄せ（canton: 'left'）を指定して星の意匠を綺麗に配置
+     * ============================================================================
+     */
+    const CHARACTERS = [
+      { id: 'de', name: 'ドイツ', emoji: '🇩🇪', canton: 'center' },
+      { id: 'cn', name: '中国', emoji: '🇨🇳', canton: 'left' },
+      { id: 'jp', name: '日本', emoji: '🇯🇵', canton: 'center' },
+      { id: 'us', name: 'アメリカ', emoji: '🇺🇸', canton: 'center' },
+      { id: 'kr', name: '韓国', emoji: '🇰🇷', canton: 'center' },
+      { id: 'it', name: 'イタリア', emoji: '🇮🇹', canton: 'center' },
+      { id: 'fr', name: 'フランス', emoji: '🇫🇷', canton: 'center' },
+      { id: 'au', name: 'オーストラリア', emoji: '🇦🇺', canton: 'center' },
+      { id: 'at', name: 'オーストリア', emoji: '🇦🇹', canton: 'center' }
+    ];
+
+    /**
+     * ============================================================================
+     * 2. IndexedDB 管理（flagcdnからのダウンロード＆ローカル永続キャッシュ）
+     * ============================================================================
+     */
+    const DB_NAME = 'CountryballRunner3DDB';
+    const DB_VERSION = 1;
+    const STORE_FLAGS = 'flags';
+    const STORE_SAVE = 'saveData';
+
+    function openDB() {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open(DB_NAME, DB_VERSION);
+        req.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains(STORE_FLAGS)) {
+            db.createObjectStore(STORE_FLAGS, { keyPath: 'id' });
+          }
+          if (!db.objectStoreNames.contains(STORE_SAVE)) {
+            db.createObjectStore(STORE_SAVE, { keyPath: 'key' });
+          }
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    async function dbGet(storeName, key) {
+      const db = await openDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(storeName, 'readonly');
+        const req = tx.objectStore(storeName).get(key);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    async function dbPut(storeName, value) {
+      const db = await openDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(storeName, 'readwrite');
+        const req = tx.objectStore(storeName).put(value);
+        req.onsuccess = () => resolve();
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    /**
+     * ============================================================================
+     * 3. ボール描画エンジン（2Dスプライト合成 + Three.jsテクスチャ生成）
+     * ============================================================================
+     */
+    const BASE_ASSET_URL = 'https://raw.githubusercontent.com/PolandBallHub-Operator/pbpark/refs/heads/main/AI/historyai/';
+    const EYE_FILES = {
+      normal: 'eye.png',
+      lol: 'lol.png',
+      smile: 'smile.png',
+      sad: 'sad.png'
+    };
+
+    let ballAssets = null;
+    const flagImageMap = new Map();
+    const spriteCache = new Map();
+    const threeTextureCache = new Map();
+
+    function loadImage(url, useCors = true) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        if (useCors) img.crossOrigin = 'anonymous';
+        img.onload = () => resolve(img);
+        img.onerror = () => resolve(null);
+        img.src = url;
+      });
+    }
+
+    function blobToImage(blob) {
+      return new Promise((resolve) => {
+        const url = URL.createObjectURL(blob);
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => resolve(null);
+        img.src = url;
+      });
+    }
+
+    function analyzeComponents(img, S) {
+      const c = document.createElement('canvas');
+      c.width = c.height = S;
+      const ctx = c.getContext('2d');
+      ctx.drawImage(img, 0, 0, S, S);
+      const d = ctx.getImageData(0, 0, S, S).data;
+      const N = S * S;
+      const label = new Int32Array(N).fill(-1);
+      const comps = [];
+      for (let p = 0; p < N; p++) {
+        if (label[p] >= 0 || d[p * 4 + 3] >= 40) continue;
+        const id = comps.length;
+        const stack = [p];
+        label[p] = id;
+        let area = 0;
+        let edge = false;
+        while (stack.length) {
+          const q = stack.pop();
+          const px = q % S;
+          const py = (q / S) | 0;
+          area++;
+          if (!px || !py || px === S - 1 || py === S - 1) edge = true;
+          for (const n of [q - 1, q + 1, q - S, q + S]) {
+            if (n < 0 || n >= N || (n === q - 1 && px === 0) || (n === q + 1 && px === S - 1)) continue;
+            if (label[n] < 0 && d[n * 4 + 3] < 40) {
+              label[n] = id;
+              stack.push(n);
+            }
+          }
+        }
+        comps.push({ id, area, edge });
+      }
+      return { label, comps };
+    }
+
+    async function initBallAssets() {
+      if (ballAssets) return ballAssets;
+      const [frame, ...eyes] = await Promise.all([
+        loadImage(BASE_ASSET_URL + 'frame.png'),
+        ...Object.values(EYE_FILES).map((f) => loadImage(BASE_ASSET_URL + f))
+      ]);
+
+      if (!frame || !eyes[0]) {
+        throw new Error('ボールフレーム素材の取得に失敗しました');
+      }
+
+      const S = 220;
+      const fc = analyzeComponents(frame, S);
+      const outside = new Set(fc.comps.filter((c) => c.edge).map((c) => c.id));
+      const mask = document.createElement('canvas');
+      mask.width = mask.height = S;
+      const mx = mask.getContext('2d');
+      const md = mx.createImageData(S, S);
+      let x0 = S, y0 = S, x1 = 0, y1 = 0;
+
+      for (let p = 0; p < S * S; p++) {
+        if (!outside.has(fc.label[p])) {
+          md.data[p * 4 + 3] = 255;
+          const x = p % S;
+          const y = (p / S) | 0;
+          x0 = Math.min(x0, x);
+          x1 = Math.max(x1, x);
+          y0 = Math.min(y0, y);
+          y1 = Math.max(y1, y);
+        }
+      }
+      mx.putImageData(md, 0, 0);
+
+      const eyeCanvases = {};
+      Object.keys(EYE_FILES).forEach((k, idx) => {
+        if (!eyes[idx]) return;
+        const ec = analyzeComponents(eyes[idx], S);
+        const holes = ec.comps
+          .filter((c) => !c.edge && c.area > 80)
+          .sort((a, b) => a.area - b.area)
+          .slice(-2);
+        const ids = new Set(holes.map((c) => c.id));
+        const cv = document.createElement('canvas');
+        cv.width = cv.height = S;
+        const cx = cv.getContext('2d');
+        const im = cx.createImageData(S, S);
+        for (let p = 0; p < S * S; p++) {
+          if (ids.has(ec.label[p])) {
+            im.data[p * 4] = im.data[p * 4 + 1] = im.data[p * 4 + 2] = 255;
+            im.data[p * 4 + 3] = 255;
+          }
+        }
+        cx.putImageData(im, 0, 0);
+        cx.drawImage(eyes[idx], 0, 0, S, S);
+        eyeCanvases[k] = cv;
+      });
+
+      ballAssets = {
+        frame,
+        mask,
+        eyes: eyeCanvases,
+        body: { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 }
+      };
+      return ballAssets;
+    }
+
+    function paintCountryball(canvas, charObj, expr = 'normal') {
+      const S = 220;
+      canvas.width = canvas.height = S;
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, S, S);
+
+      if (!ballAssets) return;
+      const flag = flagImageMap.get(charObj.id);
+
+      const tmp = document.createElement('canvas');
+      tmp.width = tmp.height = S;
+      const t = tmp.getContext('2d');
+      const b = ballAssets.body;
+
+      if (flag) {
+        const fw = b.w + 24;
+        const sc = Math.max(fw / flag.width, b.h / flag.height);
+        const w = flag.width * sc;
+        const h = flag.height * sc;
+        const align = charObj.canton || 'center';
+        const dx = align === 'left' ? 0 : align === 'right' ? fw - w : (fw - w) / 2;
+        t.drawImage(flag, b.x - 12 + dx, b.y + (b.h - h) / 2, w, h);
+      } else {
+        t.fillStyle = '#dfe6e9';
+        t.fillRect(b.x - 12, b.y, b.w + 24, b.h);
+      }
+
+      t.globalCompositeOperation = 'destination-in';
+      t.drawImage(ballAssets.mask, 0, 0);
+
+      ctx.drawImage(tmp, 0, 0);
+      ctx.drawImage(ballAssets.frame, 0, 0, S, S);
+      const eyeCv = ballAssets.eyes[expr] || ballAssets.eyes.normal;
+      if (eyeCv) ctx.drawImage(eyeCv, 0, 0);
+    }
+
+    function getBallSprite(charObj, expr = 'normal') {
+      const key = `${charObj.id}_${expr}`;
+      if (spriteCache.has(key)) return spriteCache.get(key);
+      const cv = document.createElement('canvas');
+      paintCountryball(cv, charObj, expr);
+      spriteCache.set(key, cv);
+      return cv;
+    }
+
+    function getBallThreeTexture(charObj, expr = 'normal') {
+      const key = `${charObj.id}_${expr}`;
+      if (threeTextureCache.has(key)) return threeTextureCache.get(key);
+      const cv = getBallSprite(charObj, expr);
+      const tex = new THREE.CanvasTexture(cv);
+      tex.needsUpdate = true;
+      threeTextureCache.set(key, tex);
+      return tex;
+    }
+
+    function clearSpriteCaches() {
+      spriteCache.clear();
+      threeTextureCache.forEach((tex) => tex.dispose());
+      threeTextureCache.clear();
+    }
+
+    /**
+     * ============================================================================
+     * 4. 初回ダウンロード＆IndexedDBキャッシュ処理
+     * ============================================================================
+     */
+    async function checkAllFlagsCached() {
+      try {
+        for (const c of CHARACTERS) {
+          const rec = await dbGet(STORE_FLAGS, c.id);
+          if (!rec || !rec.blob) return false;
+          const img = await blobToImage(rec.blob);
+          if (!img) return false;
+          flagImageMap.set(c.id, img);
+        }
+        return true;
+      } catch (e) {
+        console.warn('IndexedDB確認エラー:', e);
+        return false;
+      }
+    }
+
+    async function downloadAllFlagsWithProgress(onProgress) {
+      const total = CHARACTERS.length;
+      for (let i = 0; i < total; i++) {
+        const c = CHARACTERS[i];
+        onProgress(i, total, `${c.name} の国旗をダウンロード中...`);
+
+        const url = `https://flagcdn.com/w320/${c.id}.png`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`${c.name}の国旗取得に失敗しました`);
+        const blob = await res.blob();
+
+        await dbPut(STORE_FLAGS, { id: c.id, blob, updatedAt: Date.now() });
+
+        const img = await blobToImage(blob);
+        flagImageMap.set(c.id, img);
+        onProgress(i + 1, total, `${c.name} の保存完了！`);
+      }
+    }
+
+    /**
+     * ============================================================================
+     * 5. プレイヤーセーブデータ管理
+     * ============================================================================
+     */
+    const gameState = {
+      screen: 'download', // 'download' | 'title' | 'home' | 'playing' | 'result'
+      selectedCharId: 'jp',
+      stage: 1,
+      coins: 100,
+      startCountLv: 1,
+      coinBonusLv: 1
+    };
+
+    async function loadSaveData() {
+      try {
+        const saved = await dbGet(STORE_SAVE, 'player');
+        if (saved && saved.data) {
+          Object.assign(gameState, saved.data);
+          gameState.screen = 'title';
+        }
+      } catch (e) {
+        console.warn('セーブ読み込みエラー:', e);
+      }
+    }
+
+    async function saveGameData() {
+      try {
+        await dbPut(STORE_SAVE, {
+          key: 'player',
+          data: {
+            selectedCharId: gameState.selectedCharId,
+            stage: gameState.stage,
+            coins: gameState.coins,
+            startCountLv: gameState.startCountLv,
+            coinBonusLv: gameState.coinBonusLv
+          }
+        });
+      } catch (e) {
+        console.warn('セーブ保存エラー:', e);
+      }
+    }
+
+    function getSelectedChar() {
+      return CHARACTERS.find((c) => c.id === gameState.selectedCharId) || CHARACTERS[0];
+    }
+
+    function getStartCrowdCount() {
+      return 1 + (gameState.startCountLv - 1) * 2;
+    }
+
+    function getCoinMultiplier() {
+      return +(1 + (gameState.coinBonusLv - 1) * 0.25).toFixed(2);
+    }
+
+    function getUpgradeCost(lv) {
+      return lv * 50;
+    }
+
+    function getStageTheme(stageNum) {
+      const themes = [
+        { name: '草原コース', road: 0x636e72, edge: 0x55efc4, skyTop: 0x74b9ff, skyBot: 0xdfe6e9 },
+        { name: 'サンセット海辺', road: 0x6c5ce7, edge: 0xffeaa7, skyTop: 0xff7675, skyBot: 0xfdcb6e },
+        { name: 'スカイハイウェイ', road: 0x2d3436, edge: 0x74b9ff, skyTop: 0x0984e3, skyBot: 0x81ecec },
+        { name: 'クリスタル遺跡', road: 0x4834d4, edge: 0xf0932b, skyTop: 0xbe2edd, skyBot: 0x7ed6df }
+      ];
+      return themes[(stageNum - 1) % themes.length];
+    }
+
+    function getStageGimmickSummary(stageNum) {
+      const list = ['増減ゲート'];
+      if (stageNum >= 2) list.push('回転トゲバー');
+      if (stageNum >= 3) list.push('スライド壁＆移動ゲート');
+      if (stageNum >= 4) list.push('転がる大岩');
+      return '登場ギミック: ' + list.join('・');
+    }
+
+    /**
+     * ============================================================================
+     * 6. 効果音（Web Audio API によるシンセSE）
+     * ============================================================================
+     */
+    let audioCtx = null;
+    let lastPopSoundTime = 0;
+
+    function playTone(freq, type = 'sine', duration = 0.12, vol = 0.15) {
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(freq * 1.4, audioCtx.currentTime + duration);
+        gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (e) {}
+    }
+
+    function playPopVanishSound() {
+      const now = performance.now();
+      // 短時間に大量に消えた時の音割れ防止スロットル
+      if (now - lastPopSoundTime < 45) return;
+      lastPopSoundTime = now;
+      playTone(230 + Math.random() * 80, 'sawtooth', 0.09, 0.11);
+    }
+
+    /**
+     * ============================================================================
+     * 7. Three.js 3Dゲームエンジン（個別ボール物理ヒット＆消滅システム）
+     * ============================================================================
+     */
+    const threeCanvas = document.getElementById('three-canvas');
+    let scene, camera, renderer;
+    let worldGroup;     // コースや障害物をまとめるグループ
+    let crowdGroup;     // プレイヤーのボール群
+    let titleGroup;     // タイトル画面の9か国集合グループ
+    let confettiGroup;  // クリア時の紙吹雪
+    let vanishGroup;    // ボール消滅時のポップパーティクル
+
+    const ROAD_WIDTH = 9.0;
+    const HALF_ROAD = ROAD_WIDTH / 2;
+    const MAX_VISUAL_BALLS = 120; // 画面に同時表示する最大ボール数（右半分・左半分の広がりがしっかり見える数）
+
+    const runState = {
+      active: false,
+      finished: false,
+      stageLength: 140,
+      distance: 0,
+      speed: 18,
+      playerX: 0,
+      targetX: 0,
+      crowdCount: 1,
+      visualSprites: [], // 各要素: { sprite, offsetX, offsetZ, targetOffsetX, targetOffsetZ, phase }
+      gates: [],
+      obstacles: [],
+      coins: [],
+      confetti: [],
+      vanishParticles: [],
+      collectedCoins: 0,
+      shakeTimer: 0
+    };
+
+    function initThree() {
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x74b9ff);
+      scene.fog = new THREE.Fog(0x74b9ff, 35, 115);
+
+      const container = document.getElementById('app-container');
+      const w = container.clientWidth;
+      const h = container.clientHeight;
+
+      camera = new THREE.PerspectiveCamera(58, w / h, 0.1, 150);
+      camera.position.set(0, 7.5, 11.5);
+      camera.lookAt(0, 1.0, -10);
+
+      renderer = new THREE.WebGLRenderer({ canvas: threeCanvas, antialias: true });
+      renderer.setSize(w, h);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+
+      // ライティング
+      const hemiLight = new THREE.HemisphereLight(0xffffff, 0x74b9ff, 0.95);
+      scene.add(hemiLight);
+
+      const dirLight = new THREE.DirectionalLight(0xffffff, 0.75);
+      dirLight.position.set(12, 24, 15);
+      scene.add(dirLight);
+
+      worldGroup = new THREE.Group();
+      scene.add(worldGroup);
+
+      crowdGroup = new THREE.Group();
+      scene.add(crowdGroup);
+
+      titleGroup = new THREE.Group();
+      scene.add(titleGroup);
+
+      confettiGroup = new THREE.Group();
+      scene.add(confettiGroup);
+
+      vanishGroup = new THREE.Group();
+      scene.add(vanishGroup);
+
+      window.addEventListener('resize', onThreeResize);
+    }
+
+    function onThreeResize() {
+      if (!renderer || !camera) return;
+      const container = document.getElementById('app-container');
+      const w = container.clientWidth;
+      const h = container.clientHeight;
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, h);
+    }
+
+    function clearThreeGroup(group) {
+      while (group.children.length > 0) {
+        const obj = group.children[0];
+        group.remove(obj);
+      }
+    }
+
+    /**
+     * タイトル画面の3Dステージ＆全9か国の2Dボール集合セットアップ
+     */
+    function setupTitleScene() {
+      clearThreeGroup(worldGroup);
+      clearThreeGroup(crowdGroup);
+      clearThreeGroup(titleGroup);
+      clearThreeGroup(confettiGroup);
+      clearThreeGroup(vanishGroup);
+
+      scene.background = new THREE.Color(0x74b9ff);
+      scene.fog = new THREE.Fog(0x74b9ff, 35, 110);
+
+      // タイトル用の明るいステージ床
+      const roadGeo = new THREE.PlaneGeometry(ROAD_WIDTH + 2, 120);
+      const roadMat = new THREE.MeshLambertMaterial({ color: 0x636e72 });
+      const road = new THREE.Mesh(roadGeo, roadMat);
+      road.rotation.x = -Math.PI / 2;
+      road.position.set(0, 0, -40);
+      worldGroup.add(road);
+
+      // 両サイドのカラフルな縁石
+      const edgeGeo = new THREE.BoxGeometry(0.5, 0.5, 120);
+      const edgeMat = new THREE.MeshLambertMaterial({ color: 0x55efc4 });
+      const leftEdge = new THREE.Mesh(edgeGeo, edgeMat);
+      leftEdge.position.set(-(ROAD_WIDTH / 2 + 1.25), 0.25, -40);
+      const rightEdge = new THREE.Mesh(edgeGeo, edgeMat);
+      rightEdge.position.set(ROAD_WIDTH / 2 + 1.25, 0.25, -40);
+      worldGroup.add(leftEdge, rightEdge);
+
+      // 9か国のボールを2Dスプライトで手前にぎゅっと集合させる
+      const layout = [
+        { idx: 2, x: 0.0,  z: 2.2,  scale: 2.35, expr: 'lol',   phase: 0.0 }, // 日本（中央手前）
+        { idx: 0, x: -1.6, z: 1.5,  scale: 2.05, expr: 'smile', phase: 0.7 }, // ドイツ
+        { idx: 1, x: 1.6,  z: 1.5,  scale: 2.05, expr: 'smile', phase: 1.4 }, // 中国（左寄せ）
+        { idx: 3, x: -2.7, z: 0.3,  scale: 1.9,  expr: 'lol',   phase: 2.1 }, // アメリカ
+        { idx: 4, x: 2.7,  z: 0.3,  scale: 1.9,  expr: 'smile', phase: 2.8 }, // 韓国
+        { idx: 5, x: -1.1, z: -0.5, scale: 1.85, expr: 'normal',phase: 3.5 }, // イタリア
+        { idx: 6, x: 1.1,  z: -0.5, scale: 1.85, expr: 'normal',phase: 4.2 }, // フランス
+        { idx: 7, x: -2.2, z: -1.6, scale: 1.75, expr: 'smile', phase: 4.9 }, // オーストラリア
+        { idx: 8, x: 2.2,  z: -1.6, scale: 1.75, expr: 'lol',   phase: 5.6 }  // オーストリア
+      ];
+
+      layout.forEach((item) => {
+        const charObj = CHARACTERS[item.idx];
+        const tex = getBallThreeTexture(charObj, item.expr);
+        const mat = new THREE.SpriteMaterial({ map: tex, transparent: true });
+        const sprite = new THREE.Sprite(mat);
+        sprite.scale.set(item.scale, item.scale, 1);
+        sprite.position.set(item.x, item.scale * 0.48, item.z);
+        sprite.userData = {
+          baseY: item.scale * 0.48,
+          phase: item.phase
+        };
+        titleGroup.add(sprite);
+      });
+
+      camera.position.set(0, 4.4, 9.2);
+      camera.lookAt(0, 1.1, 0);
+    }
+
+    /**
+     * ゲートパネル用のキャンバステクスチャ作成
+     */
+    function createGateTexture(label, isPositive) {
+      const cv = document.createElement('canvas');
+      cv.width = 256;
+      cv.height = 192;
+      const ctx = cv.getContext('2d');
+
+      const grad = ctx.createLinearGradient(0, 0, 0, 192);
+      if (isPositive) {
+        grad.addColorStop(0, 'rgba(9, 132, 227, 0.85)');
+        grad.addColorStop(1, 'rgba(116, 185, 255, 0.45)');
+      } else {
+        grad.addColorStop(0, 'rgba(214, 48, 49, 0.85)');
+        grad.addColorStop(1, 'rgba(255, 118, 117, 0.45)');
+      }
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 256, 192);
+
+      // 枠線
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+      ctx.lineWidth = 8;
+      ctx.strokeRect(4, 4, 248, 184);
+
+      // 数字テキスト
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '900 72px "M PLUS Rounded 1c", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.45)';
+      ctx.shadowBlur = 8;
+      ctx.shadowOffsetY = 4;
+      ctx.fillText(label, 128, 96);
+
+      const tex = new THREE.CanvasTexture(cv);
+      tex.needsUpdate = true;
+      return tex;
+    }
+
+    /**
+     * コインテクスチャ作成
+     */
+    function createCoinTexture() {
+      const cv = document.createElement('canvas');
+      cv.width = 128;
+      cv.height = 128;
+      const ctx = cv.getContext('2d');
+
+      ctx.beginPath();
+      ctx.arc(64, 64, 54, 0, Math.PI * 2);
+      ctx.fillStyle = '#feca57';
+      ctx.fill();
+      ctx.lineWidth = 8;
+      ctx.strokeStyle = '#ff9f43';
+      ctx.stroke();
+
+      ctx.fillStyle = '#833471';
+      ctx.font = '900 56px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('$', 64, 68);
+
+      const tex = new THREE.CanvasTexture(cv);
+      tex.needsUpdate = true;
+      return tex;
+    }
+
+    /**
+     * レベルに応じた3Dステージ構築（ステージ長拡張＋新障害物の追加）
+     */
+    function buildStage(stageNum) {
+      clearThreeGroup(worldGroup);
+      clearThreeGroup(crowdGroup);
+      clearThreeGroup(titleGroup);
+      clearThreeGroup(confettiGroup);
+      clearThreeGroup(vanishGroup);
+
+      const theme = getStageTheme(stageNum);
+      scene.background = new THREE.Color(theme.skyTop);
+      scene.fog = new THREE.Fog(theme.skyTop, 40, 125);
+
+      // レベルが上がるごとにコース全長が長くなる（基礎135m + 22mずつ延長、最大360m）
+      const stageLength = Math.min(135 + (stageNum - 1) * 22, 360);
+
+      runState.active = true;
+      runState.finished = false;
+      runState.stageLength = stageLength;
+      runState.distance = 0;
+      runState.speed = Math.min(18 + (stageNum - 1) * 0.45, 25);
+      runState.playerX = 0;
+      runState.targetX = 0;
+      runState.crowdCount = getStartCrowdCount();
+      runState.visualSprites = [];
+      runState.gates = [];
+      runState.obstacles = [];
+      runState.coins = [];
+      runState.confetti = [];
+      runState.vanishParticles = [];
+      runState.collectedCoins = 0;
+      runState.shakeTimer = 0;
+
+      // 1. 道路メッシュ
+      const totalFloorLen = stageLength + 60;
+      const roadGeo = new THREE.PlaneGeometry(ROAD_WIDTH, totalFloorLen);
+      const roadMat = new THREE.MeshLambertMaterial({ color: theme.road });
+      const roadMesh = new THREE.Mesh(roadGeo, roadMat);
+      roadMesh.rotation.x = -Math.PI / 2;
+      roadMesh.position.set(0, 0, -stageLength / 2 - 10);
+      worldGroup.add(roadMesh);
+
+      // 中央の破線ライン
+      const lineGeo = new THREE.PlaneGeometry(0.22, 2.2);
+      const lineMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.35 });
+      for (let z = 0; z > -stageLength - 20; z -= 6) {
+        const line = new THREE.Mesh(lineGeo, lineMat);
+        line.rotation.x = -Math.PI / 2;
+        line.position.set(0, 0.02, z);
+        worldGroup.add(line);
+      }
+
+      // 両側の縁石ガードレール
+      const edgeGeo = new THREE.BoxGeometry(0.45, 0.55, totalFloorLen);
+      const edgeMat = new THREE.MeshLambertMaterial({ color: theme.edge });
+      const leftEdge = new THREE.Mesh(edgeGeo, edgeMat);
+      leftEdge.position.set(-(HALF_ROAD + 0.225), 0.275, -stageLength / 2 - 10);
+      const rightEdge = new THREE.Mesh(edgeGeo, edgeMat);
+      rightEdge.position.set(HALF_ROAD + 0.225, 0.275, -stageLength / 2 - 10);
+      worldGroup.add(leftEdge, rightEdge);
+
+      // 2. コース上の計算ゲート＆新ギミック配置
+      const positiveTemplates = [
+        { label: '+10', op: 'add', val: 10 },
+        { label: '+15', op: 'add', val: 15 },
+        { label: '+25', op: 'add', val: 25 },
+        { label: '+40', op: 'add', val: 40 },
+        { label: '×2',  op: 'mul', val: 2 },
+        { label: '×3',  op: 'mul', val: 3 }
+      ];
+      const negativeTemplates = [
+        { label: '-5',  op: 'sub', val: 5 },
+        { label: '-10', op: 'sub', val: 10 },
+        { label: '-15', op: 'sub', val: 15 },
+        { label: '÷2',  op: 'div', val: 2 }
+      ];
+
+      // 26m間隔でセクションを配置
+      let stepIndex = 0;
+      for (let z = -26; z > -stageLength + 24; z -= 26) {
+        stepIndex++;
+        const spawnObstacle = stageNum >= 2 && stepIndex % 2 === 0;
+
+        if (spawnObstacle) {
+          const availableTypes = ['spinner']; // Lv.2〜 回転トゲバー
+          if (stageNum >= 3) availableTypes.push('slider'); // Lv.3〜 スライド壁
+          if (stageNum >= 4) availableTypes.push('boulder'); // Lv.4〜 転がる大岩
+
+          const type = availableTypes[Math.floor(Math.random() * availableTypes.length)];
+          spawnObstacleAt(type, z, stageNum);
+        } else {
+          const leftGood = Math.random() > 0.32;
+          const rightGood = !leftGood || Math.random() > 0.48;
+          const leftData = leftGood
+            ? positiveTemplates[Math.floor(Math.random() * positiveTemplates.length)]
+            : negativeTemplates[Math.floor(Math.random() * negativeTemplates.length)];
+          const rightData = rightGood
+            ? positiveTemplates[Math.floor(Math.random() * positiveTemplates.length)]
+            : negativeTemplates[Math.floor(Math.random() * negativeTemplates.length)];
+
+          const isMovingGate = stageNum >= 3 && Math.random() > 0.55;
+          spawnGatePair(z, leftData, rightData, isMovingGate);
+        }
+      }
+
+      // 3. ゴール前のコイン配置
+      const coinTex = createCoinTexture();
+      for (let i = 0; i < 6; i++) {
+        const cz = -stageLength + 16 - i * 2.5;
+        const cx = Math.sin(i * 0.9) * 2.4;
+        const mat = new THREE.SpriteMaterial({ map: coinTex, transparent: true });
+        const sprite = new THREE.Sprite(mat);
+        sprite.scale.set(1.1, 1.1, 1);
+        sprite.position.set(cx, 0.85, cz);
+        worldGroup.add(sprite);
+        runState.coins.push({ mesh: sprite, z: cz, x: cx, collected: false });
+      }
+
+      // 4. ゴールゲート（チェッカーアーチ）
+      const goalZ = -stageLength;
+      const postGeo = new THREE.CylinderGeometry(0.3, 0.3, 4.5, 16);
+      const postMat = new THREE.MeshLambertMaterial({ color: 0xffeaa7 });
+      const leftPost = new THREE.Mesh(postGeo, postMat);
+      leftPost.position.set(-HALF_ROAD + 0.3, 2.25, goalZ);
+      const rightPost = new THREE.Mesh(postGeo, postMat);
+      rightPost.position.set(HALF_ROAD - 0.3, 2.25, goalZ);
+
+      const bannerGeo = new THREE.BoxGeometry(ROAD_WIDTH, 1.1, 0.4);
+      const bannerMat = new THREE.MeshLambertMaterial({ color: 0xff7675 });
+      const banner = new THREE.Mesh(bannerGeo, bannerMat);
+      banner.position.set(0, 4.2, goalZ);
+
+      const checkGeo = new THREE.PlaneGeometry(ROAD_WIDTH, 2.4);
+      const checkMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+      const checkMesh = new THREE.Mesh(checkGeo, checkMat);
+      checkMesh.rotation.x = -Math.PI / 2;
+      checkMesh.position.set(0, 0.03, goalZ);
+
+      worldGroup.add(leftPost, rightPost, banner, checkMesh);
+
+      // 5. プレイヤー群衆スプライトの生成
+      syncCrowdVisuals(true);
+
+      camera.position.set(0, 7.6, 11.2);
+      camera.lookAt(0, 1.0, -10);
+    }
+
+    /**
+     * 計算ゲートペアの3D生成
+     */
+    function spawnGatePair(z, leftData, rightData, isMoving) {
+      const gateW = ROAD_WIDTH * 0.46;
+      const gateH = 2.6;
+      const group = new THREE.Group();
+      group.position.set(0, 0, z);
+
+      // 左ゲート
+      const leftTex = createGateTexture(leftData.label, leftData.op === 'add' || leftData.op === 'mul');
+      const leftMat = new THREE.MeshBasicMaterial({ map: leftTex, transparent: true, side: THREE.DoubleSide });
+      const leftMesh = new THREE.Mesh(new THREE.PlaneGeometry(gateW, gateH), leftMat);
+      leftMesh.position.set(-ROAD_WIDTH * 0.25, gateH / 2, 0);
+
+      // 右ゲート
+      const rightTex = createGateTexture(rightData.label, rightData.op === 'add' || rightData.op === 'mul');
+      const rightMat = new THREE.MeshBasicMaterial({ map: rightTex, transparent: true, side: THREE.DoubleSide });
+      const rightMesh = new THREE.Mesh(new THREE.PlaneGeometry(gateW, gateH), rightMat);
+      rightMesh.position.set(ROAD_WIDTH * 0.25, gateH / 2, 0);
+
+      // 中央仕切りポール
+      const poleGeo = new THREE.CylinderGeometry(0.16, 0.16, gateH + 0.3, 12);
+      const poleMat = new THREE.MeshLambertMaterial({ color: 0x2d3436 });
+      const centerPole = new THREE.Mesh(poleGeo, poleMat);
+      centerPole.position.set(0, (gateH + 0.3) / 2, 0);
+
+      group.add(leftMesh, rightMesh, centerPole);
+      worldGroup.add(group);
+
+      runState.gates.push({
+        group,
+        z,
+        left: leftData,
+        right: rightData,
+        isMoving,
+        phase: Math.random() * Math.PI * 2,
+        triggered: false
+      });
+    }
+
+    /**
+     * レベルごとに追加される3D障害物の生成
+     */
+    function spawnObstacleAt(type, z, stageNum) {
+      if (type === 'spinner') {
+        // Lv.2〜 回転トゲバー
+        const group = new THREE.Group();
+        const cx = (Math.random() - 0.5) * 2.2;
+        group.position.set(cx, 0.55, z);
+
+        const base = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.45, 0.55, 1.1, 16),
+          new THREE.MeshLambertMaterial({ color: 0x2d3436 })
+        );
+        group.add(base);
+
+        const barLen = 4.6;
+        const bar = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.18, 0.18, barLen, 12),
+          new THREE.MeshLambertMaterial({ color: 0xd63031 })
+        );
+        bar.rotation.z = Math.PI / 2;
+        bar.position.y = 0.2;
+        group.add(bar);
+
+        // トゲ装飾
+        const spikeGeo = new THREE.ConeGeometry(0.18, 0.45, 8);
+        const spikeMat = new THREE.MeshLambertMaterial({ color: 0xffeaa7 });
+        for (let s = -1.9; s <= 1.9; s += 0.95) {
+          const spike = new THREE.Mesh(spikeGeo, spikeMat);
+          spike.position.set(s, 0.2, 0.25);
+          spike.rotation.x = Math.PI / 2;
+          group.add(spike);
+        }
+
+        worldGroup.add(group);
+        runState.obstacles.push({
+          type: 'spinner',
+          mesh: group,
+          z,
+          x: cx,
+          halfLen: barLen * 0.5,
+          rotSpeed: 2.3 + stageNum * 0.18
+        });
+      } else if (type === 'slider') {
+        // Lv.3〜 左右スライド壁ブロック
+        const wallW = 3.6;
+        const wallH = 1.8;
+        const mesh = new THREE.Mesh(
+          new THREE.BoxGeometry(wallW, wallH, 1.2),
+          new THREE.MeshLambertMaterial({ color: 0xe17055 })
+        );
+        mesh.position.set(0, wallH / 2, z);
+
+        const topTrim = new THREE.Mesh(
+          new THREE.BoxGeometry(wallW + 0.1, 0.3, 1.3),
+          new THREE.MeshLambertMaterial({ color: 0xffeaa7 })
+        );
+        topTrim.position.y = wallH / 2;
+        mesh.add(topTrim);
+
+        worldGroup.add(mesh);
+        runState.obstacles.push({
+          type: 'slider',
+          mesh,
+          z,
+          x: 0,
+          halfW: wallW / 2,
+          halfD: 0.65,
+          phase: Math.random() * Math.PI * 2,
+          speed: 1.9 + stageNum * 0.14
+        });
+      } else if (type === 'boulder') {
+        // Lv.4〜 転がる大岩（手前に向かって転がってくる）
+        const radius = 1.15;
+        const mesh = new THREE.Mesh(
+          new THREE.DodecahedronGeometry(radius, 1),
+          new THREE.MeshLambertMaterial({ color: 0x636e72 })
+        );
+        const startX = (Math.random() - 0.5) * (ROAD_WIDTH - 2.6);
+        mesh.position.set(startX, radius, z);
+        worldGroup.add(mesh);
+
+        runState.obstacles.push({
+          type: 'boulder',
+          mesh,
+          z,
+          x: startX,
+          radius,
+          rollSpeed: 6.5 + stageNum * 0.3
+        });
+      }
+    }
+
+    /**
+     * 群衆フォーメーションの再計算（残ったボールが中央へ綺麗に詰まる）
+     */
+    function recalculateCrowdFormation() {
+      const count = runState.visualSprites.length;
+      for (let i = 0; i < count; i++) {
+        const item = runState.visualSprites[i];
+        const angle = i * 2.39996;
+        // 多くのボールが広がって右半分・左半分の当たり判定が分かりやすい半径設定
+        const radius = i === 0 ? 0 : Math.min(Math.sqrt(i) * 0.34, 2.75);
+        item.targetOffsetX = Math.cos(angle) * radius;
+        item.targetOffsetZ = Math.sin(angle) * radius;
+      }
+    }
+
+    /**
+     * 群衆数の増減に応じて2Dビルボードスプライトを増減・整列
+     */
+    function syncCrowdVisuals(resetExpr = false) {
+      const targetVisualCount = Math.min(runState.crowdCount, MAX_VISUAL_BALLS);
+      const charObj = getSelectedChar();
+      const expr = resetExpr ? 'normal' : 'lol';
+      const tex = getBallThreeTexture(charObj, expr);
+
+      while (runState.visualSprites.length < targetVisualCount) {
+        const idx = runState.visualSprites.length;
+        const mat = new THREE.SpriteMaterial({ map: tex, transparent: true });
+        const sprite = new THREE.Sprite(mat);
+        sprite.scale.set(1.12, 1.12, 1);
+
+        const angle = idx * 2.39996;
+        const radius = idx === 0 ? 0 : Math.min(Math.sqrt(idx) * 0.34, 2.75);
+        const ox = Math.cos(angle) * radius;
+        const oz = Math.sin(angle) * radius;
+
+        sprite.position.set(runState.playerX + ox, 0.55, -runState.distance + oz);
+        crowdGroup.add(sprite);
+
+        runState.visualSprites.push({
+          sprite,
+          offsetX: ox,
+          offsetZ: oz,
+          targetOffsetX: ox,
+          targetOffsetZ: oz,
+          phase: idx * 0.45
+        });
+      }
+
+      while (runState.visualSprites.length > targetVisualCount) {
+        const item = runState.visualSprites.pop();
+        crowdGroup.remove(item.sprite);
+      }
+
+      recalculateCrowdFormation();
+
+      runState.visualSprites.forEach((item) => {
+        item.sprite.material.map = tex;
+        item.sprite.material.needsUpdate = true;
+      });
+    }
+
+    /**
+     * ボールが障害物に当たって消滅する時のポップパーティクル生成
+     */
+    function spawnVanishEffect(x, y, z) {
+      const colors = [0xffffff, 0xffeaa7, 0xff7675];
+      for (let i = 0; i < 4; i++) {
+        const geo = new THREE.SphereGeometry(0.16, 8, 8);
+        const mat = new THREE.MeshBasicMaterial({ color: colors[i % colors.length] });
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.position.set(x, y, z);
+        vanishGroup.add(mesh);
+        runState.vanishParticles.push({
+          mesh,
+          vx: (Math.random() - 0.5) * 4.5,
+          vy: 2.2 + Math.random() * 3.0,
+          vz: (Math.random() - 0.5) * 4.5,
+          life: 0.32
+        });
+      }
+    }
+
+    /**
+     * 個別ボール消滅処理（当たったボール個体を直接消す！）
+     */
+    function eliminateSpecificBall(index) {
+      // 最後の1体（リーダー）だけは残る安心設計
+      if (runState.crowdCount <= 1 || runState.visualSprites.length <= 1) return false;
+
+      const item = runState.visualSprites[index];
+      if (!item) return false;
+
+      // 消えたその場の座標で弾けエフェクトを発生
+      spawnVanishEffect(item.sprite.position.x, item.sprite.position.y, item.sprite.position.z);
+
+      crowdGroup.remove(item.sprite);
+      runState.visualSprites.splice(index, 1);
+
+      // 実際のカウントも1減少（表示上限を超えていた場合は比率分減少）
+      if (runState.crowdCount > runState.visualSprites.length + 1) {
+        const ratio = runState.crowdCount / (runState.visualSprites.length + 1);
+        runState.crowdCount = Math.max(1, Math.round(runState.crowdCount - ratio));
+      } else {
+        runState.crowdCount = Math.max(1, runState.crowdCount - 1);
+      }
+
+      playPopVanishSound();
+      runState.shakeTimer = Math.max(runState.shakeTimer, 0.1);
+      return true;
+    }
+
+    function updateCrowdCounterUI(isDamage = false) {
+      const badge = document.getElementById('hud-crowd-count');
+      badge.textContent = runState.crowdCount;
+      if (isDamage) {
+        badge.style.background = '#d63031';
+        badge.style.transform = 'scale(1.18)';
+        setTimeout(() => {
+          badge.style.background = '#0984e3';
+          badge.style.transform = 'scale(1)';
+        }, 160);
+      } else {
+        badge.style.transform = 'scale(1.26)';
+        setTimeout(() => { badge.style.transform = 'scale(1)'; }, 140);
+      }
+    }
+
+    function applyGateEffect(gateData) {
+      const prev = runState.crowdCount;
+      if (gateData.op === 'add') runState.crowdCount += gateData.val;
+      if (gateData.op === 'sub') runState.crowdCount -= gateData.val;
+      if (gateData.op === 'mul') runState.crowdCount *= gateData.val;
+      if (gateData.op === 'div') runState.crowdCount = Math.floor(runState.crowdCount / gateData.val);
+
+      runState.crowdCount = Math.max(1, Math.min(999, runState.crowdCount));
+
+      const isGain = runState.crowdCount >= prev;
+      updateCrowdCounterUI(!isGain);
+
+      if (isGain) {
+        playTone(540, 'triangle', 0.14, 0.16);
+      } else {
+        playPopVanishSound();
+        // マイナスゲートを通過した時は外側のボールが弾けて消える
+        const removeNum = Math.min(runState.visualSprites.length - 1, Math.max(1, prev - runState.crowdCount));
+        for (let k = 0; k < removeNum; k++) {
+          const lastIdx = runState.visualSprites.length - 1;
+          if (lastIdx > 0) {
+            const item = runState.visualSprites[lastIdx];
+            spawnVanishEffect(item.sprite.position.x, item.sprite.position.y, item.sprite.position.z);
+            crowdGroup.remove(item.sprite);
+            runState.visualSprites.pop();
+          }
+        }
+      }
+      syncCrowdVisuals(false);
+    }
+
+    /**
+     * 障害物と「1つ1つのボール」の個別衝突判定
+     * 右半分のボールだけが障害物に当たれば、右半分のボールだけがすべて消滅する！
+     */
+    function checkIndividualBallCollisions() {
+      let anyHit = false;
+
+      // 配列末尾から逆順ループして安全に個別削除
+      for (let i = runState.visualSprites.length - 1; i >= 0; i--) {
+        if (runState.crowdCount <= 1 || runState.visualSprites.length <= 1) break;
+
+        const item = runState.visualSprites[i];
+        const bx = item.sprite.position.x;
+        const bz = item.sprite.position.z;
+        const ballRadius = 0.42;
+
+        let hitThisBall = false;
+
+        for (let j = 0; j < runState.obstacles.length; j++) {
+          const obs = runState.obstacles[j];
+
+          if (obs.type === 'slider') {
+            // 四角いスライド壁とのAABB判定
+            if (
+              Math.abs(bx - obs.x) < (obs.halfW + ballRadius * 0.7) &&
+              Math.abs(bz - obs.z) < (obs.halfD + ballRadius * 0.7)
+            ) {
+              hitThisBall = true;
+              break;
+            }
+          } else if (obs.type === 'boulder') {
+            // 転がる大岩との円形距離判定
+            const dx = bx - obs.x;
+            const dz = bz - obs.z;
+            const hitDist = obs.radius + ballRadius * 0.75;
+            if (dx * dx + dz * dz < hitDist * hitDist) {
+              hitThisBall = true;
+              break;
+            }
+          } else if (obs.type === 'spinner') {
+            // 回転バーの現在の角度に基づいた線分距離判定
+            const angle = obs.mesh.rotation.y;
+            const cosA = Math.cos(angle);
+            const sinA = Math.sin(angle);
+            const relX = bx - obs.x;
+            const relZ = bz - obs.z;
+            // バーの長手方向への射影距離と垂直距離
+            const along = relX * cosA - relZ * sinA;
+            const perp = Math.abs(relX * sinA + relZ * cosA);
+            if (Math.abs(along) <= obs.halfLen + ballRadius * 0.5 && perp <= 0.36 + ballRadius * 0.6) {
+              hitThisBall = true;
+              break;
+            }
+          }
+        }
+
+        if (hitThisBall) {
+          if (eliminateSpecificBall(i)) {
+            anyHit = true;
+          }
+        }
+      }
+
+      if (anyHit) {
+        recalculateCrowdFormation();
+        updateCrowdCounterUI(true);
+      }
+    }
+
+    /**
+     * クリア時の3D紙吹雪スポーン
+     */
+    function spawnConfetti() {
+      const colors = [0xff7675, 0xffeaa7, 0x55efc4, 0x74b9ff, 0xa29bfe];
+      const geo = new THREE.PlaneGeometry(0.28, 0.16);
+      for (let i = 0; i < 55; i++) {
+        const mat = new THREE.MeshBasicMaterial({
+          color: colors[i % colors.length],
+          side: THREE.DoubleSide
+        });
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.position.set(
+          (Math.random() - 0.5) * 8,
+          2 + Math.random() * 4,
+          -runState.distance + (Math.random() - 0.5) * 6
+        );
+        confettiGroup.add(mesh);
+        runState.confetti.push({
+          mesh,
+          vx: (Math.random() - 0.5) * 4,
+          vy: 3 + Math.random() * 4,
+          vz: (Math.random() - 0.5) * 4,
+          rx: Math.random() * 6,
+          ry: Math.random() * 6
+        });
+      }
+    }
+
+    /**
+     * ============================================================================
+     * 8. メインアニメーションループ（Three.js 60FPS更新）
+     * ============================================================================
+     */
+    let lastFrameTime = performance.now();
+
+    function animate(now) {
+      requestAnimationFrame(animate);
+      const dt = Math.min((now - lastFrameTime) / 1000, 0.05);
+      lastFrameTime = now;
+      const t = now * 0.001;
+
+      if (gameState.screen === 'title' || gameState.screen === 'home' || gameState.screen === 'download') {
+        // タイトル画面の9か国集合ジャンプアニメーション
+        titleGroup.children.forEach((sp) => {
+          const hop = Math.abs(Math.sin(t * 4.2 + sp.userData.phase)) * 0.42;
+          sp.position.y = sp.userData.baseY + hop;
+        });
+      } else if (gameState.screen === 'playing' && runState.active) {
+        updateGameplay(dt, t);
+      } else if (gameState.screen === 'result') {
+        // ゴール後の喜びジャンプ＆紙吹雪
+        runState.visualSprites.forEach((item) => {
+          const hop = Math.abs(Math.sin(t * 7 + item.phase)) * 0.65;
+          item.sprite.position.y = 0.55 + hop;
+        });
+        runState.confetti.forEach((c) => {
+          c.vy -= 9.8 * dt;
+          c.mesh.position.x += c.vx * dt;
+          c.mesh.position.y += c.vy * dt;
+          c.mesh.position.z += c.vz * dt;
+          c.mesh.rotation.x += c.rx * dt;
+          c.mesh.rotation.y += c.ry * dt;
+        });
+      }
+
+      // 消滅パーティクルの更新
+      for (let i = runState.vanishParticles.length - 1; i >= 0; i--) {
+        const p = runState.vanishParticles[i];
+        p.life -= dt;
+        p.vy -= 14 * dt;
+        p.mesh.position.x += p.vx * dt;
+        p.mesh.position.y += p.vy * dt;
+        p.mesh.position.z += p.vz * dt;
+        const s = Math.max(0.01, p.life / 0.32);
+        p.mesh.scale.set(s, s, s);
+        if (p.life <= 0) {
+          vanishGroup.remove(p.mesh);
+          runState.vanishParticles.splice(i, 1);
+        }
+      }
+
+      if (renderer && scene && camera) {
+        renderer.render(scene, camera);
+      }
+    }
+
+    function updateGameplay(dt, t) {
+      // 前進距離更新
+      runState.distance += runState.speed * dt;
+      const playerZ = -runState.distance;
+
+      // 左右移動のスムーズ補間
+      runState.playerX += (runState.targetX - runState.playerX) * Math.min(1, dt * 14);
+      const maxOffset = HALF_ROAD - 0.7;
+      runState.playerX = Math.max(-maxOffset, Math.min(maxOffset, runState.playerX));
+
+      // プログレスバー更新
+      const progressRatio = Math.min(1, runState.distance / runState.stageLength);
+      document.getElementById('hud-progress-fill').style.width = `${progressRatio * 100}%`;
+
+      // 群衆スプライトの更新（穴が空いた箇所へスムーズに再整列しつつ跳ねる）
+      runState.visualSprites.forEach((item) => {
+        item.offsetX += (item.targetOffsetX - item.offsetX) * Math.min(1, dt * 7);
+        item.offsetZ += (item.targetOffsetZ - item.offsetZ) * Math.min(1, dt * 7);
+
+        const hop = Math.abs(Math.sin(t * 11 + item.phase)) * 0.28;
+        const rawX = runState.playerX + item.offsetX;
+        // 道路の端からはみ出さないようにクランプ
+        item.sprite.position.x = Math.max(-(HALF_ROAD - 0.35), Math.min(HALF_ROAD - 0.35, rawX));
+        item.sprite.position.y = 0.55 + hop;
+        item.sprite.position.z = playerZ + item.offsetZ;
+      });
+
+      // ゲートの更新＆通過判定
+      runState.gates.forEach((g) => {
+        if (g.isMoving) {
+          g.group.position.x = Math.sin(t * 2.2 + g.phase) * 1.1;
+        }
+        if (!g.triggered && Math.abs(playerZ - g.z) < 0.75) {
+          g.triggered = true;
+          const relativeX = runState.playerX - g.group.position.x;
+          const chosen = relativeX < 0 ? g.left : g.right;
+          applyGateEffect(chosen);
+          g.group.visible = false;
+        }
+      });
+
+      // 障害物のアニメーション更新
+      runState.obstacles.forEach((obs) => {
+        if (obs.type === 'spinner') {
+          obs.mesh.rotation.y += obs.rotSpeed * dt;
+        } else if (obs.type === 'slider') {
+          obs.x = Math.sin(t * obs.speed + obs.phase) * (HALF_ROAD - obs.halfW - 0.2);
+          obs.mesh.position.x = obs.x;
+        } else if (obs.type === 'boulder') {
+          if (obs.z - playerZ > -45) {
+            obs.z += obs.rollSpeed * dt;
+            obs.mesh.position.z = obs.z;
+            obs.mesh.rotation.x += obs.rollSpeed * dt * 0.9;
+          }
+        }
+      });
+
+      // 個別ボール単位での障害物ヒット＆消滅判定
+      checkIndividualBallCollisions();
+
+      // コイン獲得判定（いずれかのボールが触れれば獲得）
+      runState.coins.forEach((c) => {
+        if (!c.collected) {
+          c.mesh.position.y = 0.85 + Math.sin(t * 5 + c.z) * 0.15;
+          const hitCoin = runState.visualSprites.some(
+            (item) =>
+              Math.abs(item.sprite.position.z - c.z) < 1.0 &&
+              Math.abs(item.sprite.position.x - c.x) < 1.0
+          );
+          if (hitCoin) {
+            c.collected = true;
+            c.mesh.visible = false;
+            runState.collectedCoins += 10;
+            playTone(880, 'sine', 0.1, 0.14);
+            document.getElementById('hud-coin-num').textContent = gameState.coins + runState.collectedCoins;
+          }
+        }
+      });
+
+      // カメラ追従＆微シェイク
+      let shakeX = 0;
+      let shakeY = 0;
+      if (runState.shakeTimer > 0) {
+        runState.shakeTimer -= dt;
+        shakeX = (Math.random() - 0.5) * 0.25;
+        shakeY = (Math.random() - 0.5) * 0.25;
+      }
+
+      camera.position.set(
+        runState.playerX * 0.35 + shakeX,
+        7.6 + shakeY,
+        playerZ + 11.2
+      );
+      camera.lookAt(runState.playerX * 0.25, 1.0, playerZ - 10);
+
+      // ゴール到達判定
+      if (runState.distance >= runState.stageLength) {
+        finishStage();
+      }
+    }
+
+    function finishStage() {
+      runState.active = false;
+      runState.finished = true;
+      playTone(660, 'triangle', 0.35, 0.22);
+      spawnConfetti();
+
+      const mult = getCoinMultiplier();
+      const baseReward = runState.crowdCount * 3 + runState.collectedCoins + gameState.stage * 15;
+      const totalEarned = Math.round(baseReward * mult);
+
+      gameState.coins += totalEarned;
+      gameState.stage += 1;
+      saveGameData();
+
+      document.getElementById('res-crowd').textContent = `${runState.crowdCount} ボール`;
+      document.getElementById('res-mult').textContent = `× ${mult.toFixed(2)}`;
+      document.getElementById('res-coins').textContent = `+ ${totalEarned} $`;
+
+      setTimeout(() => {
+        switchScreen('result');
+      }, 450);
+    }
+
+    /**
+     * ============================================================================
+     * 9. 操作入力（スワイプ／ドラッグ＆キーボード対応）
+     * ============================================================================
+     */
+    let isPointerDown = false;
+    let lastPointerX = 0;
+
+    function setupControls() {
+      const startDrag = (clientX) => {
+        if (gameState.screen !== 'playing') return;
+        isPointerDown = true;
+        lastPointerX = clientX;
+        document.getElementById('hud-swipe-hint').style.display = 'none';
+      };
+
+      const moveDrag = (clientX) => {
+        if (!isPointerDown || gameState.screen !== 'playing') return;
+        const deltaX = clientX - lastPointerX;
+        lastPointerX = clientX;
+        const containerW = document.getElementById('app-container').clientWidth || 360;
+        runState.targetX += (deltaX / containerW) * (ROAD_WIDTH * 1.35);
+      };
+
+      const endDrag = () => {
+        isPointerDown = false;
+      };
+
+      threeCanvas.addEventListener('touchstart', (e) => {
+        if (e.touches.length > 0) startDrag(e.touches[0].clientX);
+      }, { passive: true });
+
+      threeCanvas.addEventListener('touchmove', (e) => {
+        if (e.touches.length > 0) moveDrag(e.touches[0].clientX);
+      }, { passive: true });
+
+      threeCanvas.addEventListener('touchend', endDrag);
+
+      threeCanvas.addEventListener('mousedown', (e) => startDrag(e.clientX));
+      window.addEventListener('mousemove', (e) => moveDrag(e.clientX));
+      window.addEventListener('mouseup', endDrag);
+
+      window.addEventListener('keydown', (e) => {
+        if (gameState.screen !== 'playing') return;
+        document.getElementById('hud-swipe-hint').style.display = 'none';
+        if (e.key === 'ArrowLeft' || e.key === 'a') runState.targetX -= 1.4;
+        if (e.key === 'ArrowRight' || e.key === 'd') runState.targetX += 1.4;
+      });
+    }
+
+    /**
+     * ============================================================================
+     * 10. 画面遷移・UI更新・初期化フロー
+     * ============================================================================
+     */
+    function showToast(msg) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.classList.add('show');
+      clearTimeout(el._timer);
+      el._timer = setTimeout(() => el.classList.remove('show'), 2000);
+    }
+
+    function switchScreen(name) {
+      gameState.screen = name;
+      document.querySelectorAll('.screen').forEach((s) => s.classList.remove('active'));
+      const target = document.getElementById(`${name}-screen`);
+      if (target) target.classList.add('active');
+
+      if (name === 'title') {
+        setupTitleScene();
+      } else if (name === 'home') {
+        renderHomeUI();
+      }
+    }
+
+    function renderHomeUI() {
+      const leader = getSelectedChar();
+      const theme = getStageTheme(gameState.stage);
+
+      document.getElementById('home-stage-num').textContent = gameState.stage;
+      document.getElementById('home-coin-num').textContent = gameState.coins;
+      document.getElementById('home-stage-label').textContent = `STAGE ${gameState.stage} - ${theme.name}`;
+      document.getElementById('home-gimmick-info').textContent = getStageGimmickSummary(gameState.stage);
+      document.getElementById('home-leader-name').textContent = `${leader.emoji} ${leader.name}`;
+
+      const leaderCanvas = document.getElementById('home-leader-canvas');
+      paintCountryball(leaderCanvas, leader, 'smile');
+
+      // キャラグリッド再描画
+      const grid = document.getElementById('char-grid');
+      grid.innerHTML = '';
+      CHARACTERS.forEach((c) => {
+        const item = document.createElement('div');
+        item.className = 'char-item' + (c.id === gameState.selectedCharId ? ' selected' : '');
+        const cv = document.createElement('canvas');
+        paintCountryball(cv, c, 'normal');
+        const label = document.createElement('span');
+        label.textContent = c.name;
+        item.append(cv, label);
+        item.onclick = () => {
+          gameState.selectedCharId = c.id;
+          playTone(520, 'sine', 0.08, 0.12);
+          saveGameData();
+          renderHomeUI();
+        };
+        grid.appendChild(item);
+      });
+
+      // アップグレード情報
+      const startCost = getUpgradeCost(gameState.startCountLv);
+      const coinCost = getUpgradeCost(gameState.coinBonusLv);
+
+      document.getElementById('upg-start-val').textContent = `Lv.${gameState.startCountLv} (${getStartCrowdCount()}人)`;
+      document.getElementById('upg-start-cost').textContent = startCost;
+      document.getElementById('upg-start-btn').disabled = gameState.coins < startCost;
+
+      document.getElementById('upg-coin-val').textContent = `Lv.${gameState.coinBonusLv} (${getCoinMultiplier().toFixed(2)}倍)`;
+      document.getElementById('upg-coin-cost').textContent = coinCost;
+      document.getElementById('upg-coin-btn').disabled = gameState.coins < coinCost;
+    }
+
+    function startNewRun() {
+      const leader = getSelectedChar();
+      document.getElementById('hud-leader-flag').textContent = leader.emoji;
+      document.getElementById('hud-leader-name').textContent = leader.name;
+      document.getElementById('hud-stage-cur').textContent = gameState.stage;
+      document.getElementById('hud-coin-num').textContent = gameState.coins;
+      document.getElementById('hud-crowd-count').textContent = getStartCrowdCount();
+      document.getElementById('hud-progress-fill').style.width = '0%';
+      document.getElementById('hud-swipe-hint').style.display = 'block';
+
+      buildStage(gameState.stage);
+      switchScreen('playing');
+      playTone(440, 'triangle', 0.15, 0.16);
+    }
+
+    // イベントリスナー登録
+    document.getElementById('dl-start-btn').addEventListener('click', async () => {
+      const btn = document.getElementById('dl-start-btn');
+      const wrap = document.getElementById('dl-progress-wrap');
+      const bar = document.getElementById('dl-progress-bar');
+      const txt = document.getElementById('dl-progress-text');
+
+      btn.disabled = true;
+      wrap.style.display = 'block';
+
+      try {
+        await initBallAssets();
+        await downloadAllFlagsWithProgress((done, total, msg) => {
+          bar.style.width = `${Math.round((done / total) * 100)}%`;
+          txt.textContent = msg;
+        });
+        clearSpriteCaches();
+        await saveGameData();
+        txt.textContent = 'ダウンロード完了！';
+        setTimeout(() => switchScreen('title'), 350);
+      } catch (err) {
+        txt.textContent = `エラー: ${err.message}（再試行してください）`;
+        btn.disabled = false;
+      }
+    });
+
+    document.getElementById('title-screen').addEventListener('click', () => {
+      playTone(600, 'sine', 0.12, 0.15);
+      switchScreen('home');
+    });
+
+    document.getElementById('upg-start-btn').addEventListener('click', () => {
+      const cost = getUpgradeCost(gameState.startCountLv);
+      if (gameState.coins < cost) return;
+      gameState.coins -= cost;
+      gameState.startCountLv += 1;
+      playTone(680, 'triangle', 0.12, 0.15);
+      showToast(`スタート人数が ${getStartCrowdCount()}人 にアップ！`);
+      saveGameData();
+      renderHomeUI();
+    });
+
+    document.getElementById('upg-coin-btn').addEventListener('click', () => {
+      const cost = getUpgradeCost(gameState.coinBonusLv);
+      if (gameState.coins < cost) return;
+      gameState.coins -= cost;
+      gameState.coinBonusLv += 1;
+      playTone(720, 'triangle', 0.12, 0.15);
+      showToast(`コイン倍率が ${getCoinMultiplier().toFixed(2)}倍 にアップ！`);
+      saveGameData();
+      renderHomeUI();
+    });
+
+    document.getElementById('home-play-btn').addEventListener('click', startNewRun);
+
+    document.getElementById('res-next-btn').addEventListener('click', () => {
+      playTone(540, 'sine', 0.1, 0.14);
+      switchScreen('home');
+    });
+
+    // アプリ起動処理
+    window.onload = async () => {
+      initThree();
+      setupControls();
+      requestAnimationFrame(animate);
+
+      try {
+        await initBallAssets();
+      } catch (e) {
+        console.warn('アセット事前ロード待機:', e);
+      }
+
+      const cached = await checkAllFlagsCached();
+      if (cached) {
+        await loadSaveData();
+        clearSpriteCaches();
+        switchScreen('title');
+      } else {
+        switchScreen('download');
+      }
+    };
+  </script>
+</body>
+</html>
