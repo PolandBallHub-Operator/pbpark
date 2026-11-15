@@ -424,13 +424,14 @@
                     <div class="mt-2 h-2.5 rounded-full bg-slate-200 overflow-hidden">
                         <div id="radar-bar" class="h-full rounded-full bg-gradient-to-r from-sky-400 via-amber-400 to-red-500 transition-all duration-500" style="width:0%"></div>
                     </div>
+                    <button id="btn-catch" class="hidden mt-3 w-full py-3 rounded-2xl bg-amber-400 text-slate-900 font-black shadow">✨ つかまえる！</button>
                 </div>
             </div>
 
             <!-- デモモード用 十字ボタン -->
             <div id="dpad" class="hidden absolute left-4 bottom-40 z-20 grid grid-cols-3 gap-1 w-32 pointer-events-auto">
                 <span></span><button data-d="0,1" class="dp">▲</button><span></span>
-                <button data-d="-1,0" class="dp">◀</button><span></span><button data-d="1,0" class="dp">▶</button>
+                <button data-d="-1,0" class="dp">◀</button><button id="dp-step" class="dp" style="font-size:11px">5m</button><button data-d="1,0" class="dp">▶</button>
                 <span></span><button data-d="0,-1" class="dp">▼</button><span></span>
             </div>
         </div>
@@ -869,16 +870,16 @@
             SPAWN_PROB: 0.6,     // 1マスにボールがいる確率(約1〜2kmに1体)
             EPOCH_HOURS: 12,     // この時間ごとにボールの配置が入れ替わる
             HINT_R: 120,         // この距離で「影」が見える
-            REVEAL_R: 55,        // この距離で姿がはっきり見える
-            CATCH_R: 40          // この距離以内でタップして捕獲開始
+            REVEAL_R: 70,        // この距離で姿がはっきり見える
+            CATCH_R: 60          // この距離以内でタップして捕獲開始
         };
 
         /* 捕まえる難しさ (出現時にランダムで決定) */
         const DIFFS = [
-            { stars: 1, label: 'やさしい',   speed: [2.5, 3.5], margin: 56, erratic: 0,     w: 45 },
-            { stars: 2, label: 'ふつう',     speed: [3.5, 5.0], margin: 44, erratic: 0.004, w: 30 },
-            { stars: 3, label: 'むずかしい', speed: [5.0, 6.5], margin: 34, erratic: 0.010, w: 18 },
-            { stars: 4, label: 'げきむず',   speed: [6.5, 8.5], margin: 26, erratic: 0.018, w: 7 }
+            { stars: 1, label: 'やさしい',   speed: [2.0, 3.0], margin: 64, erratic: 0,     w: 50 },
+            { stars: 2, label: 'ふつう',     speed: [2.8, 4.0], margin: 52, erratic: 0.003, w: 30 },
+            { stars: 3, label: 'むずかしい', speed: [3.8, 5.2], margin: 42, erratic: 0.007, w: 15 },
+            { stars: 4, label: 'げきむず',   speed: [5.0, 6.5], margin: 34, erratic: 0.012, w: 5 }
         ];
         function pickDiff() {
             let r = Math.random() * 100;
@@ -1047,7 +1048,7 @@
            ================================================================= */
         function catchRadius() {
             // GPS誤差が大きいときは少しだけ判定をゆるめる
-            return Math.max(CFG.CATCH_R, Math.min(userAcc || 0, 60));
+            return Math.max(CFG.CATCH_R, Math.min(userAcc || 0, 100));
         }
 
         /* 世界を約1.7km四方の「マス」に分け、マスごとにボールがいるかを決める。
@@ -1171,11 +1172,13 @@
         }
 
         /* 「あったかメーター」(方向は教えない) */
+        let catchTarget = null;
         function updateRadar() {
-            let nearest = Infinity;
+            let nearest = Infinity, nearestBall = null;
             spawnedBalls.forEach(b => {
                 if (caughtKeysSet.has(b.key)) return;
-                nearest = Math.min(nearest, getDistanceInMeters(userLat, userLng, b.lat, b.lng));
+                const d = getDistanceInMeters(userLat, userLng, b.lat, b.lng);
+                if (d < nearest) { nearest = d; nearestBall = b; }
             });
             let icon = '🧭', msg = 'ボールをさがしています…', pct = 0;
             if (nearest === Infinity) { /* そのまま */ }
@@ -1188,9 +1191,14 @@
             byId('radar-icon').innerText = icon;
             byId('radar-msg').innerText = msg;
             byId('radar-bar').style.width = pct + '%';
+            // 捕獲範囲(40m)以内なら「つかまえる」ボタンを出す
+            catchTarget = nearestBall && nearest <= catchRadius() ? nearestBall : null;
+            byId('btn-catch').classList.toggle('hidden', !catchTarget);
         }
+        byId('btn-catch').addEventListener('click', e => { e.stopPropagation(); if (catchTarget) handleBallClick(catchTarget); });
 
         function afterMove(force) {
+            if (playerCircle) playerCircle.setRadius(catchRadius());
             if (typeof nbOpen !== 'undefined' && nbOpen) renderNearby(false);
             updateBallStates();
             const now = Date.now();
@@ -1204,6 +1212,7 @@
 
         /* Handle Clicking a Polandball on the Map */
         function handleBallClick(ball) {
+            updateBallStates();
             if (caughtKeysSet.has(ball.key)) {
                 if (ball.state === 2) showBallSpeechBubble(ball);
                 else showToast('もう仲間のボールだよ。近づいてみよう！', 'fa-face-smile');
@@ -1244,7 +1253,7 @@
 
         function onPosition(pos) {
             const { latitude, longitude, accuracy } = pos.coords;
-            if (gotFix && accuracy > 120) return; // 精度が悪すぎる値は無視(ワープ対策)
+            if (gotFix && accuracy > 500) return; // 極端に精度が悪い値だけ無視(ワープ対策)
             userAcc = accuracy || 0;
             const first = !gotFix;
             const jump = first ? Infinity : getDistanceInMeters(userLat, userLng, latitude, longitude);
@@ -1266,31 +1275,35 @@
             byId('loading-actions').classList.remove('hidden');
         }
 
+        let gpsSession = 0;
         function onGpsError(err) {
             console.warn('Geolocation Error:', err);
-            if (!gotFix) {
-                showLoadingActions(err && err.code === 1
-                    ? '位置情報の許可がオフになっているよ。ブラウザの設定で許可してね'
-                    : 'うまく現在地が取れないみたい…');
+            if (gotFix) { setGps('GPS取得待機中…'); return; }
+            if (err && err.code === 1) { // 許可されていない場合だけ、すぐに選択肢を出す
+                showLoadingActions('位置情報の許可がオフになっているよ。ブラウザの設定で許可してね');
             } else {
-                setGps('GPS取得待機中…');
+                byId('loading-msg').innerText = '電波をさがしているよ…もう少し待ってね';
             }
         }
-
+        function startWatch(high) {
+            if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+            watchId = navigator.geolocation.watchPosition(onPosition, onGpsError, {
+                enableHighAccuracy: high, maximumAge: 5000, timeout: 60000
+            });
+        }
         function startGeolocationTracking() {
             if (demoMode) return;
-            if (!navigator.geolocation) {
-                showLoadingActions('このブラウザはGPSに対応していないよ');
-                return;
-            }
-            if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+            if (!navigator.geolocation) { showLoadingActions('このブラウザはGPSに対応していないよ'); return; }
+            const s = ++gpsSession;
+            const alive = () => s === gpsSession && !gotFix && !demoMode;
             byId('loading-msg').innerText = '現在地をさがしているよ…';
             byId('loading-actions').classList.add('hidden');
             setGps('GPSをさがし中…');
-            watchId = navigator.geolocation.watchPosition(onPosition, onGpsError, {
-                enableHighAccuracy: true, maximumAge: 1000, timeout: 20000
-            });
-            setTimeout(() => { if (!gotFix) showLoadingActions(); }, 8000);
+            startWatch(true);
+            setTimeout(() => { if (alive()) byId('loading-msg').innerText = '電波をさがしているよ…窓の近くや屋外だと見つかりやすいよ'; }, 15000);
+            setTimeout(() => { if (alive()) startWatch(false); }, 25000); // 見つからなければ精度をゆるめて再挑戦
+            setTimeout(() => { if (alive()) byId('loading-msg').innerText = 'もう少しだけ待ってね…'; }, 40000);
+            setTimeout(() => { if (alive()) showLoadingActions('なかなか見つからないみたい…このまま待ってもOKだよ'); }, 60000);
         }
 
         /* デモモード: GPSなしでも遊べる(ベルリン / 矢印キーか十字ボタンで移動) */
@@ -1301,16 +1314,18 @@
             userAcc = 5;
             gotFix = true;
             setPlayerPos(52.5200, 13.4050, true);
-            setGps('デモモード (十字ボタン/矢印キーで移動)');
+            setGps('デモモード (十字ボタン長押し/矢印キーで移動)');
             byId('loading-overlay').classList.add('hidden');
             byId('dpad').classList.remove('hidden');
             
             afterMove(true);
         }
 
+        let demoStepM = 5;
+        const DEMO_STEPS = [2, 5, 20, 100, 500];
         function demoStep(dx, dy) {
             if (!demoMode) return;
-            const step = 120; // 1回120m(ボールがまばらなので大きめ)
+            const step = demoStepM; // 移動幅は十字ボタン中央で切り替え
             setPlayerPos(userLat + (dy * step) / 111000,
                          userLng + (dx * step) / (111000 * Math.cos(userLat * Math.PI / 180)), false);
             afterMove(false);
@@ -1318,12 +1333,18 @@
 
         byId('btn-retry').addEventListener('click', startGeolocationTracking);
         byId('btn-demo').addEventListener('click', enterDemoMode);
-        document.querySelectorAll('#dpad button').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const [dx, dy] = btn.dataset.d.split(',').map(Number);
-                demoStep(dx, dy);
-            });
+        document.querySelectorAll('#dpad button[data-d]').forEach(btn => {
+            const [dx, dy] = btn.dataset.d.split(',').map(Number);
+            let timer = null;
+            const stop = () => { clearInterval(timer); timer = null; };
+            btn.addEventListener('pointerdown', e => { e.preventDefault(); demoStep(dx, dy); stop(); timer = setInterval(() => demoStep(dx, dy), 90); }); // 長押しで連続移動
+            ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => btn.addEventListener(ev, stop));
         });
+        byId('dp-step').addEventListener('click', () => {
+            demoStepM = DEMO_STEPS[(DEMO_STEPS.indexOf(demoStepM) + 1) % DEMO_STEPS.length];
+            byId('dp-step').textContent = demoStepM + 'm';
+        });
+
         window.addEventListener('keydown', (e) => {
             const m = { ArrowUp: [0, 1], ArrowDown: [0, -1], ArrowLeft: [-1, 0], ArrowRight: [1, 0] }[e.key];
             if (m && demoMode) { e.preventDefault(); demoStep(m[0], m[1]); }
@@ -1336,7 +1357,7 @@
         const ringArea = byId('ring-touch-area');
         let isThrowing = false;
         let targetX = 0, targetDirection = 1, targetSpeed = 3, targetAnimReq = null, lastTs = 0;
-        let curDiff = DIFFS[0], speedBoost = 1, throwSession = 0;
+        let curDiff = DIFFS[0], speedBoost = 1, throwSession = 0, throwMisses = 0;
         let dragStartY = null, dragDy = 0;
 
         function animateTargetBall(ts) {
@@ -1370,15 +1391,20 @@
             throwRing.style.transform = 'translateY(0px) scale(1)';
         }
 
+        function updateThrowInfo() {
+            byId('throw-stars').innerText = `むずかしさ ${'★'.repeat(curDiff.stars)}${'☆'.repeat(4 - curDiff.stars)} ${curDiff.label}  ・  のこり ${'●'.repeat(3 - throwMisses)}${'○'.repeat(throwMisses)}`;
+        }
+
         function startThrowGame(ball) {
             activeThrowBall = ball;
             throwSession++;
             curDiff = ball.diff;
             speedBoost = 1;
+            throwMisses = 0;
 
             byId('target-country-name').innerText = `${ball.country.flag} ${ball.country.name}`;
             byId('target-ball-title').innerText = `${ball.country.name}ボールが現れた！`;
-            byId('throw-stars').innerText = `むずかしさ ${'★'.repeat(curDiff.stars)}${'☆'.repeat(4 - curDiff.stars)} ${curDiff.label}`;
+            updateThrowInfo();
             byId('target-band').style.width = (curDiff.margin * 2) + 'px';
 
             const tc = byId('target-ball-canvas');
@@ -1442,15 +1468,27 @@
                         );
                     }, 1200);
                 } else {
-                    byId('miss-msg').innerText = off <= curDiff.margin * 1.8 ? 'おしい！あとちょっと！' : 'ハズレ！';
+                    throwMisses++;
+                    const left = 3 - throwMisses;
+                    byId('miss-msg').innerText = left <= 0 ? 'ボールは帰ってしまった…' : (off <= curDiff.margin * 1.8 ? 'おしい！あとちょっと！' : 'ハズレ！');
                     byId('miss-msg').classList.remove('hidden');
-                    setBallExpr(byId('target-ball-canvas'), curDiff.stars >= 3 ? 'anger' : 'lol');
-                    byId('throw-hint').innerText = 'もう一度！タイミングを合わせて投げよう';
-                    // むずかしいボールは外すたびに少し速くなる
-                    if (curDiff.stars >= 3) {
-                        speedBoost = Math.min(1.5, speedBoost * 1.08);
-                        targetSpeed = Math.min(12, targetSpeed * 1.08);
+                    updateThrowInfo();
+                    if (left <= 0) { // 3回ミスでボールは帰ってしまう
+                        stopTargetBallAnimation();
+                        setBallExpr(byId('target-ball-canvas'), 'sad');
+                        byId('throw-hint').innerText = '';
+                        setTimeout(() => {
+                            if (s !== throwSession) return;
+                            caughtCells.add(ball.cellId); saveCells(); // このマスのボールは次の入れ替えまで戻ってこない
+                            stopThrowGame();
+                            removeBall(ball);
+                            afterMove(true);
+                            showDialog('ボールが帰っちゃった', `${ball.country.name}ボールは、おうちに帰ってしまったよ…\nまた別のボールをさがそう！`, 'fa-house');
+                        }, 1400);
+                        return;
                     }
+                    setBallExpr(byId('target-ball-canvas'), curDiff.stars >= 3 ? 'anger' : 'lol');
+                    byId('throw-hint').innerText = `もう一度！タイミングを合わせて (のこり${left}回)`;
                     setTimeout(() => {
                         if (s !== throwSession) return;
                         byId('miss-msg').classList.add('hidden');
