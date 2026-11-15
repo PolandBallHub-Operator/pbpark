@@ -124,8 +124,8 @@ p{font-size:13.5px;line-height:1.6;margin:0 0 14px;color:var(--text-sub)}
       <h1><span class="h1a">今日から1週間！</span><span class="h1b">PBポイント</span><span class="h1c">づくし！</span></h1>
       <div class="hero-stats">
         <div class="stat"><b>+100</b><small>参加記念pt</small></div>
-        <div class="stat"><b>7日</b><small>毎日5pt×2</small></div>
-        <div class="stat"><b>最大260</b><small>合計pt</small></div>
+        <div class="stat"><b>7日</b><small>2日目から10pt×2</small></div>
+        <div class="stat"><b>最大310</b><small>合計pt</small></div>
       </div>
       <div class="hero-cta">
         <button class="ai-btn" onclick="switchView('view-home');document.getElementById('missions').scrollIntoView({behavior:'smooth'})"><span class="material-symbols-outlined">bolt</span>今日のptをもらう</button>
@@ -133,11 +133,11 @@ p{font-size:13.5px;line-height:1.6;margin:0 0 14px;color:var(--text-sub)}
       </div>
       <div class="balls" id="hero-balls"></div>
     </div>
-    <div class="ticker" aria-hidden="true"><div>★ こんなに集まる機会はもうない！ ★ 一度きりの大放出！ ★ 毎日遊んで5pt ★ 共有してさらに5pt ★ 1週間まるごとPBポイントづくし！ ★ こんなに集まる機会はもうない！ ★ 一度きりの大放出！ ★</div></div>
+    <div class="ticker" aria-hidden="true"><div>★ こんなに集まる機会はもうない！ ★ 一度きりの大放出！ ★ 毎日遊んでポイントGET ★ 共有してさらにポイントGET ★ 2日目からは10pt/10pt ★ 1週間まるごとPBポイントづくし！ ★ こんなに集まる機会はもうない！ ★ 一度きりの大放出！ ★</div></div>
 
     <div class="big-promo">
       <b>こんなに集まる機会は、もうない。<br>一度きりの大放出！</b>
-      <p>参加するだけで記念の100ptをプレゼント。さらに毎日、アプリで遊ぶと5pt・友達に共有でさらに5pt。最終日はなんと遊んで80pt＋共有で20pt！全部集めれば最大260ptです。</p>
+      <p>参加するだけで記念の100ptをプレゼント。さらに毎日、アプリで遊んで・友達に共有でポイントゲット。初日は5pt/5pt、2日目からは10pt/10ptにアップ！最終日はなんと遊んで80pt＋共有で20pt！全部集めれば最大310ptです。</p>
     </div>
 
     <div class="glass-card" id="bonus-card" style="display:none;background:var(--gold);color:#111">
@@ -183,7 +183,7 @@ p{font-size:13.5px;line-height:1.6;margin:0 0 14px;color:var(--text-sub)}
   <!-- アプリ -->
   <section id="view-apps" class="view">
     <div class="glass-card">
-      <h2>遊んで5pt！</h2>
+      <h2>遊んでポイントゲット！</h2>
       <p>好きなアプリを開いて15秒以上遊んでから、このページに戻ってくるとポイントがもらえます（1日1回）。</p>
       <input class="glass-input" id="search" placeholder="アプリを検索" style="margin-bottom:0">
     </div>
@@ -197,8 +197,8 @@ p{font-size:13.5px;line-height:1.6;margin:0 0 14px;color:var(--text-sub)}
       <ul class="rules">
         <li>期間：<span id="period"></span>（日本時間）</li>
         <li>「参加記念ポイントを受け取る」ボタンから <b>100pt</b>（1回のみ）</li>
-        <li>期間中、毎日アプリで遊ぶと <b>5pt</b></li>
-        <li>毎日「polandball.s.gy」を共有すると、さらに <b>5pt</b></li>
+        <li>初日：アプリで遊ぶと <b>5pt</b>、「polandball.s.gy」を共有すると <b>5pt</b></li>
+        <li>2日目〜最終日の前日：遊ぶと <b>10pt</b>、共有すると <b>10pt</b></li>
         <li>最終日は、遊ぶと <b>80pt</b>・共有すると <b>20pt</b></li>
         <li>遊ぶ・共有は1日1回ずつ。日付は日本時間0:00に切り替わります</li>
         <li>ポイントはPB Park共通のPBポイントとして貯まります</li>
@@ -232,10 +232,11 @@ p{font-size:13.5px;line-height:1.6;margin:0 0 14px;color:var(--text-sub)}
 /* ========== 設定 ========== */
 const START = '2026-11-15';          // イベント初日（日本時間）
 const DAYS = 7;                      // 開催日数
-const PT_PLAY = 5, PT_SHARE = 5;     // 通常日
+const PT_PLAY = 5, PT_SHARE = 5;     // 初日
+const MID_PLAY = 10, MID_SHARE = 10; // 2日目〜最終日の前日
 const FINAL_PLAY = 80, FINAL_SHARE = 20; // 最終日
 const BONUS = 100;                   // イベント参加記念（初回のみ）
-const ptFor = (i,k) => i===DAYS-1 ? (k==='play'?FINAL_PLAY:FINAL_SHARE) : (k==='play'?PT_PLAY:PT_SHARE);
+const ptFor = (i,k) => i===DAYS-1 ? (k==='play'?FINAL_PLAY:FINAL_SHARE) : i>=1 ? (k==='play'?MID_PLAY:MID_SHARE) : (k==='play'?PT_PLAY:PT_SHARE);
 const MAX_TOTAL = BONUS + Array.from({length:DAYS},(_,i)=>ptFor(i,'play')+ptFor(i,'share')).reduce((a,b)=>a+b,0);
 const SHARE_URL = 'https://polandball.s.gy';
 const SHARE_TEXT = 'CountryParkで「今日から1週間！PBポイントづくし！」開催中！毎日PBポイントがもらえるよ🎁';
