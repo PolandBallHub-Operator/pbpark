@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>今日から1週間！PBポイントづくし！ | CountryPark</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<!-- PB Point 共通ライブラリ（polalis / test と同じ仕組み） -->
+<script src="/pbpark/points/points.js"></script>
+<style>
+:root{
+  --accent-primary:#E8112D; --accent-active:#B80D24;
+  /* ShowMeCSS 規格値（イベントアプリのためPTZ設定UIなし・固定） */
+  --ptz-card-radius:24px; --ptz-slider-height:25px;
+  --bg-base:#F7F7F7; --glass-bg:#FFFFFF; --text-main:#000; --text-sub:#666; --bg-secondary:#EEEEEE; --nav-bg:#FFF; --nav-icon-active:#000;
+  --m3-easing:cubic-bezier(.32,.72,0,1); --transition-smooth:.35s var(--m3-easing); --card-padding:24px;
+  --gold:#FFD400;
+}
+.dark-mode{--bg-base:#121212;--glass-bg:#1E1E1E;--text-main:#FFF;--text-sub:#A1A1A6;--bg-secondary:#2C2C2E;--nav-bg:#1E1E1E;--nav-icon-active:#FFF}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;font-family:'Plus Jakarta Sans','Noto Sans JP',sans-serif;background:var(--bg-base);color:var(--text-main);transition:background-color var(--transition-smooth),color var(--transition-smooth)}
+header{height:64px;padding:0 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;background:var(--bg-base)}
+.logo{font-weight:800;font-size:16px;letter-spacing:-.5px;display:flex;align-items:center;gap:6px}
+.hdr-right{display:flex;align-items:center;gap:8px}
+.pt-chip{background:var(--glass-bg);border-radius:20px;padding:8px 14px;font-weight:800;font-size:14px;display:flex;align-items:center;gap:6px}
+.pt-chip .material-symbols-outlined{font-size:18px;color:var(--accent-primary);font-variation-settings:'FILL' 1}
+.theme-toggle{width:40px;height:40px;border-radius:50%;border:none;background:var(--bg-secondary);color:var(--text-main);cursor:pointer;display:flex;align-items:center;justify-content:center}
+main{max-width:720px;margin:0 auto;padding:4px 16px 110px}
+.glass-card{background:var(--glass-bg);border-radius:var(--ptz-card-radius);padding:var(--card-padding);margin-bottom:16px}
+h2{font-size:18px;margin:0 0 12px;font-weight:700;letter-spacing:-.3px}
+p{font-size:13.5px;line-height:1.6;margin:0 0 14px;color:var(--text-sub)}
+.list-item{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 4px}
+.list-item-title{font-weight:600;font-size:14px}
+.list-item-desc{font-size:12px;color:var(--text-sub);margin-top:2px;line-height:1.45}
+.ai-btn{border:none;outline:none;padding:12px 24px;border-radius:14px;font-weight:700;font-size:14px;font-family:inherit;color:#fff;cursor:pointer;background:var(--accent-primary);transition:opacity .2s,background-color var(--transition-smooth);display:inline-flex;align-items:center;gap:8px;justify-content:center;text-decoration:none}
+.ai-btn:active{opacity:.85}.ai-btn:focus-visible,.nav-item:focus-visible{outline:3px solid var(--text-main);outline-offset:2px}
+.ai-btn-secondary{background:var(--bg-secondary);color:var(--text-main)}
+.ai-btn-sm{padding:8px 16px;border-radius:12px;font-size:13px;flex-shrink:0}
+.ai-btn[disabled]{opacity:.45;cursor:default}
+.glass-input{width:100%;padding:12px 16px;border-radius:12px;border:none;background:var(--bg-secondary);color:var(--text-main);font-size:14px;font-family:inherit;margin-bottom:16px}
+.glass-input:focus{outline:2px solid var(--accent-primary)}
+.badge{background:var(--accent-primary);color:#fff;padding:3px 10px;border-radius:10px;font-size:11px;font-weight:700;display:inline-block}
+.badge.done{background:#1FA45B}
+.slider-label-row{display:flex;justify-content:space-between;font-size:13px;font-weight:700;margin-bottom:8px}
+.thick-slider-container{position:relative;width:100%;height:var(--ptz-slider-height);background:var(--bg-secondary);border-radius:calc(var(--ptz-slider-height)/2);overflow:hidden;display:flex;align-items:center}
+.thick-slider-fill{position:absolute;inset:0 auto 0 0;width:0;background:var(--accent-primary);border-radius:calc(var(--ptz-slider-height)/2);display:flex;align-items:center;justify-content:flex-end;padding-right:3px;transition:width .6s var(--m3-easing),background-color var(--transition-smooth)}
+.thick-slider-knob{width:calc(var(--ptz-slider-height) - 6px);height:calc(var(--ptz-slider-height) - 6px);background:#fff;border-radius:50%;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.bottom-nav-container{position:fixed;bottom:0;left:0;width:100%;height:72px;background:var(--nav-bg);border-top:1px solid var(--bg-secondary);z-index:500;display:flex;padding-bottom:env(safe-area-inset-bottom);box-sizing:content-box}
+.nav-item{flex:1;height:72px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;color:var(--text-sub);gap:4px;border:none;background:none;font-family:inherit}
+.nav-item .material-symbols-outlined{font-size:24px;font-variation-settings:'FILL' 0,'wght' 400}
+.nav-label{font-size:10px;font-weight:700}
+.nav-item.active{color:var(--nav-icon-active)}.nav-item.active .material-symbols-outlined{font-variation-settings:'FILL' 1,'wght' 700}
+.view{display:none}.view.active{display:block;animation:viewIn .3s var(--m3-easing)}
+@keyframes viewIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.toast{position:fixed;bottom:96px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--text-main);color:var(--glass-bg);padding:10px 20px;border-radius:12px;font-size:13px;font-weight:600;opacity:0;visibility:hidden;transition:all .3s var(--m3-easing);z-index:2000;max-width:90vw;text-align:center}
+.toast.active{opacity:1;visibility:visible;transform:translateX(-50%)}
+.dialog-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1000;display:flex;align-items:center;justify-content:center;opacity:0;visibility:hidden;transition:all .3s var(--m3-easing)}
+.dialog-overlay.active{opacity:1;visibility:visible}
+.glass-dialog{background:var(--glass-bg);border-radius:var(--ptz-card-radius);padding:24px;max-width:340px;width:90%;text-align:center;transform:scale(.9) translateY(20px);transition:all .4s var(--m3-easing)}
+.dialog-overlay.active .glass-dialog{transform:none}
+
+/* ===== イベント専用 ===== */
+.hero{background:var(--accent-primary);color:#fff;border-radius:32px 32px 0 0;padding:22px 18px 0;overflow:hidden;position:relative}
+.hero-top{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.pill{background:#fff;color:var(--accent-primary);font-weight:800;font-size:12px;padding:5px 12px;border-radius:20px}
+.pill.dark{background:#000;color:var(--gold)}
+.hero h1{margin:0;line-height:1;font-family:'Noto Sans JP',sans-serif;font-weight:900}
+.h1a{display:block;font-size:clamp(20px,6vw,30px);letter-spacing:-.02em;margin-bottom:6px}
+.h1b{display:block;font-size:clamp(54px,17.5vw,128px);letter-spacing:-.06em;line-height:.95}
+.h1c{display:block;font-size:clamp(54px,17.5vw,128px);letter-spacing:-.06em;line-height:.95;color:transparent;-webkit-text-stroke:3px #fff}
+.hero-stats{display:flex;gap:10px;margin:18px 0 6px;flex-wrap:wrap;align-items:stretch}
+.stat{background:rgba(0,0,0,.22);border-radius:18px;padding:10px 16px;flex:1;min-width:92px}
+.stat b{display:block;font-size:30px;font-weight:800;letter-spacing:-.04em;line-height:1.1}
+.stat small{font-size:11px;font-weight:700;opacity:.9}
+.hero-cta{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0 10px}
+.hero-cta .ai-btn{background:#fff;color:var(--accent-primary);font-size:15px;padding:14px 22px}
+.hero-cta .ai-btn.alt{background:#000;color:var(--gold)}
+.balls{display:grid;grid-template-columns:repeat(3,1fr);gap:0 4px;margin:0 -6px}
+@media(min-width:560px){.balls{grid-template-columns:repeat(6,1fr)}}
+.ball-wrap{text-align:center;cursor:pointer;opacity:0;animation:drop .9s var(--m3-easing) forwards;animation-delay:calc(var(--i)*.09s)}
+.ball-wrap canvas{width:100%;max-width:130px;aspect-ratio:1;display:block;margin:0 auto}
+.ball-wrap span{display:block;font-size:11px;font-weight:800;margin-top:-4px;padding-bottom:10px}
+.ball-wrap.wiggle canvas{animation:wig .5s}
+@keyframes drop{0%{opacity:0;transform:translateY(-140px) scale(.9)}60%{opacity:1;transform:translateY(8px)}80%{transform:translateY(-6px)}100%{opacity:1;transform:none}}
+@keyframes wig{25%{transform:rotate(-12deg) scale(1.08)}75%{transform:rotate(12deg) scale(1.08)}}
+.ticker{background:var(--gold);color:#111;overflow:hidden;white-space:nowrap;border-radius:0 0 32px 32px;margin-bottom:16px;font-weight:900;font-size:15px;padding:10px 0}
+.ticker div{display:inline-block;padding-left:100%;animation:tick 28s linear infinite}
+@keyframes tick{to{transform:translateX(-100%)}}
+@media(prefers-reduced-motion:reduce){.ticker div{animation:none;padding-left:12px}.ball-wrap{animation:none;opacity:1}.ball-wrap.wiggle canvas{animation:none}}
+.big-promo{background:#000;color:var(--gold);border-radius:var(--ptz-card-radius);padding:22px;margin-bottom:16px}
+.big-promo b{display:block;font-size:clamp(22px,6.5vw,34px);font-weight:900;line-height:1.2;font-family:'Noto Sans JP',sans-serif}
+.big-promo p{color:#ddd;margin:10px 0 0}
+.mission{display:flex;align-items:center;gap:14px;padding:14px 0}
+.m-ico{width:48px;height:48px;border-radius:16px;background:var(--bg-secondary);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.m-ico .material-symbols-outlined{font-size:26px}
+.m-body{flex:1;min-width:0}
+.m-title{font-weight:700;font-size:15px}
+.m-desc{font-size:12px;color:var(--text-sub);margin-top:2px}
+.days{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.day{background:var(--bg-secondary);border-radius:14px;padding:8px 0;text-align:center;font-size:11px;font-weight:700;color:var(--text-sub)}
+.day .material-symbols-outlined{font-size:22px;display:block;margin:2px auto 0}
+.day.today{background:var(--accent-primary);color:#fff}
+.day.full{background:#1FA45B;color:#fff}
+.day.half{outline:2px solid #1FA45B;outline-offset:-2px;color:var(--text-main)}
+.cat-title{display:flex;align-items:center;gap:8px;margin-top:6px}
+.rules{padding-left:18px;margin:0 0 14px;font-size:13.5px;line-height:1.7;color:var(--text-sub)}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo"><span class="material-symbols-outlined" style="color:var(--accent-primary)">celebration</span>CountryPark</div>
+  <div class="hdr-right">
+    <div class="pt-chip" title="現在のPBポイント"><span class="material-symbols-outlined">toll</span><span id="pt-val">0</span><small>pt</small></div>
+    <button class="theme-toggle" id="theme-btn" aria-label="ダークモード切替"><span class="material-symbols-outlined">dark_mode</span></button>
+  </div>
+</header>
+
+<main>
+  <!-- ホーム -->
+  <section id="view-home" class="view active">
+    <div class="hero">
+      <div class="hero-top"><span class="pill">期間限定イベント</span><span class="pill dark" id="countdown">--</span></div>
+      <h1><span class="h1a">今日から1週間！</span><span class="h1b">PBポイント</span><span class="h1c">づくし！</span></h1>
+      <div class="hero-stats">
+        <div class="stat"><b>+10</b><small>毎日もらえるpt</small></div>
+        <div class="stat"><b>7日</b><small>連続開催</small></div>
+        <div class="stat"><b>最大70</b><small>合計pt</small></div>
+      </div>
+      <div class="hero-cta">
+        <button class="ai-btn" onclick="switchView('view-home');document.getElementById('missions').scrollIntoView({behavior:'smooth'})"><span class="material-symbols-outlined">bolt</span>今日のptをもらう</button>
+        <button class="ai-btn alt" onclick="doShare()"><span class="material-symbols-outlined">ios_share</span>友達に共有</button>
+      </div>
+      <div class="balls" id="hero-balls"></div>
+    </div>
+    <div class="ticker" aria-hidden="true"><div>★ こんなに集まる機会はもうない！ ★ 一度きりの大放出！ ★ 毎日遊んで5pt ★ 共有してさらに5pt ★ 1週間まるごとPBポイントづくし！ ★ こんなに集まる機会はもうない！ ★ 一度きりの大放出！ ★</div></div>
+
+    <div class="big-promo">
+      <b>こんなに集まる機会は、もうない。<br>一度きりの大放出！</b>
+      <p>期間中は毎日、アプリで遊ぶだけで5pt。友達に共有でさらに5pt。1日10pt×7日間、取りこぼさなければ最大70ptが手に入ります。</p>
+    </div>
+
+    <div class="glass-card" id="missions">
+      <h2>今日のミッション</h2>
+      <div class="slider-label-row"><span id="today-label">今日</span><span id="today-pt">0 / 10pt</span></div>
+      <div class="thick-slider-container"><div class="thick-slider-fill" id="today-fill"><div class="thick-slider-knob"></div></div></div>
+      <div class="mission">
+        <div class="m-ico"><span class="material-symbols-outlined">sports_esports</span></div>
+        <div class="m-body"><div class="m-title">アプリで遊ぶ <span class="badge" id="b-play">+5pt</span></div><div class="m-desc">どれか1つ開いて15秒以上遊んでから戻ってきてね</div></div>
+        <button class="ai-btn ai-btn-sm" id="btn-play" onclick="switchView('view-apps')">アプリへ</button>
+      </div>
+      <div class="mission">
+        <div class="m-ico"><span class="material-symbols-outlined">group_add</span></div>
+        <div class="m-body"><div class="m-title">友達に共有 <span class="badge" id="b-share">+5pt</span></div><div class="m-desc">「polandball.s.gy」を友達に伝えよう（1日1回）</div></div>
+        <button class="ai-btn ai-btn-sm" id="btn-share" onclick="doShare()">共有する</button>
+      </div>
+    </div>
+
+    <div class="glass-card">
+      <h2>7日間のスタンプ</h2>
+      <div class="days" id="days"></div>
+      <div style="height:16px"></div>
+      <div class="slider-label-row"><span>イベント合計</span><span id="total-pt">0 / 70pt</span></div>
+      <div class="thick-slider-container"><div class="thick-slider-fill" id="total-fill"><div class="thick-slider-knob"></div></div></div>
+    </div>
+
+    <div class="glass-card">
+      <h2>イベントが終わったあとも！</h2>
+      <p>イベントが終わったあとも、ここからもらえるんよ！</p>
+      <a class="ai-btn" href="https://polandballhub-operator.github.io/pbpark/pbcores/" target="_blank" rel="noopener"><span class="material-symbols-outlined">open_in_new</span>PBPointを見に行く</a>
+    </div>
+  </section>
+
+  <!-- アプリ -->
+  <section id="view-apps" class="view">
+    <div class="glass-card">
+      <h2>遊んで5pt！</h2>
+      <p>好きなアプリを開いて15秒以上遊んでから、このページに戻ってくるとポイントがもらえます（1日1回）。</p>
+      <input class="glass-input" id="search" placeholder="アプリを検索" style="margin-bottom:0">
+    </div>
+    <div id="app-list"><div class="glass-card"><p style="margin:0">読み込み中…</p></div></div>
+  </section>
+
+  <!-- ルール -->
+  <section id="view-info" class="view">
+    <div class="glass-card">
+      <h2>イベントのルール</h2>
+      <ul class="rules">
+        <li>期間：<span id="period"></span>（日本時間）</li>
+        <li>期間中、毎日アプリで遊ぶと <b>5pt</b></li>
+        <li>毎日「polandball.s.gy」を共有すると、さらに <b>5pt</b></li>
+        <li>どちらも1日1回。日付は日本時間0:00に切り替わります</li>
+        <li>ポイントはPB Park共通のPBポイントとして貯まります</li>
+      </ul>
+      <p style="margin:0">イベント終了後も、PBPointからポイントを受け取れます。</p>
+    </div>
+    <div class="glass-card">
+      <h2>PBPointはこちら</h2>
+      <a class="ai-btn" href="https://polandballhub-operator.github.io/pbpark/pbcores/" target="_blank" rel="noopener"><span class="material-symbols-outlined">open_in_new</span>PBPointを開く</a>
+    </div>
+  </section>
+</main>
+
+<nav class="bottom-nav-container">
+  <button class="nav-item active" data-view="view-home"><span class="material-symbols-outlined">celebration</span><span class="nav-label">イベント</span></button>
+  <button class="nav-item" data-view="view-apps"><span class="material-symbols-outlined">apps</span><span class="nav-label">アプリ</span></button>
+  <button class="nav-item" data-view="view-info"><span class="material-symbols-outlined">info</span><span class="nav-label">ルール</span></button>
+</nav>
+
+<div class="toast" id="toast"></div>
+<div class="dialog-overlay" id="dlg" onclick="this.classList.remove('active')">
+  <div class="glass-dialog">
+    <canvas id="dlg-ball" width="220" height="220" style="width:140px;height:140px"></canvas>
+    <h2 id="dlg-title" style="font-size:34px;margin:6px 0">+5pt</h2>
+    <p id="dlg-msg">ゲットしました！</p>
+    <button class="ai-btn">やったー！</button>
+  </div>
+</div>
+
+<script>
+/* ========== 設定 ========== */
+const START = '2026-11-15';          // イベント初日（日本時間）
+const DAYS = 7;                      // 開催日数
+const PT_PLAY = 5, PT_SHARE = 5;
+const SHARE_URL = 'https://polandball.s.gy';
+const SHARE_TEXT = 'CountryParkで「今日から1週間！PBポイントづくし！」開催中！毎日PBポイントがもらえるよ🎁';
+const PLAY_SECONDS = 15;
+const APPLIST_URLS = ['https://raw.githubusercontent.com/PolandBallHub-Operator/pbpark/refs/heads/main/applist/applist.json'];
+const DAILY_PICKS = 8;               // 1日に表示するアプリ数（日付ごとにランダム）
+const BALLS = [['de','ドイツ'],['jp','日本'],['pl','ポーランド'],['kr','韓国'],['cn','中国'],['ru','ロシア']];
+const FALLBACK_APPS = [{category:'主要ツール',apps:[{appname:'PBPoint',appinfo:'PBPark内で使える！無料！',appurl:'https://polandballhub-operator.github.io/pbpark/pbcores/'}]}];
+
+/* ========== ポイント（points.js 共通 / 無い場合は同キーで代替） ========== */
+const PS = window.PointsSystem || window.PBPoints || {
+  get(){return Math.max(0,parseInt(localStorage.getItem('pb_user_points'),10)||0)},
+  add(n){return this.set(this.get()+n)},
+  set(n){const v=Math.max(0,Math.floor(n));localStorage.setItem('pb_user_points',v);window.dispatchEvent(new CustomEvent('pointsUpdated',{detail:v}));return v},
+  onChange(cb){const h=()=>cb(this.get());window.addEventListener('pointsUpdated',h);window.addEventListener('storage',h)}
+};
+
+/* ========== 日付 / 保存 ========== */
+const t0 = Date.parse(START+'T00:00:00+09:00');
+const jst = (ms=Date.now()) => new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Tokyo'}).format(ms);
+const dayKey = i => jst(t0 + i*864e5 + 36e5);
+const todayIdx = () => Math.floor((Date.parse(jst()+'T00:00:00+09:00') - t0)/864e5);
+const phase = () => { const i=todayIdx(); return i<0?'before':i>=DAYS?'after':'live' };
+const KEY='pbevent_week_v1';
+const load = () => { try{return JSON.parse(localStorage.getItem(KEY))||{days:{}}}catch{return {days:{}}} };
+const save = s => { try{localStorage.setItem(KEY,JSON.stringify(s))}catch{} };
+const $ = id => document.getElementById(id);
+
+/* ========== UI共通 ========== */
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('active');clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('active'),2600)}
+function switchView(id){document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id===id));document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.view===id));scrollTo({top:0})}
+document.querySelectorAll('.nav-item').forEach(n=>n.onclick=()=>switchView(n.dataset.view));
+const dark = localStorage.getItem('pbevent_dark')==='1'; if(dark)document.body.classList.add('dark-mode');
+$('theme-btn').onclick=()=>{const d=document.body.classList.toggle('dark-mode');try{localStorage.setItem('pbevent_dark',d?1:0)}catch{}};
+
+/* ========== ミッション ========== */
+function claim(kind){
+  if(phase()!=='live'){toast(phase()==='before'?'イベントはまだ始まっていません':'イベントは終了しました。PBPointからもらえます！');return false}
+  const s=load(),k=dayKey(todayIdx()),d=s.days[k]||(s.days[k]={});
+  if(d[kind]){toast('今日はもう受け取り済みです');return false}
+  d[kind]=true;save(s);
+  const pt=kind==='play'?PT_PLAY:PT_SHARE;PS.add(pt);render();
+  showDialog(pt,kind==='play'?'遊んでくれてありがとう！':'共有ありがとう！');
+  return true;
+}
+async function doShare(){
+  if(phase()!=='live')return claim('share');
+  if(load().days[dayKey(todayIdx())]?.share)return toast('今日はもう共有ポイント受け取り済みです');
+  try{
+    if(navigator.share){await navigator.share({title:'PBポイントづくし！',text:SHARE_TEXT,url:SHARE_URL});}
+    else{await navigator.clipboard.writeText(SHARE_TEXT+'\n'+SHARE_URL);toast('共有文をコピーしました。友達に送ってね！');}
+    claim('share');
+  }catch(e){ if(e&&e.name!=='AbortError')toast('共有できませんでした。もう一度試してね'); }
+}
+let pending=null;
+function openApp(url){
+  window.open(url,'_blank','noopener');
+  if(phase()==='live'&&!load().days[dayKey(todayIdx())]?.play){pending=Date.now();toast(PLAY_SECONDS+'秒以上遊んだらここに戻ってきてね！')}
+}
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState!=='visible'||!pending)return;
+  const sec=(Date.now()-pending)/1000;
+  if(sec>=PLAY_SECONDS){pending=null;claim('play')}
+  else{pending=null;toast('もう少し遊んでから戻ってきてね（'+PLAY_SECONDS+'秒以上）')}
+});
+
+/* ========== 描画 ========== */
+function render(){
+  $('pt-val').textContent=PS.get().toLocaleString();
+  const s=load(),ph=phase(),ti=todayIdx(),td=s.days[dayKey(ti)]||{};
+  const gained=(td.play?PT_PLAY:0)+(td.share?PT_SHARE:0);
+  $('today-label').textContent=ph==='live'?`Day ${ti+1} / ${DAYS}`:ph==='before'?'開始前':'イベント終了';
+  $('today-pt').textContent=`${gained} / ${PT_PLAY+PT_SHARE}pt`;
+  $('today-fill').style.width=Math.max(gained?8:0,gained/(PT_PLAY+PT_SHARE)*100)+'%';
+  const live=ph==='live';
+  [['play',$('btn-play'),'アプリへ'],['share',$('btn-share'),'共有する']].forEach(([k,b,label])=>{
+    b.textContent=!live?(ph==='before'?'開始前':'終了'):td[k]?'受け取り済み':label;
+    b.disabled=!live||!!td[k];
+    $('b-'+k).classList.toggle('done',!!td[k]);
+  });
+  let total=0;$('days').innerHTML='';
+  for(let i=0;i<DAYS;i++){
+    const d=s.days[dayKey(i)]||{},n=(d.play?1:0)+(d.share?1:0);total+=(d.play?PT_PLAY:0)+(d.share?PT_SHARE:0);
+    const el=document.createElement('div');el.className='day'+(n===2?' full':n===1?' half':'')+(i===ti&&live&&n<2?' today':'');
+    el.innerHTML=`${dayKey(i).slice(5).replace('-','/')}<span class="material-symbols-outlined">${n===2?'check_circle':n===1?'timelapse':i===ti&&live?'bolt':'radio_button_unchecked'}</span>`;
+    $('days').append(el);
+  }
+  const max=DAYS*(PT_PLAY+PT_SHARE);
+  $('total-pt').textContent=`${total} / ${max}pt`;
+  $('total-fill').style.width=Math.max(total?8:0,total/max*100)+'%';
+  document.querySelectorAll('[data-app]').forEach(b=>{const done=!!td.play;b.nextElementSibling&&0;});
+}
+function tick(){
+  const end=t0+DAYS*864e5,now=Date.now(),el=$('countdown');
+  if(now<t0){el.textContent='まもなく開始';return}
+  if(now>=end){el.textContent='イベント終了';return}
+  const r=end-now,d=Math.floor(r/864e5),h=Math.floor(r%864e5/36e5),m=Math.floor(r%36e5/6e4),sc=Math.floor(r%6e4/1e3);
+  el.textContent=`終了まで ${d}日 ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sc).padStart(2,'0')}`;
+}
+$('period').textContent=`${dayKey(0).replace(/-/g,'/')} 〜 ${dayKey(DAYS-1).replace(/-/g,'/')}`;
+
+/* ========== アプリ一覧（applist.json） ========== */
+let CATS=[];
+async function loadApps(){
+  for(const u of APPLIST_URLS){
+    try{
+      const r=await fetch(u);if(!r.ok)continue;
+      let t=(await r.text()).replace(/^[^\[{]*(?=[\[{])/,'').replace(/;\s*$/,'');
+      let d=JSON.parse(t);if(!Array.isArray(d))d=Object.values(d).find(Array.isArray)||[];
+      if(d.length){CATS=d;return}
+    }catch{}
+  }
+  CATS=FALLBACK_APPS;
+}
+function seeded(str){let h=1779033703^str.length;for(let i=0;i<str.length;i++){h=Math.imul(h^str.charCodeAt(i),3432918353);h=h<<13|h>>>19}
+  return()=>{h=Math.imul(h^h>>>16,2246822507);h=Math.imul(h^h>>>13,3266489909);h^=h>>>16;return(h>>>0)/4294967296}}
+function dailyApps(){
+  const all=CATS.flatMap(c=>(c.apps||[]).filter(a=>a&&a.appurl).map(a=>({...a,category:c.category})));
+  const r=seeded('pbevent-'+jst());
+  for(let i=all.length-1;i>0;i--){const j=r()*(i+1)|0;[all[i],all[j]]=[all[j],all[i]]}
+  return all;
+}
+function renderApps(){
+  const q=$('search').value.trim().toLowerCase(),box=$('app-list');box.innerHTML='';
+  const all=dailyApps();
+  const list=q?all.filter(a=>(a.appname+a.appinfo+a.category).toLowerCase().includes(q)):all.slice(0,DAILY_PICKS);
+  const card=document.createElement('div');card.className='glass-card';
+  const h=document.createElement('h2');h.textContent=q?`検索結果（${list.length}件）`:'今日のピックアップ';card.append(h);
+  if(!q){const p=document.createElement('p');p.textContent='アプリは毎日ランダムで入れ替わります。検索すると全アプリから探せます。';card.append(p)}
+  list.forEach(a=>{
+    const row=document.createElement('div');row.className='list-item';
+    const info=document.createElement('div');
+    const n=document.createElement('div');n.className='list-item-title';n.textContent=a.appname;
+    const i=document.createElement('div');i.className='list-item-desc';i.textContent=(a.category?a.category+'｜':'')+(a.appinfo||'');
+    info.append(n,i);
+    const b=document.createElement('button');b.className='ai-btn ai-btn-sm';b.textContent='あそぶ';b.onclick=()=>openApp(a.appurl);
+    row.append(info,b);card.append(row);
+  });
+  if(!list.length){const p=document.createElement('p');p.style.margin=0;p.textContent='見つかりませんでした';card.append(p)}
+  box.append(card);
+}
+$('search').addEventListener('input',renderApps);
+
+/* ========== カントリーボール表示（display の仕組み） ========== */
+const BASE='https://raw.githubusercontent.com/PolandBallHub-Operator/pbpark/refs/heads/main/AI/historyai/';
+const EYES={normal:'eye.png',anger:'anger.png',lol:'lol.png',sad:'sad.png',smile:'smile.png'};
+const CANTON={cn:'left'};
+const img=(u)=>new Promise(r=>{const i=new Image();i.crossOrigin='anonymous';i.onload=()=>r(i);i.onerror=()=>r(null);i.src=u});
+function comps(im,S){const c=document.createElement('canvas');c.width=c.height=S;const x=c.getContext('2d');x.drawImage(im,0,0,S,S);const d=x.getImageData(0,0,S,S).data,N=S*S,label=new Int32Array(N).fill(-1),cs=[];for(let p=0;p<N;p++){if(label[p]>=0||d[p*4+3]>=40)continue;const id=cs.length,st=[p];label[p]=id;let area=0,edge=false;while(st.length){const q=st.pop(),px=q%S,py=q/S|0;area++;if(!px||!py||px===S-1||py===S-1)edge=true;for(const n of[q-1,q+1,q-S,q+S]){if(n<0||n>=N||(n===q-1&&px===0)||(n===q+1&&px===S-1))continue;if(label[n]<0&&d[n*4+3]<40){label[n]=id;st.push(n)}}}cs.push({id,area,edge})}return{label,cs}}
+let A=null;
+async function loadAssets(){
+  const [frame,...eyes]=await Promise.all([img(BASE+'frame.png'),...Object.values(EYES).map(f=>img(BASE+f))]);
+  if(!frame||!eyes[0])throw Error('ball assets');
+  const S=220,fc=comps(frame,S),out=new Set(fc.cs.filter(c=>c.edge).map(c=>c.id)),mask=document.createElement('canvas');mask.width=mask.height=S;
+  const mx=mask.getContext('2d'),md=mx.createImageData(S,S);let x0=S,y0=S,x1=0,y1=0;
+  for(let p=0;p<S*S;p++)if(!out.has(fc.label[p])){md.data[p*4+3]=255;const x=p%S,y=p/S|0;x0=Math.min(x0,x);x1=Math.max(x1,x);y0=Math.min(y0,y);y1=Math.max(y1,y)}
+  mx.putImageData(md,0,0);const ec={};
+  Object.keys(EYES).forEach((k,j)=>{if(!eyes[j])return;const e=comps(eyes[j],S),ids=new Set(e.cs.filter(c=>!c.edge&&c.area>80).sort((a,b)=>a.area-b.area).slice(-2).map(c=>c.id)),cv=document.createElement('canvas');cv.width=cv.height=S;const cx=cv.getContext('2d'),im=cx.createImageData(S,S);for(let p=0;p<S*S;p++)if(ids.has(e.label[p])){im.data[p*4]=im.data[p*4+1]=im.data[p*4+2]=255;im.data[p*4+3]=255}cx.putImageData(im,0,0);cx.drawImage(eyes[j],0,0,S,S);ec[k]=cv});
+  A={frame,mask,eyes:ec,body:{x:x0,y:y0,w:x1-x0+1,h:y1-y0+1}};
+}
+const flags={};
+const getFlag=id=>flags[id]||(flags[id]=img(`https://flagcdn.com/w320/${id}.png`));
+function paint(cv,id,expr,flag){
+  if(!A)return;const S=220,ctx=cv.getContext('2d');cv.width=cv.height=S;ctx.clearRect(0,0,S,S);
+  const tmp=document.createElement('canvas');tmp.width=tmp.height=S;const t=tmp.getContext('2d'),b=A.body;
+  if(id==='pl'){t.fillStyle='#DC143C';t.fillRect(b.x-12,b.y,b.w+24,b.h/2);t.fillStyle='#fff';t.fillRect(b.x-12,b.y+b.h/2,b.w+24,b.h/2)}
+  else if(flag){const fw=b.w+24,sc=Math.max(fw/flag.width,b.h/flag.height),w=flag.width*sc,h=flag.height*sc,al=CANTON[id]||'center',dx=al==='left'?0:al==='right'?fw-w:(fw-w)/2;t.drawImage(flag,b.x-12+dx,b.y+(b.h-h)/2,w,h)}
+  else{t.fillStyle='#aab2bd';t.fillRect(b.x-12,b.y,b.w+24,b.h)}
+  t.globalCompositeOperation='destination-in';t.drawImage(A.mask,0,0);ctx.drawImage(tmp,0,0);ctx.drawImage(A.frame,0,0,S,S);ctx.drawImage(A.eyes[expr]||A.eyes.normal,0,0);
+}
+async function drawBall(cv,id,expr){paint(cv,id,expr,null);paint(cv,id,expr,await getFlag(id))}
+const FACES=['smile','lol','anger','sad','normal'];
+async function initBalls(){
+  const box=$('hero-balls');
+  BALLS.forEach(([id,name],i)=>{
+    const w=document.createElement('div');w.className='ball-wrap';w.style.setProperty('--i',i);
+    w.innerHTML=`<canvas width="220" height="220"></canvas><span>${name}</span>`;
+    const cv=w.firstChild;w.onclick=()=>{drawBall(cv,id,FACES[Math.random()*FACES.length|0]);w.classList.remove('wiggle');void w.offsetWidth;w.classList.add('wiggle')};
+    box.append(w);
+  });
+  try{await loadAssets();box.querySelectorAll('canvas').forEach((cv,i)=>drawBall(cv,BALLS[i][0],'smile'))}
+  catch{box.querySelectorAll('canvas').forEach((cv,i)=>{cv.outerHTML=`<div style="font-size:64px;line-height:1.3">${String.fromCodePoint(...[...BALLS[i][0].toUpperCase()].map(c=>0x1F1E6+c.charCodeAt(0)-65))}</div>`})}
+}
+function showDialog(pt,msg){
+  $('dlg-title').textContent='+'+pt+'pt';$('dlg-msg').textContent=msg;
+  const [id]=BALLS[Math.random()*BALLS.length|0];drawBall($('dlg-ball'),id,'smile');
+  $('dlg').classList.add('active');
+}
+
+/* ========== 起動 ========== */
+PS.onChange&&PS.onChange(()=>$('pt-val').textContent=PS.get().toLocaleString());
+addEventListener('storage',render);
+render();tick();setInterval(tick,1000);
+initBalls();
+loadApps().then(renderApps);
+setInterval(()=>{if(todayIdx()!==render._d){render._d=todayIdx();render();renderApps()}},30000);
+</script>
+</body>
+</html>
