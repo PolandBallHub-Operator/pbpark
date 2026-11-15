@@ -1,0 +1,1790 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>光学重力パズル</title>
+<script src="/pbpark/points/points.js"></script>
+<style>
+  /* Ver 1.1: 暗色UI + 光で照らされる演出 */
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", "MS PMincho", Georgia, serif;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+    background-color: #f6f3ee;
+    color: #3f3b37;
+    overflow: hidden;
+  }
+
+  /* スマホアプリ風レイアウトコンテナ */
+  #app {
+    width: 100%;
+    max-width: 440px;
+    height: 100%;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    background-color: #fbf9f6;
+    position: relative;
+  }
+
+  /* タイトル画面（毎回起動時に表示・完全不透明） */
+  #title-screen {
+    position: absolute;
+    inset: 0;
+    background-color: #fbf9f6;
+    z-index: 300;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  #title-screen.hidden {
+    display: none;
+  }
+
+  .title-center-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 18px;
+  }
+
+  .app-main-title {
+    font-size: 30px;
+    font-weight: bold;
+    letter-spacing: 0.14em;
+    color: #3f3b37;
+  }
+
+  .app-sub-title {
+    font-size: 13px;
+    color: #787169;
+    letter-spacing: 0.08em;
+  }
+
+  #title-pb-preview {
+    width: 110px;
+    height: 110px;
+    display: block;
+  }
+
+  .btn-start-game {
+    margin-top: 12px;
+    padding: 14px 48px;
+    font-size: 16px;
+    font-weight: bold;
+    background-color: #dce7e2;
+    border: 1px solid #b7cbc2;
+    color: #2d423b;
+    border-radius: 999px;
+    cursor: pointer;
+  }
+
+  .btn-start-game:active {
+    background-color: #cbd9d3;
+  }
+
+  .version-tag {
+    position: absolute;
+    right: 16px;
+    bottom: 14px;
+    font-size: 12px;
+    color: #8c847b;
+    letter-spacing: 0.05em;
+  }
+
+  /* ヘッダー */
+  header {
+    height: 58px;
+    padding: 0 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #fbf9f6;
+    flex-shrink: 0;
+  }
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .stage-badge {
+    font-size: 15px;
+    font-weight: bold;
+    padding: 7px 14px;
+    border: 1px solid #dfd7cd;
+    background-color: #f3ede4;
+    color: #3f3b37;
+    border-radius: 999px;
+    cursor: pointer;
+    min-height: 36px;
+  }
+
+  .title-back-btn {
+    font-size: 12px;
+    padding: 7px 10px;
+    border: 1px solid #e2dad0;
+    background-color: #ffffff;
+    color: #6e675f;
+    border-radius: 999px;
+    min-height: 36px;
+  }
+
+  .pb-box {
+    font-size: 13px;
+    padding: 7px 14px;
+    border: 1px solid #d5e2dc;
+    background-color: #e7f0ec;
+    color: #354942;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .pb-error {
+    color: #b54949;
+    font-weight: bold;
+  }
+
+  /* サブ情報バー（重力方向・屈折率） */
+  .status-bar {
+    height: 34px;
+    padding: 0 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #787169;
+    background-color: #fbf9f6;
+    flex-shrink: 0;
+  }
+
+  /* メインゲーム盤面エリア */
+  main {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 18px;
+    background-color: #fbf9f6;
+    overflow: hidden;
+    position: relative;
+  }
+
+  #game-canvas {
+    background-color: #ffffff;
+    border: 1px solid #dfd7cd;
+    border-radius: 16px;
+    display: block;
+    touch-action: none;
+  }
+
+  /* 下部ツールバー（スマホアプリ風ボトムドック） */
+  footer {
+    background-color: #f4efe8;
+    border-top: 1px solid #e7dfd5;
+    border-top-left-radius: 22px;
+    border-top-right-radius: 22px;
+    padding: 14px 16px 18px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+
+  .tool-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+
+  .action-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+
+  button {
+    background-color: #ffffff;
+    color: #3f3b37;
+    border: 1px solid #e2dad0;
+    border-radius: 12px;
+    padding: 8px 4px;
+    font-size: 12px;
+    cursor: pointer;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 48px;
+  }
+
+  button:active {
+    background-color: #ebe4da;
+  }
+
+  button.active {
+    background-color: #dce7e2;
+    color: #2d423b;
+    border-color: #b7cbc2;
+    font-weight: bold;
+  }
+
+  .action-row button {
+    background-color: #f9f6f1;
+  }
+
+  #btn-gravity {
+    background-color: #e6e3f0;
+    border-color: #cdc7df;
+    color: #3c3752;
+  }
+
+  #btn-shop {
+    background-color: #f3e4e2;
+    border-color: #dfc4c0;
+    color: #543734;
+  }
+
+  button:disabled {
+    background-color: #f1ede8;
+    color: #b0a89e;
+    border-color: #e5dfd7;
+    cursor: not-allowed;
+  }
+
+  .btn-sub {
+    font-size: 10px;
+    margin-top: 3px;
+    color: inherit;
+  }
+
+  /* モーダル（完全不透明・パステル単色） */
+  .modal-screen {
+    position: fixed;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #fbf9f6;
+    z-index: 100;
+    display: none;
+    flex-direction: column;
+    max-width: 440px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .modal-screen.open {
+    display: flex;
+  }
+
+  .modal-header {
+    height: 58px;
+    padding: 0 18px;
+    border-bottom: 1px solid #e7dfd5;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #fbf9f6;
+    flex-shrink: 0;
+  }
+
+  .modal-title {
+    font-size: 16px;
+    font-weight: bold;
+    color: #3f3b37;
+  }
+
+  .modal-body {
+    flex: 1;
+    padding: 18px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  /* ステージ選択グリッド */
+  .stage-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+  }
+
+  .stage-cell {
+    aspect-ratio: 1 / 1;
+    border: 1px solid #e2dad0;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    background-color: #ffffff;
+    color: #3f3b37;
+    cursor: pointer;
+  }
+
+  .stage-cell.cleared {
+    background-color: #e7f0ec;
+    border-color: #c5d7cf;
+    color: #354942;
+    font-weight: bold;
+  }
+
+  .stage-cell.current {
+    background-color: #e6e3f0;
+    border-color: #c2bdd6;
+    color: #3c3752;
+    font-weight: bold;
+  }
+
+  .stage-cell.locked {
+    background-color: #f1ede8;
+    border-color: #e5dfd7;
+    color: #b5ada3;
+    cursor: not-allowed;
+  }
+
+  /* アイテムショップカード */
+  .shop-card {
+    border: 1px solid #e2dad0;
+    border-radius: 14px;
+    padding: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background-color: #ffffff;
+  }
+
+  .shop-info h3 {
+    font-size: 14px;
+    margin-bottom: 4px;
+    color: #3f3b37;
+  }
+
+  .shop-info p {
+    font-size: 12px;
+    color: #787169;
+    line-height: 1.4;
+  }
+
+  .buy-btn {
+    background-color: #f3e4e2;
+    border-color: #dfc4c0;
+    color: #543734;
+    font-weight: bold;
+    min-width: 96px;
+  }
+
+  /* クリア画面ボックス */
+  .clear-box {
+    border: 1px solid #e2dad0;
+    border-radius: 18px;
+    padding: 28px 18px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    margin: auto 0;
+    background-color: #ffffff;
+  }
+
+  /* メッセージ通知バー（alert代わり・完全不透明） */
+  #toast {
+    position: fixed;
+    top: 64px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #46413c;
+    color: #fbf9f6;
+    padding: 8px 18px;
+    border-radius: 999px;
+    font-size: 12px;
+    z-index: 400;
+    display: none;
+    white-space: nowrap;
+  }
+
+/* ===== Ver 1.1 暗色テーマ ===== */
+html,body{background:#04060a;color:#cfd8ea}
+#app,header,.status-bar,main,.modal-screen,.modal-header{background-color:#0a0e17}
+#title-screen{background:radial-gradient(circle at 50% 38%,#14304f 0%,#070a12 62%)}
+.app-main-title,.modal-title{color:#e8f0ff;text-shadow:0 0 14px #5aa8ffaa}
+.app-sub-title,.status-bar,.version-tag{color:#7f8da8}
+#title-pb-preview{filter:drop-shadow(0 0 16px #6ecdff88)}
+.btn-start-game{background-color:#12304d;border-color:#2f7ac0;color:#bfe0ff;box-shadow:0 0 18px #2f7ac066}
+.btn-start-game:active{background-color:#1b4a75}
+.stage-badge,.title-back-btn{background-color:#111826;border-color:#26324a;color:#cfd8ea}
+.pb-box{background-color:#0f2a2a;border-color:#1f5a55;color:#9ff0e2}
+#game-canvas{background-color:#05080e;border-color:#1c2740;box-shadow:0 0 28px #1b4a8a44}
+footer{background-color:#0d121d;border-top-color:#1c2740}
+button{background-color:#121a29;color:#cfd8ea;border-color:#26324a}
+button:active{background-color:#1b2740}
+button.active{background-color:#16324f;color:#bfe0ff;border-color:#3d8bd6;box-shadow:0 0 10px #3d8bd655}
+.action-row button{background-color:#101725}
+#btn-gravity{background-color:#1e1a3a;border-color:#4b3f8f;color:#cfc4ff}
+#btn-shop{background-color:#2a1a24;border-color:#7a3a55;color:#ffc4d6}
+button:disabled{background-color:#0e131d;color:#4b566b;border-color:#1a2335}
+.stage-cell{background-color:#111826;border-color:#26324a;color:#cfd8ea}
+.stage-cell.cleared{background-color:#0f2a2a;border-color:#1f5a55;color:#9ff0e2}
+.stage-cell.current{background-color:#1e1a3a;border-color:#4b3f8f;color:#cfc4ff}
+.stage-cell.locked{background-color:#0b0f18;border-color:#161e2e;color:#3b465c}
+.shop-card,.clear-box{background-color:#111826;border-color:#26324a}
+.shop-info h3{color:#e8f0ff}.shop-info p{color:#8d9ab3}
+.buy-btn{background-color:#2a1a24;border-color:#7a3a55;color:#ffc4d6}
+#toast{background-color:#1b2740;color:#e8f0ff;border:1px solid #3d8bd6;box-shadow:0 0 14px #3d8bd655}
+.tool-row{grid-template-columns:repeat(6,1fr);gap:5px}
+.tool-row button{font-size:11px;padding:6px 1px}
+.tool-row .btn-sub{font-size:9px}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <!-- タイトル画面（起動時に毎回表示） -->
+  <section id="title-screen">
+    <div class="title-center-box">
+      <canvas id="title-pb-preview" width="220" height="220"></canvas>
+      <h1 class="app-main-title">光学重力パズル</h1>
+      <p class="app-sub-title">反射・屈折と重力反転の二百面</p>
+      <button class="btn-start-game" id="btn-start-game" disabled>素材読込中…</button>
+    </div>
+    <div class="version-tag">Ver 1.1</div>
+  </section>
+
+  <!-- 上部ヘッダー -->
+  <header>
+    <div class="header-left">
+      <button class="title-back-btn" id="btn-to-title" title="タイトルへ">題名</button>
+      <button class="stage-badge" id="btn-open-stages" title="面選択">第 <span id="lbl-stage">1</span> 面 ▾</button>
+      <button class="title-back-btn" id="btn-sound" title="効果音">♪</button>
+    </div>
+    <div class="pb-box" id="pb-display-box">
+      <span>PB</span>
+      <strong id="lbl-pb">読込中</strong>
+    </div>
+  </header>
+
+  <!-- ステータスバー -->
+  <div class="status-bar">
+    <span id="lbl-gravity">重力：下 ↓</span>
+    <span id="lbl-rule">中継コア：0 / 0</span>
+  </div>
+
+  <!-- ゲームキャンバス -->
+  <main id="canvas-container">
+    <canvas id="game-canvas"></canvas>
+  </main>
+
+  <!-- 下部操作パネル -->
+  <footer>
+    <!-- 光学アイテム選択 -->
+    <div class="tool-row">
+      <button id="tool-mirror-slash" class="active" data-tool="mirror_slash">
+        <span>鏡（／）</span>
+        <span class="btn-sub" id="cnt-mirror-slash">残 0</span>
+      </button>
+      <button id="tool-mirror-backslash" data-tool="mirror_backslash">
+        <span>鏡（＼）</span>
+        <span class="btn-sub" id="cnt-mirror-backslash">残 0</span>
+      </button>
+      <button id="tool-prism" data-tool="prism">
+        <span>プリズム</span>
+        <span class="btn-sub" id="cnt-prism">残 0</span>
+      </button>
+      <button id="tool-splitter" data-tool="splitter">
+        <span>分光鏡</span>
+        <span class="btn-sub" id="cnt-splitter">残 0</span>
+      </button>
+      <button id="tool-stone" data-tool="stone">
+        <span>留め石</span>
+        <span class="btn-sub" id="cnt-stone">残 0</span>
+      </button>
+      <button id="tool-erase" data-tool="erase">
+        <span>撤去</span>
+        <span class="btn-sub">回収</span>
+      </button>
+    </div>
+
+    <!-- アクション操作 -->
+    <div class="action-row">
+      <button id="btn-gravity">
+        <span>重力反転</span>
+        <span class="btn-sub">上下切替</span>
+      </button>
+      <button id="btn-shop">
+        <span>交換所</span>
+        <span class="btn-sub">8PB〜</span>
+      </button>
+      <button id="btn-reset">
+        <span>やり直し</span>
+        <span class="btn-sub">初期配置</span>
+      </button>
+      <button id="btn-help">
+        <span>遊び方</span>
+        <span class="btn-sub">光学法則</span>
+      </button>
+    </div>
+  </footer>
+</div>
+
+<!-- 通知メッセージ -->
+<div id="toast"></div>
+
+<!-- 面選択モーダル（1〜200面・クリア済みの次の面まで解放） -->
+<div class="modal-screen" id="modal-stages">
+  <div class="modal-header">
+    <span class="modal-title">面の選択（全200面）</span>
+    <button id="btn-close-stages" style="min-height:36px; padding:4px 14px; border-radius:999px;">閉じる</button>
+  </div>
+  <div class="modal-body">
+    <div style="font-size:12px; color:#8d9ab3;">
+      ※クリアした面の次の面まで挑戦できます（現在 第<span id="lbl-unlocked-max">1</span>面 まで解放）
+    </div>
+    <div style="display:flex; gap:6px; justify-content:space-between;">
+      <button class="range-btn active" data-range="1" style="flex:1; min-height:38px;">1〜50</button>
+      <button class="range-btn" data-range="51" style="flex:1; min-height:38px;">51〜100</button>
+      <button class="range-btn" data-range="101" style="flex:1; min-height:38px;">101〜150</button>
+      <button class="range-btn" data-range="151" style="flex:1; min-height:38px;">151〜200</button>
+    </div>
+    <div class="stage-grid" id="stage-grid"></div>
+  </div>
+</div>
+
+<!-- PBポイント交換所モーダル（アイテム交換のみ・1アイテム10PBポイント） -->
+<div class="modal-screen" id="modal-shop">
+  <div class="modal-header">
+    <span class="modal-title">PBポイント交換所</span>
+    <button id="btn-close-shop" style="min-height:36px; padding:4px 14px; border-radius:999px;">閉じる</button>
+  </div>
+  <div class="modal-body">
+    <div style="padding:12px 14px; border:1px solid #1f5a55; border-radius:14px; background-color:#0f2a2a; color:#9ff0e2; font-size:13px; line-height:1.5;">
+      所持PBポイント：<strong id="shop-pb-val">読込中</strong><br>
+      ※現在の面で使えるアイテム・ヒント・自動解答と交換できます。
+    </div>
+
+    <div class="shop-card">
+      <div class="shop-info">
+        <h3>平面鏡（／）＋1枚</h3>
+        <p>光を直角に反射する鏡を1枚追加します。</p>
+      </div>
+      <button class="buy-btn" data-item="mirror_slash">10 PBで交換</button>
+    </div>
+
+    <div class="shop-card">
+      <div class="shop-info">
+        <h3>平面鏡（＼）＋1枚</h3>
+        <p>光を直角に反射する逆向きの鏡を1枚追加します。</p>
+      </div>
+      <button class="buy-btn" data-item="mirror_backslash">10 PBで交換</button>
+    </div>
+
+    <div class="shop-card">
+      <div class="shop-info">
+        <h3>屈折プリズム ＋1個</h3>
+        <p>スネルの法則により光路を屈折シフトさせるプリズムを1個追加します。</p>
+      </div>
+      <button class="buy-btn" data-item="prism">10 PBで交換</button>
+    </div>
+    <div class="shop-card">
+      <div class="shop-info">
+        <h3>分光鏡 ＋1個</h3>
+        <p>光を直進＋分岐させる鏡。離れた中継コアも点灯できます。</p>
+      </div>
+      <button class="buy-btn" data-item="splitter">15 PBで交換</button>
+    </div>
+    <div class="shop-card">
+      <div class="shop-info">
+        <h3>留め石 ＋1個</h3>
+        <p>重力ブロックを受け止める固い石を1個追加します。</p>
+      </div>
+      <button class="buy-btn" data-item="stone">8 PBで交換</button>
+    </div>
+    <div class="shop-card">
+      <div class="shop-info">
+        <h3>補給パック</h3>
+        <p>鏡（／）・鏡（＼）・プリズムを各1個まとめて追加します。</p>
+      </div>
+      <button class="buy-btn" data-item="pack">25 PBで交換</button>
+    </div>
+    <div class="shop-card">
+      <div class="shop-info">
+        <h3>ヒント</h3>
+        <p>次に置くべき場所を7秒間光らせて教えます。</p>
+      </div>
+      <button class="buy-btn" data-item="hint">20 PBで使う</button>
+    </div>
+    <div class="shop-card">
+      <div class="shop-info">
+        <h3>自動解答</h3>
+        <p>この面の正解配置と重力反転を自動で再現します。</p>
+      </div>
+      <button class="buy-btn" data-item="solve">100 PBで使う</button>
+    </div>
+  </div>
+</div>
+
+<!-- 遊び方モーダル -->
+<div class="modal-screen" id="modal-help">
+  <div class="modal-header">
+    <span class="modal-title">遊び方と光学法則</span>
+    <button id="btn-close-help" style="min-height:36px; padding:4px 14px; border-radius:999px;">閉じる</button>
+  </div>
+  <div class="modal-body" style="font-size:13px; line-height:1.7;">
+    <div style="border:1px solid #26324a; border-radius:14px; padding:14px; background-color:#111826;">
+      <strong>1. 目的と中継コア（◇）</strong><br>
+      光源から放たれるレーザー光を、盤面上の<strong>すべての中継コア（◇）</strong>に通過させた上で、日本ボールの待つゴールへ導くとクリアです。
+    </div>
+    <div style="border:1px solid #26324a; border-radius:14px; padding:14px; background-color:#111826;">
+      <strong>2. 重力反転とストッパー法則</strong><br>
+      「重力反転」を押すと重力ブロックが上下へ移動します。また、配置した鏡やプリズムは<strong>重力ブロックを受け止めるストッパー</strong>としても機能します。
+    </div>
+    <div style="border:1px solid #26324a; border-radius:14px; padding:14px; background-color:#111826;">
+      <strong>3. 光学の反射・屈折法則</strong><br>
+      ・<strong>平面鏡（／・＼）</strong>：反射の法則（入射角＝反射角）に従い90度反射します。光線同士の交差も可能です。<br>
+      ・<strong>屈折プリズム（△）</strong>：スネルの法則（n₁ sinθ₁ = n₂ sinθ₂）により光路を1マス隣へ屈折シフトさせます。<br>
+      ・<strong>分光鏡</strong>：光を直進させつつ、同時に90度（／向き）へ分岐させます。分岐光で離れた中継コアを点灯できます。<br>
+      ・<strong>留め石</strong>：光を遮る固い石。重力ブロックを狙った位置で受け止めます。置く順序（反転の前か後か）に注意。
+    </div>
+    <div style="border:1px solid #26324a; border-radius:14px; padding:14px; background-color:#111826;">
+      <strong>4. PBポイント交換</strong><br>
+      「交換所」でアイテム（8〜25PB）のほか、<strong>ヒント</strong>（20PB：次に置く場所が光る）や<strong>自動解答</strong>（100PB）にも交換できます。
+    </div>
+  </div>
+</div>
+
+<!-- クリア画面モーダル -->
+<div class="modal-screen" id="modal-clear">
+  <div class="modal-header">
+    <span class="modal-title">目標達成</span>
+  </div>
+  <div class="modal-body">
+    <div class="clear-box">
+      <canvas id="clear-pb-canvas" width="220" height="220" style="width:120px; height:120px;"></canvas>
+      <h2 style="font-size:19px;">第 <span id="clear-stage-num">1</span> 面 クリア</h2>
+      <p style="font-size:13px; color:#8d9ab3; line-height:1.6;">
+        レーザー光が日本ボールに到達しました。<br>
+        次の面が解放されました。
+      </p>
+      <button id="btn-next-stage" style="width:100%; background-color:#16324f; border-color:#3d8bd6; color:#bfe0ff; font-size:15px; font-weight:bold;">次の面へ進む</button>
+      <button id="btn-clear-stages" style="width:100%;">面選択へ戻る</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/**
+ * 1. PBPoint API 連携（フォールバック厳禁）
+ */
+const PB_API = window.PBPoints || window.PointsSystem || null;
+let pbAvailable = false;
+
+async function pbGet() {
+  if (!PB_API) throw new Error('PBPoint API not found');
+  const v = Number(await PB_API.get());
+  if (!Number.isFinite(v)) throw new Error('invalid points');
+  return v;
+}
+
+async function pbAdd(amount, reason) {
+  if (!PB_API) throw new Error('PBPoint API not found');
+  await PB_API.add(Math.trunc(amount), reason);
+}
+
+function updatePBUI(points) {
+  const formatted = `${Number(points).toLocaleString()} pt`;
+  const lblPb = document.getElementById('lbl-pb');
+  const shopPb = document.getElementById('shop-pb-val');
+  lblPb.textContent = formatted;
+  lblPb.classList.remove('pb-error');
+  shopPb.textContent = formatted;
+  shopPb.classList.remove('pb-error');
+  document.querySelectorAll('.buy-btn').forEach(btn => {
+    btn.disabled = false;
+  });
+}
+
+function showPBError() {
+  pbAvailable = false;
+  const lblPb = document.getElementById('lbl-pb');
+  const shopPb = document.getElementById('shop-pb-val');
+  lblPb.textContent = 'エラー';
+  lblPb.classList.add('pb-error');
+  shopPb.textContent = 'エラー';
+  shopPb.classList.add('pb-error');
+  document.querySelectorAll('.buy-btn').forEach(btn => {
+    btn.disabled = true;
+  });
+}
+
+async function initPBPointSystem() {
+  try {
+    const currentPoints = await pbGet();
+    pbAvailable = true;
+    updatePBUI(currentPoints);
+    if (PB_API.onChange) {
+      PB_API.onChange(p => {
+        const num = Number(p);
+        if (Number.isFinite(num)) {
+          updatePBUI(num);
+        } else {
+          showPBError();
+        }
+      });
+    }
+  } catch (e) {
+    console.error(e);
+    showPBError();
+  }
+}
+
+/**
+ * 2. IndexedDB 管理（日本の国旗データ & ステージ進行状況）
+ */
+let dbInstance = null;
+
+function openGameDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('OpticalGravityPB_DB', 1);
+    req.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains('flags')) {
+        db.createObjectStore('flags');
+      }
+      if (!db.objectStoreNames.contains('progress')) {
+        db.createObjectStore('progress');
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error || new Error('IndexedDBを開けません'));
+  });
+}
+
+function idbGet(storeName, key) {
+  return new Promise((resolve, reject) => {
+    const tx = dbInstance.transaction(storeName, 'readonly');
+    const store = tx.objectStore(storeName);
+    const req = store.get(key);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+function idbPut(storeName, key, value) {
+  return new Promise((resolve, reject) => {
+    const tx = dbInstance.transaction(storeName, 'readwrite');
+    const store = tx.objectStore(storeName);
+    const req = store.put(value, key);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+}
+
+function saveProgressData(clearedSet, currentStage) {
+  if (!dbInstance) return;
+  idbPut('progress', 'save_data', {
+    cleared: Array.from(clearedSet),
+    currentStage
+  }).catch(e => console.error(e));
+}
+
+async function loadProgressData() {
+  if (!dbInstance) return { cleared: [], currentStage: 1 };
+  const data = await idbGet('progress', 'save_data');
+  return data || { cleared: [], currentStage: 1 };
+}
+
+/**
+ * 3. ポーランドボール描画システム（raw取得・日本ボールのみ・フォールバックPB禁止）
+ */
+const PB_ASSET_BASE = 'https://raw.githubusercontent.com/PolandBallHub-Operator/pbpark/refs/heads/main/AI/historyai/';
+let PB_ASSETS = null;
+let japanFlagImg = null;
+let pbNormalCanvas = null;
+let pbSmileCanvas = null;
+
+function loadImage(url, cors = true) {
+  return new Promise(resolve => {
+    const img = new Image();
+    if (cors) img.crossOrigin = 'anonymous';
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = url;
+  });
+}
+
+function extractComponents(img, S) {
+  const c = document.createElement('canvas');
+  c.width = c.height = S;
+  const x = c.getContext('2d');
+  x.drawImage(img, 0, 0, S, S);
+  const d = x.getImageData(0, 0, S, S).data;
+  const N = S * S;
+  const label = new Int32Array(N).fill(-1);
+  const comps = [];
+  for (let p = 0; p < N; p++) {
+    if (label[p] >= 0 || d[p * 4 + 3] >= 40) continue;
+    const id = comps.length;
+    const stack = [p];
+    label[p] = id;
+    let area = 0;
+    let edge = false;
+    while (stack.length) {
+      const q = stack.pop();
+      const px = q % S;
+      const py = (q / S) | 0;
+      area++;
+      if (!px || !py || px === S - 1 || py === S - 1) edge = true;
+      for (const n of [q - 1, q + 1, q - S, q + S]) {
+        if (n < 0 || n >= N || (n === q - 1 && px === 0) || (n === q + 1 && px === S - 1)) continue;
+        if (label[n] < 0 && d[n * 4 + 3] < 40) {
+          label[n] = id;
+          stack.push(n);
+        }
+      }
+    }
+    comps.push({ id, area, edge });
+  }
+  return { label, comps };
+}
+
+async function initPBAssets() {
+  const [frame, eyeNormal, eyeSmile] = await Promise.all([
+    loadImage(PB_ASSET_BASE + 'frame.png', true),
+    loadImage(PB_ASSET_BASE + 'eye.png', true),
+    loadImage(PB_ASSET_BASE + 'smile.png', true)
+  ]);
+
+  if (!frame || !eyeNormal) {
+    throw new Error('ボール素材(frame.png / eye.png)の読み込みに失敗しました');
+  }
+
+  const S = 220;
+  const fc = extractComponents(frame, S);
+  const outside = new Set(fc.comps.filter(c => c.edge).map(c => c.id));
+  const mask = document.createElement('canvas');
+  mask.width = mask.height = S;
+  const mx = mask.getContext('2d');
+  const md = mx.createImageData(S, S);
+  let x0 = S, y0 = S, x1 = 0, y1 = 0;
+
+  for (let p = 0; p < S * S; p++) {
+    if (!outside.has(fc.label[p])) {
+      md.data[p * 4 + 3] = 255;
+      const x = p % S;
+      const y = (p / S) | 0;
+      x0 = Math.min(x0, x);
+      x1 = Math.max(x1, x);
+      y0 = Math.min(y0, y);
+      y1 = Math.max(y1, y);
+    }
+  }
+  mx.putImageData(md, 0, 0);
+
+  const eyeSources = { normal: eyeNormal, smile: eyeSmile || eyeNormal };
+  const eyeCanvases = {};
+
+  for (const [key, eyeImg] of Object.entries(eyeSources)) {
+    const ec = extractComponents(eyeImg, S);
+    const holes = ec.comps
+      .filter(c => !c.edge && c.area > 80)
+      .sort((a, b) => a.area - b.area)
+      .slice(-2);
+    const holeIds = new Set(holes.map(c => c.id));
+    const cv = document.createElement('canvas');
+    cv.width = cv.height = S;
+    const cx = cv.getContext('2d');
+    const im = cx.createImageData(S, S);
+    for (let p = 0; p < S * S; p++) {
+      if (holeIds.has(ec.label[p])) {
+        im.data[p * 4] = 255;
+        im.data[p * 4 + 1] = 255;
+        im.data[p * 4 + 2] = 255;
+        im.data[p * 4 + 3] = 255;
+      }
+    }
+    cx.putImageData(im, 0, 0);
+    cx.drawImage(eyeImg, 0, 0, S, S);
+    eyeCanvases[key] = cv;
+  }
+
+  PB_ASSETS = {
+    frame,
+    mask,
+    eyes: eyeCanvases,
+    body: { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 }
+  };
+}
+
+async function fetchWikipediaFlagImage(titleQuery) {
+  const url = `https://ja.wikipedia.org/w/api.php?action=query&prop=pageimages&redirects=1&titles=${encodeURIComponent(titleQuery)}&format=json&pithumbsize=500&origin=*`;
+  const res = await fetch(url);
+  if (!res.ok) return null;
+  const data = await res.json();
+  const page = Object.values(data.query?.pages || {})[0];
+  if (page?.thumbnail?.source) {
+    return loadImage(page.thumbnail.source, true);
+  }
+  return null;
+}
+
+async function initJapanFlagInIndexedDB() {
+  // 1. IndexedDBに保存済みの日本の国旗Blobがあればそれを読み込む
+  const cachedBlob = await idbGet('flags', 'jp');
+  if (cachedBlob instanceof Blob) {
+    const objUrl = URL.createObjectURL(cachedBlob);
+    const cachedImg = await loadImage(objUrl, false);
+    if (cachedImg) {
+      japanFlagImg = cachedImg;
+      return;
+    }
+  }
+
+  // 2. 未保存の場合は外部ソースから日本の国旗を取得し、IndexedDBへ保存する（フォールバック描画は禁止）
+  let fetchedImg = await loadImage('https://flagcdn.com/w320/jp.png', true);
+  if (!fetchedImg) {
+    fetchedImg = await fetchWikipediaFlagImage('日本の国旗');
+  }
+  if (!fetchedImg) {
+    throw new Error('日本の国旗画像の取得に失敗しました');
+  }
+
+  const tmp = document.createElement('canvas');
+  tmp.width = fetchedImg.width;
+  tmp.height = fetchedImg.height;
+  tmp.getContext('2d').drawImage(fetchedImg, 0, 0);
+
+  const blob = await new Promise((resolve, reject) => {
+    tmp.toBlob(b => (b ? resolve(b) : reject(new Error('旗データの変換に失敗しました'))), 'image/png');
+  });
+
+  await idbPut('flags', 'jp', blob);
+  japanFlagImg = fetchedImg;
+}
+
+function paintJapanBall(canvas, expr = 'normal') {
+  if (!PB_ASSETS || !japanFlagImg) {
+    throw new Error('ボール素材または日本の国旗が未初期化です');
+  }
+  const S = 220;
+  const ctx = canvas.getContext('2d');
+  canvas.width = canvas.height = S;
+  ctx.clearRect(0, 0, S, S);
+
+  const tmp = document.createElement('canvas');
+  tmp.width = tmp.height = S;
+  const t = tmp.getContext('2d');
+  const b = PB_ASSETS.body;
+
+  const fw = b.w + 24;
+  const sc = Math.max(fw / japanFlagImg.width, b.h / japanFlagImg.height);
+  const w = japanFlagImg.width * sc;
+  const h = japanFlagImg.height * sc;
+  const dx = (fw - w) / 2;
+
+  t.drawImage(japanFlagImg, b.x - 12 + dx, b.y + (b.h - h) / 2, w, h);
+  t.globalCompositeOperation = 'destination-in';
+  t.drawImage(PB_ASSETS.mask, 0, 0);
+
+  ctx.drawImage(tmp, 0, 0);
+  ctx.drawImage(PB_ASSETS.frame, 0, 0, S, S);
+  ctx.drawImage(PB_ASSETS.eyes[expr] || PB_ASSETS.eyes.normal, 0, 0);
+}
+
+/**
+ * 4. 検証付きステージ生成（Ver 1.1）
+ *    生成した「正解手順」を実際にシミュレーションし、解けることを確認できた盤面だけを採用する
+ */
+const GRID_COLS = 10;
+const GRID_ROWS = 13;
+
+function mulberry32(seed) {
+  return function() {
+    let t = seed += 0x6D2B79F5;
+    t = Math.imul(t ^ t >>> 15, t | 1);
+    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+// 方向定数: 0:上, 1:右, 2:下, 3:左
+const DX = [0, 1, 0, -1];
+const DY = [-1, 0, 1, 0];
+const SLASH = [1, 0, 3, 2];
+const BACK = [3, 2, 1, 0];
+const ITEMS = ['mirror_slash', 'mirror_backslash', 'prism', 'splitter', 'stone'];
+const ITEM_NAME = { mirror_slash: '鏡（／）', mirror_backslash: '鏡（＼）', prism: 'プリズム', splitter: '分光鏡', stone: '留め石' };
+const isItem = x => !!x && ITEMS.includes(x.type);
+const cloneGrid = g => g.map(row => row.map(x => (x ? { ...x } : null)));
+const inb = (r, c) => r > 0 && r < GRID_ROWS - 1 && c > 0 && c < GRID_COLS - 1;
+const K = (r, c) => `${r},${c}`;
+
+// 重力ブロックを1方向へ落下させる（動いたら true）
+function applyGrav(grid, dir) {
+  let any = false, moved = true;
+  while (moved) {
+    moved = false;
+    const r0 = dir === 1 ? GRID_ROWS - 2 : 1, r1 = dir === 1 ? 0 : GRID_ROWS - 1, st = dir === 1 ? -1 : 1;
+    for (let r = r0; r !== r1; r += st) {
+      for (let c = 1; c < GRID_COLS - 1; c++) {
+        const x = grid[r][c];
+        if (x && x.type === 'grav_block') {
+          const nr = r + dir;
+          if (nr > 0 && nr < GRID_ROWS - 1 && !grid[nr][c]) { grid[nr][c] = x; grid[r][c] = null; moved = any = true; }
+        }
+      }
+    }
+  }
+  return any;
+}
+
+// 光線の追跡（分光鏡による分岐に対応）
+function computeBeam(grid) {
+  const segs = [], lit = new Set();
+  let total = 0, em = null, goalHit = false;
+  for (let r = 0; r < GRID_ROWS; r++) for (let c = 0; c < GRID_COLS; c++) {
+    const x = grid[r][c];
+    if (!x) continue;
+    if (x.type === 'emitter') em = { r, c, dir: x.dir };
+    else if (x.type === 'relay') total++;
+  }
+  if (!em) return { segs, lit, total, goalHit };
+  const queue = [em], seen = new Set();
+  while (queue.length) {
+    let { r, c, dir } = queue.pop();
+    for (let step = 0; step < 300; step++) {
+      const key = `${r},${c},${dir}`;
+      if (seen.has(key)) break;
+      seen.add(key);
+      const nr = r + DY[dir], nc = c + DX[dir];
+      if (nr < 0 || nr >= GRID_ROWS || nc < 0 || nc >= GRID_COLS) break;
+      const t = grid[nr][nc];
+      const seg = kind => segs.push({ r1: r, c1: c, r2: nr, c2: nc, kind });
+      if (!t) { seg('normal'); r = nr; c = nc; continue; }
+      const ty = t.type;
+      if (ty === 'goal') { seg('normal'); goalHit = true; break; }
+      if (ty === 'wall' || ty === 'emitter' || ty === 'grav_block' || ty === 'stone') { seg('blocked'); break; }
+      seg('normal');
+      if (ty === 'relay') lit.add(K(nr, nc));
+      else if (ty === 'mirror_slash') dir = SLASH[dir];
+      else if (ty === 'mirror_backslash') dir = BACK[dir];
+      else if (ty === 'splitter') queue.push({ r: nr, c: nc, dir: SLASH[dir] });
+      else if (ty === 'prism') {
+        const cand = [(dir + 1) % 4, (dir + 3) % 4].map(p => ({ r: nr + DY[p], c: nc + DX[p] }))
+          .find(q => inb(q.r, q.c) && !grid[q.r][q.c]);
+        if (!cand) break;
+        segs.push({ r1: nr, c1: nc, r2: cand.r, c2: cand.c, kind: 'refract' });
+        r = cand.r; c = cand.c;
+        continue;
+      }
+      r = nr; c = nc;
+    }
+  }
+  return { segs, lit, total, goalHit };
+}
+const isSolved = b => b.goalHit && b.lit.size === b.total;
+
+function tryGen(n, t) {
+  const rng = mulberry32(n * 104729 + t * 3571 + 1337);
+  const shuf = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const grid = Array.from({ length: GRID_ROWS }, (_, r) => Array.from({ length: GRID_COLS }, (_, c) =>
+    (r === 0 || r === GRID_ROWS - 1 || c === 0 || c === GRID_COLS - 1) ? { type: 'wall' } : null));
+  const solved = rng() < 0.5 ? 1 : -1, init = -solved;
+  const rr = () => 1 + Math.floor(rng() * (GRID_ROWS - 2)), rc = () => 1 + Math.floor(rng() * (GRID_COLS - 2));
+  const side = Math.floor(rng() * 4);
+  const L = side === 0 ? { r: rr(), c: 0, dir: 1 } : side === 1 ? { r: 0, c: rc(), dir: 2 }
+    : side === 2 ? { r: rr(), c: GRID_COLS - 1, dir: 3 } : { r: GRID_ROWS - 1, c: rc(), dir: 0 };
+  grid[L.r][L.c] = { type: 'emitter', dir: L.dir };
+
+  let cr = L.r, cc = L.c, cd = L.dir;
+  const items = [], res = new Set([K(cr, cc)]), pd = new Set(), trace = [], forced = [], extraWalls = [];
+  const turns = Math.min(5 + Math.floor(n / 12), 14);
+
+  for (let i = 0; i < turns; i++) {
+    const ax = cd % 2, ok = [];
+    for (let s = 1; s <= 6; s++) {
+      const r = cr + DY[cd] * s, c = cc + DX[cd] * s;
+      if (!inb(r, c) || res.has(K(r, c)) || pd.has(`${r},${c},${ax}`)) break;
+      if (!pd.has(`${r},${c},${1 - ax}`)) ok.push(s); // 交差マスには停止点を置かない
+    }
+    if (!ok.length) break;
+    const s = ok[Math.floor(Math.pow(rng(), 0.65) * ok.length)];
+    for (let j = 1; j < s; j++) {
+      const r = cr + DY[cd] * j, c = cc + DX[cd] * j;
+      trace.push({ r, c }); pd.add(`${r},${c},${ax}`);
+    }
+    cr += DY[cd] * s; cc += DX[cd] * s;
+    pd.add(`${cr},${cc},0`); pd.add(`${cr},${cc},1`);
+
+    // 屈折プリズム（常に右側へシフト）
+    if (n >= 2 && rng() < 0.4) {
+      const pr = (cd + 1) % 4, sr = cr + DY[pr], sc = cc + DX[pr], ar = sr + DY[cd], ac = sc + DX[cd];
+      if (inb(sr, sc) && inb(ar, ac) && !res.has(K(sr, sc)) && !res.has(K(ar, ac)) && !pd.has(`${sr},${sc},${ax}`)) {
+        items.push({ r: cr, c: cc, type: 'prism' });
+        res.add(K(cr, cc)); res.add(K(sr, sc));
+        trace.push({ r: sr, c: sc }); pd.add(`${sr},${sc},${ax}`);
+        cr = sr; cc = sc;
+        continue;
+      }
+    }
+
+    // 鏡 or 分光鏡（直進側の漏れ光で、別の中継コアも点灯させる）
+    const nd = rng() < 0.5 ? (cd + 1) % 4 : (cd + 3) % 4;
+    let type = nd === SLASH[cd] ? 'mirror_slash' : 'mirror_backslash';
+    if (type === 'mirror_slash' && n >= 12 && rng() < 0.3) {
+      const kk = 1 + Math.floor(rng() * 3);
+      let good = true;
+      for (let j = 1; j <= kk; j++) {
+        const r = cr + DY[cd] * j, c = cc + DX[cd] * j;
+        if (!inb(r, c) || res.has(K(r, c)) || pd.has(`${r},${c},${ax}`)) { good = false; break; }
+      }
+      const wr = cr + DY[cd] * (kk + 1), wc = cc + DX[cd] * (kk + 1);
+      if (good && inb(wr, wc) && (res.has(K(wr, wc)) || pd.has(`${wr},${wc},0`) || pd.has(`${wr},${wc},1`))) good = false;
+      if (good) {
+        type = 'splitter';
+        for (let j = 1; j <= kk; j++) { const r = cr + DY[cd] * j, c = cc + DX[cd] * j; res.add(K(r, c)); pd.add(`${r},${c},${ax}`); }
+        forced.push({ r: cr + DY[cd] * kk, c: cc + DX[cd] * kk });
+        if (inb(wr, wc)) { extraWalls.push({ r: wr, c: wc }); res.add(K(wr, wc)); }
+      }
+    }
+    items.push({ r: cr, c: cc, type });
+    res.add(K(cr, cc));
+    cd = nd;
+  }
+
+  const minItems = Math.max(3, Math.min(3 + Math.floor(n / 22), 9) - Math.floor(t / 150));
+  if (items.length < minItems) return null;
+
+  // ゴール
+  let goal = null;
+  for (let s = 1; s <= 6; s++) {
+    const r = cr + DY[cd] * s, c = cc + DX[cd] * s;
+    if (!inb(r, c) || res.has(K(r, c))) break;
+    const nr = r + DY[cd], nc = c + DX[cd];
+    if (s === 6 || !inb(nr, nc) || res.has(K(nr, nc)) || (s >= 2 && rng() < 0.55)) { goal = { r, c }; break; }
+    trace.push({ r, c });
+  }
+  if (!goal) return null;
+  grid[goal.r][goal.c] = { type: 'goal' };
+  res.add(K(goal.r, goal.c));
+  for (const w of extraWalls) grid[w.r][w.c] = { type: 'wall' };
+  for (const f of forced) grid[f.r][f.c] = { type: 'relay' };
+
+  // 中継コア
+  const seenP = new Set(), cells = [];
+  for (const p of trace) { const k = K(p.r, p.c); if (!res.has(k) && !seenP.has(k)) { seenP.add(k); cells.push(p); } }
+  const relayCount = Math.min(1 + Math.floor(n / 20), 5, Math.floor(cells.length / 2));
+  shuf([...cells]).slice(0, relayCount).forEach(p => { grid[p.r][p.c] = { type: 'relay' }; res.add(K(p.r, p.c)); });
+
+  // 留め石ギミック：流れる重力ブロックを留め石で止めないと光路を塞ぐ（順序の罠）
+  if (n >= 6) {
+    for (const p of shuf(cells.filter(q => !grid[q.r][q.c]))) {
+      const col = p.c, Sr = p.r - solved, Br = p.r - 2 * solved, Ar = p.r - 3 * solved, Fr = p.r + solved;
+      const free = r => inb(r, col) && !grid[r][col] && !res.has(K(r, col)) && !seenP.has(K(r, col));
+      const solid = r => (!inb(r, col) || grid[r][col]) ? true : (free(r) ? 'w' : false);
+      if (!free(Sr) || !free(Br) || !inb(Fr, col)) continue;
+      const a = solid(Ar), f = solid(Fr);
+      if (!a || !f) continue;
+      if (a === 'w') grid[Ar][col] = { type: 'wall' };
+      if (f === 'w') grid[Fr][col] = { type: 'wall' };
+      grid[Br][col] = { type: 'grav_block' };
+      items.push({ r: Sr, c: col, type: 'stone' });
+      [Sr, Br, Ar, Fr].forEach(r => res.add(K(r, col)));
+      break;
+    }
+  }
+
+  // 光路を塞ぐ重力ブロック（重力反転で退避する）
+  const maxG = Math.min(2 + Math.floor(n / 20), 5);
+  let gN = 0, blockers = 0;
+  for (const p of shuf(cells.filter(q => !grid[q.r][q.c]))) {
+    if (blockers >= maxG) break;
+    if (grid[p.r][p.c]) continue;
+    const er = p.r + solved, ar = p.r + init;
+    if (!(inb(er, p.c) && !grid[er][p.c] && !res.has(K(er, p.c)) && !seenP.has(K(er, p.c)))) continue;
+    let anchored = !inb(ar, p.c) || !!grid[ar][p.c];
+    if (!anchored && !res.has(K(ar, p.c)) && !seenP.has(K(ar, p.c))) { grid[ar][p.c] = { type: 'wall' }; res.add(K(ar, p.c)); anchored = true; }
+    if (!anchored) continue;
+    grid[p.r][p.c] = { type: 'grav_block' };
+    res.add(K(p.r, p.c)); res.add(K(er, p.c));
+    blockers++; gN++;
+  }
+  if (blockers < 1) return null;
+
+  // 目くらましの壁
+  const wb = Math.min(8 + Math.floor(n / 8), 26);
+  for (let a = 0, w = 0; a < 150 && w < wb; a++) {
+    const r = rr(), c = rc();
+    if (!grid[r][c] && !res.has(K(r, c)) && !seenP.has(K(r, c))) { grid[r][c] = { type: 'wall' }; w++; }
+  }
+
+  // 所持アイテム＝正解＋ダミー（第4面〜、後半ほど増える）
+  const inv = { mirror_slash: 0, mirror_backslash: 0, prism: 0, splitter: 0, stone: 0 };
+  for (const it of items) inv[it.type]++;
+  if (n >= 4) {
+    const pool = n >= 12 ? ITEMS : ITEMS.filter(x => x !== 'splitter');
+    for (let d = 0; d < Math.min(1 + Math.floor(n / 40), 5); d++) inv[pool[Math.floor(rng() * pool.length)]]++;
+  }
+
+  // ===== 検証：実際のゲーム手順（配置→重力反転）で解けるか確認 =====
+  const base = cloneGrid(grid);
+  applyGrav(base, init);
+  if (isSolved(computeBeam(base))) return null;
+  const sol = cloneGrid(base);
+  for (const it of items) { if (sol[it.r][it.c]) return null; sol[it.r][it.c] = { type: it.type }; }
+  if (isSolved(computeBeam(sol))) return null;        // 反転しないと解けない盤面にする
+  applyGrav(sol, solved);
+  if (!isSolved(computeBeam(sol))) return null;       // 正解手順で必ずクリアできること
+  const flipOnly = cloneGrid(base);
+  applyGrav(flipOnly, solved);
+  if (isSolved(computeBeam(flipOnly))) return null;
+  return { stageNum: n, grid: base, inventory: inv, gravityDir: init, solvedDir: solved, solution: items };
+}
+
+// 万一すべて失敗した場合の安全網（確実に解ける固定面）
+function fixedStage(n) {
+  const grid = Array.from({ length: GRID_ROWS }, (_, r) => Array.from({ length: GRID_COLS }, (_, c) =>
+    (r === 0 || r === GRID_ROWS - 1 || c === 0 || c === GRID_COLS - 1) ? { type: 'wall' } : null));
+  grid[2][0] = { type: 'emitter', dir: 1 };
+  grid[8][4] = { type: 'goal' };
+  return { stageNum: n, grid, inventory: { mirror_slash: 0, mirror_backslash: 1, prism: 0, splitter: 0, stone: 0 },
+    gravityDir: 1, solvedDir: 1, solution: [{ r: 2, c: 4, type: 'mirror_backslash' }] };
+}
+
+function generateStageData(n) {
+  for (let t = 0; t < 1200; t++) { const d = tryGen(n, t); if (d) return d; }
+  return fixedStage(n);
+}
+/**
+ * 5. 効果音（WebAudio合成）
+ */
+let audioCtx = null, soundOn = true;
+function ac() {
+  if (!audioCtx) { try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return null; } }
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+function tone(f, d, type = 'sine', v = 0.1, when = 0, slide = 0) {
+  if (!soundOn) return;
+  const a = ac(); if (!a) return;
+  const t = a.currentTime + when, o = a.createOscillator(), g = a.createGain();
+  o.type = type; o.frequency.setValueAtTime(f, t);
+  if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(30, f + slide), t + d);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(v, t + 0.012);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+  o.connect(g); g.connect(a.destination); o.start(t); o.stop(t + d + 0.03);
+}
+const SFX = {
+  tap: () => tone(560, .05, 'triangle', .06),
+  place: () => { tone(330, .07, 'square', .05, 0, 200); tone(990, .12, 'triangle', .07, .05); },
+  remove: () => tone(520, .13, 'triangle', .07, 0, -280),
+  flip: () => { tone(160, .4, 'sawtooth', .05, 0, 420); tone(80, .4, 'sine', .14, 0, 60); },
+  land: () => { tone(90, .16, 'sine', .22, 0, -50); tone(200, .06, 'square', .04); },
+  relay: () => { tone(880, .18, 'sine', .1); tone(1320, .3, 'sine', .08, .09); },
+  err: () => tone(160, .22, 'square', .06, 0, -70),
+  buy: () => { tone(1046, .07, 'square', .05); tone(1568, .14, 'square', .05, .07); },
+  hint: () => { tone(784, .12, 'sine', .08); tone(988, .12, 'sine', .08, .12); tone(1318, .25, 'sine', .08, .24); },
+  clear: () => [523, 659, 784, 1046, 1318, 1568].forEach((f, i) => tone(f, .35, 'triangle', .09, i * .1))
+};
+
+/**
+ * 6. ゲーム状態管理
+ */
+let currentStageNum = 1;
+let clearedStages = new Set();
+let state = null;
+let selectedTool = 'mirror_slash';
+let beam = { segs: [], lit: new Set(), total: 0, goalHit: false };
+let isCleared = false, lastRelayWarnTime = 0, prevLit = 0, hintCell = null, hintUntil = 0;
+const light = new Float32Array(GRID_ROWS * GRID_COLS);
+const lightTarget = new Float32Array(GRID_ROWS * GRID_COLS);
+const canvas = document.getElementById('game-canvas');
+const ctx = canvas.getContext('2d');
+const darkCv = document.createElement('canvas');
+let cellSize = 36, dpr = 1;
+const stageCache = new Map();
+
+function getStage(n) {
+  if (!stageCache.has(n)) stageCache.set(n, generateStageData(n));
+  const d = stageCache.get(n);
+  return { ...d, grid: cloneGrid(d.grid), inventory: { ...d.inventory } };
+}
+
+function getMaxUnlockedStage() {
+  if (clearedStages.size === 0) return 1;
+  return Math.min(200, Math.max(...clearedStages) + 1);
+}
+
+function loadStage(num) {
+  currentStageNum = Math.max(1, Math.min(getMaxUnlockedStage(), num));
+  isCleared = false; hintCell = null; prevLit = 0;
+  const d = getStage(currentStageNum);
+  state = { grid: d.grid, inventory: d.inventory, gravityDir: d.gravityDir, solvedDir: d.solvedDir, solution: d.solution };
+  light.fill(0);
+  document.getElementById('lbl-stage').textContent = currentStageNum;
+  updateGravityUI();
+  updateInventoryUI();
+  applyGrav(state.grid, state.gravityDir);
+  traceLaser(true);
+  saveProgressData(clearedStages, currentStageNum);
+}
+
+function updateGravityUI() {
+  document.getElementById('lbl-gravity').textContent = state.gravityDir === 1 ? '重力：下 ↓' : '重力：上 ↑';
+}
+
+function updateInventoryUI() {
+  for (const k of ITEMS) document.getElementById('cnt-' + k.replace('_', '-')).textContent = `残 ${state.inventory[k]}`;
+  document.querySelectorAll('.tool-row button').forEach(b => b.classList.toggle('active', b.dataset.tool === selectedTool));
+}
+
+function traceLaser(silent) {
+  beam = computeBeam(state.grid);
+  lightTarget.fill(0);
+  const mark = (r, c, v) => { const i = r * GRID_COLS + c; if (lightTarget[i] < v) lightTarget[i] = v; };
+  for (const s of beam.segs) { mark(s.r1, s.c1, 1); mark(s.r2, s.c2, 1); }
+  for (let r = 0; r < GRID_ROWS; r++) for (let c = 0; c < GRID_COLS; c++) {
+    const x = state.grid[r][c];
+    if (!x) continue;
+    if (x.type === 'emitter') mark(r, c, 0.8);
+    else if (x.type === 'goal') mark(r, c, 0.6);
+    else if (x.type === 'relay') mark(r, c, beam.lit.has(K(r, c)) ? 1.4 : 0.55);
+  }
+  document.getElementById('lbl-rule').textContent = `中継コア：${beam.lit.size} / ${beam.total}`;
+  if (!silent && beam.lit.size > prevLit) SFX.relay();
+  prevLit = beam.lit.size;
+  const ok = isSolved(beam);
+  if (beam.goalHit && !ok && !silent && Date.now() - lastRelayWarnTime > 2500) {
+    lastRelayWarnTime = Date.now();
+    showToast('すべての中継コア（◇）に光を通してください');
+    SFX.err();
+  }
+  if (ok && !isCleared) { isCleared = true; handleStageClear(); }
+}
+
+function handleStageClear() {
+  clearedStages.add(currentStageNum);
+  saveProgressData(clearedStages, currentStageNum);
+  SFX.clear();
+  paintJapanBall(document.getElementById('clear-pb-canvas'), 'smile');
+  document.getElementById('clear-stage-num').textContent = currentStageNum;
+  document.getElementById('btn-next-stage').textContent =
+    currentStageNum >= 200 ? '全200面達成（第1面へ）' : `第 ${currentStageNum + 1} 面へ進む`;
+  setTimeout(() => document.getElementById('modal-clear').classList.add('open'), 900);
+}
+
+/**
+ * 6-2. 描画（暗闇の盤面を、光線が通った場所だけ照らす）
+ */
+function resizeCanvas() {
+  const cont = document.getElementById('canvas-container');
+  cellSize = Math.max(8, Math.floor(Math.min((cont.clientWidth - 16) / GRID_COLS, (cont.clientHeight - 16) / GRID_ROWS)));
+  dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const w = cellSize * GRID_COLS, h = cellSize * GRID_ROWS;
+  canvas.width = darkCv.width = Math.round(w * dpr);
+  canvas.height = darkCv.height = Math.round(h * dpr);
+  canvas.style.width = w + 'px';
+  canvas.style.height = h + 'px';
+}
+
+function drawCell(r, c) {
+  const cell = state.grid[r][c];
+  if (!cell) return;
+  const S = cellSize, x = c * S, y = r * S, cx = x + S / 2, cy = y + S / 2, pad = Math.floor(S * 0.16), t = cell.type;
+  ctx.lineCap = 'round'; ctx.lineWidth = 1.5;
+  if (t === 'wall') {
+    ctx.fillStyle = '#232c45'; ctx.fillRect(x, y, S, S);
+    ctx.strokeStyle = '#33406a'; ctx.strokeRect(x + .5, y + .5, S - 1, S - 1);
+  } else if (t === 'grav_block') {
+    ctx.fillStyle = '#3b3470'; ctx.fillRect(x + 2, y + 2, S - 4, S - 4);
+    ctx.strokeStyle = '#a99eff'; ctx.strokeRect(x + 2, y + 2, S - 4, S - 4);
+    ctx.fillStyle = '#e0dbff'; ctx.font = `bold ${Math.floor(S * 0.42)}px serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(state.gravityDir === 1 ? '↓' : '↑', cx, cy);
+  } else if (t === 'stone') {
+    ctx.fillStyle = '#4a5066'; ctx.fillRect(x + 3, y + 3, S - 6, S - 6);
+    ctx.strokeStyle = '#9aa3bd'; ctx.strokeRect(x + 3, y + 3, S - 6, S - 6);
+    ctx.fillStyle = '#9aa3bd';
+    [[.35, .35], [.65, .35], [.35, .65], [.65, .65]].forEach(([a, b]) => { ctx.beginPath(); ctx.arc(x + S * a, y + S * b, S * 0.04, 0, 7); ctx.fill(); });
+  } else if (t === 'emitter') {
+    ctx.fillStyle = '#18506e'; ctx.fillRect(x + 2, y + 2, S - 4, S - 4);
+    ctx.strokeStyle = '#63c7ff'; ctx.strokeRect(x + 2, y + 2, S - 4, S - 4);
+    const dx = DX[cell.dir], dy = DY[cell.dir];
+    ctx.fillStyle = '#fff'; ctx.beginPath();
+    ctx.moveTo(cx + dx * S * .28, cy + dy * S * .28);
+    ctx.lineTo(cx - dy * S * .18 - dx * S * .1, cy + dx * S * .18 - dy * S * .1);
+    ctx.lineTo(cx + dy * S * .18 - dx * S * .1, cy - dx * S * .18 - dy * S * .1);
+    ctx.fill();
+  } else if (t === 'relay') {
+    const lit = beam.lit.has(K(r, c));
+    ctx.fillStyle = lit ? '#ffd166' : '#2a2414'; ctx.strokeStyle = lit ? '#fff0b8' : '#8a7433'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(cx, y + pad); ctx.lineTo(x + S - pad, cy); ctx.lineTo(cx, y + S - pad); ctx.lineTo(x + pad, cy);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+  } else if (t === 'goal') {
+    const sp = isCleared ? pbSmileCanvas : pbNormalCanvas;
+    if (sp) ctx.drawImage(sp, x + 1, y + 1, S - 2, S - 2);
+  } else if (t === 'mirror_slash' || t === 'mirror_backslash' || t === 'splitter') {
+    ctx.strokeStyle = t === 'splitter' ? '#c9a6ff' : '#8fd0ff'; ctx.lineWidth = 3.5;
+    ctx.beginPath();
+    if (t === 'mirror_backslash') { ctx.moveTo(x + pad, y + pad); ctx.lineTo(x + S - pad, y + S - pad); }
+    else { ctx.moveTo(x + pad, y + S - pad); ctx.lineTo(x + S - pad, y + pad); }
+    ctx.stroke();
+    if (t === 'splitter') { ctx.fillStyle = '#2b2150'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx, cy, S * 0.13, 0, 7); ctx.fill(); ctx.stroke(); }
+  } else if (t === 'prism') {
+    ctx.fillStyle = '#1f3f5a'; ctx.strokeStyle = '#9fd8ff'; ctx.lineWidth = 1.8;
+    ctx.beginPath(); ctx.moveTo(cx, y + pad); ctx.lineTo(x + S - pad, y + S - pad); ctx.lineTo(x + pad, y + S - pad);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+  }
+}
+
+function renderGame() {
+  if (!state || !canvas.width) return;
+  const S = cellSize, W = S * GRID_COLS, H = S * GRID_ROWS, T = performance.now();
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.fillStyle = '#070b13'; ctx.fillRect(0, 0, W, H);
+  for (let i = 0; i < light.length; i++) light[i] += (lightTarget[i] - light[i]) * 0.1;
+
+  ctx.strokeStyle = '#131c2e'; ctx.lineWidth = 1; ctx.beginPath();
+  for (let r = 0; r <= GRID_ROWS; r++) { ctx.moveTo(0, r * S); ctx.lineTo(W, r * S); }
+  for (let c = 0; c <= GRID_COLS; c++) { ctx.moveTo(c * S, 0); ctx.lineTo(c * S, H); }
+  ctx.stroke();
+  for (let r = 0; r < GRID_ROWS; r++) for (let c = 0; c < GRID_COLS; c++) drawCell(r, c);
+
+  // 暗闇レイヤー：光の強さに応じて穴を開ける
+  const d = darkCv.getContext('2d');
+  d.setTransform(dpr, 0, 0, dpr, 0, 0);
+  d.globalCompositeOperation = 'source-over'; d.clearRect(0, 0, W, H);
+  d.fillStyle = 'rgba(3,5,10,0.8)'; d.fillRect(0, 0, W, H);
+  d.globalCompositeOperation = 'destination-out';
+  for (let r = 0; r < GRID_ROWS; r++) for (let c = 0; c < GRID_COLS; c++) {
+    const L = light[r * GRID_COLS + c];
+    if (L < 0.02) continue;
+    const x = (c + .5) * S, y = (r + .5) * S, R = S * (1.2 + 0.5 * Math.min(L, 1.4));
+    const g = d.createRadialGradient(x, y, 0, x, y, R);
+    g.addColorStop(0, `rgba(0,0,0,${Math.min(1, L)})`); g.addColorStop(1, 'rgba(0,0,0,0)');
+    d.fillStyle = g; d.fillRect(x - R, y - R, R * 2, R * 2);
+  }
+  ctx.drawImage(darkCv, 0, 0, W, H);
+
+  // 光線・光の粒・発光
+  ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round';
+  beam.segs.forEach((s, i) => {
+    const x1 = (s.c1 + .5) * S, y1 = (s.r1 + .5) * S, x2 = (s.c2 + .5) * S, y2 = (s.r2 + .5) * S;
+    const col = s.kind === 'refract' ? '175,140,255' : s.kind === 'blocked' ? '255,100,100' : '110,205,255';
+    for (const [w, a] of [[11, .10], [5, .26]]) {
+      ctx.strokeStyle = `rgba(${col},${a})`; ctx.lineWidth = w * S / 36;
+      ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+    }
+    ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.lineWidth = 1.6;
+    ctx.setLineDash(s.kind === 'refract' ? [4, 3] : []);
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+    ctx.setLineDash([]);
+    if (s.kind !== 'blocked') {
+      const f = (T / 650 + i * 0.37) % 1;
+      ctx.fillStyle = 'rgba(255,255,255,.9)';
+      ctx.beginPath(); ctx.arc(x1 + (x2 - x1) * f, y1 + (y2 - y1) * f, S * 0.06, 0, 7); ctx.fill();
+    }
+  });
+  const glow = (x, y, R, rgb, a) => {
+    const g = ctx.createRadialGradient(x, y, 0, x, y, R);
+    g.addColorStop(0, `rgba(${rgb},${a})`); g.addColorStop(1, `rgba(${rgb},0)`);
+    ctx.fillStyle = g; ctx.fillRect(x - R, y - R, R * 2, R * 2);
+  };
+  const pulse = .75 + .25 * Math.sin(T / 300);
+  for (let r = 0; r < GRID_ROWS; r++) for (let c = 0; c < GRID_COLS; c++) {
+    const x = state.grid[r][c]; if (!x) continue;
+    if (x.type === 'relay' && beam.lit.has(K(r, c))) glow((c + .5) * S, (r + .5) * S, S * 1.1, '255,205,100', .4 * pulse);
+    if (x.type === 'goal' && isCleared) glow((c + .5) * S, (r + .5) * S, S * 1.6, '255,240,190', .5 * pulse);
+    if (x.type === 'emitter') glow((c + .5) * S, (r + .5) * S, S * .9, '110,205,255', .25 * pulse);
+  }
+  if (hintCell && T < hintUntil) {
+    ctx.strokeStyle = `rgba(255,214,102,${.4 + .6 * (.5 + .5 * Math.sin(T / 180))})`; ctx.lineWidth = 2.5;
+    ctx.strokeRect(hintCell.c * S + 3, hintCell.r * S + 3, S - 6, S - 6);
+  }
+  ctx.globalCompositeOperation = 'source-over';
+}
+(function loop() {
+  if (state && document.getElementById('title-screen').classList.contains('hidden')) renderGame();
+  requestAnimationFrame(loop);
+})();
+
+/**
+ * 6-3. 操作・PBポイント交換所
+ */
+canvas.addEventListener('click', (e) => {
+  if (!state || isCleared) return;
+  const rect = canvas.getBoundingClientRect();
+  const c = Math.floor((e.clientX - rect.left - canvas.clientLeft) / cellSize);
+  const r = Math.floor((e.clientY - rect.top - canvas.clientTop) / cellSize);
+  if (r <= 0 || r >= GRID_ROWS - 1 || c <= 0 || c >= GRID_COLS - 1) return;
+  const ex = state.grid[r][c];
+  if (isItem(ex)) {
+    state.inventory[ex.type]++; state.grid[r][c] = null;
+    SFX.remove(); updateInventoryUI();
+    if (applyGrav(state.grid, state.gravityDir)) setTimeout(SFX.land, 120);
+    traceLaser();
+    return;
+  }
+  if (ex) { if (selectedTool !== 'erase') SFX.err(); return; }
+  if (selectedTool === 'erase') return;
+  if (state.inventory[selectedTool] > 0) {
+    state.inventory[selectedTool]--; state.grid[r][c] = { type: selectedTool };
+    SFX.place(); updateInventoryUI(); traceLaser();
+  } else {
+    SFX.err(); showToast('所持数がありません（交換所で入手できます）');
+  }
+});
+
+document.querySelectorAll('.tool-row button').forEach(btn => btn.addEventListener('click', () => {
+  selectedTool = btn.dataset.tool; SFX.tap(); updateInventoryUI();
+}));
+
+function flipGravity(dir) {
+  state.gravityDir = dir; updateGravityUI(); SFX.flip();
+  if (applyGrav(state.grid, state.gravityDir)) setTimeout(SFX.land, 260);
+  traceLaser();
+}
+document.getElementById('btn-gravity').addEventListener('click', () => {
+  if (!state || isCleared) return;
+  flipGravity(state.gravityDir === 1 ? -1 : 1);
+});
+document.getElementById('btn-reset').addEventListener('click', () => {
+  if (!state) return;
+  loadStage(currentStageNum); SFX.tap(); showToast('初期配置に戻しました');
+});
+document.getElementById('btn-sound').addEventListener('click', (e) => {
+  soundOn = !soundOn; e.currentTarget.textContent = soundOn ? '♪' : '♪×';
+  if (soundOn) SFX.tap();
+});
+document.querySelectorAll('.modal-screen button, #btn-open-stages, #btn-to-title, #btn-help, #btn-shop, .range-btn')
+  .forEach(b => { if (!b.classList.contains('buy-btn')) b.addEventListener('click', () => SFX.tap()); });
+
+// ヒント：次に置くべき場所を光らせる
+function useHint() {
+  const miss = state.solution.find(s => { const x = state.grid[s.r][s.c]; return !x || x.type !== s.type; });
+  SFX.hint();
+  if (miss) {
+    hintCell = { r: miss.r, c: miss.c }; hintUntil = performance.now() + 7000;
+    showToast(`ヒント：光る場所に「${ITEM_NAME[miss.type]}」`);
+  } else {
+    showToast(state.gravityDir !== state.solvedDir ? 'ヒント：重力を反転させてみよう' : 'ヒント：留め石を置いてから反転する順序を試そう');
+  }
+}
+// 自動解答：正解の配置と重力方向を再現する
+function autoSolve() {
+  loadStage(currentStageNum);
+  for (const s of state.solution) { state.grid[s.r][s.c] = { type: s.type }; state.inventory[s.type] = Math.max(0, state.inventory[s.type] - 1); }
+  updateInventoryUI(); SFX.place();
+  setTimeout(() => { if (state && !isCleared) flipGravity(state.solvedDir); }, 500);
+}
+
+const SHOP = {
+  mirror_slash: { cost: 10, give: { mirror_slash: 1 } },
+  mirror_backslash: { cost: 10, give: { mirror_backslash: 1 } },
+  prism: { cost: 10, give: { prism: 1 } },
+  splitter: { cost: 15, give: { splitter: 1 } },
+  stone: { cost: 8, give: { stone: 1 } },
+  pack: { cost: 25, give: { mirror_slash: 1, mirror_backslash: 1, prism: 1 } },
+  hint: { cost: 20, act: useHint },
+  solve: { cost: 100, act: autoSolve }
+};
+document.querySelectorAll('.buy-btn').forEach(btn => btn.addEventListener('click', async () => {
+  if (!pbAvailable || !state) return;
+  const it = SHOP[btn.dataset.item];
+  if (!it) return;
+  if (it.act && isCleared) { showToast('この面はクリア済みです'); return; }
+  try {
+    const latest = await pbGet();
+    if (latest < it.cost) { SFX.err(); showToast('PBポイントが足りません'); updatePBUI(latest); return; }
+    await pbAdd(-it.cost, `光学重力パズル 交換(${btn.dataset.item})`);
+    updatePBUI(await pbGet());
+    SFX.buy();
+    if (it.give) {
+      for (const k in it.give) state.inventory[k] += it.give[k];
+      updateInventoryUI(); showToast('アイテムと交換しました');
+    } else {
+      document.getElementById('modal-shop').classList.remove('open');
+      it.act();
+    }
+  } catch (e) {
+    console.error(e); showPBError(); showToast('通信エラーが発生しました');
+  }
+}));
+
+/**
+ * 7. ユーザー操作（タイトル画面・タップ配置・撤去・重力反転・PB交換）
+ */
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.display = 'block';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => {
+    t.style.display = 'none';
+  }, 1800);
+}
+
+// タイトル画面の開始ボタン
+document.getElementById('btn-start-game').addEventListener('click', () => {
+  ac(); SFX.tap();
+  document.getElementById('title-screen').classList.add('hidden');
+  resizeCanvas();
+  loadStage(currentStageNum);
+});
+
+// ヘッダーの「題名」ボタンでタイトル画面に戻る
+document.getElementById('btn-to-title').addEventListener('click', () => {
+  document.getElementById('title-screen').classList.remove('hidden');
+});
+
+// 面選択モーダル制御（クリアした面の次の面までしか選択不可）
+function renderStageGrid(startNum) {
+  const maxUnlocked = getMaxUnlockedStage();
+  document.getElementById('lbl-unlocked-max').textContent = maxUnlocked;
+
+  const gridEl = document.getElementById('stage-grid');
+  gridEl.innerHTML = '';
+  for (let i = startNum; i < startNum + 50; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'stage-cell';
+    const isUnlocked = i <= maxUnlocked;
+
+    if (!isUnlocked) {
+      cell.classList.add('locked');
+      cell.textContent = `${i}`;
+      cell.addEventListener('click', () => {
+        showToast(`第 ${i - 1} 面をクリアすると解放されます`);
+      });
+    } else {
+      if (clearedStages.has(i)) cell.classList.add('cleared');
+      if (i === currentStageNum) cell.classList.add('current');
+      cell.textContent = i;
+      cell.addEventListener('click', () => {
+        document.getElementById('modal-stages').classList.remove('open');
+        loadStage(i);
+      });
+    }
+    gridEl.appendChild(cell);
+  }
+  document.querySelectorAll('.range-btn').forEach(b => {
+    b.classList.toggle('active', Number(b.dataset.range) === startNum);
+  });
+}
+
+document.getElementById('btn-open-stages').addEventListener('click', () => {
+  const base = Math.floor((currentStageNum - 1) / 50) * 50 + 1;
+  renderStageGrid(base);
+  document.getElementById('modal-stages').classList.add('open');
+});
+
+document.getElementById('btn-close-stages').addEventListener('click', () => {
+  document.getElementById('modal-stages').classList.remove('open');
+});
+
+document.querySelectorAll('.range-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    renderStageGrid(Number(btn.dataset.range));
+  });
+});
+
+// PBポイント交換所モーダル制御（1アイテム10PBポイント）
+document.getElementById('btn-shop').addEventListener('click', async () => {
+  document.getElementById('modal-shop').classList.add('open');
+  if (pbAvailable) {
+    try {
+      updatePBUI(await pbGet());
+    } catch (e) {
+      showPBError();
+    }
+  }
+});
+
+document.getElementById('btn-close-shop').addEventListener('click', () => {
+  document.getElementById('modal-shop').classList.remove('open');
+});
+
+document.getElementById('btn-help').addEventListener('click', () => {
+  document.getElementById('modal-help').classList.add('open');
+});
+document.getElementById('btn-close-help').addEventListener('click', () => {
+  document.getElementById('modal-help').classList.remove('open');
+});
+
+document.getElementById('btn-next-stage').addEventListener('click', () => {
+  document.getElementById('modal-clear').classList.remove('open');
+  const next = currentStageNum < 200 ? currentStageNum + 1 : 1;
+  loadStage(next);
+});
+
+document.getElementById('btn-clear-stages').addEventListener('click', () => {
+  document.getElementById('modal-clear').classList.remove('open');
+  const base = Math.floor((currentStageNum - 1) / 50) * 50 + 1;
+  renderStageGrid(base);
+  document.getElementById('modal-stages').classList.add('open');
+});
+
+window.addEventListener('resize', () => {
+  if (document.getElementById('title-screen').classList.contains('hidden')) {
+    resizeCanvas();
+  }
+});
+
+// 起動初期化処理（タイトル画面を必ず最初に表示）
+(async () => {
+  const startBtn = document.getElementById('btn-start-game');
+  initPBPointSystem();
+  try {
+    dbInstance = await openGameDB();
+    await initPBAssets();
+    await initJapanFlagInIndexedDB();
+
+    pbNormalCanvas = document.createElement('canvas');
+    paintJapanBall(pbNormalCanvas, 'normal');
+
+    pbSmileCanvas = document.createElement('canvas');
+    paintJapanBall(pbSmileCanvas, 'smile');
+
+    // タイトル画面の日本ボール描画
+    const titlePreview = document.getElementById('title-pb-preview');
+    paintJapanBall(titlePreview, 'normal');
+
+    const prog = await loadProgressData();
+    clearedStages = new Set(prog.cleared || []);
+    const maxUnlocked = getMaxUnlockedStage();
+    currentStageNum = Math.min(prog.currentStage || 1, maxUnlocked);
+
+    startBtn.disabled = false;
+    startBtn.textContent = '始める';
+  } catch (e) {
+    console.error(e);
+    startBtn.disabled = true;
+    startBtn.textContent = 'エラー（素材取得失敗）';
+    showToast(e.message || 'ボール素材の読み込みに失敗しました');
+  }
+})();
+</script>
+</body>
+</html>
