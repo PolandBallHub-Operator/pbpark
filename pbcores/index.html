@@ -1,1149 +1,484 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
-    <title>PolandBall ログインボーナス & PBPoint</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+<title>PB Park Bonus | PBPoint</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<!-- PB Park Points API -->
+<script src="/pbpark/points/points.js"></script>
+<style>
+:root{--accent-primary:#3381FF;--accent-active:#1A5FCC;--ptz-card-radius:24px;--ptz-slider-height:22px;--ptz-toggle-width:54px;--ptz-toggle-height:30px;--ptz-toggle-knob-width:22px;
+  --m3-easing:cubic-bezier(.32,.72,0,1);--transition-smooth:.35s var(--m3-easing);--card-padding:22px}
+/* 時間帯テーマ（朝・昼・夜） */
+body[data-time=morning]{--card:rgba(255,255,255,.72);--text-main:#2d2233;--text-sub:#6d5f73;--chip:rgba(255,255,255,.55);--nav:rgba(255,255,255,.8);--hill-far:#b4a7c9;--hill-mid:#86b890;--hill-near:#5f9a73;--tree:#3d7a57;--cloud-o:.85}
+body[data-time=day]{--card:rgba(255,255,255,.74);--text-main:#10243a;--text-sub:#4a6076;--chip:rgba(255,255,255,.55);--nav:rgba(255,255,255,.8);--hill-far:#8fb8d8;--hill-mid:#5dae6b;--hill-near:#3f944f;--tree:#2b7240;--cloud-o:.95}
+body[data-time=night]{--card:rgba(16,22,48,.58);--text-main:#fff;--text-sub:#b9c0e0;--chip:rgba(255,255,255,.12);--nav:rgba(16,22,48,.72);--hill-far:#222e5c;--hill-mid:#18264a;--hill-near:#0f1a36;--tree:#0a1329;--cloud-o:.12}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;font-family:'Plus Jakarta Sans','Noto Sans JP',sans-serif;color:var(--text-main);overflow:hidden;height:100vh;width:100vw;transition:color .8s}
+/* ===== 風景 ===== */
+#scene{position:fixed;inset:0;z-index:0;overflow:hidden}
+.sky{position:absolute;inset:0;opacity:0;transition:opacity 1.2s}
+.s-morning{background:linear-gradient(180deg,#8fa8e8 0%,#f7b7c8 55%,#ffd9a8 100%)}
+.s-day{background:linear-gradient(180deg,#3d9bf2 0%,#8fd0ff 60%,#d6f1ff 100%)}
+.s-night{background:linear-gradient(180deg,#070b26 0%,#1a2557 60%,#34407d 100%)}
+body[data-time=morning] .s-morning,body[data-time=day] .s-day,body[data-time=night] .s-night{opacity:1}
+.sun,.moon{position:absolute;border-radius:50%;transition:all 1.4s var(--m3-easing)}
+.sun{width:92px;height:92px;background:radial-gradient(circle,#fffbe0 30%,#ffe08a 70%);box-shadow:0 0 70px 30px rgba(255,220,130,.55);left:18%;top:48%;opacity:0}
+.moon{width:70px;height:70px;background:radial-gradient(circle at 35% 35%,#fff,#e9e6d4 70%);box-shadow:0 0 50px 14px rgba(230,235,255,.35);left:74%;top:12%;opacity:0}
+body[data-time=morning] .sun{opacity:1}
+body[data-time=day] .sun{opacity:1;left:72%;top:11%}
+body[data-time=night] .moon{opacity:1}
+.stars{position:absolute;left:0;top:0;width:2px;height:2px;border-radius:50%;opacity:0;transition:opacity 1.4s;animation:twinkle 4s ease-in-out infinite}
+body[data-time=night] .stars{opacity:1}
+@keyframes twinkle{50%{opacity:.55}}
+.cloud{position:absolute;width:150px;height:42px;background:#fff;border-radius:42px;opacity:var(--cloud-o);transition:opacity 1.2s;animation:drift 90s linear infinite}
+.cloud::before,.cloud::after{content:"";position:absolute;background:#fff;border-radius:50%}
+.cloud::before{width:62px;height:62px;left:24px;top:-28px}.cloud::after{width:46px;height:46px;left:78px;top:-18px}
+.c1{top:14%;left:-200px}.c2{top:28%;left:-200px;animation-delay:-35s;transform:scale(.7)}.c3{top:8%;left:-200px;animation-delay:-65s;transform:scale(1.2)}
+@keyframes drift{to{translate:calc(100vw + 400px)}}
+.land{position:absolute;left:0;bottom:0;width:100%;height:52vh}
+.land path,.land polygon{transition:fill 1.2s}
+.f-far{fill:var(--hill-far)}.f-mid{fill:var(--hill-mid)}.f-near{fill:var(--hill-near)}.f-tree{fill:var(--tree)}
+@media(prefers-reduced-motion:reduce){.cloud,.stars{animation:none}.cloud{left:20%}}
+/* ===== レイアウト ===== */
+#app-viewport{position:relative;z-index:1;height:100vh;display:flex;flex-direction:column}
+header{height:64px;padding:0 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.logo{font-weight:800;font-size:17px;letter-spacing:-.4px;display:flex;align-items:center;gap:8px;text-shadow:0 1px 8px rgba(0,0,0,.12)}
+.logo-badge{font-size:10px;background:var(--accent-primary);color:#fff;padding:2px 8px;border-radius:8px;font-weight:700}
+.time-chip{border:none;background:var(--card);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);color:var(--text-main);border-radius:20px;padding:8px 14px;font:700 12px inherit;font-family:inherit;display:flex;align-items:center;gap:6px;cursor:pointer}
+.time-chip .material-symbols-outlined{font-size:18px}
+main{flex:1;overflow-y:auto;padding:8px 18px 130px;max-width:720px;width:100%;margin:0 auto;overscroll-behavior-y:none}
+#overscroll-wrapper{transform-origin:center top}#overscroll-wrapper.spring-back{transition:transform .5s cubic-bezier(.175,.885,.32,1.275)}
+.glass-card{background:var(--card);backdrop-filter:blur(16px) saturate(140%);-webkit-backdrop-filter:blur(16px) saturate(140%);border:1px solid rgba(255,255,255,.28);border-radius:var(--ptz-card-radius);padding:var(--card-padding);margin-bottom:16px;box-shadow:0 8px 30px rgba(0,0,0,.08);transition:background .8s}
+h2{font-size:17px;margin:0 0 10px;font-weight:800;letter-spacing:-.3px}
+p{font-size:13px;line-height:1.55;margin:0 0 14px;color:var(--text-sub)}
+.sec-title{font-size:12px;font-weight:800;letter-spacing:.08em;color:var(--text-main);opacity:.85;margin:20px 4px 8px;text-shadow:0 1px 6px rgba(0,0,0,.12)}
+.list-item{display:flex;align-items:center;justify-content:space-between;padding:8px 2px}
+.list-item-title{font-weight:700;font-size:14px}.list-item-desc{font-size:12px;color:var(--text-sub);margin-top:2px}
+.ai-btn{border:none;outline:none;padding:13px 24px;border-radius:16px;font-weight:700;font-size:14px;font-family:inherit;color:#fff;cursor:pointer;background:var(--accent-primary);transition:opacity .2s,transform .15s;display:inline-flex;align-items:center;gap:8px;justify-content:center}
+.ai-btn:disabled{opacity:.5;cursor:not-allowed}.ai-btn:active:not(:disabled){opacity:.85;transform:scale(.98)}
+.ai-btn-secondary{background:var(--chip);color:var(--text-main)}
+.ai-btn:focus-visible,.nav-item:focus-visible,.time-chip:focus-visible{outline:3px solid var(--text-main);outline-offset:2px}
+.badge{background:var(--accent-primary);color:#fff;padding:4px 12px;border-radius:10px;font-size:11px;font-weight:700;display:inline-block;white-space:nowrap}
+.badge.gray{background:#8e8e93}
+.thick-slider-container{width:100%;height:var(--ptz-slider-height);background:var(--chip);border-radius:20px;overflow:hidden;margin:10px 0}
+.thick-slider-fill{height:100%;width:0;background:linear-gradient(90deg,var(--accent-primary),var(--accent-active));border-radius:20px;transition:width .8s var(--m3-easing)}
+.ms-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.ms{background:var(--chip);border-radius:16px;padding:10px 6px;text-align:center;font-size:11px;font-weight:700;color:var(--text-sub)}
+.ms b{display:block;font-size:15px;color:var(--text-main);margin-bottom:2px}
+.ms .material-symbols-outlined{font-size:18px;display:block;margin:0 auto 2px}
+.ms.done{background:#1fa45b;color:#fff}.ms.done b{color:#fff}
+.ms.big{grid-column:1/-1;background:linear-gradient(135deg,#ffb347,#ff5e62);color:#fff}.ms.big b{color:#fff;font-size:18px}
+.g-head{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.g-ico{width:46px;height:46px;border-radius:16px;background:var(--accent-primary);color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.g-ico.year{background:linear-gradient(135deg,#ffb347,#ff5e62)}.g-ico.month{background:linear-gradient(135deg,#8b5cf6,#ec4899)}
+.g-head h2{margin:0}.g-head p{margin:2px 0 0;font-size:12px}
+.nav-wrap{position:fixed;left:0;right:0;bottom:calc(14px + env(safe-area-inset-bottom));display:flex;justify-content:center;z-index:500;pointer-events:none}
+.bottom-nav-container{pointer-events:auto;width:min(92%,420px);height:64px;border-radius:32px;background:var(--nav);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);box-shadow:0 10px 30px rgba(0,0,0,.18);display:flex;padding:6px}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;color:var(--text-sub);border-radius:26px;gap:2px;transition:background .25s,color .25s;border:none;background:none;font-family:inherit}
+.nav-item .material-symbols-outlined{font-size:24px;font-variation-settings:'FILL' 0,'wght' 400}
+.nav-label{font-size:10px;font-weight:700}
+.nav-item.active{background:var(--accent-primary);color:#fff}.nav-item.active .material-symbols-outlined{font-variation-settings:'FILL' 1,'wght' 600}
+.view{display:none}.view.active{display:block;animation:viewIn .3s var(--m3-easing)}
+@keyframes viewIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.color-grid{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0}
+.color-swatch{width:36px;height:36px;border-radius:50%;cursor:pointer;border:3px solid transparent}.color-swatch.active{border-color:var(--text-main)}
+.seg{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.seg button{border:none;border-radius:12px;padding:10px 0;background:var(--chip);color:var(--text-main);font:700 13px inherit;font-family:inherit;cursor:pointer}
+.seg button.active{background:var(--accent-primary);color:#fff}
+.toast{position:fixed;bottom:96px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--text-main);color:var(--card);padding:10px 20px;border-radius:12px;font-size:13px;font-weight:700;opacity:0;visibility:hidden;transition:all .3s var(--m3-easing);z-index:2000;max-width:90vw;text-align:center}
+body[data-time=night] .toast{color:#10163a;background:#fff}
+.toast.active{opacity:1;visibility:visible;transform:translateX(-50%)}
+.dialog-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);z-index:1000;display:flex;align-items:center;justify-content:center;opacity:0;visibility:hidden;transition:all .3s var(--m3-easing)}
+.dialog-overlay.active{opacity:1;visibility:visible}
+.glass-dialog{background:var(--card);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.3);border-radius:var(--ptz-card-radius);padding:24px;max-width:380px;width:90%;text-align:center;transform:scale(.9) translateY(20px);transition:all .4s var(--m3-easing)}
+body[data-time=day] .glass-dialog,body[data-time=morning] .glass-dialog{background:rgba(255,255,255,.94)}
+.dialog-overlay.active .glass-dialog{transform:none}
+.pb-gacha-stage{width:140px;height:140px;margin:14px auto;border-radius:50%;background:radial-gradient(circle at 35% 35%,rgba(255,255,255,.55),var(--accent-primary));display:flex;align-items:center;justify-content:center;box-shadow:0 10px 28px rgba(0,0,0,.25);overflow:hidden}
+.pb-gacha-stage.rolling{animation:shake .6s infinite ease-in-out}
+@keyframes shake{20%{transform:rotate(20deg) scale(1.08)}40%{transform:rotate(-20deg) scale(.92)}60%{transform:rotate(15deg) scale(1.05)}80%{transform:rotate(-10deg)}}
+.pb-speech-bubble{background:var(--chip);border-radius:16px;padding:10px 16px;font-size:13px;font-weight:700;margin:8px 0 12px;display:inline-block;line-height:1.4}
+.reward-emoji{font-size:64px;line-height:1.1;animation:pop .6s var(--m3-easing)}
+@keyframes pop{from{transform:scale(.3) rotate(-20deg);opacity:0}}
+.reward-big{font-size:44px;font-weight:900;font-family:'Noto Sans JP',sans-serif;letter-spacing:-.04em;background:linear-gradient(135deg,#ffb347,#ff5e62);-webkit-background-clip:text;background-clip:text;color:transparent;margin:6px 0}
 
-    <!-- Google Fonts & Material Symbols -->
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Noto+Sans+JP:wght@400;500;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
-
-    <!-- PB Park Points API -->
-    <script src="/pbpark/points/points.js"></script>
-
-    <style>
-        /* PTZ 規格デフォルトテーマ */
-        :root {
-            --accent-primary: #3381FF;
-            --accent-active: #1A5FCC;
-
-            --ptz-card-radius: 24px;
-            --ptz-slider-height: 25px;
-            --ptz-toggle-width: 54px;
-            --ptz-toggle-height: 30px;
-            --ptz-toggle-knob-radius: 50%;
-            --ptz-toggle-knob-width: 22px;
-
-            --bg-base: #F7F7F7;
-            --glass-bg: #FFFFFF;
-            --text-main: #000000;
-            --text-sub: #666666;
-            --bg-secondary: #EEEEEE;
-            --nav-bg: #FFFFFF;
-            --nav-icon-active: #000000;
-
-            --m3-easing: cubic-bezier(0.32, 0.72, 0, 1);
-            --transition-smooth: 0.35s var(--m3-easing);
-            --card-padding: 24px;
-        }
-        .dark-mode {
-            --bg-base: #121212;
-            --glass-bg: #1E1E1E;
-            --text-main: #FFFFFF;
-            --text-sub: #A1A1A6;
-            --bg-secondary: #2C2C2E;
-            --nav-bg: #1E1E1E;
-            --nav-icon-active: #FFFFFF;
-        }
-
-        * {
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: 'Plus Jakarta Sans', 'Noto Sans JP', sans-serif;
-            background-color: var(--bg-base);
-            color: var(--text-main);
-            transition: background-color var(--transition-smooth), color var(--transition-smooth);
-            overflow: hidden;
-            height: 100vh;
-            width: 100vw;
-        }
-
-        /* アプリ全体のコンテナ */
-        #app-viewport {
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            overflow: hidden;
-        }
-
-        /* ヘッダー */
-        header {
-            height: 64px;
-            padding: 0 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: var(--bg-base);
-            transition: background-color var(--transition-smooth);
-            position: relative;
-            flex-shrink: 0;
-            z-index: 10;
-        }
-        .logo {
-            font-weight: 700;
-            font-size: 18px;
-            letter-spacing: -0.5px;
-            color: var(--text-main);
-            text-align: center;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .logo-badge {
-            font-size: 10px;
-            background: var(--accent-primary);
-            color: #FFFFFF;
-            padding: 2px 8px;
-            border-radius: 8px;
-            font-weight: 700;
-        }
-        .theme-toggle {
-            position: absolute;
-            right: 24px;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            border: none;
-            background: var(--bg-secondary);
-            color: var(--text-main);
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: background var(--transition-smooth), transform 0.2s;
-        }
-        .theme-toggle:active {
-            transform: scale(0.92);
-        }
-
-        /* メインスクロールエリア */
-        main {
-            flex-grow: 1;
-            overflow-y: auto;
-            padding: 12px 20px 100px;
-            max-width: 720px;
-            width: 100%;
-            margin: 0 auto;
-            -webkit-overflow-scrolling: touch;
-            overscroll-behavior-y: none;
-            will-change: transform;
-        }
-
-        /* Elastic Overscroll 伸縮ラッパー */
-        #overscroll-wrapper {
-            transform-origin: center top;
-            transition: transform 0s linear;
-        }
-        #overscroll-wrapper.spring-back {
-            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-
-        /* フラットソリッドカード */
-        .glass-card {
-            background: var(--glass-bg);
-            border-radius: var(--ptz-card-radius);
-            padding: var(--card-padding);
-            margin-bottom: 20px;
-            box-shadow: none !important;
-            border: none !important;
-            transition: background-color var(--transition-smooth), border-radius var(--transition-smooth);
-        }
-
-        /* ヒーローグラデーションカード */
-        .hero-gradient-card {
-            background: var(--accent-primary) !important;
-            color: #FFFFFF;
-            position: relative;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
-
-        h2 { 
-            font-size: 18px; 
-            margin-top: 0; 
-            margin-bottom: 12px;
-            font-weight: 700; 
-            letter-spacing: -0.3px;
-            color: var(--text-main);
-        }
-        p {
-            font-size: 13.5px;
-            line-height: 1.55;
-            margin-top: 0;
-            margin-bottom: 16px;
-            color: var(--text-sub);
-        }
-
-        /* PolandBall アバター表示制御 */
-        .pb-avatar-frame {
-            width: 105px;
-            height: 105px;
-            border-radius: 50%;
-            overflow: hidden;
-            background: rgba(255, 255, 255, 0.25);
-            backdrop-filter: blur(8px);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            box-shadow: 0 6px 16px rgba(0,0,0,0.15);
-            cursor: pointer;
-            user-select: none;
-        }
-
-        .pb-ball-img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            object-position: top;
-            border-radius: 50%;
-            transition: transform 0.3s var(--m3-easing);
-        }
-        .pb-ball-img:hover {
-            transform: scale(1.08) rotate(3deg);
-        }
-
-        /* リストコンポーネント */
-        .custom-list {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            margin-bottom: 16px;
-        }
-        .list-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 10px 4px;
-            border-bottom: none !important;
-        }
-        .list-item-title {
-            font-weight: 600;
-            font-size: 14px;
-            color: var(--text-main);
-        }
-        .list-item-desc {
-            font-size: 12px;
-            color: var(--text-sub);
-            margin-top: 2px;
-        }
-
-        /* トグルスイッチ */
-        .toggle-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 10px 4px;
-            color: var(--text-main);
-        }
-        .switch {
-            position: relative;
-            display: inline-block;
-            width: var(--ptz-toggle-width);
-            height: var(--ptz-toggle-height);
-        }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: var(--bg-secondary);
-            transition: var(--transition-smooth);
-            border-radius: calc(var(--ptz-toggle-height) / 2);
-        }
-        .slider:before {
-            position: absolute;
-            content: "";
-            height: var(--ptz-toggle-knob-width);
-            width: var(--ptz-toggle-knob-width);
-            left: 4px;
-            bottom: calc((var(--ptz-toggle-height) - var(--ptz-toggle-knob-width)) / 2);
-            background: #FFFFFF;
-            transition: var(--transition-smooth);
-            border-radius: var(--ptz-toggle-knob-radius);
-            box-shadow: 0 1px 3px rgba(0,0,0,0.15);
-        }
-        input:checked + .slider { background: var(--accent-primary); }
-        input:checked + .slider:before {
-            transform: translateX(calc(var(--ptz-toggle-width) - var(--ptz-toggle-knob-width) - 8px));
-        }
-
-        /* アクションボタン */
-        .ai-btn {
-            border: none;
-            outline: none;
-            padding: 12px 24px;
-            border-radius: 14px;
-            font-weight: 600;
-            font-size: 14px;
-            color: #FFFFFF;
-            cursor: pointer;
-            background: var(--accent-primary);
-            transition: opacity 0.2s, background-color var(--transition-smooth), transform 0.15s;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            justify-content: center;
-        }
-        .ai-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        .ai-btn:active:not(:disabled) {
-            opacity: 0.85;
-            transform: scale(0.98);
-        }
-        .ai-btn-secondary {
-            background: var(--bg-secondary);
-            color: var(--text-main);
-        }
-
-        /* ナビゲーション */
-        .bottom-nav-container {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 72px;
-            background: var(--nav-bg);
-            border-top: 1px solid var(--bg-secondary);
-            z-index: 500;
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-            padding-bottom: env(safe-area-inset-bottom);
-            transition: background-color var(--transition-smooth);
-        }
-        .nav-item {
-            flex: 1;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            color: var(--text-sub);
-            transition: color 0.25s var(--m3-easing);
-            position: relative;
-            gap: 4px;
-        }
-        .nav-item span.material-symbols-outlined {
-            font-size: 24px;
-            font-variation-settings: 'FILL' 0, 'wght' 400;
-            transition: font-variation-settings 0.2s, color 0.2s;
-        }
-        .nav-label {
-            font-size: 11px;
-            font-weight: 600;
-        }
-        .nav-item.active {
-            color: var(--nav-icon-active);
-        }
-        .nav-item.active span.material-symbols-outlined {
-            font-variation-settings: 'FILL' 1, 'wght' 700;
-        }
-
-        /* ビュー切り替え */
-        .view {
-            display: none;
-        }
-        .view.active {
-            display: block;
-            animation: viewIn 0.3s var(--m3-easing);
-        }
-        @keyframes viewIn {
-            from { opacity: 0; transform: translateY(8px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* プリセット選択ボタン */
-        .preset-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-            gap: 10px;
-            margin-top: 10px;
-        }
-        .preset-btn {
-            background: var(--bg-base);
-            color: var(--text-main);
-            border: none;
-            padding: 10px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            text-align: center;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: background 0.2s, opacity 0.1s;
-        }
-        .preset-btn:active {
-            opacity: 0.8;
-        }
-        .preset-dot {
-            width: 14px;
-            height: 14px;
-            border-radius: 50%;
-            flex-shrink: 0;
-        }
-
-        /* トースト & ダイアログ */
-        .toast {
-            position: fixed;
-            bottom: 84px;
-            left: 50%;
-            transform: translateX(-50%) translateY(20px);
-            background: var(--text-main);
-            color: var(--glass-bg);
-            padding: 10px 20px;
-            border-radius: 12px;
-            font-size: 13px;
-            font-weight: 600;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.3s var(--m3-easing);
-            z-index: 2000;
-        }
-        .toast.active {
-            opacity: 1;
-            visibility: visible;
-            transform: translateX(-50%) translateY(0);
-        }
-
-        .dialog-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.55);
-            backdrop-filter: blur(4px);
-            z-index: 1000; display: flex; align-items: center; justify-content: center;
-            opacity: 0; visibility: hidden; transition: all 0.3s var(--m3-easing);
-        }
-        .dialog-overlay.active { opacity: 1; visibility: visible; }
-        .glass-dialog {
-            background: var(--glass-bg);
-            border-radius: var(--ptz-card-radius);
-            padding: 24px; max-width: 380px; width: 90%; text-align: center;
-            transform: scale(0.9) translateY(20px); transition: all 0.4s var(--m3-easing);
-        }
-        .dialog-overlay.active .glass-dialog { transform: scale(1) translateY(0); }
-
-        .badge {
-            background: var(--accent-primary);
-            color: #FFFFFF;
-            padding: 4px 12px;
-            border-radius: 10px;
-            font-size: 11px;
-            font-weight: 700;
-            display: inline-block;
-        }
-
-        .color-grid {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            margin: 12px 0;
-        }
-        .color-swatch {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            cursor: pointer;
-            border: 3px solid transparent;
-            transition: border-color 0.2s;
-        }
-        .color-swatch.active { border-color: var(--text-main); }
-
-        /* PolandBall ガチャアニメーション */
-        .pb-gacha-stage {
-            width: 140px;
-            height: 140px;
-            margin: 16px auto;
-            border-radius: 50%;
-            background: radial-gradient(circle at 35% 35%, rgba(255,255,255,0.55), var(--accent-primary));
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 10px 28px rgba(0,0,0,0.25);
-            position: relative;
-            overflow: hidden;
-            transition: transform 0.4s var(--m3-easing);
-        }
-        .pb-gacha-stage.rolling {
-            animation: pbRollShake 0.6s infinite ease-in-out;
-        }
-        @keyframes pbRollShake {
-            0% { transform: rotate(0deg) scale(1); }
-            20% { transform: rotate(20deg) scale(1.08) translateY(-4px); }
-            40% { transform: rotate(-20deg) scale(0.92) translateY(4px); }
-            60% { transform: rotate(15deg) scale(1.05); }
-            80% { transform: rotate(-10deg) scale(0.98); }
-            100% { transform: rotate(0deg) scale(1); }
-        }
-
-        .pb-gacha-ball-inner {
-            width: 110px;
-            height: 110px;
-            border-radius: 50%;
-            object-fit: cover;
-            object-position: top;
-            transition: transform 0.5s var(--m3-easing), opacity 0.3s;
-        }
-
-        .pb-speech-bubble {
-            background: var(--bg-secondary);
-            color: var(--text-main);
-            border-radius: 16px;
-            padding: 10px 16px;
-            font-size: 13px;
-            font-weight: 700;
-            margin: 12px 0 16px;
-            position: relative;
-            display: inline-block;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-            line-height: 1.4;
-        }
-        .pb-speech-bubble::after {
-            content: '';
-            position: absolute;
-            top: -8px;
-            left: 50%;
-            transform: translateX(-50%);
-            border-width: 0 8px 8px 8px;
-            border-style: solid;
-            border-color: transparent transparent var(--bg-secondary) transparent;
-        }
-    </style>
+/* ヒーロー（刷新） */
+.hero{position:relative;color:#fff;border-radius:32px;padding:22px 22px 18px;margin-bottom:16px;overflow:hidden;background:radial-gradient(120% 90% at 100% 0%,rgba(255,255,255,.4),transparent 55%),linear-gradient(160deg,var(--accent-primary),var(--accent-active));box-shadow:0 14px 40px rgba(0,0,0,.2)}
+.hero::before{content:"";position:absolute;inset:0;background:repeating-radial-gradient(circle at 100% 0%,rgba(255,255,255,.07) 0 2px,transparent 2px 24px);pointer-events:none}
+.hero>*{position:relative}
+.hero-top{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:800;letter-spacing:.1em}
+.hero-top .material-symbols-outlined{font-size:18px;font-variation-settings:'FILL' 1}
+.hero-pt{font-size:clamp(48px,15vw,72px);font-weight:900;line-height:1;letter-spacing:-.05em;margin:12px 0 4px;font-family:'Noto Sans JP','Plus Jakarta Sans',sans-serif}
+.hero-pt small{font-size:18px;font-weight:800;letter-spacing:0;margin-left:6px;opacity:.9}
+.hero-greet{font-size:12px;font-weight:700;opacity:.92}
+.hero-ball{position:absolute;right:14px;top:12px;width:104px;text-align:center;cursor:pointer;z-index:2}
+.hero-ball canvas{width:100%;aspect-ratio:1;display:block;animation:bob 4s ease-in-out infinite;filter:drop-shadow(0 10px 12px rgba(0,0,0,.25))}
+.hero-ball span{font-size:11px;font-weight:800;display:block;margin-top:-2px}
+@keyframes bob{50%{transform:translateY(-7px)}}
+@media(prefers-reduced-motion:reduce){.hero-ball canvas{animation:none}}
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin:18px 0 14px}
+.wd{text-align:center;font-size:10px;font-weight:800}
+.wd i{display:flex;width:100%;max-width:34px;aspect-ratio:1;margin:4px auto 0;border-radius:50%;background:rgba(255,255,255,.2);align-items:center;justify-content:center}
+.wd i .material-symbols-outlined{font-size:18px}
+.wd.on i{background:#fff;color:var(--accent-primary)}
+.wd.today i{outline:2px solid #fff;outline-offset:2px}
+.hero-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.hero-streak{font-size:13px;font-weight:800;display:flex;align-items:center;gap:4px;white-space:nowrap}
+.hero-streak b{font-size:28px;letter-spacing:-.04em;margin:0 2px}
+.hero-btn{background:#fff;color:var(--accent-primary);border:none;border-radius:16px;padding:13px 18px;font:800 14px inherit;font-family:inherit;display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:transform .15s}
+.hero-btn:active:not(:disabled){transform:scale(.97)}.hero-btn:disabled{background:rgba(255,255,255,.3);color:#fff;cursor:default}
+.err-card{background:#c62828;color:#fff;border-radius:20px;padding:16px 18px;margin-bottom:16px;font-size:13px;line-height:1.6}
+.err-card b{font-size:16px}
+</style>
 </head>
-<body>
+<body data-time="day">
 
-    <div id="app-viewport">
-        <!-- ヘッダー -->
-        <header>
-            <div class="logo">
-                PB Park Bonus
-                <span class="logo-badge">PBpoint</span>
-            </div>
-            <button class="theme-toggle" id="theme-btn" title="テーマ切り替え">
-                <span class="material-symbols-outlined">light_mode</span>
-            </button>
-        </header>
+<div id="scene" aria-hidden="true">
+  <div class="sky s-morning"></div><div class="sky s-day"></div><div class="sky s-night"></div>
+  <div class="stars" id="stars"></div><div class="sun"></div><div class="moon"></div>
+  <div class="cloud c1"></div><div class="cloud c2"></div><div class="cloud c3"></div>
+  <svg class="land" viewBox="0 0 800 400" preserveAspectRatio="xMidYMax slice">
+    <path class="f-far" d="M0 230L90 150 170 210 260 120 360 220 450 160 560 230 650 140 760 215 800 190V400H0Z"/>
+    <path class="f-mid" d="M0 290Q120 230 260 280T520 270T800 255V400H0Z"/>
+    <path class="f-near" d="M0 345Q160 295 330 338T640 322T800 332V400H0Z"/>
+    <polygon class="f-tree" points="70,338 56,378 84,378"/><polygon class="f-tree" points="104,342 92,378 116,378"/>
+    <polygon class="f-tree" points="640,326 626,372 654,372"/><polygon class="f-tree" points="676,330 664,372 688,372"/><polygon class="f-tree" points="710,334 698,374 722,374"/>
+  </svg>
+</div>
 
-        <!-- メインスクロールエリア -->
-        <main id="main-scroll-area">
-            <div id="overscroll-wrapper">
-                
-                <!-- 1. ホーム（ヒーローカード・ログインボーナス・PBガチャ） -->
-                <section id="view-home" class="view active">
-                    <!-- トップのヒーローエリア：グラデーションカード ＋ PBキャラ ＋ PBPoint残高 -->
-                    <div class="glass-card hero-gradient-card">
-                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px;">
-                            <div style="flex: 1;">
-                                <div style="font-size: 12px; font-weight: 700; opacity: 0.9; text-transform: uppercase; letter-spacing: 0.5px;">PolandBall Point</div>
-                                <div style="font-size: 38px; font-weight: 800; line-height: 1.1; margin: 4px 0 8px; letter-spacing: -1px;" id="hero-point-display">
-                                    0 <span style="font-size: 16px; font-weight: 600;">PT</span>
-                                </div>
-                                <div style="font-size: 12px; opacity: 0.9; display: flex; align-items: center; gap: 4px;" id="hero-status-desc">
-                                    <span class="material-symbols-outlined" style="font-size: 16px;">verified</span>
-                                    <span>召喚PB: <strong id="hero-ball-name">Poland</strong></span>
-                                </div>
-                            </div>
+<div id="app-viewport">
+  <header>
+    <div class="logo">PB Park Bonus <span class="logo-badge">PBPoint</span></div>
+    <button class="time-chip" id="time-chip" title="背景を切り替え"><span class="material-symbols-outlined" id="time-ico">light_mode</span><span id="time-label">昼</span></button>
+  </header>
 
-                            <div class="pb-avatar-frame" onclick="rotateRandomBall()" title="タップでPolandBallチェンジ！">
-                                <img id="hero-pb-img" class="pb-ball-img" src="" alt="PolandBall Character">
-                            </div>
-                        </div>
+  <main id="main-scroll-area"><div id="overscroll-wrapper">
 
-                        <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.18); backdrop-filter: blur(4px); padding: 10px 16px; border-radius: 14px; font-size: 12px; font-weight: 600;">
-                            <span>連続ログイン: <strong id="streak-count">0</strong> 日目</span>
-                            <span id="login-today-badge" style="background: rgba(255,255,255,0.25); padding: 2px 10px; border-radius: 10px;">未取得</span>
-                        </div>
-                    </div>
-
-                    <!-- デイリーログインボーナスカード -->
-                    <div class="glass-card">
-                        <h2>本日のログインボーナス</h2>
-                        <p>1日1回ログインすることで <strong>1 PBpoint</strong> を受け取ることができます！毎日忘れずに受け取りましょう。</p>
-
-                        <div class="custom-list">
-                            <div class="list-item">
-                                <div>
-                                    <div class="list-item-title">デイリーボーナス報酬</div>
-                                    <div class="list-item-desc" id="login-time-desc">本日未受取</div>
-                                </div>
-                                <span class="badge" style="font-size: 13px;">+1 PT</span>
-                            </div>
-                        </div>
-
-                        <button class="ai-btn" id="claim-login-btn" style="width: 100%; margin-top: 4px;" onclick="claimDailyBonus()">
-                            <span class="material-symbols-outlined">redeem</span>
-                            ログインボーナスを受け取る
-                        </button>
-                    </div>
-
-                    <!-- 月1回限定 PolandBall 召喚ガチャカード -->
-                    <div class="glass-card">
-                        <h2>月1回限定 PolandBall 召喚ガチャ</h2>
-                        <p>1ヶ月に1回だけ挑戦できるスペシャルPBガチャ！PolandBallたちが登場し <strong>10〜100 PT</strong> をランダムでプレゼント！</p>
-
-                        <div class="custom-list">
-                            <div class="list-item">
-                                <div>
-                                    <div class="list-item-title">今月のガチャ挑戦権</div>
-                                    <div class="list-item-desc" id="gacha-status-desc">判定中...</div>
-                                </div>
-                                <span class="badge" id="gacha-badge">月1回限定</span>
-                            </div>
-                        </div>
-
-                        <button class="ai-btn ai-btn-secondary" id="gacha-btn" style="width: 100%; margin-top: 4px;" onclick="openGachaDialog()">
-                            <span class="material-symbols-outlined">sports_soccer</span>
-                            PolandBall ガチャを召喚する
-                        </button>
-                    </div>
-                </section>
-
-                <!-- 2. 設定 -->
-                <section id="view-settings" class="view">
-                    <div class="glass-card">
-                        <h2>アクセントカラー</h2>
-                        <p>アプリ全体のアクセントカラー (--accent-primary) を変更します。</p>
-                        <div class="color-grid" id="accent-picker">
-                            <div class="color-swatch active" data-color="#3381FF" style="background: #3381FF;" onclick="setAccentColor('#3381FF')"></div>
-                            <div class="color-swatch" data-color="#DC2626" style="background: #DC2626;" onclick="setAccentColor('#DC2626')"></div>
-                            <div class="color-swatch" data-color="#10B981" style="background: #10B981;" onclick="setAccentColor('#10B981')"></div>
-                            <div class="color-swatch" data-color="#8B5CF6" style="background: #8B5CF6;" onclick="setAccentColor('#8B5CF6')"></div>
-                            <div class="color-swatch" data-color="#F59E0B" style="background: #F59E0B;" onclick="setAccentColor('#F59E0B')"></div>
-                            <div class="color-swatch" data-color="#EC4899" style="background: #EC4899;" onclick="setAccentColor('#EC4899')"></div>
-                            <div class="color-swatch" data-color="#64748B" style="background: #64748B;" onclick="setAccentColor('#64748B')"></div>
-                        </div>
-                    </div>
-
-                    <div class="glass-card">
-                        <h2>システム設定</h2>
-                        <div class="toggle-row">
-                            <span>ダークテーマ</span>
-                            <label class="switch">
-                                <input type="checkbox" id="darkmode-toggle" onchange="toggleDarkTheme(this.checked)">
-                                <span class="slider"></span>
-                            </label>
-                        </div>
-                    </div>
-                </section>
-            </div>
-        </main>
-
-        <!-- 下付き固定ナビゲーションバー -->
-        <div class="bottom-nav-container">
-            <div class="nav-item active" data-view="view-home" onclick="switchView('view-home')">
-                <span class="material-symbols-outlined">home</span>
-                <span class="nav-label">ホーム</span>
-            </div>
-            <div class="nav-item" data-view="view-settings" onclick="switchView('view-settings')">
-                <span class="material-symbols-outlined">settings</span>
-                <span class="nav-label">設定</span>
-            </div>
+    <!-- ホーム -->
+    <section id="view-home" class="view active">
+      <div id="err-banner" class="err-card" style="display:none"><b>エラー</b><br>PBPointに接続できません。ポイントの読み込みに失敗しました。ページを再読み込みして、もう一度お試しください。</div>
+      <div class="hero">
+        <div class="hero-top"><span class="material-symbols-outlined">toll</span>PBPoint</div>
+        <div class="hero-pt" id="hero-pt">0<small>PT</small></div>
+        <div class="hero-greet" id="greeting"></div>
+        <div class="hero-ball" onclick="rotateRandomBall()" title="タップでチェンジ！"><canvas id="hero-canvas" width="220" height="220"></canvas><span id="hero-ball-name">Poland</span></div>
+        <div class="week" id="week"></div>
+        <div class="hero-row">
+          <div class="hero-streak"><span class="material-symbols-outlined">local_fire_department</span>連続<b id="streak-count">0</b>日</div>
+          <button class="hero-btn" id="claim-login-btn" onclick="claimDailyBonus()">受け取る</button>
         </div>
-    </div>
+      </div>
 
-    <!-- PolandBall ガチャ演出ダイアログ -->
-    <div class="dialog-overlay" id="gacha-dialog">
-        <div class="glass-dialog">
-            <div style="display: flex; align-items: center; justify-content: center; gap: 6px; color: var(--accent-primary);">
-                <span class="material-symbols-outlined" style="font-size: 28px;">sports_soccer</span>
-                <h2 style="margin: 0;" id="gacha-dialog-title">PolandBall ガチャ</h2>
-            </div>
-            
-            <div id="gacha-anim-area">
-                <div class="pb-gacha-stage" id="gacha-sphere-el">
-                    <img id="gacha-ball-img" class="pb-gacha-ball-inner" src="https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/poland/happy.png" alt="PolandBall Gacha">
-                </div>
-                
-                <div class="pb-speech-bubble" id="gacha-speech-box">
-                    PolandBallを召喚してポイントを獲得しよう！
-                </div>
-                <p id="gacha-dialog-msg" style="font-size: 13px; margin-bottom: 8px; color: var(--text-sub);">最大 100 PT が当たるチャンス！</p>
-            </div>
+      <div class="sec-title">連続ログインボーナス</div>
+      <div class="glass-card">
+        <div class="list-item" style="padding-top:0"><div><div class="list-item-title" id="next-title">次のボーナスまで</div><div class="list-item-desc" id="next-desc"></div></div><span class="badge" id="next-badge">+10 PT</span></div>
+        <div class="thick-slider-container"><div class="thick-slider-fill" id="streak-fill"></div></div>
+        <div class="ms-grid" id="ms-grid"></div>
+        <p style="margin:12px 0 0;font-size:12px">※1か月などは暦の日付で数えます（例：11/15スタート → 12/15で1か月）。1日でも忘れると連続記録はリセットされます。</p>
+      </div>
+    </section>
 
-            <div style="display: flex; gap: 8px; margin-top: 16px;">
-                <button class="ai-btn" id="gacha-exec-btn" style="width: 100%; justify-content: center;" onclick="executePBGacha()">PolandBall を召喚！</button>
-                <button class="ai-btn ai-btn-secondary" id="gacha-close-btn" style="display: none; width: 100%; justify-content: center;" onclick="closeGachaDialog()">閉じる</button>
-            </div>
+    <!-- ガチャ -->
+    <section id="view-gacha" class="view">
+      <div class="sec-title">毎週・毎月・年に一度のガチャ</div>
+      <div id="gacha-list"></div>
+    </section>
+
+    <!-- 設定 -->
+    <section id="view-settings" class="view">
+      <div class="glass-card">
+        <h2>背景（時間帯）</h2>
+        <p>朝・昼・夜で風景が変わります。「自動」は今の時刻に合わせます。</p>
+        <div class="seg" id="bg-seg">
+          <button data-mode="auto">自動</button><button data-mode="morning">朝</button><button data-mode="day">昼</button><button data-mode="night">夜</button>
         </div>
-    </div>
-
-    <!-- トースト通知 -->
-    <div class="toast" id="toast-message">通知メッセージ</div>
-
-    <script>
-        /**
-         * 1. PBPoints API Interface & Polyfill
-         */
-        if (!window.PBPoints) {
-            let _inMemoryPoints = 0;
-            window.PBPoints = {
-                get: async function() {
-                    return Promise.resolve(_inMemoryPoints);
-                },
-                set: async function(amount) {
-                    _inMemoryPoints = Math.max(0, Math.floor(amount));
-                    window.dispatchEvent(new CustomEvent('pointsUpdated', { detail: _inMemoryPoints }));
-                    return Promise.resolve(_inMemoryPoints);
-                },
-                add: async function(amount, reason) {
-                    const current = await this.get();
-                    return await this.set(current + amount);
-                },
-                onChange: function(callback) {
-                    const handler = async () => {
-                        const pts = await this.get();
-                        callback(pts);
-                    };
-                    window.addEventListener('pointsUpdated', handler);
-                    return () => {
-                        window.removeEventListener('pointsUpdated', handler);
-                    };
-                }
-            };
-        }
-
-        /**
-         * 2. PolandBall Assets Data & Quotes
-         */
-        const PB_COUNTRIES = [
-            'germany', 'japan', 'china', 'italy', 'sierraleone', 
-            'russia', 'france', 'poland', 'england472x600', 'usa', 'korea', 'austria'
-        ];
-
-        const PB_EXPRESSIONS = [
-            'anger.png', 'dissatisfaction.png', 'happy.png', 'itome.png', 
-            'lol.png', 'normal.png', 'plot.png', 'smile.png', 'surprise.png'
-        ];
-
-        const PB_GACHA_QUOTES = {
-            'poland': ["Poland can into PBPoint!", "Nooo High points please!", "I give you points!"],
-            'germany': ["Work hard, get points!", "PBparkやり過ぎてない？宿題をチェックしよう"],
-            'japan': ["Desu! PBPointゲットです！", "Otsukaresama desu!"],
-            'usa': ["自由に遊ぼう！ここでは何でもできるよ"],
-            'england472x600': ["毎日貯まる。しかも無料", "Tea and PBPoints time!"],
-            'china': ["おめでとう", "More PBPoints for you!"],
-            'russia': ["寒い日もPBparkで遊ぼう"],
-            'france': ["結果がどうであれ、PBparkを好きになってほしいんよ"],
-            'italy': ["あれ？昨日はログインボーナスもらった？"],
-            'austria': ["毎日来れば溜まるよ！"],
-            'korea': ["ゲームとかで使えるんよ"],
-            'sierraleone': ["よろしくなんよ!"]
-        };
-
-        function getPBImageUrl(country, expression) {
-            return `https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/${country}/${expression}`;
-        }
-
-        function getRandomPBItem() {
-            const country = PB_COUNTRIES[Math.floor(Math.random() * PB_COUNTRIES.length)];
-            const exp = PB_EXPRESSIONS[Math.floor(Math.random() * PB_EXPRESSIONS.length)];
-            const displayName = country === 'england472x600' ? 'UK' : country.charAt(0).toUpperCase() + country.slice(1);
-            
-            const quotes = PB_GACHA_QUOTES[country] || ["PBPoint received!"];
-            const quote = quotes[Math.floor(Math.random() * quotes.length)];
-
-            return {
-                country,
-                expression: exp,
-                displayName,
-                quote,
-                url: getPBImageUrl(country, exp)
-            };
-        }
-
-        /**
-         * 3. PTZ Theme Engine (デフォルト: ShowMeCSS Default Blue)
-         */
-        const PTZ = { accentColor: '#3381FF', bgLight: '#F7F7F7', bgDark: '#121212' };
-        let isDarkMode = false;
-
-        function shade(hex, pct) {
-            const c = [1, 3, 5].map(i => Math.min(255, Math.round(parseInt(hex.substr(i, 2), 16) * (100 + pct) / 100)));
-            return '#' + c.map(v => v.toString(16).padStart(2, '0')).join('');
-        }
-
-        function applyTheme() {
-            const root = document.documentElement.style;
-            root.setProperty('--accent-primary', PTZ.accentColor);
-            root.setProperty('--accent-active', shade(PTZ.accentColor, -15));
-            root.setProperty('--bg-base', isDarkMode ? PTZ.bgDark : PTZ.bgLight);
-            document.querySelectorAll('#accent-picker .color-swatch').forEach(sw =>
-                sw.classList.toggle('active', sw.dataset.color.toLowerCase() === PTZ.accentColor.toLowerCase()));
-        }
-
-        function setAccentColor(hex) {
-            PTZ.accentColor = hex;
-            try { localStorage.setItem('pb_accent', hex); } catch (e) {}
-            applyTheme();
-            showToast(`アクセントカラーを変更: ${hex.toUpperCase()}`);
-        }
-
-        function toggleDarkTheme(isDark) {
-            isDarkMode = isDark;
-            document.body.classList.toggle('dark-mode', isDark);
-            document.getElementById('theme-btn').querySelector('span').textContent = isDark ? 'dark_mode' : 'light_mode';
-            const t = document.getElementById('darkmode-toggle');
-            if (t) t.checked = isDark;
-            applyTheme();
-        }
-
-        document.getElementById('theme-btn').addEventListener('click', () => toggleDarkTheme(!isDarkMode));
-
-        function initApp() {
-            try { PTZ.accentColor = localStorage.getItem('pb_accent') || PTZ.accentColor; } catch (e) {}
-            toggleDarkTheme(window.matchMedia('(prefers-color-scheme: dark)').matches);
-            setupPointsAndBonus();
-            rotateRandomBall();
-        }
-
-        /**
-         * 5. PolandBall Character Rotation Logic
-         */
-        let currentBall = null;
-
-        function rotateRandomBall() {
-            currentBall = getRandomPBItem();
-            const imgEl = document.getElementById('hero-pb-img');
-            const nameEl = document.getElementById('hero-ball-name');
-
-            if (imgEl) {
-                imgEl.src = currentBall.url;
-            }
-            if (nameEl) {
-                nameEl.textContent = `${currentBall.displayName}`;
-            }
-        }
-
-        /**
-         * 6. Bonus System (Login Bonus & PB Gacha)
-         */
-        function getFormattedDate(date = new Date()) {
-            const y = date.getFullYear();
-            const m = String(date.getMonth() + 1).padStart(2, '0');
-            const d = String(date.getDate()).padStart(2, '0');
-            return `${y}-${m}-${d}`;
-        }
-
-        function getFormattedMonth(date = new Date()) {
-            const y = date.getFullYear();
-            const m = String(date.getMonth() + 1).padStart(2, '0');
-            return `${y}-${m}`;
-        }
-
-        async function setupPointsAndBonus() {
-            try {
-                const pts = await PBPoints.get();
-                updatePointDisplay(pts);
-            } catch(e) {
-                console.error('Failed to fetch points from PBPoints API:', e);
-            }
-
-            PBPoints.onChange((pts) => {
-                updatePointDisplay(pts);
-            });
-
-            checkLoginBonusState();
-            checkGachaState();
-        }
-
-        function updatePointDisplay(pts) {
-            const display = document.getElementById('hero-point-display');
-            if (display) {
-                display.innerHTML = `${Number(pts).toLocaleString()} <span style="font-size: 16px; font-weight: 600;">PT</span>`;
-            }
-        }
-
-        function checkLoginBonusState() {
-            const today = getFormattedDate();
-            const lastLogin = localStorage.getItem('pb_last_login_date');
-            const streak = parseInt(localStorage.getItem('pb_login_streak') || '0', 10);
-
-            const streakEl = document.getElementById('streak-count');
-            const badgeEl = document.getElementById('login-today-badge');
-            const descEl = document.getElementById('login-time-desc');
-            const btn = document.getElementById('claim-login-btn');
-
-            if (streakEl) streakEl.textContent = streak;
-
-            if (lastLogin === today) {
-                if (badgeEl) {
-                    badgeEl.textContent = '受取済み';
-                    badgeEl.style.background = 'rgba(255,255,255,0.4)';
-                }
-                if (descEl) descEl.textContent = `本日受取完了 (${today})`;
-                if (btn) {
-                    btn.disabled = true;
-                    btn.innerHTML = `<span class="material-symbols-outlined">check_circle</span> 本日の受取完了`;
-                }
-            } else {
-                if (badgeEl) {
-                    badgeEl.textContent = '未受取';
-                    badgeEl.style.background = 'rgba(255,255,255,0.25)';
-                }
-                if (descEl) descEl.textContent = '本日分が受け取り可能です！';
-                if (btn) {
-                    btn.disabled = false;
-                    btn.innerHTML = `<span class="material-symbols-outlined">redeem</span> ログインボーナスを受け取る (+1 PT)`;
-                }
-            }
-        }
-
-        async function claimDailyBonus() {
-            const today = getFormattedDate();
-            const lastLogin = localStorage.getItem('pb_last_login_date');
-
-            if (lastLogin === today) {
-                showToast('本日のログインボーナスは既に受け取っています');
-                return;
-            }
-
-            let streak = parseInt(localStorage.getItem('pb_login_streak') || '0', 10);
-            const yesterday = new Date();
-            yesterday.setDate(yesterday.getDate() - 1);
-            
-            if (lastLogin === getFormattedDate(yesterday)) {
-                streak += 1;
-            } else {
-                streak = 1;
-            }
-
-            localStorage.setItem('pb_last_login_date', today);
-            localStorage.setItem('pb_login_streak', streak.toString());
-
-            try {
-                await PBPoints.add(1, 'ログインボーナス');
-                const latestPts = await PBPoints.get();
-                updatePointDisplay(latestPts);
-            } catch (e) {
-                console.error('PBPoints API call failed:', e);
-            }
-
-            checkLoginBonusState();
-            rotateRandomBall();
-            showToast('🎉 ログインボーナス 1 PBpoint を獲得しました！');
-        }
-
-        function checkGachaState() {
-            const currentMonth = getFormattedMonth();
-            const lastGachaMonth = localStorage.getItem('pb_last_gacha_month');
-
-            const descEl = document.getElementById('gacha-status-desc');
-            const badgeEl = document.getElementById('gacha-badge');
-            const btn = document.getElementById('gacha-btn');
-
-            if (lastGachaMonth === currentMonth) {
-                if (descEl) descEl.textContent = `今月分実行済み (${currentMonth})`;
-                if (badgeEl) {
-                    badgeEl.textContent = '召喚済み';
-                    badgeEl.style.background = '#8E8E93';
-                }
-                if (btn) {
-                    btn.disabled = true;
-                    btn.innerHTML = `<span class="material-symbols-outlined">event_busy</span> 今月のPBガチャは完了しています`;
-                }
-            } else {
-                if (descEl) descEl.textContent = '今月のPB召喚権があります！';
-                if (badgeEl) {
-                    badgeEl.textContent = '召喚可能';
-                    badgeEl.style.background = 'var(--accent-primary)';
-                }
-                if (btn) {
-                    btn.disabled = false;
-                    btn.innerHTML = `<span class="material-symbols-outlined">sports_soccer</span> PolandBall ガチャを召喚する (10〜100PT)`;
-                }
-            }
-        }
-
-        function openGachaDialog() {
-            const currentMonth = getFormattedMonth();
-            const lastGachaMonth = localStorage.getItem('pb_last_gacha_month');
-
-            if (lastGachaMonth === currentMonth) {
-                showToast('今月のガチャは既に引き終わっています');
-                return;
-            }
-
-            document.getElementById('gacha-dialog-title').textContent = "PolandBall ガチャ";
-            document.getElementById('gacha-speech-box').textContent = "カプセルを回してPolandBallを召喚しよう！";
-            document.getElementById('gacha-dialog-msg').textContent = "最大 100 PT が当たるチャンス！";
-            
-            const gachaBallImg = document.getElementById('gacha-ball-img');
-            gachaBallImg.src = getPBImageUrl('poland', 'happy.png');
-
-            document.getElementById('gacha-exec-btn').style.display = "inline-flex";
-            document.getElementById('gacha-close-btn').style.display = "none";
-            document.getElementById('gacha-sphere-el').classList.remove('rolling');
-
-            document.getElementById('gacha-dialog').classList.add('active');
-        }
-
-        function closeGachaDialog() {
-            document.getElementById('gacha-dialog').classList.remove('active');
-        }
-
-        async function executePBGacha() {
-            const currentMonth = getFormattedMonth();
-            const lastGachaMonth = localStorage.getItem('pb_last_gacha_month');
-
-            if (lastGachaMonth === currentMonth) {
-                showToast('今月のガチャは既に引き終わっています');
-                return;
-            }
-
-            const execBtn = document.getElementById('gacha-exec-btn');
-            const stage = document.getElementById('gacha-sphere-el');
-            const speech = document.getElementById('gacha-speech-box');
-            const msg = document.getElementById('gacha-dialog-msg');
-            const gachaBallImg = document.getElementById('gacha-ball-img');
-
-            execBtn.disabled = true;
-            stage.classList.add('rolling');
-            speech.textContent = "PolandBall がコロコロ回転中...";
-            msg.textContent = "だれが飛び出してくるかな...？";
-
-            let rollInterval = setInterval(() => {
-                const tempPB = getRandomPBItem();
-                gachaBallImg.src = tempPB.url;
-            }, 120);
-
-            setTimeout(async () => {
-                clearInterval(rollInterval);
-
-                const rand = Math.random() * 100;
-                let awardedPoints = 10;
-
-                if (rand < 0.8) {
-                    awardedPoints = 100;
-                } else if (rand < 4.0) {
-                    awardedPoints = 50;  
-                } else if (rand < 12.0) {
-                    awardedPoints = 30;  
-                } else if (rand < 30.0) {
-                    awardedPoints = 20;  
-                } else if (rand < 60.0) {
-                    awardedPoints = 15;  
-                } else {
-                    awardedPoints = 10;  
-                }
-
-                const summonedPB = getRandomPBItem();
-                gachaBallImg.src = summonedPB.url;
-
-                stage.classList.remove('rolling');
-                
-                localStorage.setItem('pb_last_gacha_month', currentMonth);
-
-                try {
-                    await PBPoints.add(awardedPoints, `PBガチャ(${summonedPB.displayName})`);
-                    const latestPts = await PBPoints.get();
-                    updatePointDisplay(latestPts);
-                } catch (e) {
-                    console.error('PBPoints API addition failed:', e);
-                }
-
-                checkGachaState();
-                
-                const heroImg = document.getElementById('hero-pb-img');
-                const heroName = document.getElementById('hero-ball-name');
-                if (heroImg) heroImg.src = summonedPB.url;
-                if (heroName) heroName.textContent = summonedPB.displayName;
-
-                document.getElementById('gacha-dialog-title').textContent = awardedPoints === 100 ? "🎊 超激レア PB大当り！ 🎊" : `🎉 ${summonedPB.displayName} を召喚！`;
-                
-                speech.textContent = `「${summonedPB.quote}」`;
-                msg.innerHTML = `<strong style="font-size: 22px; color: var(--accent-primary);">${awardedPoints} PBpoint</strong> を手に入れた！`;
-
-                execBtn.style.display = "none";
-                execBtn.disabled = false;
-                document.getElementById('gacha-close-btn').style.display = "inline-flex";
-
-                showToast(`🎁 ${summonedPB.displayName} が ${awardedPoints} PT を届けました！`);
-            }, 1800);
-        }
-
-        /**
-         * 7. General UI Navigation & Elastic Overscroll
-         */
-        const navItems = document.querySelectorAll('.nav-item');
-        const views = document.querySelectorAll('.view');
-
-        function switchView(viewId) {
-            navItems.forEach(n => {
-                n.classList.remove('active');
-                if (n.getAttribute('data-view') === viewId) {
-                    n.classList.add('active');
-                }
-            });
-
-            views.forEach(v => {
-                v.classList.remove('active');
-                if (v.id === viewId) {
-                    v.classList.add('active');
-                }
-            });
-        }
-
-        function showToast(msg) {
-            const toast = document.getElementById('toast-message');
-            toast.textContent = msg;
-            toast.classList.add('active');
-            setTimeout(() => {
-                toast.classList.remove('active');
-            }, 2200);
-        }
-
-        const scrollArea = document.getElementById('main-scroll-area');
-        const overscrollWrapper = document.getElementById('overscroll-wrapper');
-
-        let startY = 0;
-        let currentPull = 0;
-        let isPulling = false;
-
-        scrollArea.addEventListener('touchstart', (e) => {
-            if (e.touches.length === 1) {
-                startY = e.touches[0].clientY;
-                overscrollWrapper.classList.remove('spring-back');
-            }
-        }, { passive: true });
-
-        scrollArea.addEventListener('touchmove', (e) => {
-            if (e.touches.length !== 1) return;
-            const currentY = e.touches[0].clientY;
-            const deltaY = currentY - startY;
-
-            const isAtTop = scrollArea.scrollTop <= 0;
-            const isAtBottom = Math.abs(scrollArea.scrollHeight - scrollArea.clientHeight - scrollArea.scrollTop) < 2;
-
-            if ((isAtTop && deltaY > 0) || (isAtBottom && deltaY < 0)) {
-                currentPull = deltaY * 0.38;
-                overscrollWrapper.style.transform = `translateY(${currentPull}px) scaleY(${1 + Math.abs(currentPull) * 0.0003})`;
-                isPulling = true;
-            }
-        }, { passive: true });
-
-        scrollArea.addEventListener('touchend', () => {
-            if (isPulling) {
-                overscrollWrapper.classList.add('spring-back');
-                overscrollWrapper.style.transform = 'translateY(0px) scaleY(1)';
-                currentPull = 0;
-                isPulling = false;
-            }
-        });
-
-        window.onload = initApp;
-    </script>
+      </div>
+      <div class="glass-card">
+        <h2>アクセントカラー</h2>
+        <div class="color-grid" id="accent-picker">
+          <div class="color-swatch" data-color="#3381FF" style="background:#3381FF" onclick="setAccentColor('#3381FF')"></div>
+          <div class="color-swatch" data-color="#DC2626" style="background:#DC2626" onclick="setAccentColor('#DC2626')"></div>
+          <div class="color-swatch" data-color="#10B981" style="background:#10B981" onclick="setAccentColor('#10B981')"></div>
+          <div class="color-swatch" data-color="#8B5CF6" style="background:#8B5CF6" onclick="setAccentColor('#8B5CF6')"></div>
+          <div class="color-swatch" data-color="#F59E0B" style="background:#F59E0B" onclick="setAccentColor('#F59E0B')"></div>
+          <div class="color-swatch" data-color="#EC4899" style="background:#EC4899" onclick="setAccentColor('#EC4899')"></div>
+          <div class="color-swatch" data-color="#64748B" style="background:#64748B" onclick="setAccentColor('#64748B')"></div>
+        </div>
+      </div>
+    </section>
+
+  </div></main>
+
+  <div class="nav-wrap"><div class="bottom-nav-container">
+    <button class="nav-item active" data-view="view-home" onclick="switchView('view-home')"><span class="material-symbols-outlined">home</span><span class="nav-label">ホーム</span></button>
+    <button class="nav-item" data-view="view-gacha" onclick="switchView('view-gacha')"><span class="material-symbols-outlined">sports_soccer</span><span class="nav-label">ガチャ</span></button>
+    <button class="nav-item" data-view="view-settings" onclick="switchView('view-settings')"><span class="material-symbols-outlined">settings</span><span class="nav-label">設定</span></button>
+  </div></div>
+</div>
+
+<!-- ガチャダイアログ -->
+<div class="dialog-overlay" id="gacha-dialog"><div class="glass-dialog">
+  <h2 id="gacha-dialog-title" style="margin:0">PolandBall ガチャ</h2>
+  <div class="pb-gacha-stage" id="gacha-sphere-el"><canvas id="gacha-canvas" width="220" height="220" style="width:116px;height:116px"></canvas></div>
+  <div class="pb-speech-bubble" id="gacha-speech-box"></div>
+  <p id="gacha-dialog-msg" style="margin-bottom:8px"></p>
+  <div style="display:flex;gap:8px;margin-top:12px">
+    <button class="ai-btn" id="gacha-exec-btn" style="width:100%" onclick="executeGacha()">PolandBall を召喚！</button>
+    <button class="ai-btn ai-btn-secondary" id="gacha-close-btn" style="display:none;width:100%" onclick="closeDialog('gacha-dialog')">閉じる</button>
+  </div>
+</div></div>
+
+<!-- 連続ログイン報酬ダイアログ -->
+<div class="dialog-overlay" id="reward-dialog"><div class="glass-dialog">
+  <div class="reward-emoji" id="reward-emoji">🎉</div>
+  <h2 id="reward-title" style="margin:6px 0 0">連続ログイン達成！</h2>
+  <div class="reward-big" id="reward-big">+10 PT</div>
+  <p id="reward-msg"></p>
+  <button class="ai-btn" style="width:100%" onclick="closeDialog('reward-dialog')">やったー！</button>
+</div></div>
+
+<div class="toast" id="toast-message"></div>
+
+<script>
+const $=id=>document.getElementById(id);
+const LS={get:(k,d=null)=>{try{const v=localStorage.getItem(k);return v===null?d:v}catch{return d}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch{}}};
+
+/* ===== 1. PBPoint API（フォールバックなし：接続できなければエラー） ===== */
+const API=window.PBPoints||window.PointsSystem||null;
+let pbError=!API;
+async function pbGet(){if(!API)throw new Error('PBPoint API not found');const v=Number(await API.get());if(!Number.isFinite(v))throw new Error('invalid points');return v}
+async function pbAdd(n,reason){if(!API)throw new Error('PBPoint API not found');await API.add(n,reason)}
+function setError(on,detail){
+  if(detail)console.error(detail);
+  pbError=on;$('err-banner').style.display=on?'block':'none';
+  if(on)updatePointDisplay(NaN);
+  renderStreak();renderGachas();
+}
+function ready(){if(pbError){showToast('エラー：PBPointに接続できません');return false}return true}
+let shown=0;
+function updatePointDisplay(p){
+  const el=$('hero-pt');
+  if(typeof p!=='number'||!Number.isFinite(p)){el.textContent='エラー';el.style.fontSize='40px';return}
+  const from=shown,t0=performance.now();shown=p;
+  const step=now=>{const k=Math.min(1,(now-t0)/700),v=Math.round(from+(p-from)*(1-Math.pow(1-k,3)));
+    el.innerHTML=`${v.toLocaleString()}<small>PT</small>`;el.style.fontSize=String(v).length>6?'clamp(34px,10vw,46px)':'';if(k<1)requestAnimationFrame(step)};
+  requestAnimationFrame(step);
+}
+
+/* ===== 2. カントリーボール（polandballdisplay の仕組み） ===== */
+const BASE='https://raw.githubusercontent.com/PolandBallHub-Operator/pbpark/refs/heads/main/AI/historyai/';
+const EYES={normal:'eye.png',lol:'lol.png',smile:'smile.png'};   // 平和な表情のみ
+const CANTON={cn:'left'};
+const BALLS=[['de','Germany','Hallo!'],['jp','Japan','こんにちは！'],['cn','China','你好！'],['it','Italy','Ciao!'],['sl','Sierra Leone','Welcome!'],['ru','Russia','Привет！'],['fr','France','Bonjour!'],['pl','Poland','Cześć!'],['gb','UK','Hello!'],['us','USA','Hello!'],['kr','Korea','안녕하세요!'],['at','Austria','Servus!']];
+const TAILS=['PBPointをどうぞ！','みんなで仲良く遊ぼう！','今日もいい一日を！','ゆっくり楽しんでいってね！'];
+const FACES=Object.keys(EYES);
+function randomPB(){const[b,n,g]=BALLS[Math.random()*BALLS.length|0];return{id:b,name:n,expr:FACES[Math.random()*FACES.length|0],quote:g+' '+TAILS[Math.random()*TAILS.length|0]}}
+const loadImg=u=>new Promise(r=>{const i=new Image();i.crossOrigin='anonymous';i.onload=()=>r(i);i.onerror=()=>r(null);i.src=u});
+function comps(im,S){const c=document.createElement('canvas');c.width=c.height=S;const x=c.getContext('2d');x.drawImage(im,0,0,S,S);const d=x.getImageData(0,0,S,S).data,N=S*S,label=new Int32Array(N).fill(-1),cs=[];for(let p=0;p<N;p++){if(label[p]>=0||d[p*4+3]>=40)continue;const id=cs.length,st=[p];label[p]=id;let area=0,edge=false;while(st.length){const q=st.pop(),px=q%S,py=q/S|0;area++;if(!px||!py||px===S-1||py===S-1)edge=true;for(const n of[q-1,q+1,q-S,q+S]){if(n<0||n>=N||(n===q-1&&px===0)||(n===q+1&&px===S-1))continue;if(label[n]<0&&d[n*4+3]<40){label[n]=id;st.push(n)}}}cs.push({id,area,edge})}return{label,cs}}
+let A=null;
+async function loadAssets(){
+  const[frame,...eyes]=await Promise.all([loadImg(BASE+'frame.png'),...Object.values(EYES).map(f=>loadImg(BASE+f))]);
+  if(!frame||!eyes[0])throw Error('ball assets');
+  const S=220,fc=comps(frame,S),out=new Set(fc.cs.filter(c=>c.edge).map(c=>c.id)),mask=document.createElement('canvas');mask.width=mask.height=S;
+  const mx=mask.getContext('2d'),md=mx.createImageData(S,S);let x0=S,y0=S,x1=0,y1=0;
+  for(let p=0;p<S*S;p++)if(!out.has(fc.label[p])){md.data[p*4+3]=255;const x=p%S,y=p/S|0;x0=Math.min(x0,x);x1=Math.max(x1,x);y0=Math.min(y0,y);y1=Math.max(y1,y)}
+  mx.putImageData(md,0,0);const ec={};
+  Object.keys(EYES).forEach((k,j)=>{if(!eyes[j])return;const e=comps(eyes[j],S),ids=new Set(e.cs.filter(c=>!c.edge&&c.area>80).sort((a,b)=>a.area-b.area).slice(-2).map(c=>c.id)),cv=document.createElement('canvas');cv.width=cv.height=S;const cx=cv.getContext('2d'),im=cx.createImageData(S,S);for(let p=0;p<S*S;p++)if(ids.has(e.label[p])){im.data[p*4]=im.data[p*4+1]=im.data[p*4+2]=255;im.data[p*4+3]=255}cx.putImageData(im,0,0);cx.drawImage(eyes[j],0,0,S,S);ec[k]=cv});
+  A={frame,mask,eyes:ec,body:{x:x0,y:y0,w:x1-x0+1,h:y1-y0+1}};
+}
+const flags={};const getFlag=id=>flags[id]||(flags[id]=loadImg(`https://flagcdn.com/w320/${id}.png`));
+function paint(cv,id,expr,flag){
+  const S=220,ctx=cv.getContext('2d');cv.width=cv.height=S;ctx.clearRect(0,0,S,S);
+  if(!A){ // 素材が読めない時の簡易表示
+    ctx.save();ctx.beginPath();ctx.arc(110,110,84,0,7);ctx.clip();
+    if(id==='pl'){ctx.fillStyle='#fff';ctx.fillRect(0,0,S,S);ctx.fillStyle='#DC143C';ctx.fillRect(0,110,S,S)}
+    else if(flag){const sc=Math.max(168/flag.width,168/flag.height);ctx.drawImage(flag,110-flag.width*sc/2,110-flag.height*sc/2,flag.width*sc,flag.height*sc)}
+    else{ctx.fillStyle='#aab2bd';ctx.fillRect(0,0,S,S)}
+    ctx.restore();ctx.fillStyle='#fff';[84,136].forEach(x=>{ctx.beginPath();ctx.arc(x+10,100,15,0,7);ctx.fill()});ctx.fillStyle='#000';[84,136].forEach(x=>{ctx.beginPath();ctx.arc(x+12,102,6,0,7);ctx.fill()});return}
+  const tmp=document.createElement('canvas');tmp.width=tmp.height=S;const t=tmp.getContext('2d'),b=A.body;
+  if(id==='pl'){t.fillStyle='#DC143C';t.fillRect(b.x-12,b.y,b.w+24,b.h/2);t.fillStyle='#fff';t.fillRect(b.x-12,b.y+b.h/2,b.w+24,b.h/2)}
+  else if(flag){const fw=b.w+24,sc=Math.max(fw/flag.width,b.h/flag.height),w=flag.width*sc,h=flag.height*sc,al=CANTON[id]||'center',dx=al==='left'?0:al==='right'?fw-w:(fw-w)/2;t.drawImage(flag,b.x-12+dx,b.y+(b.h-h)/2,w,h)}
+  else{t.fillStyle='#aab2bd';t.fillRect(b.x-12,b.y,b.w+24,b.h)}
+  t.globalCompositeOperation='destination-in';t.drawImage(A.mask,0,0);ctx.drawImage(tmp,0,0);ctx.drawImage(A.frame,0,0,S,S);ctx.drawImage(A.eyes[expr]||A.eyes.normal,0,0);
+}
+async function drawBall(cv,b){paint(cv,b.id,b.expr,null);paint(cv,b.id,b.expr,await getFlag(b.id))}
+let heroBall=randomPB();
+function rotateRandomBall(){heroBall=randomPB();$('hero-ball-name').textContent=heroBall.name;drawBall($('hero-canvas'),heroBall)}
+
+/* ===== 3. 時間帯の風景 ===== */
+const TIMES={morning:['朝','wb_twilight'],day:['昼','light_mode'],night:['夜','dark_mode']};
+const GREET={morning:'おはよう！今日もいい一日を',day:'こんにちは！ゆっくりしていってね',night:'こんばんは！今日もおつかれさま'};
+let bgMode=LS.get('pb_bg_mode','auto');
+const timeOf=h=>h>=5&&h<10?'morning':h>=10&&h<17?'day':'night';
+function applyScene(){
+  const t=bgMode==='auto'?timeOf(new Date().getHours()):bgMode;
+  document.body.dataset.time=t;
+  $('time-label').textContent=(bgMode==='auto'?'自動·':'')+TIMES[t][0];$('time-ico').textContent=TIMES[t][1];
+  $('greeting').textContent=GREET[t];
+  document.querySelectorAll('#bg-seg button').forEach(b=>b.classList.toggle('active',b.dataset.mode===bgMode));
+}
+function setBgMode(m){bgMode=m;LS.set('pb_bg_mode',m);applyScene()}
+document.querySelectorAll('#bg-seg button').forEach(b=>b.onclick=()=>setBgMode(b.dataset.mode));
+$('time-chip').onclick=()=>{const o=['auto','morning','day','night'];setBgMode(o[(o.indexOf(bgMode)+1)%4]);showToast('背景: '+({auto:'自動',morning:'朝',day:'昼',night:'夜'})[bgMode])};
+(function(){let s=[];for(let i=0;i<70;i++){s.push(`${Math.random()*innerWidth|0}px ${Math.random()*innerHeight*.6|0}px 0 ${Math.random()<.2?1:0}px rgba(255,255,255,${(.5+Math.random()*.5).toFixed(2)})`)}$('stars').style.boxShadow=s.join(',')})();
+
+/* ===== 4. アクセント ===== */
+let accent=LS.get('pb_accent','#3381FF');
+const shade=(hex,p)=>'#'+[1,3,5].map(i=>Math.min(255,Math.round(parseInt(hex.substr(i,2),16)*(100+p)/100)).toString(16).padStart(2,'0')).join('');
+function applyAccent(){const r=document.documentElement.style;r.setProperty('--accent-primary',accent);r.setProperty('--accent-active',shade(accent,-18));document.querySelectorAll('.color-swatch').forEach(s=>s.classList.toggle('active',s.dataset.color.toLowerCase()===accent.toLowerCase()))}
+function setAccentColor(h){accent=h;LS.set('pb_accent',h);applyAccent();showToast('アクセントカラーを変更しました')}
+
+/* ===== 5. 日付（すべて暦の日付で計算） ===== */
+const ymd=(d=new Date())=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const parse=s=>{const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)};
+const addDays=(s,n)=>{const d=parse(s);d.setDate(d.getDate()+n);return ymd(d)};
+function addMonths(s,n){const d=parse(s),m=d.getMonth()+n,last=new Date(d.getFullYear(),m+1,0).getDate();return ymd(new Date(d.getFullYear(),m,Math.min(d.getDate(),last)))}
+const diffDays=(a,b)=>Math.round((parse(b)-parse(a))/864e5);
+const md=s=>`${+s.slice(5,7)}/${+s.slice(8)}`;
+const ym=()=>ymd().slice(0,7),yy=()=>ymd().slice(0,4);
+function weekId(d=new Date()){const t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())),n=t.getUTCDay()||7;t.setUTCDate(t.getUTCDate()+4-n);const y0=new Date(Date.UTC(t.getUTCFullYear(),0,1));return `${t.getUTCFullYear()}-W${String(Math.ceil(((t-y0)/864e5+1)/7)).padStart(2,'0')}`}
+
+/* ===== 6. ログインボーナス & 連続ログイン ===== */
+const MILESTONES=[
+  {id:'w1',label:'1週間',pt:10,at:s=>addDays(s,6)},
+  {id:'m1',label:'1か月',pt:10,at:s=>addMonths(s,1)},
+  {id:'m2',label:'2か月',pt:10,at:s=>addMonths(s,2)},
+  {id:'m3',label:'3か月',pt:10,at:s=>addMonths(s,3)},
+  {id:'m4',label:'4か月',pt:10,at:s=>addMonths(s,4)},
+  {id:'y1',label:'1年',pt:500,big:true,at:s=>addMonths(s,12)}
+];
+const LEGACY={7:'w1',30:'m1',60:'m2',90:'m3',120:'m4',365:'y1'};
+const claimedList=()=>{try{return JSON.parse(LS.get('pb_streak_claimed','[]')).map(x=>LEGACY[x]||x)}catch{return[]}};
+function streakInfo(){
+  const last=LS.get('pb_last_login_date'),today=ymd();
+  if(!(last===today||last===addDays(today,-1)))return{alive:false,streak:0};
+  const s=Math.max(1,parseInt(LS.get('pb_login_streak','1'),10)||1);
+  return{alive:true,streak:s,last,start:LS.get('pb_streak_start')||addDays(last,-(s-1))};
+}
+function renderStreak(){
+  const info=streakInfo(),today=ymd(),got=claimedList(),claimedToday=LS.get('pb_last_login_date')===today;
+  const S=info.alive?info.start:today,ref=info.alive?info.last:today;
+  $('streak-count').textContent=info.streak;
+  // 今週（月〜日）の記録
+  const dow=(new Date().getDay()+6)%7,mon=addDays(today,-dow);
+  $('week').innerHTML=['月','火','水','木','金','土','日'].map((n,i)=>{const d=addDays(mon,i),on=info.alive&&d>=info.start&&d<=info.last;
+    return `<div class="wd${on?' on':''}${d===today?' today':''}">${n}<i>${on?'<span class="material-symbols-outlined">check</span>':''}</i></div>`}).join('');
+  const btn=$('claim-login-btn');
+  btn.disabled=claimedToday||pbError;
+  btn.innerHTML=pbError?'エラー':claimedToday?'<span class="material-symbols-outlined">check_circle</span>受取完了':'<span class="material-symbols-outlined">redeem</span>受け取る +1 PT';
+  // 連続ボーナス（日付基準）
+  const ms=MILESTONES.map(m=>({...m,date:m.at(S)}));
+  const idx=ms.findIndex(m=>m.date>ref),next=ms[idx];
+  if(next){
+    const prev=idx>0?ms[idx-1].date:S,tot=Math.max(1,diffDays(prev,next.date)),cur=Math.min(tot,Math.max(0,diffDays(prev,ref)));
+    const rem=diffDays(today,next.date);
+    $('next-title').textContent=`${next.label}連続ログイン（${md(next.date)}）`;
+    $('next-desc').textContent=rem<=0?'今日ログインするともらえます！':`${md(next.date)}までログインを続けよう（あと ${rem} 日）`;
+    $('next-badge').textContent=`+${next.pt} PT`;$('streak-fill').style.width=(info.alive?Math.max(3,cur/tot*100):0)+'%';
+  }else{$('next-title').textContent='全ボーナス達成！';$('next-desc').textContent='1年間、毎日ありがとう！';$('next-badge').textContent='🏆';$('streak-fill').style.width='100%'}
+  $('ms-grid').innerHTML=ms.map(m=>{const d=got.includes(m.id);
+    return `<div class="ms${d?' done':''}${m.big?' big':''}"><span class="material-symbols-outlined">${d?'check_circle':m.big?'workspace_premium':'local_fire_department'}</span><b>${m.big?'毎日1年間で 500 PT!?':m.label}</b>${m.big?'':`+${m.pt} PT<br>`}${md(m.date)}${m.big&&!info.alive?'':''}</div>`}).join('');
+}
+async function claimDailyBonus(){
+  if(!ready())return;
+  const today=ymd(),last=LS.get('pb_last_login_date');
+  if(last===today)return showToast('本日のログインボーナスは既に受け取っています');
+  const alive=last===addDays(today,-1),prevStreak=parseInt(LS.get('pb_login_streak','0'),10)||0;
+  const start=alive?(LS.get('pb_streak_start')||addDays(last,-Math.max(0,prevStreak-1))):today;
+  const streak=alive?prevStreak+1:1,got=alive?claimedList():[];
+  const hit=MILESTONES.filter(m=>m.at(start)<=today&&!got.includes(m.id)),extra=hit.reduce((a,m)=>a+m.pt,0);
+  try{await pbAdd(1+extra,extra?'ログイン+連続ログインボーナス':'ログインボーナス')}
+  catch(e){setError(true,e);return showToast('エラー：ポイントを付与できませんでした')}
+  LS.set('pb_last_login_date',today);LS.set('pb_login_streak',String(streak));LS.set('pb_streak_start',start);
+  LS.set('pb_streak_claimed',JSON.stringify([...got,...hit.map(m=>m.id)]));
+  try{updatePointDisplay(await pbGet())}catch(e){setError(true,e)}
+  renderStreak();rotateRandomBall();showToast('🎉 ログインボーナス 1 PBPoint を獲得しました！');
+  if(hit.length)setTimeout(()=>showReward(hit,extra),700);
+}
+function showReward(hit,extra){
+  const year=hit.some(m=>m.big);
+  $('reward-emoji').textContent=year?'👑':'🔥';
+  $('reward-title').textContent=year?'1年間、毎日ログイン達成！':`${hit.map(m=>m.label).join('・')}連続ログイン達成！`;
+  $('reward-big').textContent=year?'500ポイント!?':`+${extra} PT`;
+  $('reward-msg').textContent=year?'本当にありがとう！PBparkの殿堂入りです🎊':'この調子で続けよう！';
+  $('reward-dialog').classList.add('active');
+}
+
+/* ===== 7. ガチャ（週・月・年） ===== */
+const GACHAS={
+  week:{title:'週ガチャ',sub:'毎週1回・1〜10 PT',icon:'calendar_view_week',cls:'',key:'pb_last_gacha_week',now:()=>weekId(),unit:'今週',range:[1,10],table:[[1,20],[2,18],[3,15],[4,12],[5,10],[6,8],[7,6],[8,5],[9,4],[10,2]],rare:p=>p>=9},
+  month:{title:'月ガチャ',sub:'毎月1回・10〜100 PT',icon:'sports_soccer',cls:'month',key:'pb_last_gacha_month',now:()=>ym(),unit:'今月',range:[10,100],table:[[10,40],[15,30],[20,18],[30,8],[50,3.2],[100,.8]],rare:p=>p>=100},
+  year:{title:'年に一度のボーナスガチャ',sub:'1年に1回だけ・200〜500 PT',icon:'auto_awesome',cls:'year',key:'pb_last_gacha_year',now:()=>yy(),unit:'今年',range:[200,500],table:[[200,35],[250,25],[300,20],[350,10],[400,5],[450,3],[500,2]],rare:p=>p>=450}
+};
+const done=t=>LS.get(GACHAS[t].key)===GACHAS[t].now();
+function renderGachas(){
+  $('gacha-list').innerHTML=Object.entries(GACHAS).map(([t,g])=>{const d=done(t),off=d||pbError;
+    return `<div class="glass-card"><div class="g-head"><div class="g-ico ${g.cls}"><span class="material-symbols-outlined">${g.icon}</span></div>
+      <div style="flex:1"><h2>${g.title}</h2><p>${g.sub}</p></div><span class="badge${off?' gray':''}">${pbError?'エラー':d?'実行済み':'挑戦可能'}</span></div>
+      <button class="ai-btn${off?' ai-btn-secondary':''}" style="width:100%" ${off?'disabled':''} onclick="openGacha('${t}')">
+      <span class="material-symbols-outlined">${off?'event_busy':g.icon}</span>${pbError?'PBPointに接続できません':d?g.unit+'の分は完了しています':'ガチャを回す'}</button></div>`}).join('');
+}
+let cur=null;
+function openGacha(t){
+  if(!ready())return;
+  if(done(t))return showToast(GACHAS[t].unit+'のガチャは引き終わっています');
+  cur=t;const g=GACHAS[t];
+  $('gacha-dialog-title').textContent=g.title;$('gacha-speech-box').textContent='カプセルを回してPolandBallを召喚しよう！';
+  $('gacha-dialog-msg').textContent=`${g.range[0]}〜${g.range[1]} PT が当たるチャンス！`;
+  drawBall($('gacha-canvas'),{id:'pl',expr:'smile'});
+  $('gacha-exec-btn').style.display='inline-flex';$('gacha-exec-btn').disabled=false;$('gacha-close-btn').style.display='none';
+  $('gacha-sphere-el').classList.remove('rolling');$('gacha-dialog').classList.add('active');
+}
+function pick(table){let r=Math.random()*table.reduce((a,x)=>a+x[1],0);for(const[p,w]of table){if((r-=w)<0)return p}return table[0][0]}
+async function executeGacha(){
+  if(!ready())return;
+  const t=cur,g=GACHAS[t];if(!t||done(t))return;
+  const btn=$('gacha-exec-btn'),stage=$('gacha-sphere-el'),cv=$('gacha-canvas');
+  btn.disabled=true;stage.classList.add('rolling');
+  $('gacha-speech-box').textContent='PolandBall がコロコロ回転中...';$('gacha-dialog-msg').textContent='だれが飛び出してくるかな...？';
+  const iv=setInterval(()=>drawBall(cv,randomPB()),160);
+  setTimeout(async()=>{
+    clearInterval(iv);stage.classList.remove('rolling');
+    const pts=pick(g.table),pb=randomPB();drawBall(cv,pb);
+    try{await pbAdd(pts,`${g.title}(${pb.name})`)}
+    catch(e){setError(true,e);closeDialog('gacha-dialog');return showToast('エラー：ポイントを付与できませんでした')}
+    LS.set(g.key,g.now());
+    try{updatePointDisplay(await pbGet())}catch(e){setError(true,e)}
+    renderGachas();heroBall=pb;$('hero-ball-name').textContent=pb.name;drawBall($('hero-canvas'),pb);
+    $('gacha-dialog-title').textContent=g.rare(pts)?'🎊 超ラッキー！ 🎊':`🎉 ${pb.name} を召喚！`;
+    $('gacha-speech-box').textContent=`「${pb.quote}」`;
+    $('gacha-dialog-msg').innerHTML=`<strong style="font-size:24px;color:var(--accent-primary)">${pts} PBPoint</strong> を手に入れた！`;
+    btn.style.display='none';$('gacha-close-btn').style.display='inline-flex';
+    showToast(`🎁 ${g.title}で ${pts} PT ゲット！`);
+  },1800);
+}
+const closeDialog=id=>$(id).classList.remove('active');
+
+/* ===== 8. UI ===== */
+function switchView(id){document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.view===id));document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id===id));$('main-scroll-area').scrollTo({top:0})}
+function showToast(m){const t=$('toast-message');t.textContent=m;t.classList.add('active');clearTimeout(showToast._t);showToast._t=setTimeout(()=>t.classList.remove('active'),2400)}
+(function(){const a=$('main-scroll-area'),w=$('overscroll-wrapper');let y0=0,pull=false;
+  a.addEventListener('touchstart',e=>{if(e.touches.length===1){y0=e.touches[0].clientY;w.classList.remove('spring-back')}},{passive:true});
+  a.addEventListener('touchmove',e=>{const dy=e.touches[0].clientY-y0,top=a.scrollTop<=0,bot=Math.abs(a.scrollHeight-a.clientHeight-a.scrollTop)<2;
+    if((top&&dy>0)||(bot&&dy<0)){w.style.transform=`translateY(${dy*.38}px)`;pull=true}},{passive:true});
+  a.addEventListener('touchend',()=>{if(pull){w.classList.add('spring-back');w.style.transform='none';pull=false}});
+})();
+
+async function init(){
+  applyAccent();applyScene();
+  renderStreak();renderGachas();
+  $('hero-ball-name').textContent=heroBall.name;
+  loadAssets().catch(e=>console.warn(e)).finally(()=>drawBall($('hero-canvas'),heroBall));
+  if(!API){setError(true,'PBPoint API not found');}
+  else{
+    try{updatePointDisplay(await pbGet());setError(false);if(API.onChange)API.onChange(p=>{if(Number.isFinite(Number(p)))updatePointDisplay(Number(p))})}
+    catch(e){setError(true,e)}
+  }
+  setInterval(()=>{applyScene();renderStreak();renderGachas()},60000);
+}
+window.onload=init;
+</script>
 </body>
 </html>
