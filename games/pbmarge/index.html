@@ -1,1441 +1,231 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>カントリーボールゲーム
-  </title>
-  
-  <!-- Matter.js & PeerJS from stable CDNs -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
-
-  <style>
-    :root {
-      --myoui-sys-color-background: #edf4e8;
-      --myoui-sys-color-surface-card: #f7fcf0;
-      --myoui-sys-color-surface-variant: #e0e8d8;
-      --myoui-sys-color-primary: #2d6a4f;
-      --myoui-sys-color-on-primary: #ffffff;
-      --myoui-sys-color-primary-container: #b7e4c7;
-      --myoui-sys-color-on-primary-container: #081c15;
-      --myoui-sys-color-accent: #ffb703;
-      --myoui-sys-color-outline: #74796e;
-      
-      --myoui-radius-card: 20px;
-      --myoui-radius-dialog: 28px;
-      --myoui-radius-pill: 50px;
-      --myoui-radius-input: 12px;
-      --myoui-radius-btn: 20px;
-
-      --font-family: system-ui, -apple-system, sans-serif;
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: var(--font-family);
-      user-select: none;
-      -webkit-user-select: none;
-    }
-
-    body {
-      background-color: var(--myoui-sys-color-background);
-      color: var(--myoui-sys-color-on-primary-container);
-      min-height: 100vh;
-      overflow: hidden;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-
-    /* Screen manager */
-    .screen {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      max-width: 500px;
-      background-color: var(--myoui-sys-color-background);
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
-      overflow-y: auto;
-    }
-
-    .screen.active {
-      display: flex;
-    }
-
-    .logo-container {
-      text-align: center;
-      margin-bottom: 40px;
-      animation: float 4s ease-in-out infinite;
-    }
-
-    @keyframes float {
-      0%, 100% { transform: translateY(0px) rotate(0deg); }
-      50% { transform: translateY(-10px) rotate(2deg); }
-    }
-
-    .app-title {
-      font-size: 38px;
-      font-weight: 900;
-      color: var(--myoui-sys-color-primary);
-      text-shadow: 2px 2px 0px var(--myoui-sys-color-primary-container);
-      letter-spacing: -1px;
-      margin-bottom: 8px;
-    }
-
-    .app-subtitle {
-      font-size: 14px;
-      color: var(--myoui-sys-color-outline);
-      text-transform: uppercase;
-      letter-spacing: 2px;
-    }
-
-    .menu-card {
-      background-color: var(--myoui-sys-color-surface-card);
-      border-radius: var(--myoui-radius-card);
-      padding: 24px;
-      width: 100%;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .myoui-btn {
-      width: 100%;
-      height: 56px;
-      border: none;
-      border-radius: var(--myoui-radius-pill);
-      font-size: 16px;
-      font-weight: 700;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 12px;
-      transition: all 0.2s cubic-bezier(0.1, 0.9, 0.2, 1);
-    }
-
-    .btn-filled {
-      background-color: var(--myoui-sys-color-primary);
-      color: var(--myoui-sys-color-on-primary);
-    }
-
-    .btn-filled:active {
-      transform: scale(0.97);
-      background-color: #204f3b;
-    }
-
-    .btn-container {
-      background-color: var(--myoui-sys-color-primary-container);
-      color: var(--myoui-sys-color-on-primary-container);
-    }
-
-    .btn-outlined {
-      background-color: transparent;
-      border: 2px solid var(--myoui-sys-color-outline);
-      color: var(--myoui-sys-color-primary);
-    }
-
-    .myoui-input-box {
-      position: relative;
-      width: 100%;
-    }
-
-    .myoui-input {
-      width: 100%;
-      height: 56px;
-      border: 2px solid var(--myoui-sys-color-outline);
-      border-radius: var(--myoui-radius-input);
-      padding: 0 16px;
-      font-size: 16px;
-      background: transparent;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-
-    .myoui-input:focus {
-      border-color: var(--myoui-sys-color-primary);
-    }
-
-    .myoui-input-label {
-      position: absolute;
-      left: 12px;
-      top: -10px;
-      background-color: var(--myoui-sys-color-background);
-      padding: 0 6px;
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--myoui-sys-color-outline);
-    }
-
-    .score-list {
-      width: 100%;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      max-height: 250px;
-      overflow-y: auto;
-      margin-top: 12px;
-    }
-
-    .score-item {
-      background-color: var(--myoui-sys-color-surface-variant);
-      padding: 12px 16px;
-      border-radius: var(--myoui-radius-input);
-      display: flex;
-      justify-content: space-between;
-      font-weight: 700;
-    }
-
-    .game-screen {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      display: none;
-      flex-direction: column;
-      background-color: var(--myoui-sys-color-background);
-    }
-
-    .game-screen.active {
-      display: flex;
-    }
-
-    /* Split screen handling for 2 Player mode */
-    .boards-container {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      position: relative;
-      height: 100%;
-      width: 100%;
-    }
-
-    .game-board {
-      flex: 1;
-      position: relative;
-      width: 100%;
-      overflow: hidden;
-      border: 2px solid var(--myoui-sys-color-surface-variant);
-    }
-
-    /* Self on top, Opponent on bottom */
-    .game-board.self-board {
-      border-bottom: 4px dashed var(--myoui-sys-color-primary);
-    }
-
-    .game-board.opponent-board {
-      background-color: #e5ecd9;
-      opacity: 0.9;
-    }
-
-    /* Next Indicator Overlay */
-    .overlay-hud {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      right: 10px;
-      display: flex;
-      justify-content: space-between;
-      pointer-events: none;
-      z-index: 10;
-    }
-
-    .hud-card {
-      background-color: rgba(247, 252, 240, 0.9);
-      padding: 6px 12px;
-      border-radius: var(--myoui-radius-pill);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 13px;
-      font-weight: 800;
-      color: var(--myoui-sys-color-primary);
-      box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-    }
-
-    .next-ball-preview {
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      background-size: cover;
-      background-color: #ccc;
-    }
-
-    /* Evolution Wheel Visualizer */
-    .evolution-wheel-container {
-      width: 100%;
-      background-color: var(--myoui-sys-color-surface-card);
-      padding: 10px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 6px;
-      border-top: 1px solid var(--myoui-sys-color-surface-variant);
-      z-index: 5;
-    }
-
-    .evolution-node {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 2px;
-      position: relative;
-    }
-
-    .evolution-node img {
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      border: 1.5px solid var(--myoui-sys-color-outline);
-      background-color: white;
-    }
-
-    .evolution-node .size-tag {
-      font-size: 8px;
-      font-weight: 700;
-      background: var(--myoui-sys-color-primary);
-      color: white;
-      padding: 1px 3px;
-      border-radius: 4px;
-    }
-
-    .evolution-arrow {
-      font-size: 10px;
-      color: var(--myoui-sys-color-outline);
-    }
-
-    /* Modal dialogs */
-    .dialog-backdrop {
-      position: fixed;
-      inset: 0;
-      background-color: rgba(0, 0, 0, 0.5);
-      backdrop-filter: blur(2px);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-      z-index: 1000;
-    }
-
-    .dialog-backdrop.active {
-      display: flex;
-    }
-
-    .myoui-dialog {
-      background-color: var(--myoui-sys-color-surface-card);
-      border-radius: var(--myoui-radius-dialog);
-      padding: 24px;
-      width: 100%;
-      max-width: 340px;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-      text-align: center;
-    }
-
-    .dialog-title {
-      font-size: 20px;
-      font-weight: 800;
-      color: var(--myoui-sys-color-primary);
-    }
-
-    /* Line limits inside boards */
-    .deadline-marker {
-      position: absolute;
-      top: 60px;
-      left: 0;
-      right: 0;
-      height: 2px;
-      background: repeating-linear-gradient(90deg, #ff4d4d, #ff4d4d 8px, transparent 8px, transparent 16px);
-      pointer-events: none;
-      z-index: 2;
-    }
-
-    /* Toast system */
-    #toast-msg {
-      position: fixed;
-      bottom: 80px;
-      left: 50%;
-      transform: translateX(-50%);
-      background-color: var(--myoui-sys-color-on-primary-container);
-      color: var(--myoui-sys-color-background);
-      padding: 12px 24px;
-      border-radius: var(--myoui-radius-pill);
-      font-size: 14px;
-      font-weight: 700;
-      opacity: 0;
-      transition: opacity 0.3s;
-      z-index: 2000;
-      pointer-events: none;
-      white-space: nowrap;
-    }
-
-    /* General loading overlay */
-    .loading-overlay {
-      position: absolute;
-      inset: 0;
-      background-color: rgba(237, 244, 232, 0.9);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 16px;
-      z-index: 100;
-    }
-
-    .spinner {
-      width: 40px;
-      height: 40px;
-      border: 4px solid var(--myoui-sys-color-primary-container);
-      border-top-color: var(--myoui-sys-color-primary);
-      border-radius: 50%;
-      animation: spin 1s infinite linear;
-    }
-
-    @keyframes spin {
-      100% { transform: rotate(360deg); }
-    }
-  </style>
-
-  <!-- Dynamic Palette Builder Script using Material Color Utilities -->
-  <script type="module">
-    import { argbFromHex, hexFromArgb, Hct, SchemeTonalSpot } from 'https://esm.run/@material/material-color-utilities';
-
-    function injectDynamicPalette(seedColorHex) {
-      try {
-        const argb = argbFromHex(seedColorHex);
-        const hct = Hct.fromInt(argb);
-        const scheme = new SchemeTonalSpot(hct, false, 0.0);
-
-        const root = document.documentElement;
-        root.style.setProperty('--myoui-sys-color-background', hexFromArgb(scheme.background));
-        root.style.setProperty('--myoui-sys-color-surface-card', hexFromArgb(scheme.surfaceContainerLow));
-        root.style.setProperty('--myoui-sys-color-surface-variant', hexFromArgb(scheme.surfaceVariant));
-        root.style.setProperty('--myoui-sys-color-primary', hexFromArgb(scheme.primary));
-        root.style.setProperty('--myoui-sys-color-on-primary', hexFromArgb(scheme.onPrimary));
-        root.style.setProperty('--myoui-sys-color-primary-container', hexFromArgb(scheme.primaryContainer));
-        root.style.setProperty('--myoui-sys-color-on-primary-container', hexFromArgb(scheme.onPrimaryContainer));
-        root.style.setProperty('--myoui-sys-color-outline', hexFromArgb(scheme.outline));
-      } catch (e) {
-        console.warn("Theme dynamic generation skipped, using CSS defaults.");
-      }
-    }
-    // Inject attractive customized Green
-    window.addEventListener('DOMContentLoaded', () => injectDynamicPalette("#2d6a4f"));
-  </script>
-</head>
-<body>
-
-  <!-- Toast notification system -->
-  <div id="toast-msg"></div>
-
-  <div id="screen-main" class="screen active">
-    <div class="logo-container">
-      <div class="app-title">countryballs</div>
-      <div class="app-title" style="margin-top:-10px; font-size:32px; color:var(--myoui-sys-color-accent);">Merge！</div>
-      <div class="app-subtitle">カントリーボールゲーム</div>
-    </div>
-
-    <div class="menu-card">
-      <button class="myoui-btn btn-filled" onclick="startSoloGame()">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
-        1人でプレイ
-      </button>
-
-      <button class="myoui-btn btn-container" onclick="openMultiplaySetup()">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-        2人でプレイ (PeerJS)
-      </button>
-
-      <button class="myoui-btn btn-outlined" onclick="openScores()">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
-        ハイスコア
-      </button>
-    </div>
-  </div>
-
-  <div id="screen-multi-setup" class="screen">
-    <div class="logo-container">
-      <div class="app-title" style="font-size: 28px;">マルチ接続</div>
-      <div class="app-subtitle">2 Players Co-op / VS</div>
-    </div>
-
-    <div class="menu-card">
-      <div style="font-size: 13px; text-align: center; color: var(--myoui-sys-color-outline); margin-bottom: 8px;">
-        接続相手と同じ「マージルール」で勝負！
-      </div>
-
-      <!-- Peer ID display -->
-      <div class="myoui-input-box" style="margin-bottom: 12px;">
-        <input type="text" id="my-peer-id" class="myoui-input" readonly placeholder="取得中...">
-        <span class="myoui-input-label">あなたの接続ID (コピー可)</span>
-      </div>
-
-      <!-- Copy Button -->
-      <button class="myoui-btn btn-container" style="height: 44px; font-size: 14px;" onclick="copyMyPeerId()">
-        IDをクリップボードにコピー
-      </button>
-
-      <hr style="border: 0; border-top: 1px solid var(--myoui-sys-color-surface-variant); margin: 12px 0;">
-
-      <!-- Host ID insertion -->
-      <div class="myoui-input-box" style="margin-bottom: 12px;">
-        <input type="text" id="target-peer-id" class="myoui-input" placeholder="相手のIDを入力">
-        <span class="myoui-input-label">友達の接続ID</span>
-      </div>
-
-      <button class="myoui-btn btn-filled" onclick="connectToFriend()">
-        友達と接続してプレイ
-      </button>
-
-      <button class="myoui-btn btn-outlined" onclick="goToScreen('screen-main')" style="margin-top: 8px; height: 44px; font-size: 14px;">
-        戻る
-      </button>
-    </div>
-
-    <!-- PeerJS Status Spinner Overlay -->
-    <div id="peerjs-loading" class="loading-overlay" style="display: none;">
-      <div class="spinner"></div>
-      <div id="peerjs-status-text" style="font-weight: 700; color: var(--myoui-sys-color-primary);">シグナリングサーバー接続中...</div>
-      <button class="myoui-btn btn-outlined" onclick="cancelPeerJSSetup()" style="width: auto; height: 40px; padding: 0 16px;">キャンセル</button>
-    </div>
-  </div>
-
-  <div id="screen-scores" class="screen">
-    <div class="logo-container">
-      <div class="app-title" style="font-size: 28px;">ハイスコア</div>
-      <div class="app-subtitle">Polandball Records</div>
-    </div>
-
-    <div class="menu-card">
-      <div class="score-list" id="scores-container">
-        <!-- Dyn contents -->
-      </div>
-
-      <button class="myoui-btn btn-filled" onclick="clearScores()" style="height: 44px; font-size:14px; background-color:#d9534f; margin-top: 10px;">
-        記録をリセット
-      </button>
-
-      <button class="myoui-btn btn-outlined" onclick="goToScreen('screen-main')" style="margin-top: 8px;">
-        戻る
-      </button>
-    </div>
-  </div>
-
-  <div id="screen-game" class="game-screen">
-    <!-- Overlay HUD: Score, Next element -->
-    <div class="overlay-hud">
-      <div class="hud-card">
-        <span>SCORE:</span>
-        <span id="game-score-val">0</span>
-      </div>
-      <div class="hud-card" id="hud-next-container" style="display: none;">
-        <span>NEXT:</span>
-        <div class="next-ball-preview" id="hud-next-preview"></div>
-      </div>
-      <button class="hud-card" style="pointer-events: auto; cursor: pointer; border: none;" onclick="exitGameAndSave()">
-        <span>一時停止/終了</span>
-      </button>
-    </div>
-
-    <!-- Split Screen view Container -->
-    <div class="boards-container">
-      <!-- Your Board -->
-      <div class="game-board self-board" id="board-self">
-        <div class="deadline-marker"></div>
-        <canvas id="canvas-self"></canvas>
-      </div>
-
-      <!-- Opponent Board (Only visible in Multiplayer Mode) -->
-      <div class="game-board opponent-board" id="board-opponent" style="display: none;">
-        <div class="deadline-marker"></div>
-        <div style="position: absolute; top: 8px; right: 12px; background: rgba(0,0,0,0.6); color: white; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; z-index: 10;">
-          相手の画面
-        </div>
-        <div style="position: absolute; top: 8px; left: 12px; background: rgba(0,0,0,0.6); color: white; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; z-index: 10;">
-          SCORE: <span id="opponent-score-val">0</span>
-        </div>
-        <canvas id="canvas-opponent"></canvas>
-      </div>
-    </div>
-
-    <!-- Evolution Track Footer -->
-    <div class="evolution-wheel-container" id="evo-track">
-      <!-- Generated dynamically based on custom wheel -->
-    </div>
-  </div>
-
-  <div class="dialog-backdrop" id="game-over-backdrop">
-    <div class="myoui-dialog">
-      <div class="dialog-title" id="game-over-title">ゲームオーバー</div>
-      <div style="font-weight: 700; font-size: 16px;">
-        獲得スコア: <span id="final-score-val" style="color: var(--myoui-sys-color-accent); font-size: 24px;">0</span>
-      </div>
-      <div id="multiplay-result-status" style="font-weight: 700; color: var(--myoui-sys-color-primary);"></div>
-      <button class="myoui-btn btn-filled" onclick="restartCurrentMode()">もう一度プレイ</button>
-      <button class="myoui-btn btn-outlined" onclick="exitGameAndSave()">メニューへ</button>
-    </div>
-  </div>
-
-  <script>
-    // Asset Specifications
-    const BASE_URL = 'https://raw.githubusercontent.com/Polandballhub-Operator/pbimagesPublic/refs/heads/main/balls/';
-    const COUNTRIES = ['germany', 'japan', 'china', 'italy', 'sierraleone', 'russia', 'france', 'poland', 'england472x600', 'usa'];
-    const EMOTIONS = ['anger.png', 'dissatisfaction.png', 'happy.png', 'itome.png', 'lol.png', 'normal.png', 'plot.png', 'smile.png', 'surprise.png'];
-
-    // State Variables
-    let currentScreen = 'screen-main';
-    let localScore = 0;
-    let opponentScore = 0;
-    let evolutionWheel = []; // Dynamic Evolution Sequence: array of { country, emotion, baseRadius, ratioScale }
-    let isMultiplayer = false;
-    let isGameOver = false;
-
-    // Matter.js context
-    let engineSelf, renderSelf, runnerSelf;
-    let nextSpawnBall = null; // Next ball indicator info
-    let isSpawnReady = true;
-
-    // PeerJS parameters
-    let peer = null;
-    let peerConn = null;
-    let amIHost = false;
-
-    // Canvas sizes
-    let canvasSelf = document.getElementById('canvas-self');
-    let canvasOpponent = document.getElementById('canvas-opponent');
-    let ctxSelf = canvasSelf.getContext('2d');
-    let ctxOpponent = canvasOpponent.getContext('2d');
-
-    // Preloaded image assets cache
-    const imgCache = {};
-
-    // Audio synthesizer context
-    let audioCtx = null;
-
-    function playSynthSound(type) {
-      try {
-        if (!audioCtx) {
-          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        }
-        if (audioCtx.state === 'suspended') {
-          audioCtx.resume();
-        }
-        
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-
-        if (type === 'merge') {
-          // Bouncy pleasant sound
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(300, audioCtx.currentTime);
-          osc.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 0.15);
-          gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-          gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
-          osc.start();
-          osc.stop(audioCtx.currentTime + 0.2);
-        } else if (type === 'drop') {
-          // Low impact sound
-          osc.type = 'triangle';
-          osc.frequency.setValueAtTime(150, audioCtx.currentTime);
-          osc.frequency.exponentialRampToValueAtTime(80, audioCtx.currentTime + 0.1);
-          gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-          gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
-          osc.start();
-          osc.stop(audioCtx.currentTime + 0.15);
-        } else if (type === 'gameover') {
-          // Downward sad tone
-          osc.type = 'sawtooth';
-          osc.frequency.setValueAtTime(200, audioCtx.currentTime);
-          osc.frequency.linearRampToValueAtTime(60, audioCtx.currentTime + 0.8);
-          gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
-          gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.8);
-          osc.start();
-          osc.stop(audioCtx.currentTime + 0.8);
-        }
-      } catch (err) {
-        // Audio support missing or context blocked
-      }
-    }
-
-    function showToast(message) {
-      const toast = document.getElementById('toast-msg');
-      toast.innerText = message;
-      toast.style.opacity = '1';
-      setTimeout(() => {
-        toast.style.opacity = '0';
-      }, 3000);
-    }
-
-    function goToScreen(screenId) {
-      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-      document.querySelectorAll('.game-screen').forEach(s => s.classList.remove('active'));
-      const scr = document.getElementById(screenId);
-      if (scr) scr.classList.add('active');
-      currentScreen = screenId;
-    }
-
-    // Generates completely dynamic evolution tier sequence
-    function generateEvolutionWheel() {
-      // Pick random subset or random order of countries
-      let countriesShuffled = [...COUNTRIES].sort(() => Math.random() - 0.5);
-      // We will have exactly 8 stages of evolution
-      let numStages = 8;
-      let wheel = [];
-      
-      // Sizes are also fully randomized with a strict ascending hierarchy
-      let currentBaseSize = 16 + Math.floor(Math.random() * 6); // initial base radius: 16 to 21 px
-
-      for (let i = 0; i < numStages; i++) {
-        let country = countriesShuffled[i % countriesShuffled.length];
-        let emotion = EMOTIONS[Math.floor(Math.random() * EMOTIONS.length)];
-        
-        // Accumulate radius with some randomness
-        let increment = 10 + Math.floor(Math.random() * 10); // randomly add 10 to 19px
-        currentBaseSize += increment;
-
-        wheel.push({
-          stage: i,
-          country: country,
-          emotion: emotion,
-          radius: currentBaseSize
-        });
-      }
-      return wheel;
-    }
-
-    // Renders physical visual track of the dynamic evolution sequence
-    function renderEvolutionTrackUI() {
-      const track = document.getElementById('evo-track');
-      track.innerHTML = '';
-      evolutionWheel.forEach((node, i) => {
-        const url = `${BASE_URL}${node.country}/${node.emotion}`;
-        
-        const nodeDiv = document.createElement('div');
-        nodeDiv.className = 'evolution-node';
-        
-        const img = document.createElement('img');
-        img.src = url;
-        img.onerror = () => {
-          img.style.display = 'none'; // Draw fallback background
-          const fallback = document.createElement('div');
-          fallback.style.width = '28px';
-          fallback.style.height = '28px';
-          fallback.style.borderRadius = '50%';
-          fallback.style.background = '#bbb';
-          fallback.style.fontSize = '10px';
-          fallback.style.fontWeight = '700';
-          fallback.style.display = 'flex';
-          fallback.style.alignItems = 'center';
-          fallback.style.justifyContent = 'center';
-          fallback.innerText = node.country.substring(0,2).toUpperCase();
-          nodeDiv.insertBefore(fallback, nodeDiv.firstChild);
-        };
-
-        const label = document.createElement('div');
-        label.className = 'size-tag';
-        label.innerText = `r:${node.radius}`;
-
-        nodeDiv.appendChild(img);
-        nodeDiv.appendChild(label);
-        track.appendChild(nodeDiv);
-
-        if (i < evolutionWheel.length - 1) {
-          const arrow = document.createElement('div');
-          arrow.className = 'evolution-arrow';
-          arrow.innerText = '➔';
-          track.appendChild(arrow);
-        }
-      });
-    }
-
-    function preloadWheelImages(wheel, callback) {
-      let loaded = 0;
-      let total = wheel.length;
-      if (total === 0) return callback();
-
-      wheel.forEach(node => {
-        const url = `${BASE_URL}${node.country}/${node.emotion}`;
-        if (imgCache[url]) {
-          loaded++;
-          if (loaded === total) callback();
-          return;
-        }
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        img.onload = () => {
-          imgCache[url] = img;
-          loaded++;
-          if (loaded === total) callback();
-        };
-        img.onerror = () => {
-          // If fallback needed, create a custom canvas element or store standard backup image
-          const dummy = document.createElement('canvas');
-          dummy.width = 100;
-          dummy.height = 100;
-          const dCtx = dummy.getContext('2d');
-          dCtx.fillStyle = '#ff7f50';
-          dCtx.beginPath();
-          dCtx.arc(50, 50, 45, 0, Math.PI * 2);
-          dCtx.fill();
-          dCtx.fillStyle = '#fff';
-          dCtx.font = 'bold 30px Arial';
-          dCtx.textAlign = 'center';
-          dCtx.textBaseline = 'middle';
-          dCtx.fillText(node.country.substring(0, 2).toUpperCase(), 50, 50);
-          
-          const fallbackImg = new Image();
-          fallbackImg.src = dummy.toDataURL();
-          imgCache[url] = fallbackImg;
-          
-          loaded++;
-          if (loaded === total) callback();
-        };
-        img.src = url;
-      });
-    }
-
-    function initPhysicsWorld() {
-      // Reset scores and active states
-      localScore = 0;
-      document.getElementById('game-score-val').innerText = '0';
-      isGameOver = false;
-      isSpawnReady = true;
-      document.getElementById('game-over-backdrop').classList.remove('active');
-
-      const board = document.getElementById('board-self');
-      const boardWidth = board.clientWidth || 300;
-      const boardHeight = board.clientHeight || 500;
-
-      // Ensure canvas adapts to layout securely
-      canvasSelf.width = boardWidth;
-      canvasSelf.height = boardHeight;
-
-      // Create Matter.js Engine
-      engineSelf = Matter.Engine.create({
-        gravity: { y: 0.98, x: 0 }
-      });
-
-      // Rigid boundaries
-      const wallThickness = 60;
-      const ground = Matter.Bodies.rectangle(boardWidth / 2, boardHeight + wallThickness/2, boardWidth * 2, wallThickness, {
-        isStatic: true,
-        render: { visible: false }
-      });
-      const leftWall = Matter.Bodies.rectangle(-wallThickness/2, boardHeight/2, wallThickness, boardHeight * 2, {
-        isStatic: true,
-        render: { visible: false }
-      });
-      const rightWall = Matter.Bodies.rectangle(boardWidth + wallThickness/2, boardHeight/2, wallThickness, boardHeight * 2, {
-        isStatic: true,
-        render: { visible: false }
-      });
-
-      Matter.Composite.add(engineSelf.world, [ground, leftWall, rightWall]);
-
-      // Matter Runner Setup
-      runnerSelf = Matter.Runner.create();
-      Matter.Runner.run(runnerSelf, engineSelf);
-
-      // Next Spawning setup
-      setNextSpawnBall();
-
-      // Trigger Game Tick Logic
-      requestAnimationFrame(gameLoopTick);
-
-      // Event listener for spawning balls
-      board.addEventListener('pointerdown', handleBoardTap);
-      
-      // Collision handling for mergers
-      Matter.Events.on(engineSelf, 'collisionStart', handleCollisions);
-    }
-
-    function setNextSpawnBall() {
-      // Spawnable stages restricted to the first 3 smaller tiers
-      const randomStage = Math.floor(Math.random() * Math.min(3, evolutionWheel.length));
-      nextSpawnBall = {
-        stage: randomStage,
-        node: evolutionWheel[randomStage]
-      };
-
-      // Show NEXT item inside HUD
-      const nextContainer = document.getElementById('hud-next-container');
-      const nextPreview = document.getElementById('hud-next-preview');
-      const url = `${BASE_URL}${nextSpawnBall.node.country}/${nextSpawnBall.node.emotion}`;
-      
-      nextPreview.style.backgroundImage = `url('${url}')`;
-      nextContainer.style.display = 'flex';
-    }
-
-    function handleBoardTap(e) {
-      if (!isSpawnReady || isGameOver) return;
-
-      const board = document.getElementById('board-self');
-      const rect = board.getBoundingClientRect();
-      const clickX = e.clientX - rect.left;
-
-      // Lock spawn and drop ball from the drop indicator height (near deadline)
-      isSpawnReady = false;
-
-      const stage = nextSpawnBall.stage;
-      const node = nextSpawnBall.node;
-      const radius = node.radius;
-
-      // Limit spawn X position inside wall limits
-      const boundedX = Math.max(radius + 10, Math.min(rect.width - radius - 10, clickX));
-      const spawnY = 50;
-
-      // Create interactive ball body with restitution (bounciness) and friction
-      const ball = Matter.Bodies.circle(boundedX, spawnY, radius, {
-        restitution: 0.25,
-        friction: 0.1,
-        label: 'ball',
-        plugin: {
-          stage: stage,
-          country: node.country,
-          emotion: node.emotion,
-          radius: radius,
-          imageSrc: `${BASE_URL}${node.country}/${node.emotion}`
-        }
-      });
-
-      Matter.Composite.add(engineSelf.world, ball);
-      playSynthSound('drop');
-
-      // Next spawn cooldown
-      setTimeout(() => {
-        if (!isGameOver) {
-          setNextSpawnBall();
-          isSpawnReady = true;
-        }
-      }, 800); // 0.8s drop cooldown
-    }
-
-    function handleCollisions(event) {
-      const pairs = event.pairs;
-      for (let i = 0; i < pairs.length; i++) {
-        const pair = pairs[i];
-        const bodyA = pair.bodyA;
-        const bodyB = pair.bodyB;
-
-        if (bodyA.label === 'ball' && bodyB.label === 'ball') {
-          const stageA = bodyA.plugin.stage;
-          const stageB = bodyB.plugin.stage;
-
-          // Merge condition: Identical stages
-          if (stageA === stageB) {
-            const nextStage = stageA + 1;
-            
-            // Check if it reached maximum evolution limit
-            if (nextStage < evolutionWheel.length) {
-              const node = evolutionWheel[nextStage];
-              const radius = node.radius;
-
-              // Calculate midpoint coordinate
-              const midX = (bodyA.position.x + bodyB.position.x) / 2;
-              const midY = (bodyA.position.y + bodyB.position.y) / 2;
-
-              // Prevent double collision events from running twice
-              if (bodyA.id && bodyB.id) {
-                // Delete merged bodies safely
-                Matter.Composite.remove(engineSelf.world, bodyA);
-                Matter.Composite.remove(engineSelf.world, bodyB);
-
-                // Invalidate IDs so we don't merge them again in this frame
-                bodyA.id = null;
-                bodyB.id = null;
-
-                // Spawn the evolved ball
-                const evolvedBall = Matter.Bodies.circle(midX, midY, radius, {
-                  restitution: 0.25,
-                  friction: 0.1,
-                  label: 'ball',
-                  plugin: {
-                    stage: nextStage,
-                    country: node.country,
-                    emotion: node.emotion,
-                    radius: radius,
-                    imageSrc: `${BASE_URL}${node.country}/${node.emotion}`
-                  }
-                });
-
-                Matter.Composite.add(engineSelf.world, evolvedBall);
-                
-                // Add Score points proportional to stage level
-                const addedPoints = (nextStage + 1) * 10;
-                localScore += addedPoints;
-                document.getElementById('game-score-val').innerText = localScore;
-
-                playSynthSound('merge');
-
-                // Send score update to opponent in Multiplayer Mode
-                if (isMultiplayer && peerConn) {
-                  peerConn.send({
-                    type: 'score_update',
-                    score: localScore
-                  });
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-
-    function gameLoopTick() {
-      if (currentScreen !== 'screen-game') return;
-
-      const boardWidth = canvasSelf.width;
-      const boardHeight = canvasSelf.height;
-
-      // Clear Canvas
-      ctxSelf.clearRect(0, 0, boardWidth, boardHeight);
-
-      // Draw deadline limit line beautifully
-      ctxSelf.beginPath();
-      ctxSelf.strokeStyle = '#ff4d4d';
-      ctxSelf.lineWidth = 1.5;
-      ctxSelf.setLineDash([8, 8]);
-      ctxSelf.moveTo(0, 60);
-      ctxSelf.lineTo(boardWidth, 60);
-      ctxSelf.stroke();
-      ctxSelf.setLineDash([]); // Reset dash state
-
-      let bodies = Matter.Composite.allBodies(engineSelf.world);
-      let overflowDetected = false;
-
-      bodies.forEach(body => {
-        if (body.label === 'ball') {
-          const { x, y } = body.position;
-          const radius = body.plugin.radius;
-          const imgUrl = body.plugin.imageSrc;
-
-          // Draw image from preloader cache fallback
-          ctxSelf.save();
-          ctxSelf.translate(x, y);
-          ctxSelf.rotate(body.angle);
-          
-          if (imgCache[imgUrl]) {
-            // Draw round country ball image securely
-            ctxSelf.beginPath();
-            ctxSelf.arc(0, 0, radius, 0, Math.PI * 2);
-            ctxSelf.clip();
-            ctxSelf.drawImage(imgCache[imgUrl], -radius, -radius, radius * 2, radius * 2);
-          } else {
-            // Instant solid color fallback inside the canvas if CDN experiences delays
-            ctxSelf.beginPath();
-            ctxSelf.arc(0, 0, radius, 0, Math.PI * 2);
-            ctxSelf.fillStyle = '#bbb';
-            ctxSelf.fill();
-            ctxSelf.fillStyle = '#333';
-            ctxSelf.font = `bold ${radius * 0.4}px var(--font-family)`;
-            ctxSelf.textAlign = 'center';
-            ctxSelf.textBaseline = 'middle';
-            ctxSelf.fillText(body.plugin.country.substring(0,3).toUpperCase(), 0, 0);
-          }
-          
-          ctxSelf.restore();
-
-          // Check GameOver line limit condition (Above Y=60 threshold)
-          // Allow some grace period (e.g. ball speed is very low and situated above threshold)
-          if (y - radius < 60 && body.velocity.y < 0.1) {
-            overflowDetected = true;
-          }
-        }
-      });
-
-      // Handle Deadline ticking
-      if (overflowDetected) {
-        if (!this.deadlineViolationTime) {
-          this.deadlineViolationTime = Date.now();
-        } else if (Date.now() - this.deadlineViolationTime > 2500) { // 2.5 seconds grace period
-          triggerGameOver();
-        }
-      } else {
-        this.deadlineViolationTime = null;
-      }
-
-      if (isMultiplayer && peerConn) {
-        syncPhysicsToPeer(bodies, boardWidth, boardHeight);
-      }
-
-      if (!isGameOver) {
-        requestAnimationFrame(gameLoopTick);
-      }
-    }
-
-    // Normalize and send coordinates to prevent screen ratio mismatch issues
-    function syncPhysicsToPeer(bodies, width, height) {
-      const stateList = [];
-      bodies.forEach(body => {
-        if (body.label === 'ball') {
-          stateList.push({
-            xRatio: body.position.x / width,
-            yRatio: body.position.y / height,
-            radiusRatio: body.plugin.radius / width, // Normalize radius dynamically
-            stage: body.plugin.stage,
-            country: body.plugin.country,
-            emotion: body.plugin.emotion,
-            angle: body.angle
-          });
-        }
-      });
-
-      peerConn.send({
-        type: 'physics_state',
-        balls: stateList
-      });
-    }
-
-    // Handles drawing the Opponent's mirrored canvas
-    function drawOpponentCanvas(ballsList) {
-      const boardWidth = canvasOpponent.width;
-      const boardHeight = canvasOpponent.height;
-
-      ctxOpponent.clearRect(0, 0, boardWidth, boardHeight);
-
-      // Draw dashed line
-      ctxOpponent.beginPath();
-      ctxOpponent.strokeStyle = '#ff4d4d';
-      ctxOpponent.lineWidth = 1;
-      ctxOpponent.setLineDash([6, 6]);
-      ctxOpponent.moveTo(0, 60);
-      ctxOpponent.lineTo(boardWidth, 60);
-      ctxOpponent.stroke();
-      ctxOpponent.setLineDash([]);
-
-      ballsList.forEach(ball => {
-        const x = ball.xRatio * boardWidth;
-        const y = ball.yRatio * boardHeight;
-        const radius = ball.radiusRatio * boardWidth;
-        const imgUrl = `${BASE_URL}${ball.country}/${ball.emotion}`;
-
-        ctxOpponent.save();
-        ctxOpponent.translate(x, y);
-        ctxOpponent.rotate(ball.angle);
-
-        if (imgCache[imgUrl]) {
-          ctxOpponent.beginPath();
-          ctxOpponent.arc(0, 0, radius, 0, Math.PI * 2);
-          ctxOpponent.clip();
-          ctxOpponent.drawImage(imgCache[imgUrl], -radius, -radius, radius * 2, radius * 2);
-        } else {
-          ctxOpponent.beginPath();
-          ctxOpponent.arc(0, 0, radius, 0, Math.PI * 2);
-          ctxOpponent.fillStyle = '#bbb';
-          ctxOpponent.fill();
-          ctxOpponent.fillStyle = '#666';
-          ctxOpponent.font = `bold ${radius * 0.4}px var(--font-family)`;
-          ctxOpponent.textAlign = 'center';
-          ctxOpponent.fillText(ball.country.substring(0,2).toUpperCase(), 0, 0);
-        }
-        ctxOpponent.restore();
-      });
-    }
-
-    function startSoloGame() {
-      isMultiplayer = false;
-      document.getElementById('board-opponent').style.display = 'none';
-
-      // Always generate dynamic randomized wheel and preload
-      evolutionWheel = generateEvolutionWheel();
-      renderEvolutionTrackUI();
-
-      const loading = document.createElement('div');
-      loading.className = 'loading-overlay';
-      loading.innerHTML = '<div class="spinner"></div><div style="font-weight:700;">マージルールをロード中...</div>';
-      document.body.appendChild(loading);
-
-      preloadWheelImages(evolutionWheel, () => {
-        loading.remove();
-        goToScreen('screen-game');
-        initPhysicsWorld();
-      });
-    }
-
-    function restartCurrentMode() {
-      if (isMultiplayer) {
-        if (amIHost) {
-          // Regenerate dynamic wheel, propagate to Peer, restart physics
-          evolutionWheel = generateEvolutionWheel();
-          preloadWheelImages(evolutionWheel, () => {
-            peerConn.send({
-              type: 'start_match',
-              wheel: evolutionWheel
-            });
-            renderEvolutionTrackUI();
-            goToScreen('screen-game');
-            initPhysicsWorld();
-          });
-        } else {
-          showToast("ホストが対戦を再開するのを待っています...");
-        }
-      } else {
-        startSoloGame();
-      }
-    }
-
-    function triggerGameOver() {
-      if (isGameOver) return;
-      isGameOver = true;
-      playSynthSound('gameover');
-
-      // Stop Matter physics
-      if (runnerSelf) Matter.Runner.stop(runnerSelf);
-
-      document.getElementById('final-score-val').innerText = localScore;
-      document.getElementById('game-over-backdrop').classList.add('active');
-
-      saveHighScore(localScore);
-
-      if (isMultiplayer && peerConn) {
-        peerConn.send({
-          type: 'game_over_state',
-          finalScore: localScore
-        });
-        evaluateMultiplayerResult();
-      } else {
-        document.getElementById('multiplay-result-status').innerText = '';
-      }
-    }
-
-    function evaluateMultiplayerResult() {
-      const resultStatus = document.getElementById('multiplay-result-status');
-      if (localScore > opponentScore) {
-        resultStatus.innerText = '勝利しました！🏆';
-        resultStatus.style.color = '#2d6a4f';
-      } else if (localScore < opponentScore) {
-        resultStatus.innerText = '敗北しました...😢';
-        resultStatus.style.color = '#d9534f';
-      } else {
-        resultStatus.innerText = '引き分けです！🤝';
-        resultStatus.style.color = 'var(--myoui-sys-color-primary)';
-      }
-    }
-
-    function exitGameAndSave() {
-      if (runnerSelf) Matter.Runner.stop(runnerSelf);
-      
-      // Cleanup events
-      const board = document.getElementById('board-self');
-      board.removeEventListener('pointerdown', handleBoardTap);
-
-      // Save record
-      saveHighScore(localScore);
-
-      document.getElementById('game-over-backdrop').classList.remove('active');
-
-      // Terminate Peer connection smoothly if exiting
-      if (isMultiplayer && peerConn) {
-        peerConn.close();
-      }
-
-      goToScreen('screen-main');
-    }
-
-    function saveHighScore(score) {
-      if (score <= 0) return;
-      let scores = JSON.parse(localStorage.getItem('pb_suika_scores') || '[]');
-      const dateStr = new Date().toLocaleString();
-      scores.push({ score: score, date: dateStr });
-      scores.sort((a, b) => b.score - a.score);
-      scores = scores.slice(0, 10); // Keep top 10 values
-      localStorage.setItem('pb_suika_scores', JSON.stringify(scores));
-    }
-
-    function openScores() {
-      const container = document.getElementById('scores-container');
-      container.innerHTML = '';
-      const scores = JSON.parse(localStorage.getItem('pb_suika_scores') || '[]');
-
-      if (scores.length === 0) {
-        container.innerHTML = '<div style="text-align:center; color:var(--myoui-sys-color-outline); padding:20px;">記録がまだありません</div>';
-      } else {
-        scores.forEach((entry, idx) => {
-          const item = document.createElement('div');
-          item.className = 'score-item';
-          item.innerHTML = `
-            <span>#${idx + 1} - ${entry.date}</span>
-            <span style="color:var(--myoui-sys-color-primary);">${entry.score} pts</span>
-          `;
-          container.appendChild(item);
-        });
-      }
-      goToScreen('screen-scores');
-    }
-
-    function clearScores() {
-      localStorage.removeItem('pb_suika_scores');
-      openScores();
-      showToast("ハイスコアをリセットしました");
-    }
-
-    function openMultiplaySetup() {
-      goToScreen('screen-multi-setup');
-      document.getElementById('peerjs-loading').style.display = 'flex';
-      document.getElementById('peerjs-status-text').innerText = 'シグナリングサーバーに接続中...';
-
-      // Initialize PeerJS
-      if (!peer) {
-        // Create custom random ID string
-        const customId = 'pb-suika-' + Math.floor(1000 + Math.random() * 9000);
-        peer = new Peer(customId);
-
-        peer.on('open', (id) => {
-          document.getElementById('my-peer-id').value = id;
-          document.getElementById('peerjs-loading').style.display = 'none';
-        });
-
-        peer.on('connection', (conn) => {
-          // If Guest connects to us, we act as Host
-          peerConn = conn;
-          amIHost = true;
-          setupConnectionListeners();
-        });
-
-        peer.on('error', (err) => {
-          console.error(err);
-          showToast("PeerJS接続エラーが発生しました");
-          document.getElementById('peerjs-loading').style.display = 'none';
-        });
-      } else {
-        document.getElementById('my-peer-id').value = peer.id;
-        document.getElementById('peerjs-loading').style.display = 'none';
-      }
-    }
-
-    function cancelPeerJSSetup() {
-      document.getElementById('peerjs-loading').style.display = 'none';
-      goToScreen('screen-main');
-    }
-
-    function copyMyPeerId() {
-      const idInput = document.getElementById('my-peer-id');
-      idInput.select();
-      document.execCommand('copy');
-      showToast("接続IDをコピーしました！");
-    }
-
-    function connectToFriend() {
-      const targetId = document.getElementById('target-peer-id').value.trim();
-      if (!targetId) {
-        showToast("接続先IDを入力してください");
-        return;
-      }
-
-      document.getElementById('peerjs-loading').style.display = 'flex';
-      document.getElementById('peerjs-status-text').innerText = '友達に接続中...';
-
-      // Connect to Guest peer
-      peerConn = peer.connect(targetId);
-      amIHost = false;
-      setupConnectionListeners();
-    }
-
-    function setupConnectionListeners() {
-      peerConn.on('open', () => {
-        document.getElementById('peerjs-loading').style.display = 'none';
-        showToast("通信接続が確立されました！対戦を開始します");
-
-        isMultiplayer = true;
-        document.getElementById('board-opponent').style.display = 'block';
-
-        // Set Opponent Canvas size limits properly
-        const boardOpp = document.getElementById('board-opponent');
-        canvasOpponent.width = boardOpp.clientWidth || 300;
-        canvasOpponent.height = boardOpp.clientHeight || 250;
-
-        opponentScore = 0;
-        document.getElementById('opponent-score-val').innerText = '0';
-
-        if (amIHost) {
-          // Host designs and sets dynamic common Evolution Wheel, and sends to Guest
-          evolutionWheel = generateEvolutionWheel();
-          preloadWheelImages(evolutionWheel, () => {
-            peerConn.send({
-              type: 'start_match',
-              wheel: evolutionWheel
-            });
-            renderEvolutionTrackUI();
-            goToScreen('screen-game');
-            initPhysicsWorld();
-          });
-        }
-      });
-
-      peerConn.on('data', (data) => {
-        if (data.type === 'start_match') {
-          // Guest receives shared Evolution Wheel setup from Host
-          evolutionWheel = data.wheel;
-          renderEvolutionTrackUI();
-          
-          const loading = document.createElement('div');
-          loading.className = 'loading-overlay';
-          loading.innerHTML = '<div class="spinner"></div><div style="font-weight:700;">進化の輪を受信しロード中...</div>';
-          document.body.appendChild(loading);
-
-          preloadWheelImages(evolutionWheel, () => {
-            loading.remove();
-            goToScreen('screen-game');
-            initPhysicsWorld();
-          });
-        }
-
-        else if (data.type === 'physics_state') {
-          // Opponent visual sync drawing updates
-          if (data.balls) {
-            drawOpponentCanvas(data.balls);
-          }
-        }
-
-        else if (data.type === 'score_update') {
-          opponentScore = data.score;
-          document.getElementById('opponent-score-val').innerText = opponentScore;
-        }
-
-        else if (data.type === 'game_over_state') {
-          opponentScore = data.finalScore;
-          document.getElementById('opponent-score-val').innerText = opponentScore;
-          showToast("対戦相手がゲームオーバーになりました！");
-          if (isGameOver) {
-            evaluateMultiplayerResult();
-          }
-        }
-      });
-
-      peerConn.on('close', () => {
-        showToast("接続が切断されました");
-        isMultiplayer = false;
-        document.getElementById('board-opponent').style.display = 'none';
-      });
-
-      peerConn.on('error', (err) => {
-        showToast("接続中に通信不整合が発生しました");
-      });
-    }
-
-    // Adaptive canvas dimensions on resize events
-    window.addEventListener('resize', () => {
-      if (currentScreen === 'screen-game') {
-        const boardSelf = document.getElementById('board-self');
-        canvasSelf.width = boardSelf.clientWidth;
-        canvasSelf.height = boardSelf.clientHeight;
-
-        if (isMultiplayer) {
-          const boardOpp = document.getElementById('board-opponent');
-          canvasOpponent.width = boardOpp.clientWidth;
-          canvasOpponent.height = boardOpp.clientHeight;
-        }
-      }
-    });
-  </script>
-</body>
-</html>
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>カントリーボール マージ</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
+<style>
+:root{--bg:#eef5e9;--card:#fbfef7;--pri:#2d6a4f;--pc:#cfeadb;--ink:#12261c;--sub:#6b7a70;--acc:#f4b942;--line:#d5e2d3}
+*{box-sizing:border-box;margin:0;padding:0;font-family:system-ui,-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--bg);color:var(--ink);overflow:hidden}
+.scr{position:absolute;inset:0;display:none;flex-direction:column;padding:20px 16px;overflow-y:auto}.scr.on{display:flex}
+.wrap{width:100%;max-width:460px;margin:auto;display:flex;flex-direction:column;gap:14px}
+.title{text-align:center}.title b{display:block;font-size:34px;color:var(--pri);font-weight:900}.title span{font-size:13px;color:var(--sub);letter-spacing:2px}
+.card{background:var(--card);border-radius:22px;padding:18px;display:flex;flex-direction:column;gap:10px;box-shadow:0 2px 10px #2d6a4f14}
+.card h2{font-size:15px;color:var(--pri)}.note{font-size:12px;color:var(--sub);line-height:1.6}
+.btn{height:52px;border:0;border-radius:26px;font-size:16px;font-weight:700;cursor:pointer;background:var(--pri);color:#fff}
+.btn.s{background:var(--pc);color:var(--ink)}.btn.o{background:none;border:2px solid var(--line);color:var(--pri)}.btn.sm{height:36px;font-size:13px;padding:0 16px;border-radius:18px}.btn:disabled{opacity:.35;cursor:default}.btn:active{transform:scale(.97)}
+input[type=text]{width:100%;height:48px;border:2px solid var(--line);border-radius:14px;padding:0 14px;font-size:16px;background:#fff;outline:none;-webkit-user-select:text;user-select:text}input[type=text]:focus{border-color:var(--pri)}
+.row{display:flex;align-items:center;gap:10px}.row>.g{flex:1;min-width:0}.row b{font-size:14px}
+.code{font-family:ui-monospace,Menlo,monospace;font-size:20px;font-weight:700;letter-spacing:1px;color:var(--pri);text-align:center;padding:8px;background:var(--pc);border-radius:12px;-webkit-user-select:text;user-select:text}
+.dot{width:12px;height:12px;border-radius:50%;background:#c4cfc7;flex:none}.dot.on{background:#3bb273;box-shadow:0 0 0 4px #3bb27333}
+input[type=checkbox]{appearance:none;-webkit-appearance:none;width:48px;height:28px;border-radius:14px;background:#c9d6cb;position:relative;flex:none;cursor:pointer;transition:.2s}
+input[type=checkbox]::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:.2s}
+input[type=checkbox]:checked{background:var(--pri)}input[type=checkbox]:checked::after{transform:translateX(20px)}
+#game{display:none;flex-direction:column;position:absolute;inset:0}#game.on{display:flex}
+.top{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;font-size:13px;font-weight:700}
+.boards{flex:1;min-height:0;display:flex;flex-direction:column;gap:6px;padding:0 6px}
+@media (orientation:landscape){.boards{flex-direction:row}}
+.pane{flex:1;min-height:0;min-width:0;display:flex;flex-direction:column;background:var(--card);border-radius:16px;padding:6px}
+#pane-me{flex:1.5}@media (orientation:landscape){#pane-me{flex:1}}
+.ph{display:flex;justify-content:space-between;font-size:13px;font-weight:700;padding:0 4px 4px}
+.cw{flex:1;min-height:0;min-width:0;position:relative}
+canvas.b{position:absolute;inset:0;width:100%;height:100%;border-radius:12px;touch-action:none;background:linear-gradient(#f6fbf1,#e0eed8)}
+.evo{display:flex;gap:3px;align-items:center;overflow-x:auto;padding:6px 10px;justify-content:center;font-size:10px;color:var(--sub)}.evo canvas{width:24px;height:24px;flex:none}
+.mask{position:fixed;inset:0;background:#12261c66;display:none;align-items:center;justify-content:center;z-index:50;padding:20px}.mask.on{display:flex}
+.dlg{background:var(--card);border-radius:26px;padding:24px;width:100%;max-width:360px;display:flex;flex-direction:column;gap:12px;text-align:center}.dlg h3{font-size:20px;color:var(--pri)}.dlg p{font-size:14px;line-height:1.7}
+#toast{position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 20px;border-radius:24px;font-size:13px;font-weight:700;opacity:0;transition:.3s;z-index:99;pointer-events:none;max-width:90%;text-align:center}
+</style></head><body>
+<div id="toast"></div>
+
+<div id="home" class="scr on"><div class="wrap">
+ <div class="title"><b>countryballs<br>Merge</b><span>ゆるっと合体パズル</span></div>
+ <div class="card">
+  <button class="btn" onclick="startSolo()">ひとりで遊ぶ</button>
+  <button class="btn s" onclick="show('friends')">フレンドと遊ぶ</button>
+  <button class="btn o" onclick="show('rules')">ルール設定</button>
+  <div class="note" id="best" style="text-align:center"></div>
+ </div>
+ <div class="note" style="text-align:center">全196か国のカントリーボールから、毎回ちがう順番・大きさで登場します</div>
+</div></div>
+
+<div id="friends" class="scr"><div class="wrap">
+ <div class="card"><h2>あなたのアカウント</h2>
+  <input type="text" id="myname" maxlength="12" placeholder="なまえ">
+  <div class="code" id="mycode"></div>
+  <div class="row"><div class="dot" id="mydot"></div><div class="g note" id="mystat">接続中…</div><button class="btn s sm" onclick="copyCode()">コードをコピー</button></div>
+  <div class="note">この12桁のコードを友だちに伝えると、フレンドになれます。</div></div>
+ <div class="card"><h2>フレンドを追加</h2>
+  <div class="row"><input type="text" id="addcode" inputmode="numeric" placeholder="相手の12桁コード"><button class="btn sm" onclick="addFriend()">追加</button></div></div>
+ <div class="card"><h2>フレンド</h2><div id="flist" style="display:flex;flex-direction:column;gap:10px"></div>
+  <div class="note">お互いがオンラインのとき、「招待」で一緒に遊べます。ルールは招待した人の設定が使われます。</div></div>
+ <button class="btn o" onclick="show('home')">もどる</button>
+</div></div>
+
+<div id="rules" class="scr"><div class="wrap">
+ <div class="title"><b style="font-size:26px">ルール設定</b></div>
+ <div class="card" id="rlist"></div>
+ <button class="btn" onclick="show('home')">もどる</button>
+</div></div>
+
+<div id="game">
+ <div class="top"><button class="btn o sm" onclick="leave()">← やめる</button><span id="rtag" style="color:var(--sub);font-weight:500"></span></div>
+ <div class="boards">
+  <div class="pane" id="pane-opp" style="display:none"><div class="ph"><span id="oname"></span><span>SCORE <span id="oscore">0</span></span></div><div class="cw"><canvas class="b" id="cv-opp" width="720" height="1120"></canvas></div></div>
+  <div class="pane" id="pane-me"><div class="ph"><span id="mname"></span><span style="display:flex;align-items:center;gap:6px">NEXT <canvas id="nextcv" width="40" height="40" style="width:26px;height:26px"></canvas> SCORE <span id="mscore">0</span></span></div><div class="cw"><canvas class="b" id="cv-me" width="720" height="1120"></canvas></div></div>
+ </div>
+ <div class="evo" id="evo"></div>
+</div>
+
+<div class="mask" id="m-inv"><div class="dlg"><h3>お誘いが届きました</h3><p id="inv-text"></p><button class="btn" onclick="answer(1)">いっしょに遊ぶ</button><button class="btn o" onclick="answer(0)">今回はやめておく</button></div></div>
+<div class="mask" id="m-end"><div class="dlg"><h3 id="end-t">おつかれさま！</h3><p id="end-p"></p><button class="btn" id="again" onclick="again()">もう一度</button><button class="btn o" onclick="leave()">メニューへ</button></div></div>
+<div class="mask" id="m-data"><div class="dlg"><h3>追加データをダウンロードします</h3><p id="data-p">国旗の画像（全196か国分）とボールの枠・目の素材を端末に保存します。<br>保存は最初の1回だけで、次回からは読み込みなしで遊べます。</p><div id="data-bar" style="display:none;height:10px;background:var(--pc);border-radius:5px;overflow:hidden"><div id="pbar" style="height:100%;width:0;background:var(--pri);transition:.2s"></div></div><button class="btn" id="data-go" onclick="runDownload()">ダウンロード</button><button class="btn o" id="data-skip" onclick="$('#m-data').classList.remove('on')">あとで</button></div></div>
+<div class="mask" id="m-load"><div class="dlg"><p id="load-t">じゅんび中…</p></div></div>
+
+<script>
+const REGION_DATA = [
+            { id: 'asia', name: 'アジア', list: 'af:アフガニスタン,am:アルメニア,az:アゼルバイジャン,bh:バーレーン,bd:バングラデシュ,bt:ブータン,bn:ブルネイ,kh:カンボジア,cn:中国,cy:キプロス,ge:ジョージア,in:インド,id:インドネシア,ir:イラン,iq:イラク,il:イスラエル,jp:日本,jo:ヨルダン,kz:カザフスタン,kw:クウェート,kg:キルギス,la:ラオス,lb:レバノン,my:マレーシア,mv:モルディブ,mn:モンゴル,mm:ミャンマー,np:ネパール,kp:北朝鮮,om:オマーン,pk:パキスタン,ps:パレスチナ,ph:フィリピン,qa:カタール,sa:サウジアラビア,sg:シンガポール,kr:韓国,lk:スリランカ,sy:シリア,tw:台湾,tj:タジキスタン,th:タイ,tl:東ティモール,tr:トルコ,tm:トルクメニスタン,ae:アラブ首長国連邦,uz:ウズベキスタン,vn:ベトナム,ye:イエメン' },
+            { id: 'europe', name: 'ヨーロッパ', list: 'al:アルバニア,ad:アンドラ,at:オーストリア,by:ベラルーシ,be:ベルギー,ba:ボスニア・ヘルツェゴビナ,bg:ブルガリア,hr:クロアチア,cz:チェコ,dk:デンマーク,ee:エストニア,fi:フィンランド,fr:フランス,de:ドイツ,gr:ギリシャ,hu:ハンガリー,is:アイスランド,ie:アイルランド,it:イタリア,xk:コソボ,lv:ラトビア,li:リヒテンシュタイン,lt:リトアニア,lu:ルクセンブルク,mt:マルタ,md:モルドバ,mc:モナコ,me:モンテネグロ,nl:オランダ,mk:北マケドニア,no:ノルウェー,pl:ポーランド,pt:ポルトガル,ro:ルーマニア,ru:ロシア,sm:サンマリノ,rs:セルビア,sk:スロバキア,si:スロベニア,es:スペイン,se:スウェーデン,ch:スイス,ua:ウクライナ,gb:イギリス,va:バチカン' },
+            { id: 'africa', name: 'アフリカ', list: 'dz:アルジェリア,ao:アンゴラ,bj:ベナン,bw:ボツワナ,bf:ブルキナファソ,bi:ブルンジ,cm:カメルーン,cv:カーボベルデ,cf:中央アフリカ,td:チャド,km:コモロ,cg:コンゴ共和国,cd:コンゴ民主共和国,ci:コートジボワール,dj:ジブチ,eg:エジプト,gq:赤道ギニア,er:エリトリア,sz:エスワティニ,et:エチオピア,ga:ガボン,gm:ガンビア,gh:ガーナ,gn:ギニア,gw:ギニアビサウ,ke:ケニア,ls:レソト,lr:リベリア,ly:リビア,mg:マダガスカル,mw:マラウイ,ml:マリ,mr:モーリタニア,mu:モーリシャス,ma:モロッコ,mz:モザンビーク,na:ナミビア,ne:ニジェール,ng:ナイジェリア,rw:ルワンダ,st:サントメ・プリンシペ,sn:セネガル,sc:セーシェル,sl:シエラレオネ,so:ソマリア,za:南アフリカ,ss:南スーダン,sd:スーダン,tz:タンザニア,tg:トーゴ,tn:チュニジア,ug:ウガンダ,zm:ザンビア,zw:ジンバブエ' },
+            { id: 'americas', name: '南北アメリカ', list: 'ag:アンティグア・バーブーダ,ar:アルゼンチン,bs:バハマ,bb:バルバドス,bz:ベリーズ,bo:ボリビア,br:ブラジル,ca:カナダ,cl:チリ,co:コロンビア,cr:コスタリカ,cu:キューバ,dm:ドミニカ国,do:ドミニカ共和国,ec:エクアドル,sv:エルサルバドル,gd:グレナダ,gt:グアテマラ,gy:ガイアナ,ht:ハイチ,hn:ホンジュラス,jm:ジャマイカ,mx:メキシコ,ni:ニカラグア,pa:パナマ,py:パラグアイ,pe:ペルー,kn:セントクリストファー・ネイビス,lc:セントルシア,vc:セントビンセント・グレナディーン,sr:スリナム,tt:トリニダード・トバゴ,us:アメリカ,uy:ウルグアイ,ve:ベネズエラ' },
+            { id: 'oceania', name: 'オセアニア', list: 'au:オーストラリア,fj:フィジー,ki:キリバス,mh:マーシャル諸島,fm:ミクロネシア連邦,nr:ナウル,nz:ニュージーランド,pw:パラオ,pg:パプアニューギニア,ws:サモア,sb:ソロモン諸島,to:トンガ,tv:ツバル,vu:バヌアツ' }
+        ];
+
+const COUNTRIES=[];REGION_DATA.forEach(r=>r.list.split(',').forEach(s=>{const [id,name]=s.split(':');COUNTRIES.push({id,name,region:r.id,flag:String.fromCodePoint(...[...id.toUpperCase()].map(ch=>0x1F1E6+ch.charCodeAt(0)-65))})}));
+const BASE='https://raw.githubusercontent.com/PolandBallHub-Operator/pbpark/refs/heads/main/AI/historyai/';
+const eyeFiles={normal:'eye.png',anger:'anger.png',lol:'lol.png',sad:'sad.png',smile:'smile.png'};
+function image(url,cors=true){return new Promise(resolve=>{const i=new Image();if(cors)i.crossOrigin='anonymous';i.onload=()=>resolve(i);i.onerror=()=>resolve(null);i.src=url})}
+function components(img,S){const c=document.createElement('canvas');c.width=c.height=S;const x=c.getContext('2d');x.drawImage(img,0,0,S,S);const d=x.getImageData(0,0,S,S).data,N=S*S,label=new Int32Array(N).fill(-1),comps=[];for(let p=0;p<N;p++){if(label[p]>=0||d[p*4+3]>=40)continue;const id=comps.length,stack=[p];label[p]=id;let area=0,edge=false;while(stack.length){const q=stack.pop(),px=q%S,py=q/S|0;area++;if(!px||!py||px===S-1||py===S-1)edge=true;for(const n of [q-1,q+1,q-S,q+S]){if(n<0||n>=N||(n===q-1&&px===0)||(n===q+1&&px===S-1))continue;if(label[n]<0&&d[n*4+3]<40){label[n]=id;stack.push(n)}}}comps.push({id,area,edge})}return{label,comps}}
+let A=null;async function assets(){const [frame,...eyes]=await Promise.all([cimg('frame.png'),...Object.values(eyeFiles).map(f=>cimg(f))]);if(!frame||!eyes[0])throw Error('ボール素材を取得できません');const S=220,fc=components(frame,S),outside=new Set(fc.comps.filter(c=>c.edge).map(c=>c.id)),mask=document.createElement('canvas');mask.width=mask.height=S;const mx=mask.getContext('2d'),md=mx.createImageData(S,S);let x0=S,y0=S,x1=0,y1=0;for(let p=0;p<S*S;p++)if(!outside.has(fc.label[p])){md.data[p*4+3]=255;const x=p%S,y=p/S|0;x0=Math.min(x0,x);x1=Math.max(x1,x);y0=Math.min(y0,y);y1=Math.max(y1,y)}mx.putImageData(md,0,0);const eyeCanvases={};Object.keys(eyeFiles).forEach((k,j)=>{if(!eyes[j])return;const ec=components(eyes[j],S),holes=ec.comps.filter(c=>!c.edge&&c.area>80).sort((a,b)=>a.area-b.area).slice(-2),ids=new Set(holes.map(c=>c.id)),cv=document.createElement('canvas');cv.width=cv.height=S;const cx=cv.getContext('2d'),im=cx.createImageData(S,S);for(let p=0;p<S*S;p++)if(ids.has(ec.label[p])){im.data[p*4]=im.data[p*4+1]=im.data[p*4+2]=255;im.data[p*4+3]=255}cx.putImageData(im,0,0);cx.drawImage(eyes[j],0,0,S,S);eyeCanvases[k]=cv});return{frame,mask,eyes:eyeCanvases,body:{x:x0,y:y0,w:x1-x0+1,h:y1-y0+1}}}
+const CANTON_ALIGN={cn:'left'};
+function cantonAlign(countryId){return CANTON_ALIGN[countryId]||'center'}
+const flagCache=new Map(),flagTasks=new Map();async function getFlag(c){if(flagTasks.has(c.id))return flagTasks.get(c.id);if(flagCache.has(c.id))return flagCache.get(c.id);const task=(async()=>{let f=await image(`https://flagcdn.com/w320/${c.id}.png`);if(!f){try{f=await wikipediaImage(c.name+'の国旗')}catch{}}flagCache.set(c.id,f);return f})();flagTasks.set(c.id,task);return task}
+function paint(canvas,c,expr,flag,alignOverride=null){if(!A)return;const S=220,ctx=canvas.getContext('2d');canvas.width=canvas.height=S;ctx.clearRect(0,0,S,S);const tmp=document.createElement('canvas');tmp.width=tmp.height=S;const t=tmp.getContext('2d'),b=A.body;if(c.id==='pl'){t.fillStyle='#DC143C';t.fillRect(b.x-12,b.y,b.w+24,b.h/2);t.fillStyle='#fff';t.fillRect(b.x-12,b.y+b.h/2,b.w+24,b.h/2)}else if(flag){const fw=b.w+24,sc=Math.max(fw/flag.width,b.h/flag.height),w=flag.width*sc,h=flag.height*sc,align=alignOverride||cantonAlign(c.id),dx=align==='left'?0:align==='right'?fw-w:(fw-w)/2;t.drawImage(flag,b.x-12+dx,b.y+(b.h-h)/2,w,h)}else{t.fillStyle='#aab2bd';t.fillRect(b.x-12,b.y,b.w+24,b.h)}t.globalCompositeOperation='destination-in';t.drawImage(A.mask,0,0);ctx.drawImage(tmp,0,0);ctx.drawImage(A.frame,0,0,S,S);ctx.drawImage(A.eyes[expr]||A.eyes.normal,0,0)}
+async function wikipediaImage(query){
+ // 元HTML同様、指定したページ名に対してpageimagesを直接問い合わせる
+ const url=`https://ja.wikipedia.org/w/api.php?action=query&prop=pageimages&redirects=1&titles=${encodeURIComponent(query)}&format=json&pithumbsize=500&origin=*`;
+ const r=await fetch(url);if(!r.ok)throw Error('Wikipedia API '+r.status);const data=await r.json(),page=Object.values(data.query?.pages||{})[0];
+ // ページ名が一致しない場合だけ、検索APIで候補ページを補助検索
+ if(page?.thumbnail?.source)return image(page.thumbnail.source);
+ const fallback=`https://ja.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(query)}&gsrlimit=6&prop=pageimages&piprop=thumbnail&pithumbsize=500&redirects=1&format=json&origin=*`;
+ const fr=await fetch(fallback);if(!fr.ok)return null;const fd=await fr.json(),hit=Object.values(fd.query?.pages||{}).find(x=>x.thumbnail?.source);return hit?image(hit.thumbnail.source):null
+}
+
+const $=s=>document.querySelector(s),FACES={normal:'eye.png',lol:'lol.png',smile:'smile.png'},FK=Object.keys(FACES);
+const LS=(k,v)=>{try{if(v===undefined)return JSON.parse(localStorage.getItem(k));localStorage.setItem(k,JSON.stringify(v))}catch{return null}};
+const gen=()=>Array.from({length:12},()=>Math.floor(Math.random()*10)).join('');
+let acc=LS('cb_acc')||{name:'ゲスト',code:gen(),friends:[]};LS('cb_acc',acc);
+let rules=Object.assign({mergeMax:false,lowGrav:false,bouncy:false,bigStart:false},LS('cb_rules')||{});
+const RI=[['mergeMax','最大のボール同士がくっついたら消える','いちばん大きいボールが2つ触れると、ふわっと消えてボーナス！'],['lowGrav','ふわふわ重力','重力がやさしくなって、ゆっくり落ちます'],['bouncy','ぷにぷにボール','よく弾んで、ちょっとにぎやかに'],['bigStart','大きめスタート','最初から少し大きめのボールが落ちてきます']];
+const fmt=c=>c.replace(/(\d{4})(?=\d)/g,'$1-'),save=()=>LS('cb_acc',acc),getF=c=>acc.friends.find(f=>f.code===c);
+let tt;function toast(m){const t=$('#toast');t.textContent=m;t.style.opacity=1;clearTimeout(tt);tt=setTimeout(()=>t.style.opacity=0,3000)}
+function show(id){document.querySelectorAll('.scr,#game').forEach(e=>e.classList.remove('on'));$('#'+id).classList.add('on');if(id==='friends'){renderFriends();probeAll()}if(id==='home')$('#best').textContent=LS('cb_best')?`ベストスコア ${LS('cb_best')}`:''}
+function loading(t){$('#load-t').textContent=t||'';$('#m-load').classList.toggle('on',!!t)}
+let ac;function snd(f,d){try{ac=ac||new AudioContext();const o=ac.createOscillator(),g=ac.createGain();o.connect(g);g.connect(ac.destination);o.type='sine';o.frequency.setValueAtTime(f,ac.currentTime);o.frequency.exponentialRampToValueAtTime(f*1.6,ac.currentTime+d);g.gain.setValueAtTime(.15,ac.currentTime);g.gain.linearRampToValueAtTime(.001,ac.currentTime+d);o.start();o.stop(ac.currentTime+d)}catch{}}
+
+// ---------- rules UI
+function renderRules(){$('#rlist').innerHTML='';RI.forEach(([k,t,d])=>{const l=document.createElement('label');l.className='row';l.innerHTML=`<div class="g"><b>${t}</b><div class="note">${d}</div></div><input type="checkbox" ${rules[k]?'checked':''}>`;l.querySelector('input').onchange=e=>{rules[k]=e.target.checked;LS('cb_rules',rules)};$('#rlist').append(l)})}
+const ruleText=r=>RI.filter(x=>r[x[0]]).map(x=>x[1]).join('、')||'ふつうのルール';
+
+// ---------- balls
+let balls=new Map();
+async function prep(wheel){if(!A)A=await assets();await Promise.all(wheel.map(async w=>{const k=w.id+'|'+w.f;if(balls.has(k))return;const c=COUNTRIES.find(x=>x.id===w.id),flag=await getFlag(c),cv=document.createElement('canvas');paint(cv,c,w.f,flag);balls.set(k,cv)}))}
+function genWheel(){const a=[...COUNTRIES].sort(()=>Math.random()-.5),n=10;let c=0;const cs=[0];for(let k=1;k<n;k++){c+=1+Math.random()*.6;cs.push(c)}
+ const kmin=.045+Math.random()*.01,kmax=.2+Math.random()*.03;return cs.map((v,k)=>({stage:k,id:a[k].id,f:FK[Math.random()*FK.length|0],k:kmin+(kmax-kmin)*v/c}))}
+function drawBall(ctx,w,x,y,a){const cv=balls.get(w.id+'|'+w.f);ctx.save();ctx.translate(x,y);ctx.rotate(a);if(cv&&A){const b=A.body,s=2*w.radius/b.w;ctx.drawImage(cv,-(b.x+b.w/2)*s,-(b.y+b.h/2)*s,220*s,220*s)}else{ctx.fillStyle='#b9c7bd';ctx.beginPath();ctx.arc(0,0,w.radius,0,7);ctx.fill()}ctx.restore()}
+// ---------- game（元のMatter.jsエンジンの仕様をそのまま使用）
+let G=null;const cvMe=$('#cv-me'),cvOpp=$('#cv-opp');
+const mkBall=(stage,x,y)=>{const n=G.wheel[stage];return Matter.Bodies.circle(x,y,n.radius,{restitution:G.rs.bouncy?0.6:0.25,friction:0.1,label:'ball',plugin:{stage,radius:n.radius}})};
+function setNext(){const s=Math.floor(Math.random()*Math.min(G.rs.bigStart?5:3,G.wheel.length));G.next={stage:s,node:G.wheel[s]};const x=$('#nextcv').getContext('2d');x.clearRect(0,0,40,40);drawBall(x,{...G.next.node,radius:18},20,20,0)}
+function startGame(wheel,rs,multi,opp){endGame();
+ $('#pane-opp').style.display=multi?'flex':'none';$('#mname').textContent=acc.name;$('#oname').textContent=(getF(opp)||{}).name||'フレンド';$('#mscore').textContent=0;$('#oscore').textContent=0;$('#rtag').textContent=ruleText(rs);
+ const ev=$('#evo');ev.innerHTML='';wheel.forEach((w,k)=>{const c=document.createElement('canvas');c.width=c.height=52;drawBall(c.getContext('2d'),{...w,radius:20},26,26,0);ev.append(c);if(k<wheel.length-1)ev.append('›')});
+ $('#m-end').classList.remove('on');document.querySelectorAll('.scr').forEach(e=>e.classList.remove('on'));$('#game').classList.add('on');
+ const bw=cvMe.parentElement.clientWidth||300,bh=cvMe.parentElement.clientHeight||500;cvMe.width=bw;cvMe.height=bh;
+ if(multi){cvOpp.width=cvOpp.parentElement.clientWidth||300;cvOpp.height=cvOpp.parentElement.clientHeight||500;cvOpp.getContext('2d').clearRect(0,0,cvOpp.width,cvOpp.height)}
+ const eng=Matter.Engine.create({gravity:{y:rs.lowGrav?0.5:0.98,x:0}}),t=60,st=(x,y,w,h)=>Matter.Bodies.rectangle(x,y,w,h,{isStatic:true,render:{visible:false}});
+ Matter.Composite.add(eng.world,[st(bw/2,bh+t/2,bw*2,t),st(-t/2,bh/2,t,bh*2),st(bw+t/2,bh/2,t,bh*2)]);
+ const runner=Matter.Runner.create();Matter.Runner.run(runner,eng);
+ G={eng,runner,wheel:wheel.map(w=>({...w,radius:Math.max(10,w.k*bw)})),rs,multi,opp,score:0,over:false,ready:true,dvt:null,oppOver:null,ls:0};setNext();
+ Matter.Events.on(eng,'collisionStart',handleCollisions);requestAnimationFrame(tick)}
+function endGame(){if(G){try{Matter.Runner.stop(G.runner);Matter.Engine.clear(G.eng)}catch{}G=null}}
+cvMe.addEventListener('pointerdown',e=>{if(!G||!G.ready||G.over)return;const rect=cvMe.getBoundingClientRect(),cx=e.clientX-rect.left;G.ready=false;
+ const{stage,node}=G.next,r=node.radius,x=Math.max(r+10,Math.min(rect.width-r-10,cx));Matter.Composite.add(G.eng.world,mkBall(stage,x,50));snd(160,.1);
+ const g=G;setTimeout(()=>{if(G===g&&!g.over){setNext();g.ready=true}},800)});
+function handleCollisions(ev){if(!G)return;for(const{bodyA:a,bodyB:b}of ev.pairs){if(a.label!=='ball'||b.label!=='ball')continue;const sa=a.plugin.stage;if(sa!==b.plugin.stage||!(a.id&&b.id))continue;
+ const ns=sa+1,mx=(a.position.x+b.position.x)/2,my=(a.position.y+b.position.y)/2;
+ if(ns<G.wheel.length){Matter.Composite.remove(G.eng.world,a);Matter.Composite.remove(G.eng.world,b);a.id=null;b.id=null;Matter.Composite.add(G.eng.world,mkBall(ns,mx,my));G.score+=(ns+1)*10;snd(300+sa*30,.15)}
+ else if(G.rs.mergeMax){Matter.Composite.remove(G.eng.world,a);Matter.Composite.remove(G.eng.world,b);a.id=null;b.id=null;G.score+=G.wheel.length*60;snd(520,.3);toast('最大ボール同士が消えました！ボーナス！')}
+ else continue;
+ $('#mscore').textContent=G.score}}
+function tick(){if(!G||G.over)return;const ctx=cvMe.getContext('2d'),w=cvMe.width,h=cvMe.height;ctx.clearRect(0,0,w,h);
+ ctx.beginPath();ctx.strokeStyle='#ff4d4d';ctx.lineWidth=1.5;ctx.setLineDash([8,8]);ctx.moveTo(0,60);ctx.lineTo(w,60);ctx.stroke();ctx.setLineDash([]);
+ let over=false;const list=[];
+ Matter.Composite.allBodies(G.eng.world).forEach(b=>{if(b.label!=='ball')return;const{x,y}=b.position,r=b.plugin.radius;drawBall(ctx,G.wheel[b.plugin.stage],x,y,b.angle);
+  list.push([+(x/w).toFixed(4),+(y/h).toFixed(4),+(r/w).toFixed(4),b.plugin.stage,+b.angle.toFixed(2)]);if(y-r<60&&b.velocity.y<0.1)over=true});
+ if(over){if(!G.dvt)G.dvt=Date.now();else if(Date.now()-G.dvt>2500)return finish(list)}else G.dvt=null;
+ sendState(list);requestAnimationFrame(tick)}
+function sendState(list,force){const n=performance.now();if(!G.multi||(!force&&n-G.ls<80))return;G.ls=n;const c=conns[G.opp];if(c&&c.open)c.send({t:'s',b:list,sc:G.score})}
+function drawOpp(list){const ctx=cvOpp.getContext('2d'),w=cvOpp.width,h=cvOpp.height;ctx.clearRect(0,0,w,h);ctx.beginPath();ctx.strokeStyle='#ff4d4d';ctx.lineWidth=1;ctx.setLineDash([6,6]);ctx.moveTo(0,60);ctx.lineTo(w,60);ctx.stroke();ctx.setLineDash([]);
+ list.forEach(([xr,yr,rr,s,a])=>{if(G.wheel[s])drawBall(ctx,{...G.wheel[s],radius:rr*w},xr*w,yr*h,a)})}
+function finish(list){G.over=true;try{Matter.Runner.stop(G.runner)}catch{}snd(120,.8);LS('cb_best',Math.max(LS('cb_best')||0,G.score));
+ if(G.multi){sendState(list,true);const c=conns[G.opp];c&&c.open&&c.send({t:'ov',s:G.score})}showResult()}
+function showResult(){const t=$('#end-t'),p=$('#end-p');t.textContent='おつかれさま！';let s=`スコア：${G.score}`;
+ if(G.multi){if(G.oppOver==null)s+='\n友だちのプレイが終わるのを待っています…';else{const o=G.oppOver;s+=`\n友だち：${o}\n`+(G.score>o?'今回はあなたの勝ちです！':G.score<o?'今回は友だちの勝ちです。いい勝負でした！':'同点でした！すごい！')}}else s+=`\nベスト：${LS('cb_best')}`;
+ p.style.whiteSpace='pre-line';p.textContent=s;$('#m-end').classList.add('on')}
+function startSolo(){go(async()=>{const w=genWheel();loading('ボールを準備しています…');await prep(w);loading();startGame(w,{...rules},false,null)})}
+function again(){if(G&&G.multi){const o=G.opp;$('#m-end').classList.remove('on');invite(o)}else startSolo()}
+function leave(){if(G&&G.multi){const c=conns[G.opp];c&&c.open&&c.send({t:'lv'})}endGame();$('#m-end').classList.remove('on');show('home')}
+async function go(f){try{await f()}catch(e){loading();toast('ボール素材を取得できませんでした。通信を確認してください')}}
+
+// ---------- account / friends / peer
+let peer,conns={},online={},pendingOut=null,pendingIn=null;
+function setStat(ok,t){$('#mydot').className='dot'+(ok?' on':'');$('#mystat').textContent=t}
+function initPeer(){peer=new Peer(acc.code);peer.on('open',()=>{setStat(1,'オンライン');probeAll()});peer.on('connection',setup);
+ peer.on('disconnected',()=>{setStat(0,'再接続中…');setTimeout(()=>{try{peer.reconnect()}catch{}},3000)});
+ peer.on('error',e=>{if(e.type==='unavailable-id'){setStat(0,'このコードは別のタブで使用中です');toast('他のタブ・画面を閉じてから開き直してください')}else if(e.type!=='peer-unavailable')setStat(0,'オフライン（接続できません）')})}
+function setup(c){const reg=()=>{conns[c.peer]=c;online[c.peer]=1;renderFriends()};c.open?reg():c.on('open',reg);c.on('data',m=>onMsg(c,m));
+ c.on('close',()=>{if(conns[c.peer]===c)delete conns[c.peer];online[c.peer]=0;renderFriends();if(G&&G.multi&&G.opp===c.peer&&!G.over)toast('友だちが退出しました')});c.on('error',()=>{})}
+function connectTo(code,cb){const o=conns[code];if(o&&o.open)return cb&&cb(o);if(!peer||!peer.open)return cb&&cb(null);const c=peer.connect(code,{reliable:true});let done=0;
+ const t=setTimeout(()=>{if(done)return;done=1;try{c.close()}catch{}online[code]=0;renderFriends();cb&&cb(null)},6000);
+ c.on('open',()=>{if(done)return;done=1;clearTimeout(t);setup(c);const f=getF(code);c.send({t:'hi',n:acc.name,add:!!(f&&!f.sent)});if(f&&!f.sent){f.sent=1;save()}cb&&cb(c)})}
+function probeAll(){acc.friends.forEach(f=>connectTo(f.code))}setInterval(()=>{if($('#friends').classList.contains('on'))probeAll()},20000);
+function onMsg(c,m){const code=c.peer;
+ if(m.t==='hi'){let f=getF(code);if(!f&&m.add){acc.friends.push({code,name:m.n||'フレンド',sent:1});save();toast(`${m.n||'フレンド'}さんがフレンドになりました`)}else if(f&&m.n){f.name=m.n;save()}renderFriends()}
+ else if(m.t==='inv'){if(G&&!G.over){c.send({t:'no'});return}pendingIn=c.peer;const f=getF(code);$('#inv-text').textContent=`${(f&&f.name)||m.n}さんから「いっしょに遊ぼう」のお誘いです。\nルール：${ruleText(m.r||{})}`;$('#inv-text').style.whiteSpace='pre-line';$('#m-inv').classList.add('on')}
+ else if(m.t==='acc'&&pendingOut===code){pendingOut=null;go(async()=>{const w=genWheel();loading('ボールを準備しています…');await prep(w);c.send({t:'go',w,r:rules});loading();startGame(w,{...rules},true,code)})}
+ else if(m.t==='no'){pendingOut=null;toast('今回は見送りだそうです。また誘ってみてね')}
+ else if(m.t==='go'){go(async()=>{loading('ボールを準備しています…');await prep(m.w);loading();startGame(m.w,m.r,true,code)})}
+ else if(m.t==='s'&&G&&G.multi&&G.opp===code){drawOpp(m.b);$('#oscore').textContent=m.sc}
+ else if(m.t==='ov'&&G&&G.opp===code){G.oppOver=m.s;if(G.over)showResult();else toast('友だちのプレイが終わりました')}
+ else if(m.t==='lv'&&G&&G.opp===code){toast('友だちが退出しました')}}
+function invite(code){connectTo(code,c=>{if(!c)return toast('相手はいまオフラインです');pendingOut=code;c.send({t:'inv',n:acc.name,r:rules});toast('お誘いを送りました。返事を待っています…')})}
+function answer(ok){$('#m-inv').classList.remove('on');const c=conns[pendingIn];if(c&&c.open)c.send({t:ok?'acc':'no'});else toast('相手とつながっていません')}
+function renderFriends(){$('#mycode').textContent=fmt(acc.code);const l=$('#flist');if(!l)return;l.innerHTML='';
+ if(!acc.friends.length)l.innerHTML='<div class="note">まだフレンドがいません。コードを入力して追加しましょう。</div>';
+ acc.friends.forEach(f=>{const on=!!online[f.code],d=document.createElement('div');d.className='row';d.innerHTML=`<div class="dot ${on?'on':''}"></div><div class="g"><b></b><div class="note">${fmt(f.code)} ・ ${on?'オンライン':'オフライン'}</div></div><button class="btn sm" ${on?'':'disabled'}>招待</button><button class="btn o sm" style="padding:0 12px">削除</button>`;
+  d.querySelector('b').textContent=f.name;const [a,b]=d.querySelectorAll('button');a.onclick=()=>invite(f.code);b.onclick=()=>{if(confirm(`${f.name}さんをフレンドから外しますか？`)){acc.friends=acc.friends.filter(x=>x!==f);save();renderFriends()}};l.append(d)})}
+function addFriend(){const c=$('#addcode').value.replace(/\D/g,'');if(c.length!==12)return toast('コードは12桁の数字です');if(c===acc.code)return toast('それはあなた自身のコードです');if(getF(c))return toast('すでにフレンドです');
+ acc.friends.push({code:c,name:'フレンド'});save();$('#addcode').value='';renderFriends();connectTo(c,x=>toast(x?'フレンドに追加しました':'追加しました。相手がオンラインのときに、お互いに登録されます'))}
+function copyCode(){const t=acc.code;(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast('コピーしました'),()=>toast('コードを長押しでコピーしてください'))}
+$('#myname').value=acc.name;$('#myname').onchange=e=>{acc.name=e.target.value.trim()||'ゲスト';e.target.value=acc.name;save()};
+renderRules();renderFriends();show('home');initPeer();
+
+// ---------- 枠・目の素材もIndexedDBに保存
+const ASSET_NAMES=['frame.png',...Object.values(eyeFiles)];
+const assetBlob=async n=>{let b=await dbGet('asset:'+n);if(b)return b;const r=await fetch(BASE+n);if(!r.ok)throw 0;b=await r.blob();dbPut('asset:'+n,b);return b};
+async function cimg(n){try{const b=await assetBlob(n),u=URL.createObjectURL(b),i=await image(u);return i}catch{return image(BASE+n)}}
+// ---------- 国旗データ（IndexedDBに保存）
+const DB=new Promise(res=>{try{const q=indexedDB.open('cb_db',1);q.onupgradeneeded=()=>q.result.createObjectStore('flags');q.onsuccess=()=>res(q.result);q.onerror=()=>res(null)}catch{res(null)}});
+const dbTx=async(m,f)=>{const d=await DB;if(!d)return null;return new Promise(r=>{try{const t=d.transaction('flags',m),q=f(t.objectStore('flags'));t.oncomplete=()=>r(q&&q.result);t.onerror=t.onabort=()=>r(null)}catch{r(null)}})};
+const dbGet=k=>dbTx('readonly',s=>s.get(k)),dbPut=(k,v)=>dbTx('readwrite',s=>s.put(v,k));
+const fetchFlag=id=>fetch(`https://flagcdn.com/w320/${id}.png`).then(r=>{if(!r.ok)throw 0;return r.blob()});
+async function loadFlagCache(){await Promise.all(COUNTRIES.map(async c=>{const b=await dbGet(c.id);if(b){try{flagCache.set(c.id,await createImageBitmap(b))}catch{}}}))}
+async function getFlag(c){const h=flagCache.get(c.id);if(h)return h;try{const b=await fetchFlag(c.id);dbPut(c.id,b);const i=await createImageBitmap(b);flagCache.set(c.id,i);return i}catch{}try{return await wikipediaImage(c.name+'の国旗')}catch{}return null}
+async function runDownload(){$('#data-go').disabled=true;$('#data-skip').style.display='none';$('#data-bar').style.display='block';
+ const todo=COUNTRIES.filter(c=>!flagCache.get(c.id)),total=todo.length+ASSET_NAMES.length;let n=0,fail=0,i=0;
+ for(const a of ASSET_NAMES){try{await assetBlob(a)}catch{fail++}n++;$('#pbar').style.width=(n/total*100)+'%';$('#data-p').textContent=`ダウンロード中… ${n} / ${total}`}
+ const worker=async()=>{while(i<todo.length){const c=todo[i++];let ok=0;for(let k=0;k<2&&!ok;k++){try{const b=await fetchFlag(c.id);await dbPut(c.id,b);flagCache.set(c.id,await createImageBitmap(b));ok=1}catch{}}if(!ok)fail++;n++;$('#pbar').style.width=(n/total*100)+'%';$('#data-p').textContent=`ダウンロード中… ${n} / ${total}`}};
+ await Promise.all(Array.from({length:6},worker));
+ if(!fail){await dbPut('_done',1);$('#data-p').textContent='完了しました！次回からは読み込みなしで遊べます。';$('#data-go').style.display='none';$('#data-skip').style.display='';$('#data-skip').textContent='はじめる'}
+ else{$('#data-p').textContent=`${fail}か国分がうまく取得できませんでした。通信を確認してもう一度お試しください。（足りない分は遊ぶときに自動で取得します）`;$('#data-go').disabled=false;$('#data-go').textContent='もう一度ためす';$('#data-skip').style.display='';$('#data-skip').textContent='あとで'}}
+(async()=>{if(!(await DB))return;await loadFlagCache();if(!(await dbGet('_done'))&&COUNTRIES.some(c=>!flagCache.get(c.id)))$('#m-data').classList.add('on')})();
+
+</script></body></html>
