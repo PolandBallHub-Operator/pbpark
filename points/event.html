@@ -123,9 +123,9 @@ p{font-size:13.5px;line-height:1.6;margin:0 0 14px;color:var(--text-sub)}
       <div class="hero-top"><span class="pill">期間限定イベント</span><span class="pill dark" id="countdown">--</span></div>
       <h1><span class="h1a">今日から1週間！</span><span class="h1b">PBポイント</span><span class="h1c">づくし！</span></h1>
       <div class="hero-stats">
-        <div class="stat"><b>+10</b><small>毎日もらえるpt</small></div>
-        <div class="stat"><b>7日</b><small>連続開催</small></div>
-        <div class="stat"><b>最大70</b><small>合計pt</small></div>
+        <div class="stat"><b>+100</b><small>参加記念pt</small></div>
+        <div class="stat"><b>7日</b><small>毎日5pt×2</small></div>
+        <div class="stat"><b>最大260</b><small>合計pt</small></div>
       </div>
       <div class="hero-cta">
         <button class="ai-btn" onclick="switchView('view-home');document.getElementById('missions').scrollIntoView({behavior:'smooth'})"><span class="material-symbols-outlined">bolt</span>今日のptをもらう</button>
@@ -137,9 +137,18 @@ p{font-size:13.5px;line-height:1.6;margin:0 0 14px;color:var(--text-sub)}
 
     <div class="big-promo">
       <b>こんなに集まる機会は、もうない。<br>一度きりの大放出！</b>
-      <p>期間中は毎日、アプリで遊ぶだけで5pt。友達に共有でさらに5pt。1日10pt×7日間、取りこぼさなければ最大70ptが手に入ります。</p>
+      <p>参加するだけで記念の100ptをプレゼント。さらに毎日、アプリで遊ぶと5pt・友達に共有でさらに5pt。最終日はなんと遊んで80pt＋共有で20pt！全部集めれば最大260ptです。</p>
     </div>
 
+    <div class="glass-card" id="bonus-card" style="display:none;background:var(--gold);color:#111">
+      <h2 id="bonus-title" style="margin-bottom:4px">🎁 イベント参加記念 +100pt</h2>
+      <p id="bonus-desc" style="margin:0 0 12px;color:#333">参加記念として、一度だけもらえます！</p>
+      <button class="ai-btn" id="btn-bonus" style="background:#000;color:var(--gold)" onclick="claimBonus()">100ptを受け取る</button>
+    </div>
+    <div class="glass-card" id="final-banner" style="display:none;background:#000;color:var(--gold)">
+      <h2 style="margin-bottom:4px">🔥 最終日スペシャル！</h2>
+      <p style="margin:0;color:#ddd">今日だけ、遊んで<b>80pt</b>＋共有で<b>20pt</b>！</p>
+    </div>
     <div class="glass-card" id="missions">
       <h2>今日のミッション</h2>
       <div class="slider-label-row"><span id="today-label">今日</span><span id="today-pt">0 / 10pt</span></div>
@@ -187,9 +196,11 @@ p{font-size:13.5px;line-height:1.6;margin:0 0 14px;color:var(--text-sub)}
       <h2>イベントのルール</h2>
       <ul class="rules">
         <li>期間：<span id="period"></span>（日本時間）</li>
+        <li>「参加記念ポイントを受け取る」ボタンから <b>100pt</b>（1回のみ）</li>
         <li>期間中、毎日アプリで遊ぶと <b>5pt</b></li>
         <li>毎日「polandball.s.gy」を共有すると、さらに <b>5pt</b></li>
-        <li>どちらも1日1回。日付は日本時間0:00に切り替わります</li>
+        <li>最終日は、遊ぶと <b>80pt</b>・共有すると <b>20pt</b></li>
+        <li>遊ぶ・共有は1日1回ずつ。日付は日本時間0:00に切り替わります</li>
         <li>ポイントはPB Park共通のPBポイントとして貯まります</li>
       </ul>
       <p style="margin:0">イベント終了後も、PBPointからポイントを受け取れます。</p>
@@ -221,7 +232,11 @@ p{font-size:13.5px;line-height:1.6;margin:0 0 14px;color:var(--text-sub)}
 /* ========== 設定 ========== */
 const START = '2026-11-15';          // イベント初日（日本時間）
 const DAYS = 7;                      // 開催日数
-const PT_PLAY = 5, PT_SHARE = 5;
+const PT_PLAY = 5, PT_SHARE = 5;     // 通常日
+const FINAL_PLAY = 80, FINAL_SHARE = 20; // 最終日
+const BONUS = 100;                   // イベント参加記念（初回のみ）
+const ptFor = (i,k) => i===DAYS-1 ? (k==='play'?FINAL_PLAY:FINAL_SHARE) : (k==='play'?PT_PLAY:PT_SHARE);
+const MAX_TOTAL = BONUS + Array.from({length:DAYS},(_,i)=>ptFor(i,'play')+ptFor(i,'share')).reduce((a,b)=>a+b,0);
 const SHARE_URL = 'https://polandball.s.gy';
 const SHARE_TEXT = 'CountryParkで「今日から1週間！PBポイントづくし！」開催中！毎日PBポイントがもらえるよ🎁';
 const PLAY_SECONDS = 15;
@@ -262,7 +277,7 @@ function claim(kind){
   const s=load(),k=dayKey(todayIdx()),d=s.days[k]||(s.days[k]={});
   if(d[kind]){toast('今日はもう受け取り済みです');return false}
   d[kind]=true;save(s);
-  const pt=kind==='play'?PT_PLAY:PT_SHARE;PS.add(pt);render();
+  const pt=ptFor(todayIdx(),kind);PS.add(pt);render();
   showDialog(pt,kind==='play'?'遊んでくれてありがとう！':'共有ありがとう！');
   return true;
 }
@@ -274,6 +289,12 @@ async function doShare(){
     else{await navigator.clipboard.writeText(SHARE_TEXT+'\n'+SHARE_URL);toast('共有文をコピーしました。友達に送ってね！');}
     claim('share');
   }catch(e){ if(e&&e.name!=='AbortError')toast('共有できませんでした。もう一度試してね'); }
+}
+function claimBonus(){
+  const s=load();
+  if(phase()!=='live'||s.bonus)return;
+  s.bonus=true;save(s);PS.add(BONUS);render();
+  showDialog(BONUS,'イベント参加記念ポイント！');
 }
 let pending=null;
 function openApp(url){
@@ -290,27 +311,35 @@ document.addEventListener('visibilitychange',()=>{
 /* ========== 描画 ========== */
 function render(){
   $('pt-val').textContent=PS.get().toLocaleString();
-  const s=load(),ph=phase(),ti=todayIdx(),td=s.days[dayKey(ti)]||{};
-  const gained=(td.play?PT_PLAY:0)+(td.share?PT_SHARE:0);
+  const s=load(),bc=$('bonus-card'),bb=$('btn-bonus');
+  bc.style.display=(s.bonus||phase()==='live')?'block':'none';
+  bb.style.display=s.bonus?'none':'inline-flex';
+  $('bonus-title').textContent=s.bonus?'🎁 参加記念 +100pt 受け取り済み！':'🎁 イベント参加記念 +100pt';
+  $('bonus-desc').textContent=s.bonus?'ようこそ！1週間たっぷり楽しんでね。':'ボタンを押すと、一度だけもらえます！';
+  if(s.bonus)bc.querySelector('p').style.margin='0';
+  const ph=phase(),ti=todayIdx(),td=s.days[dayKey(ti)]||{};
+  const dp=ptFor(Math.min(Math.max(ti,0),DAYS-1),'play'),ds=ptFor(Math.min(Math.max(ti,0),DAYS-1),'share'),dmax=dp+ds;
+  const gained=(td.play?dp:0)+(td.share?ds:0);
+  $('b-play').textContent='+'+dp+'pt';$('b-share').textContent='+'+ds+'pt';
+  $('final-banner').style.display=(ti===DAYS-1&&ph==='live')?'block':'none';
   $('today-label').textContent=ph==='live'?`Day ${ti+1} / ${DAYS}`:ph==='before'?'開始前':'イベント終了';
-  $('today-pt').textContent=`${gained} / ${PT_PLAY+PT_SHARE}pt`;
-  $('today-fill').style.width=Math.max(gained?8:0,gained/(PT_PLAY+PT_SHARE)*100)+'%';
+  $('today-pt').textContent=`${gained} / ${dmax}pt`;
+  $('today-fill').style.width=Math.max(gained?8:0,gained/dmax*100)+'%';
   const live=ph==='live';
   [['play',$('btn-play'),'アプリへ'],['share',$('btn-share'),'共有する']].forEach(([k,b,label])=>{
     b.textContent=!live?(ph==='before'?'開始前':'終了'):td[k]?'受け取り済み':label;
     b.disabled=!live||!!td[k];
     $('b-'+k).classList.toggle('done',!!td[k]);
   });
-  let total=0;$('days').innerHTML='';
+  let total=s.bonus?BONUS:0;$('days').innerHTML='';
   for(let i=0;i<DAYS;i++){
-    const d=s.days[dayKey(i)]||{},n=(d.play?1:0)+(d.share?1:0);total+=(d.play?PT_PLAY:0)+(d.share?PT_SHARE:0);
+    const d=s.days[dayKey(i)]||{},n=(d.play?1:0)+(d.share?1:0);total+=(d.play?ptFor(i,'play'):0)+(d.share?ptFor(i,'share'):0);
     const el=document.createElement('div');el.className='day'+(n===2?' full':n===1?' half':'')+(i===ti&&live&&n<2?' today':'');
     el.innerHTML=`${dayKey(i).slice(5).replace('-','/')}<span class="material-symbols-outlined">${n===2?'check_circle':n===1?'timelapse':i===ti&&live?'bolt':'radio_button_unchecked'}</span>`;
     $('days').append(el);
   }
-  const max=DAYS*(PT_PLAY+PT_SHARE);
-  $('total-pt').textContent=`${total} / ${max}pt`;
-  $('total-fill').style.width=Math.max(total?8:0,total/max*100)+'%';
+  $('total-pt').textContent=`${total} / ${MAX_TOTAL}pt`;
+  $('total-fill').style.width=Math.max(total?8:0,total/MAX_TOTAL*100)+'%';
   document.querySelectorAll('[data-app]').forEach(b=>{const done=!!td.play;b.nextElementSibling&&0;});
 }
 function tick(){
