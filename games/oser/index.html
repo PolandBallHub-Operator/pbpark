@@ -1,434 +1,2993 @@
----
-layout: default
-title: PBリバーシ
----
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Polandball 〇thell〇 (リバーシ)</title>
-    <style>
-        :root {
-            --bg-color: #f0f4f8;
-            --board-color: #2e7d32;
-            --grid-color: #1b5e20;
-            --black-ball: #333;
-            --white-ball: #f5f5f5;
-        }
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>かんとりーぱーく</title>
+  <!-- PBPoint API 読み込み（フォールバックなし・厳格仕様） -->
+  <script src="/pbpark/points/points.js"></script>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- 温かみのある丸文字フォント -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-cream: #FFF8EB;
+      --bg-card: #FFFDF9;
+      --border-brown: #4A321F;
+      --accent-orange: #FF9F43;
+      --accent-green: #6BCB77;
+      --accent-blue: #4D96FF;
+      --accent-pink: #FF6B8B;
+      --accent-yellow: #FFD93D;
+      --text-main: #3D2817;
+      --text-sub: #7A5C43;
+    }
 
-        body {
-            font-family: 'Helvetica Neue', Arial, sans-serif;
-            background-color: var(--bg-color);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            margin: 0;
-            touch-action: manipulation;
-        }
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
 
-        .game-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 20px;
-            padding: 20px;
-            width: 100%;
-            max-width: 600px;
-        }
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Zen Maru Gothic', system-ui, -apple-system, sans-serif;
+      background-color: var(--bg-cream);
+      color: var(--text-main);
+      overflow: hidden;
+      height: 100dvh;
+      width: 100vw;
+      display: flex;
+      flex-direction: column;
+    }
 
-        /* ステータス表示 */
-        .status-panel {
-            background: white;
-            padding: 15px 30px;
-            border-radius: 15px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            display: flex;
-            gap: 40px;
-            align-items: center;
-            font-weight: bold;
-            font-size: 1.2rem;
-        }
+    /* 温かみのある太枠線ボタン・カード共通スタイル */
+    .warm-box {
+      background-color: var(--bg-card);
+      border: 3.5px solid var(--border-brown);
+      border-radius: 20px;
+      box-shadow: 0 4px 0 var(--border-brown);
+    }
 
-        .score-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
+    .warm-btn {
+      background-color: var(--bg-card);
+      border: 3.5px solid var(--border-brown);
+      border-radius: 18px;
+      box-shadow: 0 4px 0 var(--border-brown);
+      font-weight: 900;
+      color: var(--text-main);
+      transition: transform 0.08s ease, box-shadow 0.08s ease, background-color 0.15s ease;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
 
-        .current-turn {
-            border-bottom: 4px solid #4a90e2;
-            padding-bottom: 2px;
-        }
+    .warm-btn:active:not(:disabled) {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 var(--border-brown);
+    }
 
-        /* 盤面 */
-        .board {
-            display: grid;
-            grid-template-columns: repeat(8, 1fr);
-            grid-template-rows: repeat(8, 1fr);
-            background-color: var(--grid-color);
-            border: 8px solid #1b5e20;
-            border-radius: 8px;
-            width: min(90vw, 500px);
-            height: min(90vw, 500px);
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-        }
+    .warm-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      filter: grayscale(0.45);
+    }
 
-        .cell {
-            background-color: var(--board-color);
-            border: 1px solid rgba(255,255,255,0.1);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            position: relative;
-            cursor: pointer;
-        }
+    .warm-btn-orange { background-color: #FFBE55; }
+    .warm-btn-green  { background-color: #8CE08A; }
+    .warm-btn-blue   { background-color: #8CC8FF; }
+    .warm-btn-pink   { background-color: #FF9EB5; }
+    .warm-btn-yellow { background-color: #FFE66D; }
+    .warm-btn-purple { background-color: #D0BFFF; }
 
-        .cell:hover {
-            background-color: #388e3c;
-        }
+    /* タイトル画面の大きなロゴ装飾 */
+    .title-logo {
+      font-weight: 900;
+      color: #FFFDF7;
+      text-shadow:
+        -4px -4px 0 #4A321F,
+         4px -4px 0 #4A321F,
+        -4px  4px 0 #4A321F,
+         4px  4px 0 #4A321F,
+         0px  7px 0 #4A321F,
+         0px 14px 24px rgba(74, 50, 31, 0.32);
+      letter-spacing: 0.06em;
+    }
 
-        /* 置ける場所のガイド */
-        .hint::after {
-            content: '';
-            width: 12px;
-            height: 12px;
-            background: rgba(255,255,255,0.3);
-            border-radius: 50%;
-        }
+    /* タイトル画面のボール：ふわふわ浮遊アニメーション */
+    @keyframes titleFloat {
+      0%, 100% {
+        transform: translateY(0px) rotate(var(--rot-a, -5deg)) scale(var(--ball-scale, 1));
+      }
+      50% {
+        transform: translateY(-18px) rotate(var(--rot-b, 5deg)) scale(var(--ball-scale, 1));
+      }
+    }
 
-        /* ポーランドボールのデザイン */
-        .country-ball {
-            width: 85%;
-            height: 80%;
-            border: 3px solid #000;
-            border-radius: 52% 48% 45% 55% / 55% 55% 45% 45%;
-            position: relative;
-            overflow: hidden;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            box-shadow: inset -6px -6px 0 rgba(0,0,0,0.15);
-            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s;
-            animation: spawn 0.4s ease-out;
-        }
+    .title-ball-float {
+      animation: titleFloat var(--float-dur, 3.2s) ease-in-out infinite;
+      will-change: transform;
+    }
 
-        @keyframes spawn {
-            0% { transform: scale(0); }
-            100% { transform: scale(1); }
-        }
+    /* カスタムスクロールバー */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #F4E7D3;
+      border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #B99672;
+      border: 2px solid #4A321F;
+      border-radius: 10px;
+    }
 
-        .black-ball {
-            background-color: var(--black-ball);
-        }
-
-        .white-ball {
-            background-color: var(--white-ball);
-        }
-
-        /* 目のパーツ */
-        .eyes-container {
-            display: flex;
-            gap: 6px;
-            margin-top: -8px;
-            pointer-events: none;
-        }
-
-        .pb-eye {
-            width: 12px;
-            height: 16px;
-            background: #fff;
-            border: 2px solid #000;
-            border-radius: 50%;
-            transition: all 0.3s;
-        }
-
-        /* 表情 */
-        .pb-eye.happy {
-            height: 8px;
-            border-radius: 12px 12px 0 0;
-            margin-top: 6px;
-        }
-
-        .pb-eye.angry {
-            transform: rotate(15deg);
-            border-radius: 0 0 50% 50%;
-        }
-
-        .pb-eye.sad {
-            height: 10px;
-            border-radius: 0 0 12px 12px;
-        }
-
-        /* メッセージ */
-        .message-box {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: white;
-            padding: 30px;
-            border-radius: 20px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
-            text-align: center;
-            z-index: 100;
-            display: none;
-            width: 280px;
-        }
-
-        .message-box h2 {
-            margin-top: 0;
-            color: #333;
-        }
-
-        .btn {
-            background: #4a90e2;
-            color: white;
-            border: none;
-            padding: 10px 25px;
-            border-radius: 25px;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: background 0.2s;
-            margin-top: 15px;
-        }
-
-        .btn:hover {
-            background: #357abd;
-        }
-
-        .overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.5);
-            display: none;
-            z-index: 90;
-        }
-    </style>
+    /* トースト通知アニメーション */
+    @keyframes popToast {
+      0% { transform: translate(-50%, 20px) scale(0.9); opacity: 0; }
+      14% { transform: translate(-50%, 0) scale(1); opacity: 1; }
+      86% { transform: translate(-50%, 0) scale(1); opacity: 1; }
+      100% { transform: translate(-50%, -10px) scale(0.95); opacity: 0; }
+    }
+    .toast-anim {
+      animation: popToast 2.8s ease forwards;
+    }
+  </style>
 </head>
 <body>
 
-    <div class="game-container">
-        <div class="status-panel">
-            <div id="black-score-area" class="score-item current-turn">
-                <span>BLACK:</span>
-                <span id="black-count">2</span>
-            </div>
-            <div id="white-score-area" class="score-item">
-                <span>WHITE:</span>
-                <span id="white-count">2</span>
-            </div>
+  <!-- =========================================================
+       1. 初回セットアップ画面（名前・アイコン設定 ＆ 国旗IndexedDB一括保存）
+       ========================================================= -->
+  <div id="setup-screen" class="hidden fixed inset-0 z-50 bg-[#FFF3DC] flex items-center justify-center p-4 overflow-y-auto">
+    <div class="warm-box w-full max-w-md p-6 flex flex-col gap-5 bg-[#FFFDF8]">
+      <div class="text-center">
+        <span class="inline-block px-3 py-1 rounded-full bg-[#FFE66D] border-2 border-[#4A321F] text-xs font-black mb-2">
+          🌱 はじめての じゅんび
+        </span>
+        <h1 class="text-2xl sm:text-3xl font-black text-[#4A321F]">かんとりーぱーくへ ようこそ！</h1>
+        <p class="text-xs sm:text-sm font-bold text-[#7A5C43] mt-1">
+          ゆっくり長い時間をかけて、世界中の国々と仲良くなろう！
+        </p>
+      </div>
+
+      <!-- プロフィール設定 -->
+      <div class="bg-[#FFF6E5] border-3 border-[#4A321F] rounded-2xl p-4 flex flex-col gap-4" style="border-width: 3px;">
+        <div class="flex flex-col items-center gap-2">
+          <div class="relative">
+            <img id="setup-avatar-preview" src="" alt="アイコン" class="w-24 h-24 rounded-full object-cover bg-[#FFE8C2] border-4 border-[#4A321F] shadow-md">
+            <label for="setup-avatar-input" class="warm-btn warm-btn-yellow text-xs px-3 py-1.5 absolute -bottom-2 -right-3 cursor-pointer">
+              📷 えらぶ
+            </label>
+            <input id="setup-avatar-input" type="file" accept="image/*" class="hidden">
+          </div>
+          <span class="text-xs font-bold text-[#7A5C43] mt-1">あなたのアイコン（画像ファイル選択）</span>
         </div>
 
-        <div class="board" id="board">
-            <!-- JSで生成 -->
+        <div>
+          <label for="setup-name-input" class="block text-sm font-black mb-1">園長さんの おなまえ</label>
+          <input id="setup-name-input" type="text" maxlength="16" placeholder="例：ぱーくえんちょう"
+            class="w-full px-3.5 py-2.5 rounded-xl border-3 border-[#4A321F] bg-white font-bold text-base focus:outline-none focus:ring-2 focus:ring-[#FF9F43]"
+            style="border-width: 3px;">
+        </div>
+      </div>
+
+      <!-- 国旗ダウンロード＆IndexedDB保存プログレス -->
+      <div class="bg-[#F0F9FF] border-3 border-[#4A321F] rounded-2xl p-4 flex flex-col gap-2" style="border-width: 3px;">
+        <div class="flex justify-between items-center text-xs sm:text-sm font-black">
+          <span id="download-status-text">🌍 世界の国旗を準備しています...</span>
+          <span id="download-count-text">0 / 0</span>
+        </div>
+        <div class="w-full h-5 bg-white border-3 border-[#4A321F] rounded-full overflow-hidden p-0.5" style="border-width: 3px;">
+          <div id="download-progress-bar" class="h-full bg-[#6BCB77] rounded-full transition-all duration-150" style="width: 0%;"></div>
+        </div>
+        <p class="text-[11px] font-bold text-[#5C7285]">
+          ※初回のみ全国家の国旗データを端末（IndexedDB）に保存します。
+        </p>
+      </div>
+
+      <button id="setup-complete-btn" disabled class="warm-btn warm-btn-green w-full py-3.5 text-lg">
+        ✨ じゅんび完了！タイトルへ
+      </button>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       2. アプリ起動毎のタイトル画面（上5・下5 ふわふわランダムボール＋大きな中央ロゴ＋右下Ver）
+       ========================================================= -->
+  <div id="title-screen" class="hidden fixed inset-0 z-40 flex flex-col justify-between items-center p-3 sm:p-6 overflow-hidden transition-colors duration-700"
+       style="background: linear-gradient(180deg, #9AD9FF 0%, #D9F2FF 48%, #B8E986 48.5%, #8CD164 100%);">
+
+    <!-- 背景のふわふわ雲装飾 -->
+    <div class="pointer-events-none absolute inset-0 overflow-hidden opacity-80">
+      <div class="absolute top-6 left-[6%] w-28 h-10 bg-white rounded-full border-3 border-[#4A321F]" style="border-width: 3px;"></div>
+      <div class="absolute top-16 right-[8%] w-36 h-12 bg-white rounded-full border-3 border-[#4A321F]" style="border-width: 3px;"></div>
+    </div>
+
+    <!-- 上部：ランダムなボール 5体（ラベルなし・大きさ＆向きランダム・ふわふわ浮遊） -->
+    <div class="relative z-10 w-full max-w-4xl pt-2 sm:pt-4">
+      <div id="title-balls-top" class="grid grid-cols-5 gap-1 sm:gap-4 place-items-center">
+        <!-- JSで5つのCanvasを挿入 -->
+      </div>
+    </div>
+
+    <!-- 中央：大きく可愛いタイトルロゴ ＆ スタートボタン -->
+    <div class="relative z-10 flex flex-col items-center text-center my-auto px-2">
+      <div class="inline-flex items-center gap-1.5 px-4 py-1 rounded-full bg-[#FFFDF8] border-3 border-[#4A321F] text-xs sm:text-sm font-black mb-3 shadow-sm" style="border-width: 3px;">
+        <span>🕊️</span><span>みんなでつくる平和な憩いの場</span><span>🌿</span>
+      </div>
+
+      <h1 class="title-logo text-5xl sm:text-7xl md:text-8xl select-none leading-none">
+        <span style="color:#FF8A5B;">か</span><span style="color:#FFD93D;">ん</span><span style="color:#6BCB77;">と</span><span style="color:#4D96FF;">り</span><span style="color:#FF7EB3;">ー</span><br class="sm:hidden"><span style="color:#FFA94D;">ぱ</span><span style="color:#A9E34B;">ー</span><span style="color:#74C0FC;">く</span>
+      </h1>
+
+      <div class="mt-6 sm:mt-8 flex flex-col sm:flex-row gap-3 items-center">
+        <button id="start-game-btn" class="warm-btn warm-btn-orange px-10 py-4 text-xl sm:text-2xl tracking-wider">
+          🎈 こうえんへ行く！
+        </button>
+      </div>
+    </div>
+
+    <!-- 下部：ランダムなボール 5体（ラベルなし・大きさ＆向きランダム・ふわふわ浮遊） -->
+    <div class="relative z-10 w-full max-w-4xl pb-7 sm:pb-9">
+      <div id="title-balls-bottom" class="grid grid-cols-5 gap-1 sm:gap-4 place-items-center">
+        <!-- JSで5つのCanvasを挿入 -->
+      </div>
+    </div>
+
+    <!-- 画面右下にバージョン名 -->
+    <div class="fixed bottom-2.5 right-3 z-20 px-3 py-1 rounded-xl bg-[#FFFDF8] border-3 border-[#4A321F] text-xs sm:text-sm font-black shadow-sm" style="border-width: 3px;">
+      Ver 1.1.0
+    </div>
+  </div>
+
+  <!-- =========================================================
+       3. メインゲーム画面（上部ステータスバー ＋ 公園キャンバス ＋ 下部操作バー）
+       ========================================================= -->
+  <div id="main-app" class="hidden flex-1 flex flex-col w-full h-full overflow-hidden">
+
+    <!-- 上部ステータスバー -->
+    <header class="z-20 bg-[#FFF6E5] border-b-4 border-[#4A321F] px-2 py-1.5 sm:px-4 sm:py-2 flex items-center justify-between gap-1.5 sm:gap-2 shrink-0 shadow-sm">
+      <!-- 左：ユーザーアイコン＆名前（タップでプロフィール編集） -->
+      <button id="open-profile-btn" class="warm-btn px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-2xl bg-[#FFFDF8] max-w-[34%] sm:max-w-xs" title="プロフィール設定">
+        <img id="header-avatar" src="" alt="アイコン" class="w-8 h-8 sm:w-9 sm:h-9 rounded-full object-cover border-2 border-[#4A321F] shrink-0 bg-[#FFE8C2]">
+        <div class="text-left overflow-hidden">
+          <div id="header-username" class="text-xs sm:text-sm font-black truncate leading-tight">えんちょう</div>
+          <div id="header-dex-mini" class="text-[10px] sm:text-xs font-bold text-[#7A5C43] leading-tight">図鑑 0/0</div>
+        </div>
+      </button>
+
+      <!-- 中央：Open-Meteo 天気＆時間ステータス -->
+      <button id="weather-status-btn" class="warm-btn px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-2xl bg-[#E8F6FF] text-xs sm:text-sm" title="天気と時間帯の詳細">
+        <span id="weather-icon" class="text-base sm:text-lg">☀️</span>
+        <div class="text-left leading-tight hidden xs:block sm:block">
+          <div id="weather-label" class="font-black text-[11px] sm:text-xs">同期中...</div>
+          <div id="time-label" class="font-bold text-[10px] text-[#4B6B88]">--:--</div>
+        </div>
+      </button>
+
+      <!-- 右：ゲーム内コイン（基本通貨） ＆ PBポイント（レア通貨） -->
+      <div class="flex items-center gap-1.5">
+        <!-- ゲーム内コイン -->
+        <div class="warm-box px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-2xl bg-[#FFFDF8] flex items-center gap-1">
+          <span class="text-sm sm:text-lg">🪙</span>
+          <div class="text-right leading-tight">
+            <div class="text-[9px] sm:text-[10px] font-black text-[#7A5C43]">コイン</div>
+            <div id="game-coins-value" class="text-xs sm:text-sm font-black text-[#E67700]">40</div>
+          </div>
         </div>
 
-        <button class="btn" onclick="initGame()">リセット</button>
+        <!-- PBポイント（タップで交換・難関ミッションモーダル） -->
+        <button id="pb-status-btn" class="warm-btn px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-2xl bg-[#F3F0FF] flex items-center gap-1" title="PBポイント両替・チャレンジ">
+          <span class="text-sm sm:text-lg">💎</span>
+          <div class="text-right leading-tight">
+            <div class="text-[9px] sm:text-[10px] font-black text-[#5F3DC4]">PBpt</div>
+            <div id="pb-points-value" class="text-xs sm:text-sm font-black text-[#5F3DC4]">読込中</div>
+          </div>
+        </button>
+      </div>
+    </header>
+
+    <!-- PBPoint エラー警告バナー（エラー発生時のみ表示） -->
+    <div id="pb-error-banner" class="hidden bg-[#FFE3E3] border-b-3 border-[#4A321F] px-3 py-1 text-center text-[11px] sm:text-xs font-black text-[#C92A2A] shrink-0" style="border-bottom-width: 3px;">
+      ⚠️ PBPointシステム未接続（エラー）。PB交換・PB獲得機能は無効化されています（ゲーム内コインで遊べます）。
     </div>
 
-    <div id="overlay" class="overlay"></div>
-    <div id="message-box" class="message-box">
-        <h2 id="winner-text">決着！</h2>
-        <p id="final-score"></p>
-        <button class="btn" onclick="closeModal()">もう一度遊ぶ</button>
+    <!-- 中央：公園メインキャンバスエリア -->
+    <main class="relative flex-1 w-full h-full overflow-hidden">
+      <canvas id="park-canvas" class="block w-full h-full cursor-pointer"></canvas>
+
+      <!-- 公園内フローティング情報バッジ -->
+      <div class="pointer-events-none absolute top-3 left-3 flex flex-wrap gap-2">
+        <div class="bg-[#FFFDF8]/95 border-3 border-[#4A321F] rounded-2xl px-3 py-1.5 text-xs sm:text-sm font-black shadow-sm flex items-center gap-1.5" style="border-width: 3px;">
+          <span>🎈</span>
+          <span id="park-visitor-count" class="text-[#E67700]">0</span>
+          <span>/ 7</span>
+        </div>
+        <div id="pending-gifts-badge" class="hidden pointer-events-auto cursor-pointer bg-[#FFE66D] border-3 border-[#4A321F] rounded-2xl px-3 py-1.5 text-xs sm:text-sm font-black shadow-sm animate-bounce" style="border-width: 3px;">
+          🎁 お礼コイン <span id="pending-gifts-count">0</span> 個！
+        </div>
+      </div>
+
+      <!-- タイトルに戻る小さなボタン -->
+      <button id="back-to-title-btn" class="warm-btn px-3 py-1.5 text-xs absolute top-3 right-3 bg-[#FFFDF8]/95">
+        🏠 タイトル
+      </button>
+    </main>
+
+    <!-- 下部操作メニューバー（太枠線の温かみあるボタン群） -->
+    <footer class="z-20 bg-[#FFF6E5] border-t-4 border-[#4A321F] px-2 py-2 sm:px-4 sm:py-3 shrink-0">
+      <div class="max-w-3xl mx-auto grid grid-cols-4 gap-2 sm:gap-3">
+        <button id="btn-open-bag" class="warm-btn warm-btn-green py-2.5 sm:py-3 px-2 flex-col sm:flex-row text-xs sm:text-base">
+          <span class="text-lg sm:text-xl">🎒</span>
+          <span>もちもの・配置</span>
+        </button>
+        <button id="btn-open-shop" class="warm-btn warm-btn-orange py-2.5 sm:py-3 px-2 flex-col sm:flex-row text-xs sm:text-base">
+          <span class="text-lg sm:text-xl">🛍️</span>
+          <span>コインおみせ</span>
+        </button>
+        <button id="btn-open-dex" class="warm-btn warm-btn-blue py-2.5 sm:py-3 px-2 flex-col sm:flex-row text-xs sm:text-base">
+          <span class="text-lg sm:text-xl">📖</span>
+          <span>であったリスト</span>
+        </button>
+        <button id="btn-open-pb-hub" class="warm-btn warm-btn-purple py-2.5 sm:py-3 px-2 flex-col sm:flex-row text-xs sm:text-base">
+          <span class="text-lg sm:text-xl">💎</span>
+          <span>PB交換・試練</span>
+        </button>
+      </div>
+    </footer>
+  </div>
+
+  <!-- =========================================================
+       モーダル1：もちもの・公園への配置モーダル
+       ========================================================= -->
+  <div id="modal-bag" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-3 sm:p-4">
+    <div class="warm-box w-full max-w-2xl max-h-[88dvh] flex flex-col bg-[#FFFDF8] overflow-hidden">
+      <div class="p-4 bg-[#D3F9D8] border-b-4 border-[#4A321F] flex justify-between items-center">
+        <h2 class="text-lg sm:text-xl font-black">🎒 もちもの ＆ こうえんに置く</h2>
+        <button class="warm-btn px-3 py-1 text-sm" data-close-modal="modal-bag">✕ とじる</button>
+      </div>
+
+      <div class="p-4 overflow-y-auto flex-1 flex flex-col gap-4">
+        <!-- スポット選択ガイド -->
+        <div class="bg-[#FFF6E5] border-3 border-[#4A321F] rounded-2xl p-3 text-xs sm:text-sm font-bold" style="border-width: 3px;">
+          <p class="font-black text-[#4A321F] mb-1">📍 配置するばしょをえらんでアイテムを置こう！</p>
+          <div id="spot-selector-list" class="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2">
+            <!-- JSで8箇所のスポットボタンを描画 -->
+          </div>
+        </div>
+
+        <!-- カテゴリタブ -->
+        <div class="flex gap-1.5 overflow-x-auto pb-1">
+          <button class="warm-btn px-3 py-1.5 text-xs bag-cat-btn warm-btn-yellow" data-cat="all">すべて</button>
+          <button class="warm-btn px-3 py-1.5 text-xs bag-cat-btn" data-cat="food">🍽️ 世界の食事</button>
+          <button class="warm-btn px-3 py-1.5 text-xs bag-cat-btn" data-cat="rest">🪑 遊び場・休憩所</button>
+          <button class="warm-btn px-3 py-1.5 text-xs bag-cat-btn" data-cat="rare">💎 れあ金属</button>
+          <button class="warm-btn px-3 py-1.5 text-xs bag-cat-btn" data-cat="peace">🕊️ 平和・しぜん</button>
+        </div>
+
+        <!-- 所持アイテム一覧 -->
+        <div id="bag-items-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <!-- JSで生成 -->
+        </div>
+      </div>
     </div>
+  </div>
 
-    <script>
-        const boardElement = document.getElementById('board');
-        const blackCountEl = document.getElementById('black-count');
-        const whiteCountEl = document.getElementById('white-count');
-        const blackArea = document.getElementById('black-score-area');
-        const whiteArea = document.getElementById('white-score-area');
-        const messageBox = document.getElementById('message-box');
-        const overlay = document.getElementById('overlay');
-        const winnerText = document.getElementById('winner-text');
-        const finalScoreText = document.getElementById('final-score');
+  <!-- =========================================================
+       モーダル2：コインおみせ（ゲーム内コインでアイテム入手）
+       ========================================================= -->
+  <div id="modal-shop" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-3 sm:p-4">
+    <div class="warm-box w-full max-w-2xl max-h-[88dvh] flex flex-col bg-[#FFFDF8] overflow-hidden">
+      <div class="p-4 bg-[#FFE8CC] border-b-4 border-[#4A321F] flex justify-between items-center">
+        <div>
+          <h2 class="text-lg sm:text-xl font-black">🛍️ こうえんコインおみせ</h2>
+          <p class="text-xs font-bold text-[#7A5C43]">ゲーム内コインで食事（約10コイン）や遊び場（約50コイン）を手に入れよう！</p>
+        </div>
+        <button class="warm-btn px-3 py-1 text-sm" data-close-modal="modal-shop">✕ とじる</button>
+      </div>
 
-        let board = [];
-        let currentPlayer = 1; // 1: 黒, 2: 白
-        const EMPTY = 0;
-        const BLACK = 1;
-        const WHITE = 2;
+      <div class="p-4 overflow-y-auto flex-1 flex flex-col gap-3">
+        <!-- カテゴリフィルター -->
+        <div class="flex gap-1.5 overflow-x-auto pb-1">
+          <button class="warm-btn px-3 py-1.5 text-xs shop-cat-btn warm-btn-orange" data-cat="all">すべて</button>
+          <button class="warm-btn px-3 py-1.5 text-xs shop-cat-btn" data-cat="food">🍽️ 世界の食事 (10🪙前後)</button>
+          <button class="warm-btn px-3 py-1.5 text-xs shop-cat-btn" data-cat="rest">🪑 遊び場・しま (50🪙前後)</button>
+          <button class="warm-btn px-3 py-1.5 text-xs shop-cat-btn" data-cat="rare">💎 れあ金属</button>
+          <button class="warm-btn px-3 py-1.5 text-xs shop-cat-btn" data-cat="peace">🕊️ 平和・しぜん</button>
+        </div>
 
-        // 初期化
-        function initGame() {
-            board = Array(8).fill().map(() => Array(8).fill(EMPTY));
-            board[3][3] = WHITE;
-            board[3][4] = BLACK;
-            board[4][3] = BLACK;
-            board[4][4] = WHITE;
-            currentPlayer = BLACK;
-            renderBoard();
-            updateStatus();
-            closeModal();
-        }
+        <div id="shop-items-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <!-- JSで生成 -->
+        </div>
+      </div>
+    </div>
+  </div>
 
-        // 盤面描画
-        function renderBoard() {
-            boardElement.innerHTML = '';
-            const validMoves = getValidMoves(currentPlayer);
+  <!-- =========================================================
+       モーダル3：PBポイント両替 ＆ 超難関PB獲得チャレンジ
+       ========================================================= -->
+  <div id="modal-pb-hub" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-3 sm:p-4">
+    <div class="warm-box w-full max-w-lg max-h-[90dvh] flex flex-col bg-[#FFFDF8] overflow-hidden">
+      <div class="p-4 bg-[#E5DBFF] border-b-4 border-[#4A321F] flex justify-between items-center">
+        <div>
+          <h2 class="text-lg sm:text-xl font-black">💎 PBポイント両替 ＆ 試練の達成</h2>
+          <p class="text-xs font-bold text-[#5F3DC4]">PBポイント10pt ＝ ゲーム内コイン20枚に交換できます</p>
+        </div>
+        <button class="warm-btn px-3 py-1 text-sm" data-close-modal="modal-pb-hub">✕ とじる</button>
+      </div>
 
-            for (let r = 0; r < 8; r++) {
-                for (let c = 0; c < 8; c++) {
-                    const cell = document.createElement('div');
-                    cell.className = 'cell';
-                    
-                    if (validMoves.some(m => m.r === r && m.c === c)) {
-                        cell.classList.add('hint');
-                        cell.onclick = () => handleMove(r, c);
-                    }
+      <div class="p-4 overflow-y-auto flex flex-col gap-4">
+        <!-- PB → ゲーム内コイン両替ボックス -->
+        <div class="bg-[#FFF9DB] border-3 border-[#4A321F] rounded-2xl p-4 flex flex-col gap-2.5" style="border-width: 3px;">
+          <div class="flex items-center justify-between">
+            <span class="font-black text-sm sm:text-base">💱 PBポイント → ぱーくコイン両替</span>
+            <span class="px-2.5 py-0.5 rounded-full bg-white border-2 border-[#4A321F] text-xs font-black">10 PB ➔ 20 🪙</span>
+          </div>
+          <p class="text-xs font-bold text-[#7A5C43]">
+            貴重なPBポイント10ptを消費して、公園で使えるゲーム内コイン20枚に両替します。
+          </p>
+          <button id="btn-exchange-pb-to-coin" class="warm-btn warm-btn-orange w-full py-3 text-sm sm:text-base">
+            💎 10 PB を 🪙 20 コイン に交換する
+          </button>
+        </div>
 
-                    if (board[r][c] !== EMPTY) {
-                        const ball = document.createElement('div');
-                        const isBlack = board[r][c] === BLACK;
-                        ball.className = `country-ball ${isBlack ? 'black-ball' : 'white-ball'}`;
-                        
-                        // 表情の決定
-                        // 優勢ならハッピー、劣勢なら悲しい、接戦なら普通
-                        const scoreDiff = isBlack ? (getScore().black - getScore().white) : (getScore().white - getScore().black);
-                        let eyeClass = '';
-                        if (scoreDiff > 5) eyeClass = 'happy';
-                        else if (scoreDiff < -5) eyeClass = 'sad';
-                        
-                        ball.innerHTML = `
-                            <div class="eyes-container">
-                                <div class="pb-eye ${eyeClass}"></div>
-                                <div class="pb-eye ${eyeClass}"></div>
-                            </div>
-                        `;
-                        cell.appendChild(ball);
-                    }
-                    boardElement.appendChild(cell);
-                }
+        <!-- PBポイント獲得（超難関ミッションのみ） -->
+        <div class="bg-[#F8F0FC] border-3 border-[#4A321F] rounded-2xl p-4 flex flex-col gap-3" style="border-width: 3px;">
+          <div>
+            <span class="font-black text-sm sm:text-base text-[#5F3DC4]">🏆 難関チャレンジ（PBポイント獲得）</span>
+            <p class="text-xs font-bold text-[#6741D9] mt-0.5">
+              PBポイントは簡単には手に入りません。長い年月をかけて絆を深めた園長だけに贈られます。
+            </p>
+          </div>
+
+          <div id="pb-challenges-list" class="flex flex-col gap-2.5">
+            <!-- JSで難関チャレンジ一覧を描画 -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       モーダル4：であったかんとりーリスト（図鑑 ＆ 信頼度 ＆ 友達に画像を贈る）
+       ========================================================= -->
+  <div id="modal-dex" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-3 sm:p-4">
+    <div class="warm-box w-full max-w-3xl max-h-[90dvh] flex flex-col bg-[#FFFDF8] overflow-hidden">
+      <div class="p-4 bg-[#D0EBFF] border-b-4 border-[#4A321F] flex justify-between items-center">
+        <div>
+          <h2 class="text-lg sm:text-xl font-black">📖 であったかんとりーリスト</h2>
+          <p id="dex-progress-label" class="text-xs font-black text-[#1864AB]">であった数: 0 / 0 か国</p>
+        </div>
+        <button class="warm-btn px-3 py-1 text-sm" data-close-modal="modal-dex">✕ とじる</button>
+      </div>
+
+      <!-- 検索＆フィルター -->
+      <div class="p-3 bg-[#F1F8FF] border-b-3 border-[#4A321F] flex flex-wrap gap-2" style="border-bottom-width: 3px;">
+        <input id="dex-search-input" type="text" placeholder="国名・コードでさがす..."
+          class="flex-1 min-w-[140px] px-3 py-1.5 rounded-xl border-3 border-[#4A321F] bg-white text-sm font-bold" style="border-width: 3px;">
+        <select id="dex-region-select" class="px-3 py-1.5 rounded-xl border-3 border-[#4A321F] bg-white text-sm font-bold" style="border-width: 3px;">
+          <option value="all">全地域</option>
+        </select>
+        <select id="dex-met-select" class="px-3 py-1.5 rounded-xl border-3 border-[#4A321F] bg-white text-sm font-bold" style="border-width: 3px;">
+          <option value="all">すべて</option>
+          <option value="met">であった国のみ</option>
+          <option value="unmet">まだの国のみ</option>
+        </select>
+      </div>
+
+      <div id="dex-grid" class="p-4 overflow-y-auto flex-1 grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-3">
+        <!-- JSで全国家カードを描画 -->
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       モーダル5：国の詳細 ＆ 友達に画像を贈る（グリーティングカード生成）
+       ========================================================= -->
+  <div id="modal-share" class="hidden fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-3 sm:p-4">
+    <div class="warm-box w-full max-w-lg max-h-[92dvh] flex flex-col bg-[#FFFDF8] overflow-hidden">
+      <div class="p-4 bg-[#FFDEEB] border-b-4 border-[#4A321F] flex justify-between items-center">
+        <h2 id="share-modal-title" class="text-lg font-black">💌 ともだちに画像を贈る</h2>
+        <button class="warm-btn px-3 py-1 text-sm" data-close-modal="modal-share">✕ とじる</button>
+      </div>
+
+      <div class="p-4 overflow-y-auto flex flex-col items-center gap-4">
+        <div class="w-full bg-[#FFF6E5] border-3 border-[#4A321F] rounded-2xl p-2 flex justify-center" style="border-width: 3px;">
+          <canvas id="share-card-canvas" width="800" height="600" class="w-full h-auto rounded-xl border-2 border-[#4A321F]"></canvas>
+        </div>
+
+        <div id="share-country-info" class="w-full text-center text-xs sm:text-sm font-bold text-[#5C4330]">
+          <!-- 訪問回数や信頼度・好きな食べ物情報 -->
+        </div>
+
+        <div class="w-full grid grid-cols-2 gap-3">
+          <button id="btn-share-native" class="warm-btn warm-btn-pink py-3 text-sm sm:text-base">
+            📤 友達にシェア
+          </button>
+          <button id="btn-share-download" class="warm-btn warm-btn-green py-3 text-sm sm:text-base">
+            💾 画像を保存
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       モーダル6：プロフィール編集（名前＆ファイルピッカーアイコン変更）
+       ========================================================= -->
+  <div id="modal-profile" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+    <div class="warm-box w-full max-w-md bg-[#FFFDF8] overflow-hidden">
+      <div class="p-4 bg-[#FFF3BF] border-b-4 border-[#4A321F] flex justify-between items-center">
+        <h2 class="text-lg font-black">🪪 園長プロフィール設定</h2>
+        <button class="warm-btn px-3 py-1 text-sm" data-close-modal="modal-profile">✕ とじる</button>
+      </div>
+      <div class="p-5 flex flex-col gap-4">
+        <div class="flex flex-col items-center gap-2">
+          <div class="relative">
+            <img id="edit-avatar-preview" src="" alt="アイコン" class="w-24 h-24 rounded-full object-cover bg-[#FFE8C2] border-4 border-[#4A321F]">
+            <label for="edit-avatar-input" class="warm-btn warm-btn-yellow text-xs px-3 py-1.5 absolute -bottom-2 -right-3 cursor-pointer">
+              📷 変更
+            </label>
+            <input id="edit-avatar-input" type="file" accept="image/*" class="hidden">
+          </div>
+        </div>
+        <div>
+          <label for="edit-name-input" class="block text-sm font-black mb-1">おなまえ</label>
+          <input id="edit-name-input" type="text" maxlength="16"
+            class="w-full px-3.5 py-2.5 rounded-xl border-3 border-[#4A321F] bg-white font-bold text-base" style="border-width: 3px;">
+        </div>
+        <button id="save-profile-btn" class="warm-btn warm-btn-green w-full py-3 text-base">
+          ✅ ほぞんする
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       モーダル7：天気＆空の同期詳細
+       ========================================================= -->
+  <div id="modal-weather" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+    <div class="warm-box w-full max-w-md bg-[#FFFDF8] overflow-hidden">
+      <div class="p-4 bg-[#E7F5FF] border-b-4 border-[#4A321F] flex justify-between items-center">
+        <h2 class="text-lg font-black">🌤️ こうえんの天気と時間</h2>
+        <button class="warm-btn px-3 py-1 text-sm" data-close-modal="modal-weather">✕ とじる</button>
+      </div>
+      <div class="p-5 flex flex-col gap-3 text-sm font-bold">
+        <div class="bg-[#F8F9FA] border-3 border-[#4A321F] rounded-2xl p-4 flex items-center gap-4" style="border-width: 3px;">
+          <div id="weather-detail-icon" class="text-5xl">☀️</div>
+          <div>
+            <div id="weather-detail-title" class="text-lg font-black">晴れ</div>
+            <div id="weather-detail-temp" class="text-xs text-[#5C7285]">気温: --°C / Open-Meteo 同期</div>
+            <div id="weather-detail-time" class="text-xs text-[#5C7285] mt-0.5">時間帯: 昼</div>
+          </div>
+        </div>
+        <p class="text-xs text-[#7A5C43]">
+          Open-Meteo API と現在の時刻に連動して、公園の空模様や明るさが変化します。夜になるとボールたちはすやすや眠りにつきます（起こさないようにそっとしてあげてね）。
+        </p>
+        <button id="refresh-weather-btn" class="warm-btn warm-btn-blue w-full py-2.5 text-sm">
+          🔄 最新の天気を取得する
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- トースト通知用コンテナ -->
+  <div id="toast-container" class="pointer-events-none fixed bottom-20 left-1/2 z-50 flex flex-col items-center gap-2"></div>
+
+  <script>
+    /**
+     * ============================================================================
+     * 1. 全国家データ ＆ Countryball 描画エンジン（frame.png＋表情パーツのみ使用・フォールバック厳禁）
+     * ============================================================================
+     */
+    const REGION_DATA = [
+      { id: 'asia', name: 'アジア', list: 'af:アフガニスタン,am:アルメニア,az:アゼルバイジャン,bh:バーレーン,bd:バングラデシュ,bt:ブータン,bn:ブルネイ,kh:カンボジア,cn:中国,cy:キプロス,ge:ジョージア,in:インド,id:インドネシア,ir:イラン,iq:イラク,il:イスラエル,jp:日本,jo:ヨルダン,kz:カザフスタン,kw:クウェート,kg:キルギス,la:ラオス,lb:レバノン,my:マレーシア,mv:モルディブ,mn:モンゴル,mm:ミャンマー,np:ネパール,kp:北朝鮮,om:オマーン,pk:パキスタン,ps:パレスチナ,ph:フィリピン,qa:カタール,sa:サウジアラビア,sg:シンガポール,kr:韓国,lk:スリランカ,sy:シリア,tw:台湾,tj:タジキスタン,th:タイ,tl:東ティモール,tr:トルコ,tm:トルクメニスタン,ae:アラブ首長国連邦,uz:ウズベキスタン,vn:ベトナム,ye:イエメン' },
+      { id: 'europe', name: 'ヨーロッパ', list: 'al:アルバニア,ad:アンドラ,at:オーストリア,by:ベラルーシ,be:ベルギー,ba:ボスニア・ヘルツェゴビナ,bg:ブルガリア,hr:クロアチア,cz:チェコ,dk:デンマーク,ee:エストニア,fi:フィンランド,fr:フランス,de:ドイツ,gr:ギリシャ,hu:ハンガリー,is:アイスランド,ie:アイルランド,it:イタリア,xk:コソボ,lv:ラトビア,li:リヒテンシュタイン,lt:リトアニア,lu:ルクセンブルク,mt:マルタ,md:モルドバ,mc:モナコ,me:モンテグロ,nl:オランダ,mk:北マケドニア,no:ノルウェー,pl:ポーランド,pt:ポルトガル,ro:ルーマニア,ru:ロシア,sm:サンマリノ,rs:セルビア,sk:スロバキア,si:スロベニア,es:スペイン,se:スウェーデン,ch:スイス,ua:ウクライナ,gb:イギリス,va:バチカン' },
+      { id: 'africa', name: 'アフリカ', list: 'dz:アルジェリア,ao:アンゴラ,bj:ベナン,bw:ボツワナ,bf:ブルキナファソ,bi:ブルンジ,cm:カメルーン,cv:カーボベルデ,cf:中央アフリカ,td:チャド,km:コモロ,cg:コンゴ共和国,cd:コンゴ民主共和国,ci:コートジボワール,dj:ジブチ,eg:エジプト,gq:赤道ギニア,er:エリトリア,sz:エスワティニ,et:エチオピア,ga:ガボン,gm:ガンビア,gh:ガーナ,gn:ギニア,gw:ギニアビサウ,ke:ケニア,ls:レソト,lr:リベリア,ly:リビア,mg:マダガスカル,mw:マラウイ,ml:マリ,mr:モーリタニア,mu:モーリシャス,ma:モロッコ,mz:モザンビーク,na:ナミビア,ne:ニジェール,ng:ナイジェリア,rw:ルワンダ,st:サントメ・プリンシペ,sn:セネガル,sc:セーシェル,sl:シエラレオネ,so:ソマリア,za:南アフリカ,ss:南スーダン,sd:スーダン,tz:タンザニア,tg:トーゴ,tn:チュニジア,ug:ウガンダ,zm:ザンビア,zw:ジンバブエ' },
+      { id: 'americas', name: '南北アメリカ', list: 'ag:アンティグア・バーブーダ,ar:アルゼンチン,bs:バハマ,bb:バルバドス,bz:ベリーズ,bo:ボリビア,br:ブラジル,ca:カナダ,cl:チリ,co:コロンビア,cr:コスタリカ,cu:キューバ,dm:ドミニカ国,do:ドミニカ共和国,ec:エクアドル,sv:エルサルバドル,gd:グレナダ,gt:グアテマラ,gy:ガイアナ,ht:ハイチ,hn:ホンジュラス,jm:ジャマイカ,mx:メキシコ,ni:ニカラグア,pa:パナマ,py:パラグアイ,pe:ペルー,kn:セントクリストファー・ネイビス,lc:セントルシア,vc:セントビンセント・グレナディーン,sr:スリナム,tt:トリニダード・トバゴ,us:アメリカ,uy:ウルグアイ,ve:ベネズエラ' },
+      { id: 'oceania', name: 'オセアニア', list: 'au:オーストラリア,fj:フィジー,ki:キリバス,mh:マーシャル諸島,fm:ミクロネシア連邦,nr:ナウル,nz:ニュージーランド,pw:パラオ,pg:パプアニューギニア,ws:サモア,sb:ソロモン諸島,to:トンガ,tv:ツバル,vu:バヌアツ' }
+    ];
+
+    const COUNTRIES = [];
+    REGION_DATA.forEach(r => {
+      r.list.split(',').forEach(s => {
+        const [id, name] = s.split(':');
+        const flagEmoji = String.fromCodePoint(...[...id.toUpperCase()].map(ch => 0x1F1E6 + ch.charCodeAt(0) - 65));
+        COUNTRIES.push({ id, name, region: r.id, flagEmoji });
+      });
+    });
+
+    // 添付描画システムのアセット定数（frame.png と 表情画像のみ使用・独自SVGや代替丸描画は一切禁止）
+    const BASE_ASSET_URL = 'https://raw.githubusercontent.com/PolandBallHub-Operator/pbpark/refs/heads/main/AI/historyai/';
+    const EYE_FILES = {
+      normal: 'eye.png',
+      anger: 'anger.png',
+      lol: 'lol.png',
+      sad: 'sad.png',
+      smile: 'smile.png'
+    };
+
+    const CANTON_ALIGN = { cn: 'left', us: 'left', au: 'left', nz: 'left', gb: 'left', tw: 'left', my: 'left', gr: 'left', cl: 'left', lr: 'left', tg: 'left', ws: 'left', to: 'left', fj: 'left', tv: 'left' };
+    function cantonAlign(countryId) {
+      return CANTON_ALIGN[countryId] || 'center';
+    }
+
+    function loadImage(url, cors = true) {
+      return new Promise(resolve => {
+        const img = new Image();
+        if (cors) img.crossOrigin = 'anonymous';
+        img.onload = () => resolve(img);
+        img.onerror = () => resolve(null);
+        img.src = url;
+      });
+    }
+
+    function analyzeComponents(img, S) {
+      const c = document.createElement('canvas');
+      c.width = c.height = S;
+      const x = c.getContext('2d');
+      x.drawImage(img, 0, 0, S, S);
+      const d = x.getImageData(0, 0, S, S).data;
+      const N = S * S;
+      const label = new Int32Array(N).fill(-1);
+      const comps = [];
+      for (let p = 0; p < N; p++) {
+        if (label[p] >= 0 || d[p * 4 + 3] >= 40) continue;
+        const id = comps.length;
+        const stack = [p];
+        label[p] = id;
+        let area = 0;
+        let edge = false;
+        while (stack.length) {
+          const q = stack.pop();
+          const px = q % S;
+          const py = (q / S) | 0;
+          area++;
+          if (!px || !py || px === S - 1 || py === S - 1) edge = true;
+          for (const n of [q - 1, q + 1, q - S, q + S]) {
+            if (n < 0 || n >= N || (n === q - 1 && px === 0) || (n === q + 1 && px === S - 1)) continue;
+            if (label[n] < 0 && d[n * 4 + 3] < 40) {
+              label[n] = id;
+              stack.push(n);
             }
+          }
         }
+        comps.push({ id, area, edge });
+      }
+      return { label, comps };
+    }
 
-        // スコア更新とターンの表示
-        function updateStatus() {
-            const score = getScore();
-            blackCountEl.innerText = score.black;
-            whiteCountEl.innerText = score.white;
+    let BALL_ASSETS = null;
 
-            if (currentPlayer === BLACK) {
-                blackArea.classList.add('current-turn');
-                whiteArea.classList.remove('current-turn');
+    async function initBallAssets() {
+      const [frame, ...eyes] = await Promise.all([
+        loadImage(BASE_ASSET_URL + 'frame.png'),
+        ...Object.values(EYE_FILES).map(f => loadImage(BASE_ASSET_URL + f))
+      ]);
+      if (!frame || !eyes[0]) {
+        throw new Error('ボール基本素材（frame.png / eye.png）を取得できませんでした');
+      }
+      const S = 220;
+      const fc = analyzeComponents(frame, S);
+      const outside = new Set(fc.comps.filter(c => c.edge).map(c => c.id));
+      const mask = document.createElement('canvas');
+      mask.width = mask.height = S;
+      const mx = mask.getContext('2d');
+      const md = mx.createImageData(S, S);
+      let x0 = S, y0 = S, x1 = 0, y1 = 0;
+      for (let p = 0; p < S * S; p++) {
+        if (!outside.has(fc.label[p])) {
+          md.data[p * 4 + 3] = 255;
+          const x = p % S;
+          const y = (p / S) | 0;
+          x0 = Math.min(x0, x);
+          x1 = Math.max(x1, x);
+          y0 = Math.min(y0, y);
+          y1 = Math.max(y1, y);
+        }
+      }
+      mx.putImageData(md, 0, 0);
+
+      const eyeCanvases = {};
+      Object.keys(EYE_FILES).forEach((k, j) => {
+        if (!eyes[j]) return;
+        const ec = analyzeComponents(eyes[j], S);
+        const holes = ec.comps
+          .filter(c => !c.edge && c.area > 80)
+          .sort((a, b) => a.area - b.area)
+          .slice(-2);
+        const ids = new Set(holes.map(c => c.id));
+        const cv = document.createElement('canvas');
+        cv.width = cv.height = S;
+        const cx = cv.getContext('2d');
+        const im = cx.createImageData(S, S);
+        for (let p = 0; p < S * S; p++) {
+          if (ids.has(ec.label[p])) {
+            im.data[p * 4] = im.data[p * 4 + 1] = im.data[p * 4 + 2] = 255;
+            im.data[p * 4 + 3] = 255;
+          }
+        }
+        cx.putImageData(im, 0, 0);
+        cx.drawImage(eyes[j], 0, 0, S, S);
+        eyeCanvases[k] = cv;
+      });
+
+      BALL_ASSETS = {
+        frame,
+        mask,
+        eyes: eyeCanvases,
+        body: { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 }
+      };
+    }
+
+    // 胴体（旗＋frame.png）のキャッシュ（目の動きや反転と分離して高速描画するため）
+    const bodySpriteCache = new Map();
+    function getBallBodySprite(country, flagImg) {
+      if (!BALL_ASSETS) return null;
+      const cacheKey = `${country.id}_${flagImg ? '1' : '0'}`;
+      if (bodySpriteCache.has(cacheKey)) return bodySpriteCache.get(cacheKey);
+
+      const S = 220;
+      const cv = document.createElement('canvas');
+      cv.width = cv.height = S;
+      const ctx = cv.getContext('2d');
+
+      const tmp = document.createElement('canvas');
+      tmp.width = tmp.height = S;
+      const t = tmp.getContext('2d');
+      const b = BALL_ASSETS.body;
+
+      if (country.id === 'pl') {
+        t.fillStyle = '#DC143C';
+        t.fillRect(b.x - 12, b.y, b.w + 24, b.h / 2);
+        t.fillStyle = '#FFFFFF';
+        t.fillRect(b.x - 12, b.y + b.h / 2, b.w + 24, b.h / 2);
+      } else if (flagImg) {
+        const fw = b.w + 24;
+        const sc = Math.max(fw / flagImg.width, b.h / flagImg.height);
+        const w = flagImg.width * sc;
+        const h = flagImg.height * sc;
+        const align = cantonAlign(country.id);
+        const dx = align === 'left' ? 0 : align === 'right' ? fw - w : (fw - w) / 2;
+        t.drawImage(flagImg, b.x - 12 + dx, b.y + (b.h - h) / 2, w, h);
+      } else {
+        t.fillStyle = '#E2E8F0';
+        t.fillRect(b.x - 12, b.y, b.w + 24, b.h);
+      }
+
+      t.globalCompositeOperation = 'destination-in';
+      t.drawImage(BALL_ASSETS.mask, 0, 0);
+      ctx.drawImage(tmp, 0, 0);
+      ctx.drawImage(BALL_ASSETS.frame, 0, 0, S, S);
+
+      if (flagImg || country.id === 'pl' || country.id === 'unknown') {
+        bodySpriteCache.set(cacheKey, cv);
+      }
+      return cv;
+    }
+
+    /**
+     * 添付システムと同一ロジックで指定キャンバスにボールを描画する
+     * options: { eyeOffsetX, eyeOffsetY, flipEyeY }
+     * - eyeOffsetX / eyeOffsetY: 本体の中心から目のパーツ（eye.png等）を少し動かすオフセット（220px基準）
+     * - flipEyeY: true の場合、表情パーツ（夜の smile など）を上下反転してすやすや寝顔にする
+     */
+    function paintBallToCanvas(canvas, country, expr = 'normal', flagImg = null, options = {}) {
+      if (!BALL_ASSETS) return;
+      const S = 220;
+      const ctx = canvas.getContext('2d');
+      canvas.width = canvas.height = S;
+      ctx.clearRect(0, 0, S, S);
+
+      // 1. 胴体（旗＋frame.png）を描画
+      const bodyCv = getBallBodySprite(country, flagImg);
+      if (bodyCv) {
+        ctx.drawImage(bodyCv, 0, 0);
+      }
+
+      // 2. 表情パーツ（eye.png 等）をオフセット・上下反転を適用して描画（ボール内側マスクでクリップ）
+      const eyeCv = BALL_ASSETS.eyes[expr] || BALL_ASSETS.eyes.normal;
+      if (eyeCv) {
+        const ox = options.eyeOffsetX || 0;
+        const oy = options.eyeOffsetY || 0;
+        const flipY = Boolean(options.flipEyeY);
+
+        const eyeLayer = document.createElement('canvas');
+        eyeLayer.width = eyeLayer.height = S;
+        const eCtx = eyeLayer.getContext('2d');
+
+        eCtx.save();
+        const centerX = BALL_ASSETS.body.x + BALL_ASSETS.body.w / 2;
+        const centerY = BALL_ASSETS.body.y + BALL_ASSETS.body.h / 2;
+        eCtx.translate(centerX + ox, centerY + oy);
+        if (flipY) {
+          // 夜の寝顔：smileを上下反転
+          eCtx.scale(1, -1);
+        }
+        eCtx.drawImage(eyeCv, -centerX, -centerY, S, S);
+        eCtx.restore();
+
+        // 枠線からはみ出さないように本体マスクでクリップ
+        eCtx.globalCompositeOperation = 'destination-in';
+        eCtx.drawImage(BALL_ASSETS.mask, 0, 0);
+
+        ctx.drawImage(eyeLayer, 0, 0);
+      }
+    }
+
+    /**
+     * ============================================================================
+     * 2. IndexedDB 国旗ストレージ（初回起動時に全国家ダウンロード＆保存）
+     * ============================================================================
+     */
+    const DB_NAME = 'CountryParkFlagsDB';
+    const DB_VERSION = 1;
+    const STORE_FLAGS = 'flags';
+    const flagImageCache = new Map();
+
+    function openFlagsDB() {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open(DB_NAME, DB_VERSION);
+        req.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains(STORE_FLAGS)) {
+            db.createObjectStore(STORE_FLAGS);
+          }
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    async function dbGetFlagBlob(db, countryId) {
+      return new Promise((resolve) => {
+        const tx = db.transaction(STORE_FLAGS, 'readonly');
+        const store = tx.objectStore(STORE_FLAGS);
+        const req = store.get(countryId);
+        req.onsuccess = () => resolve(req.result || null);
+        req.onerror = () => resolve(null);
+      });
+    }
+
+    async function dbPutFlagBlob(db, countryId, blob) {
+      return new Promise((resolve) => {
+        const tx = db.transaction(STORE_FLAGS, 'readwrite');
+        const store = tx.objectStore(STORE_FLAGS);
+        const req = store.put(blob, countryId);
+        req.onsuccess = () => resolve(true);
+        req.onerror = () => resolve(false);
+      });
+    }
+
+    function blobToImage(blob) {
+      return new Promise((resolve) => {
+        const url = URL.createObjectURL(blob);
+        const img = new Image();
+        img.onload = () => {
+          URL.revokeObjectURL(url);
+          resolve(img);
+        };
+        img.onerror = () => {
+          URL.revokeObjectURL(url);
+          resolve(null);
+        };
+        img.src = url;
+      });
+    }
+
+    async function fetchFlagBlob(country) {
+      try {
+        const res = await fetch(`https://flagcdn.com/w320/${country.id}.png`, { mode: 'cors' });
+        if (res.ok) {
+          return await res.blob();
+        }
+      } catch (_) {}
+
+      try {
+        const apiUrl = `https://ja.wikipedia.org/w/api.php?action=query&prop=pageimages&redirects=1&titles=${encodeURIComponent(country.name + 'の国旗')}&format=json&pithumbsize=320&origin=*`;
+        const r = await fetch(apiUrl);
+        if (r.ok) {
+          const data = await r.json();
+          const page = Object.values(data.query?.pages || {})[0];
+          if (page?.thumbnail?.source) {
+            const imgRes = await fetch(page.thumbnail.source, { mode: 'cors' });
+            if (imgRes.ok) return await imgRes.blob();
+          }
+        }
+      } catch (_) {}
+
+      return null;
+    }
+
+    async function syncAllFlagsWithIndexedDB(onProgress) {
+      const db = await openFlagsDB();
+      const missing = [];
+      let loadedCount = 0;
+
+      for (const c of COUNTRIES) {
+        if (c.id === 'pl') {
+          loadedCount++;
+          continue;
+        }
+        const blob = await dbGetFlagBlob(db, c.id);
+        if (blob) {
+          const img = await blobToImage(blob);
+          if (img) {
+            flagImageCache.set(c.id, img);
+            loadedCount++;
+            continue;
+          }
+        }
+        missing.push(c);
+      }
+
+      if (onProgress) onProgress(loadedCount, COUNTRIES.length);
+
+      const BATCH_SIZE = 12;
+      for (let i = 0; i < missing.length; i += BATCH_SIZE) {
+        const batch = missing.slice(i, i + BATCH_SIZE);
+        await Promise.all(batch.map(async (c) => {
+          const blob = await fetchFlagBlob(c);
+          if (blob) {
+            await dbPutFlagBlob(db, c.id, blob);
+            const img = await blobToImage(blob);
+            if (img) flagImageCache.set(c.id, img);
+          }
+          loadedCount++;
+          if (onProgress) onProgress(loadedCount, COUNTRIES.length);
+        }));
+      }
+    }
+
+    /**
+     * ============================================================================
+     * 3. PBPoint API 完全対応モジュール（フォールバック厳禁・両替10PB=20コイン＆超難関獲得）
+     * ============================================================================
+     */
+    const PB = window.PBPoints || window.PointsSystem || null;
+    let pbState = {
+      connected: false,
+      error: false,
+      points: 0
+    };
+
+    async function pbGet() {
+      if (!PB) throw new Error('PBPoint API not found');
+      const v = Number(await PB.get());
+      if (!Number.isFinite(v)) throw new Error('invalid points');
+      return v;
+    }
+
+    async function pbAdd(amount, reason) {
+      if (!PB) throw new Error('PBPoint API not found');
+      await PB.add(Math.trunc(amount), reason);
+      const latest = await pbGet();
+      updatePBDisplay(latest);
+    }
+
+    function updatePBDisplay(pts) {
+      pbState.connected = true;
+      pbState.error = false;
+      pbState.points = pts;
+
+      const valEl = document.getElementById('pb-points-value');
+      const btnEl = document.getElementById('pb-status-btn');
+      const bannerEl = document.getElementById('pb-error-banner');
+      if (valEl) {
+        valEl.textContent = `${Number(pts).toLocaleString()}`;
+        valEl.className = 'text-xs sm:text-sm font-black text-[#5F3DC4]';
+      }
+      if (btnEl) btnEl.style.backgroundColor = '#F3F0FF';
+      if (bannerEl) bannerEl.classList.add('hidden');
+      refreshPBHubUI();
+    }
+
+    function showPBError() {
+      pbState.connected = false;
+      pbState.error = true;
+
+      const valEl = document.getElementById('pb-points-value');
+      const btnEl = document.getElementById('pb-status-btn');
+      const bannerEl = document.getElementById('pb-error-banner');
+      if (valEl) {
+        valEl.textContent = 'エラー';
+        valEl.className = 'text-xs sm:text-sm font-black text-[#C92A2A]';
+      }
+      if (btnEl) btnEl.style.backgroundColor = '#FFE3E3';
+      if (bannerEl) bannerEl.classList.remove('hidden');
+      refreshPBHubUI();
+    }
+
+    async function initPBPoints() {
+      try {
+        const current = await pbGet();
+        updatePBDisplay(current);
+        if (PB && typeof PB.onChange === 'function') {
+          PB.onChange((p) => {
+            const num = Number(p);
+            if (Number.isFinite(num)) {
+              updatePBDisplay(num);
             } else {
-                whiteArea.classList.add('current-turn');
-                blackArea.classList.remove('current-turn');
+              showPBError();
             }
+          });
         }
+      } catch (e) {
+        console.error('PBPoint connection error:', e);
+        showPBError();
+      }
+    }
 
-        function getScore() {
-            let black = 0, white = 0;
-            board.forEach(row => row.forEach(val => {
-                if (val === BLACK) black++;
-                if (val === WHITE) white++;
-            }));
-            return { black, white };
+    /**
+     * ============================================================================
+     * 4. 公園アイテム定義（ゲーム内コイン価格：フード約10コイン／遊び場・しま約50コイン）
+     * ============================================================================
+     */
+    const PARK_ITEMS = [
+      // --- 世界の食事（だいたい10コイン前後。日本は🍣🍱🍡🍙、🍜は日本以外の国向け） ---
+      { id: 'onigiri',   emoji: '🍙', name: 'ふっくらおにぎり',   cat: 'food', cost: 8,  desc: 'みんなに優しい定番おにぎり。', preferCountries: ['jp'], preferRegions: ['asia'] },
+      { id: 'dango',     emoji: '🍡', name: '三色おだんご',       cat: 'food', cost: 9,  desc: 'お花見にもぴったりの和菓子。', preferCountries: ['jp'], preferRegions: ['asia'] },
+      { id: 'sushi',     emoji: '🍣', name: '特上おすし',         cat: 'food', cost: 12, desc: '日本が大好きな新鮮おすし！', preferCountries: ['jp'], preferRegions: ['asia'] },
+      { id: 'bento',     emoji: '🍱', name: 'まくのうち弁当',     cat: 'food', cost: 11, desc: '彩りゆたかな日本のお弁当。', preferCountries: ['jp', 'tw', 'kr'], preferRegions: ['asia'] },
+      { id: 'ramen',     emoji: '🍜', name: 'あつあつ中華麺',     cat: 'food', cost: 10, desc: '中国やアジア各地で人気の麺料理！（※日本以外の国が好みます）', preferCountries: ['cn', 'tw', 'hk', 'kr', 'sg', 'th', 'vn'], excludeCountries: ['jp'], preferRegions: ['asia'] },
+      { id: 'gyoza',     emoji: '🥟', name: 'こんがり餃子',       cat: 'food', cost: 10, desc: '香ばしくてジューシーな世界の点心。', preferCountries: ['cn', 'mn', 'np', 'pl'], preferRegions: ['asia', 'europe'] },
+      { id: 'pretzel',   emoji: '🥨', name: '焼きたてプレッツェル', cat: 'food', cost: 10, desc: 'ドイツや中欧で愛される香ばしいパン！', preferCountries: ['de', 'at', 'ch', 'cz'], preferRegions: ['europe'] },
+      { id: 'croissant', emoji: '🥐', name: 'バタークロワッサン', cat: 'food', cost: 10, desc: 'フランスや西欧の朝に欠かせない香り。', preferCountries: ['fr', 'be', 'lu', 'mc'], preferRegions: ['europe'] },
+      { id: 'pizza',     emoji: '🍕', name: '窯焼きマルゲリータ', cat: 'food', cost: 12, desc: 'イタリア自慢のとろ〜りチーズピザ！', preferCountries: ['it', 'sm', 'va', 'mt'], preferRegions: ['europe'] },
+      { id: 'pasta',     emoji: '🍝', name: 'トマトパスタ',       cat: 'food', cost: 10, desc: '地中海の太陽を浴びたトマトソース。', preferCountries: ['it', 'gr', 'es'], preferRegions: ['europe'] },
+      { id: 'paella',    emoji: '🥘', name: '魚介のパエリア',     cat: 'food', cost: 13, desc: 'スペインの陽気な大鍋ごはん！', preferCountries: ['es', 'pt', 'ad'], preferRegions: ['europe'] },
+      { id: 'tacos',     emoji: '🌮', name: '陽気なタコス',       cat: 'food', cost: 10, desc: 'メキシコや中南米のスパイシーなごちそう！', preferCountries: ['mx', 'gt', 'co', 'pe', 'cl'], preferRegions: ['americas'] },
+      { id: 'burger',    emoji: '🍔', name: 'ビッグバーガー',     cat: 'food', cost: 11, desc: 'アメリカや北米で人気のボリューム満点バーガー！', preferCountries: ['us', 'ca', 'au', 'nz'], preferRegions: ['americas', 'oceania'] },
+      { id: 'pancake',   emoji: '🥞', name: 'メープルパンケーキ', cat: 'food', cost: 10, desc: 'カナダの甘いメープルシロップたっぷり！', preferCountries: ['ca', 'us', 'nl', 'se'], preferRegions: ['americas', 'europe'] },
+      { id: 'curry',     emoji: '🍛', name: 'スパイスカレー',     cat: 'food', cost: 10, desc: 'インドや南アジアの香り高い本格カレー！', preferCountries: ['in', 'pk', 'bd', 'lk', 'np'], preferRegions: ['asia'] },
+      { id: 'kebab',     emoji: '🥙', name: 'ピタサンドケバブ',   cat: 'food', cost: 10, desc: 'トルコや中東の香ばしいお肉と野菜のサンド。', preferCountries: ['tr', 'lb', 'jo', 'eg', 'ae', 'sa'], preferRegions: ['asia', 'africa'] },
+      { id: 'boba',      emoji: '🧋', name: 'タピオカミルクティー', cat: 'food', cost: 9,  desc: '台湾発祥！もちもち食感の大人気ドリンク。', preferCountries: ['tw', 'th', 'my', 'id', 'ph'], preferRegions: ['asia'] },
+      { id: 'mate',      emoji: '🧉', name: '伝統マテ茶セット',   cat: 'food', cost: 9,  desc: 'アルゼンチンや南米の友情の飲み物！', preferCountries: ['ar', 'uy', 'br', 'py'], preferRegions: ['americas'] },
+      { id: 'bbq',       emoji: '🍖', name: 'ワールドBBQグリル',  cat: 'food', cost: 13, desc: 'アフリカやオセアニア・南米のみんなが大集合！', preferCountries: ['za', 'au', 'nz', 'br', 'ke', 'ng'], preferRegions: ['africa', 'oceania', 'americas'] },
+
+      // --- 遊び場・休憩所・しま（だいたい50コイン前後） ---
+      { id: 'bench',     emoji: '🪑', name: 'ぬくもり木のベンチ', cat: 'rest', cost: 35, desc: '誰でもゆっくり座れる公園の休憩所。', preferRegions: ['europe', 'asia', 'americas', 'africa', 'oceania'] },
+      { id: 'playground',emoji: '🛝', name: 'にじいろすべり台',   cat: 'rest', cost: 50, desc: 'みんなが楽しく遊べる公園の定番遊び場！', preferRegions: ['europe', 'asia', 'americas', 'africa', 'oceania'] },
+      { id: 'gazebo',    emoji: '⛺', name: '木かげの休憩所',     cat: 'rest', cost: 50, desc: '雨や日差しをやさしく防ぐ立派な休憩所！', preferRegions: ['europe', 'asia', 'americas', 'africa', 'oceania'] },
+      { id: 'parasol',   emoji: '⛱️', name: 'パラソルテーブル',   cat: 'rest', cost: 45, desc: 'おしゃべりが弾むリゾート気分の休憩所。', preferRegions: ['europe', 'americas', 'oceania'] },
+      { id: 'island',    emoji: '🏝️', name: 'ぷかぷか小島',       cat: 'rest', cost: 55, desc: '池に浮かぶ緑の「しま」！島国や海好きが集まる憩いの場。', waterOnly: true, preferCountries: ['jp', 'gb', 'id', 'ph', 'nz', 'fj', 'mv', 'is', 'cu', 'mg'], preferRegions: ['oceania'] },
+      { id: 'fountain',  emoji: '⛲', name: 'やすらぎの噴水',     cat: 'rest', cost: 50, desc: '涼やかな水音に心癒やされるみんなの憩いの場。', preferRegions: ['europe', 'africa', 'asia'] },
+
+      // --- れあ金属 ---
+      { id: 'gold_coin', emoji: '🪙', name: 'きらめく金貨の山',   cat: 'rare', cost: 80,  desc: 'ピカピカ輝く「れあ金属」！お礼コインも少し増えるかも。', bonusReward: 1.4, preferRegions: ['africa', 'americas', 'asia', 'europe', 'oceania'] },
+      { id: 'crystal',   emoji: '💎', name: '虹色クリスタル鉱石', cat: 'rare', cost: 100, desc: '大地が生んだ神秘の「れあ金属・鉱石」！', bonusReward: 1.6, preferRegions: ['africa', 'americas', 'asia', 'europe', 'oceania'] },
+      { id: 'trophy',    emoji: '🏆', name: '黄金のフレンドシップ杯', cat: 'rare', cost: 120, desc: '世界の友情をたたえる純金製の「れあ金属」トロフィー！', bonusReward: 1.8, preferRegions: ['europe', 'americas', 'asia', 'africa', 'oceania'] },
+
+      // --- 平和・自然アイテム ---
+      { id: 'sunflower', emoji: '🌻', name: 'ひまわりの花壇',     cat: 'peace', cost: 20, desc: '太陽に向かって元気に咲く明るいお花。', preferRegions: ['europe', 'africa', 'americas'] },
+      { id: 'dove',      emoji: '🕊️', name: '平和のハトの止まり木', cat: 'peace', cost: 48, desc: '白いハト🕊️が舞い降りる平和のシンボル！', bonusReward: 1.3, preferRegions: ['europe', 'asia', 'africa', 'americas', 'oceania'] },
+      { id: 'bigtree',   emoji: '🌳', name: 'やさしい大樹',       cat: 'peace', cost: 45, desc: '木漏れ日が気持ちいい公園のシンボルツリー。', preferRegions: ['africa', 'americas', 'asia', 'oceania'] }
+    ];
+
+    // 公園内の8つの配置スポット（相対座標 0.0〜1.0）
+    const PARK_SPOTS = [
+      { id: 0, name: 'ウッドデッキ左', x: 0.14, y: 0.56, type: 'deck' },
+      { id: 1, name: 'ウッドデッキ奥', x: 0.24, y: 0.45, type: 'deck' },
+      { id: 2, name: 'しばふ広場・左', x: 0.45, y: 0.52, type: 'grass' },
+      { id: 3, name: 'しばふ広場・中央', x: 0.65, y: 0.48, type: 'grass' },
+      { id: 4, name: 'しばふ広場・右', x: 0.85, y: 0.50, type: 'grass' },
+      { id: 5, name: 'こみちのそば',   x: 0.36, y: 0.76, type: 'grass' },
+      { id: 6, name: 'ひだまり休憩所', x: 0.62, y: 0.73, type: 'grass' },
+      { id: 7, name: 'いけのしまスポット', x: 0.84, y: 0.80, type: 'water' }
+    ];
+
+    /**
+     * ============================================================================
+     * 5. ゲーム状態管理（ゲーム内コイン・信頼度・スローライフ図鑑・お礼コイン）
+     * ============================================================================
+     */
+    const STORAGE_KEY = 'country_park_save_v2';
+
+    const DEFAULT_AVATAR_URL = 'data:image/svg+xml;utf8,' + encodeURIComponent(`
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+        <rect width="120" height="120" fill="#FFE8A3"/>
+        <circle cx="60" cy="64" r="36" fill="#FFFFFF" stroke="#4A321F" stroke-width="5"/>
+        <circle cx="48" cy="58" r="4.5" fill="#4A321F"/>
+        <circle cx="72" cy="58" r="4.5" fill="#4A321F"/>
+        <path d="M52 72 Q60 80 68 72" fill="none" stroke="#4A321F" stroke-width="4.5" stroke-linecap="round"/>
+        <path d="M48 28 Q60 14 72 28" fill="#6BCB77" stroke="#4A321F" stroke-width="4"/>
+      </svg>
+    `);
+
+    let gameState = {
+      initialized: false,
+      coins: 40, // 基本通貨：ゲーム内コイン
+      profile: {
+        name: 'えんちょう',
+        avatar: DEFAULT_AVATAR_URL
+      },
+      inventory: {
+        onigiri: 1,
+        sunflower: 1
+      },
+      spots: {
+        0: { itemId: 'onigiri', usesLeft: 8 },
+        5: { itemId: 'sunflower', usesLeft: 99 }
+      },
+      // 出会った国の記録 { [countryId]: { visits, trust (0..100), firstMet, lastMet, favItem } }
+      dex: {},
+      // 1日1回だけ新キャラと出会えるかの判定用 { date: 'YYYY-MM-DD', newCountryFoundToday: boolean }
+      dailyEncounter: {
+        date: '',
+        newCountryFoundToday: false
+      },
+      // 達成済みのPB難関チャレンジIDリスト
+      claimedPBChallenges: [],
+      // 未回収のお礼コイン { id, countryId, countryName, coins, x, y }
+      pendingGifts: [],
+      lastTickTime: Date.now()
+    };
+
+    function getTodayJST() {
+      return Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Tokyo' }).format(new Date());
+    }
+
+    function loadGameState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          gameState = {
+            ...gameState,
+            ...parsed,
+            coins: typeof parsed.coins === 'number' ? parsed.coins : 40,
+            profile: { ...gameState.profile, ...(parsed.profile || {}) },
+            inventory: parsed.inventory || gameState.inventory,
+            spots: parsed.spots || gameState.spots,
+            dex: parsed.dex || {},
+            dailyEncounter: parsed.dailyEncounter || { date: '', newCountryFoundToday: false },
+            claimedPBChallenges: parsed.claimedPBChallenges || [],
+            pendingGifts: parsed.pendingGifts || []
+          };
         }
+      } catch (e) {
+        console.warn('Save load failed:', e);
+      }
+    }
 
-        // 合法手を取得
-        function getValidMoves(player) {
-            const moves = [];
-            for (let r = 0; r < 8; r++) {
-                for (let c = 0; c < 8; c++) {
-                    if (canPlace(r, c, player).length > 0) {
-                        moves.push({ r, c });
-                    }
-                }
+    function saveGameState() {
+      try {
+        gameState.lastTickTime = Date.now();
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(gameState));
+      } catch (e) {
+        console.warn('Save failed:', e);
+      }
+    }
+
+    /**
+     * ============================================================================
+     * 6. Open-Meteo API 天気同期 ＆ 時間帯による空・明るさシステム
+     * ============================================================================
+     */
+    let weatherState = {
+      code: 0,
+      label: '快晴',
+      icon: '☀️',
+      temp: 20,
+      isDay: 1,
+      timePeriod: 'day', // 'morning' | 'day' | 'evening' | 'night'
+      timePeriodLabel: 'ひる',
+      lat: 35.6812,
+      lon: 139.7671,
+      synced: false
+    };
+
+    function interpretWeatherCode(code, isDay) {
+      if (code === 0) return { label: '快晴', icon: isDay ? '☀️' : '🌙', type: 'clear' };
+      if (code <= 3) return { label: '晴れ・くもり', icon: isDay ? '⛅' : '☁️', type: 'cloudy' };
+      if (code <= 48) return { label: 'きり', icon: '🌫️', type: 'cloudy' };
+      if (code <= 67 || (code >= 80 && code <= 82)) return { label: 'あめ', icon: '🌧️', type: 'rain' };
+      if ((code >= 71 && code <= 77) || (code >= 85 && code <= 86)) return { label: 'ゆき', icon: '❄️', type: 'snow' };
+      if (code >= 95) return { label: 'かみなり雨', icon: '⛈️', type: 'rain' };
+      return { label: 'おだやか', icon: isDay ? '🌤️' : '✨', type: 'clear' };
+    }
+
+    function updateTimeOfDay() {
+      const now = new Date();
+      const h = now.getHours();
+      const m = String(now.getMinutes()).padStart(2, '0');
+      const timeEl = document.getElementById('time-label');
+      if (timeEl) timeEl.textContent = `${h}:${m}`;
+
+      if (h >= 5 && h < 8) {
+        weatherState.timePeriod = 'morning';
+        weatherState.timePeriodLabel = 'あさ焼け';
+      } else if (h >= 8 && h < 16) {
+        weatherState.timePeriod = 'day';
+        weatherState.timePeriodLabel = 'ひる';
+      } else if (h >= 16 && h < 19) {
+        weatherState.timePeriod = 'evening';
+        weatherState.timePeriodLabel = 'ゆうやけ';
+      } else {
+        weatherState.timePeriod = 'night';
+        weatherState.timePeriodLabel = 'よる';
+      }
+    }
+
+    async function syncOpenMeteoWeather() {
+      updateTimeOfDay();
+      const labelEl = document.getElementById('weather-label');
+      if (labelEl) labelEl.textContent = '同期中...';
+
+      const coords = await new Promise((resolve) => {
+        if (!navigator.geolocation) return resolve({ lat: 35.6812, lon: 139.7671 });
+        const timer = setTimeout(() => resolve({ lat: 35.6812, lon: 139.7671 }), 2500);
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            clearTimeout(timer);
+            resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude });
+          },
+          () => {
+            clearTimeout(timer);
+            resolve({ lat: 35.6812, lon: 139.7671 });
+          },
+          { timeout: 2200 }
+        );
+      });
+
+      weatherState.lat = coords.lat;
+      weatherState.lon = coords.lon;
+
+      try {
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat.toFixed(4)}&longitude=${coords.lon.toFixed(4)}&current=temperature_2m,weather_code,is_day&timezone=auto`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('Open-Meteo HTTP ' + res.status);
+        const data = await res.json();
+        const cur = data.current;
+        weatherState.code = cur.weather_code;
+        weatherState.temp = Math.round(cur.temperature_2m);
+        weatherState.isDay = cur.is_day;
+        const info = interpretWeatherCode(cur.weather_code, cur.is_day);
+        weatherState.label = info.label;
+        weatherState.icon = info.icon;
+        weatherState.type = info.type;
+        weatherState.synced = true;
+      } catch (e) {
+        console.warn('Open-Meteo fetch failed, using local time sky:', e);
+        const isDayNow = weatherState.timePeriod !== 'night' ? 1 : 0;
+        const info = interpretWeatherCode(0, isDayNow);
+        weatherState.label = info.label;
+        weatherState.icon = info.icon;
+        weatherState.type = info.type;
+      }
+
+      document.getElementById('weather-icon').textContent = weatherState.icon;
+      document.getElementById('weather-label').textContent = `${weatherState.label} ${weatherState.temp}°C`;
+      document.getElementById('weather-detail-icon').textContent = weatherState.icon;
+      document.getElementById('weather-detail-title').textContent = weatherState.label;
+      document.getElementById('weather-detail-temp').textContent = `気温: ${weatherState.temp}°C / Open-Meteo API 同期済み`;
+      document.getElementById('weather-detail-time').textContent = `現在の空: ${weatherState.timePeriodLabel}`;
+    }
+
+    /**
+     * ============================================================================
+     * 7. 公園の放置進行・2年以上かかるスロー図鑑・視線追従・ゆっくり跳ね＆夜の睡眠
+     * ============================================================================
+     */
+    let parkVisitors = [];
+    let weatherParticles = [];
+
+    // ユーザーが最後にタッチした公園内の正規化座標（ボールたちがその方向をじっと見る！）
+    let lastTouchPoint = {
+      x: 0.5,
+      y: 0.6,
+      activeTimer: 0
+    };
+
+    function initWeatherParticles() {
+      weatherParticles = [];
+      for (let i = 0; i < 65; i++) {
+        weatherParticles.push({
+          x: Math.random(),
+          y: Math.random(),
+          speed: 0.4 + Math.random() * 0.6,
+          size: 2 + Math.random() * 3
+        });
+      }
+    }
+
+    /**
+     * 2年以上（730日以上）かけて全国家と出会うための出現抽選ロジック
+     * - 基本は「すでに出会ったことのある国（顔なじみ）」が好んで遊びに来る！
+     * - 未出会いの新キャラは「1日1回出会えるか出会えないか（約25〜30%の確率）」のペースで出現。
+     */
+    function pickCountryForSpot(spotId) {
+      const placed = gameState.spots[spotId];
+      const item = placed ? PARK_ITEMS.find(it => it.id === placed.itemId) : null;
+
+      const today = getTodayJST();
+      if (gameState.dailyEncounter.date !== today) {
+        gameState.dailyEncounter = { date: today, newCountryFoundToday: false };
+      }
+
+      const metIds = Object.keys(gameState.dex);
+      const unmetCountries = COUNTRIES.filter(c => !gameState.dex[c.id]);
+
+      let allowNewDiscovery = false;
+      if (metIds.length < 2) {
+        allowNewDiscovery = true;
+      } else if (!gameState.dailyEncounter.newCountryFoundToday && unmetCountries.length > 0) {
+        const itemBonus = Object.keys(gameState.spots).length * 0.015;
+        if (Math.random() < (0.24 + itemBonus)) {
+          allowNewDiscovery = true;
+        }
+      }
+
+      if (allowNewDiscovery && unmetCountries.length > 0) {
+        const newPool = unmetCountries.map(c => {
+          let w = 1;
+          if (item) {
+            if (item.excludeCountries && item.excludeCountries.includes(c.id)) return { country: c, weight: 0 };
+            if (item.preferCountries && item.preferCountries.includes(c.id)) w += 10;
+            if (item.preferRegions && item.preferRegions.includes(c.region)) w += 3;
+          }
+          return { country: c, weight: w };
+        }).filter(e => e.weight > 0);
+
+        if (newPool.length > 0) {
+          const totalW = newPool.reduce((s, e) => s + e.weight, 0);
+          let r = Math.random() * totalW;
+          for (const entry of newPool) {
+            r -= entry.weight;
+            if (r <= 0) {
+              gameState.dailyEncounter.newCountryFoundToday = true;
+              return entry.country;
             }
-            return moves;
+          }
         }
+      }
 
-        // 指定した場所に置けるかチェックし、裏返せる方向を返す
-        function canPlace(r, c, player) {
-            if (board[r][c] !== EMPTY) return [];
-            const opponent = player === BLACK ? WHITE : BLACK;
-            const directions = [
-                [-1,-1], [-1,0], [-1,1],
-                [0,-1],          [0,1],
-                [1,-1],  [1,0],  [1,1]
-            ];
-            let flippable = [];
-
-            for (const [dr, dc] of directions) {
-                let temp = [];
-                let currR = r + dr;
-                let currC = c + dc;
-
-                while (currR >= 0 && currR < 8 && currC >= 0 && currC < 8 && board[currR][currC] === opponent) {
-                    temp.push({ r: currR, c: currC });
-                    currR += dr;
-                    currC += dc;
-                }
-
-                if (temp.length > 0 && currR >= 0 && currR < 8 && currC >= 0 && currC < 8 && board[currR][currC] === player) {
-                    flippable = flippable.concat(temp);
-                }
-            }
-            return flippable;
+      // 基本は「出会ったことのある国（顔なじみ）」から好んで遊びに来る
+      const metCountries = COUNTRIES.filter(c => Boolean(gameState.dex[c.id]));
+      const familiarPool = (metCountries.length > 0 ? metCountries : COUNTRIES).map(c => {
+        const rec = gameState.dex[c.id];
+        let weight = 5 + (rec ? (rec.trust * 0.25 + rec.visits * 0.5) : 1);
+        if (item) {
+          if (item.excludeCountries && item.excludeCountries.includes(c.id)) return { country: c, weight: 0 };
+          if (item.preferCountries && item.preferCountries.includes(c.id)) weight += 12;
+          if (item.preferRegions && item.preferRegions.includes(c.region)) weight += 4;
         }
+        return { country: c, weight };
+      }).filter(e => e.weight > 0);
 
-        // 手を打つ
-        function handleMove(r, c) {
-            const flippable = canPlace(r, c, currentPlayer);
-            if (flippable.length === 0) return;
+      const finalPool = familiarPool.length > 0 ? familiarPool : [{ country: COUNTRIES[0], weight: 1 }];
+      const totalWeight = finalPool.reduce((s, e) => s + e.weight, 0);
+      let rand = Math.random() * totalWeight;
+      for (const entry of finalPool) {
+        rand -= entry.weight;
+        if (rand <= 0) return entry.country;
+      }
+      return finalPool[0].country;
+    }
 
-            board[r][c] = currentPlayer;
-            flippable.forEach(pos => {
-                board[pos.r][pos.c] = currentPlayer;
+    function recordCountryVisit(country, itemName = null) {
+      const now = Date.now();
+      if (!gameState.dex[country.id]) {
+        gameState.dex[country.id] = {
+          visits: 1,
+          trust: 15,
+          firstMet: now,
+          lastMet: now,
+          favItem: itemName || 'おさんぽ'
+        };
+        showToast(`✨ 珍しいお客さん！「${country.name}」と初めて出会ったよ！`);
+      } else {
+        const rec = gameState.dex[country.id];
+        rec.visits += 1;
+        rec.trust = Math.min(100, (rec.trust || 10) + 3);
+        rec.lastMet = now;
+        if (itemName) rec.favItem = itemName;
+      }
+      updateDexCounterUI();
+    }
+
+    function spawnVisitorAtPark(instant = false) {
+      if (parkVisitors.length >= 7) return;
+
+      const activeSpotIds = Object.keys(gameState.spots).map(Number);
+      let chosenSpotId = null;
+      if (activeSpotIds.length > 0 && Math.random() < 0.85) {
+        chosenSpotId = activeSpotIds[Math.floor(Math.random() * activeSpotIds.length)];
+      }
+
+      const country = pickCountryForSpot(chosenSpotId);
+      if (parkVisitors.some(v => v.country.id === country.id)) return;
+
+      const spot = chosenSpotId !== null ? PARK_SPOTS[chosenSpotId] : null;
+      const item = spot && gameState.spots[chosenSpotId]
+        ? PARK_ITEMS.find(it => it.id === gameState.spots[chosenSpotId].itemId)
+        : null;
+
+      recordCountryVisit(country, item ? item.name : null);
+
+      const startX = Math.random() < 0.5 ? 0.07 : 0.93;
+      const startY = 0.55 + Math.random() * 0.25;
+      const destX = spot ? Math.min(0.90, Math.max(0.10, spot.x + (Math.random() - 0.5) * 0.1)) : (0.25 + Math.random() * 0.6);
+      const destY = spot ? Math.min(0.87, Math.max(0.46, spot.y + 0.04)) : (0.48 + Math.random() * 0.35);
+
+      // 夜なら高確率（約78%）ですやすや眠っている状態にする
+      const isNight = weatherState.timePeriod === 'night';
+      const startsSleeping = isNight && Math.random() < 0.78;
+
+      const peacefulExprs = ['normal', 'smile', 'lol'];
+      const expr = startsSleeping
+        ? 'smile'
+        : (item ? (Math.random() < 0.65 ? 'lol' : 'smile') : peacefulExprs[Math.floor(Math.random() * peacefulExprs.length)]);
+
+      parkVisitors.push({
+        uid: crypto.randomUUID(),
+        country,
+        expr,
+        isSleeping: startsSleeping,
+        isLeavingAngry: false,
+        x: instant ? destX : startX,
+        y: instant ? destY : startY,
+        startX: instant ? destX : startX,
+        startY: instant ? destY : startY,
+        targetX: destX,
+        targetY: destY,
+        jumpProgress: 0,
+        isJumping: !instant && !startsSleeping,
+        waitTimer: 1.5 + Math.random() * 2.5,
+        stayTimer: 35 + Math.random() * 40,
+        targetSpotId: chosenSpotId,
+        bubble: '',
+        bubbleTimer: 0,
+        nameTagTimer: 0,
+        eyeOffsetX: 0,
+        eyeOffsetY: 0,
+        idleLookX: 0,
+        idleLookY: 0,
+        idleLookTimer: 1 + Math.random() * 3,
+        scaleX: 1,
+        scaleY: 1
+      });
+
+      updateVisitorBadgeUI();
+      saveGameState();
+    }
+
+    function createGiftFromVisitor(visitor) {
+      if (gameState.pendingGifts.length >= 12) return;
+      const spot = visitor.targetSpotId !== null ? PARK_SPOTS[visitor.targetSpotId] : null;
+      const item = spot && gameState.spots[visitor.targetSpotId]
+        ? PARK_ITEMS.find(it => it.id === gameState.spots[visitor.targetSpotId].itemId)
+        : null;
+
+      const baseCoins = 2 + Math.floor(Math.random() * 4);
+      const mult = item && item.bonusReward ? item.bonusReward : 1.0;
+      const coins = Math.max(2, Math.round(baseCoins * mult));
+
+      gameState.pendingGifts.push({
+        id: crypto.randomUUID(),
+        countryId: visitor.country.id,
+        countryName: visitor.country.name,
+        coins,
+        x: Math.min(0.89, Math.max(0.11, visitor.x)),
+        y: Math.min(0.87, Math.max(0.46, visitor.y))
+      });
+
+      if (item && item.cat === 'food' && visitor.targetSpotId !== null && gameState.spots[visitor.targetSpotId]) {
+        gameState.spots[visitor.targetSpotId].usesLeft -= 1;
+        if (gameState.spots[visitor.targetSpotId].usesLeft <= 0) {
+          delete gameState.spots[visitor.targetSpotId];
+          showToast(`🍽️ ${item.name} をみんなでおいしく食べきりました！`);
+        }
+      }
+
+      updateGiftsBadgeUI();
+      saveGameState();
+    }
+
+    function processOfflineProgress() {
+      const now = Date.now();
+      const elapsedSec = Math.min(8 * 3600, Math.max(0, (now - (gameState.lastTickTime || now)) / 1000));
+      const offlineCycles = Math.min(10, Math.floor(elapsedSec / 240));
+      const activeSpots = Object.keys(gameState.spots).map(Number);
+
+      if (offlineCycles > 0 && activeSpots.length > 0) {
+        for (let i = 0; i < offlineCycles; i++) {
+          const spotId = activeSpots[Math.floor(Math.random() * activeSpots.length)];
+          const c = pickCountryForSpot(spotId);
+          const item = PARK_ITEMS.find(it => it.id === gameState.spots[spotId]?.itemId);
+          recordCountryVisit(c, item ? item.name : null);
+
+          if (gameState.pendingGifts.length < 12) {
+            const spot = PARK_SPOTS[spotId];
+            const coins = Math.max(2, Math.round((2 + Math.random() * 4) * (item?.bonusReward || 1)));
+            gameState.pendingGifts.push({
+              id: crypto.randomUUID(),
+              countryId: c.id,
+              countryName: c.name,
+              coins,
+              x: Math.min(0.89, Math.max(0.11, spot.x + (Math.random() - 0.5) * 0.08)),
+              y: Math.min(0.87, Math.max(0.48, spot.y + 0.03))
             });
+          }
+        }
+        showToast(`🌿 留守のあいだに顔なじみたちが遊びに来たよ！`);
+      }
 
-            // ターン交代
-            currentPlayer = currentPlayer === BLACK ? WHITE : BLACK;
-            
-            // 相手が打てない場合
-            if (getValidMoves(currentPlayer).length === 0) {
-                currentPlayer = currentPlayer === BLACK ? WHITE : BLACK;
-                // 両者打てないなら終了
-                if (getValidMoves(currentPlayer).length === 0) {
-                    endGame();
-                    return;
-                }
+      const initialCount = activeSpots.length > 0 ? Math.min(4, activeSpots.length + 2) : 2;
+      for (let i = 0; i < initialCount; i++) {
+        spawnVisitorAtPark(true);
+      }
+      updateGiftsBadgeUI();
+      saveGameState();
+    }
+
+    /**
+     * ============================================================================
+     * 8. 公園メインキャンバスのイラスト＆アニメーション描画
+     * ============================================================================
+     */
+    let spawnAccumulator = 0;
+    let lastFrameTime = performance.now();
+
+    function getSkyPalette() {
+      const p = weatherState.timePeriod;
+      const isRainOrCloud = weatherState.type === 'rain' || weatherState.type === 'cloudy';
+      if (p === 'morning') {
+        return isRainOrCloud
+          ? { top: '#8FA3B8', bottom: '#D6CFC7', ambient: 'rgba(255, 220, 180, 0.08)', isNight: false }
+          : { top: '#74B9FF', bottom: '#FFEAA7', ambient: 'rgba(255, 210, 140, 0.12)', isNight: false };
+      }
+      if (p === 'evening') {
+        return isRainOrCloud
+          ? { top: '#6D6875', bottom: '#B5838D', ambient: 'rgba(255, 140, 90, 0.14)', isNight: false }
+          : { top: '#5F6CAF', bottom: '#FF9A76', ambient: 'rgba(255, 130, 70, 0.18)', isNight: false };
+      }
+      if (p === 'night') {
+        return {
+          top: '#16213E',
+          bottom: '#2C3E66',
+          ambient: 'rgba(15, 23, 52, 0.34)',
+          isNight: true
+        };
+      }
+      return isRainOrCloud
+        ? { top: '#7F9EB2', bottom: '#CFD8DC', ambient: 'rgba(100, 120, 140, 0.10)', isNight: false }
+        : { top: '#6EC6FF', bottom: '#D4F1FF', ambient: 'rgba(255, 255, 255, 0)', isNight: false };
+    }
+
+    function drawRoundedRectStroke(ctx, x, y, w, h, r, fill, stroke = '#4A321F', lw = 3) {
+      ctx.beginPath();
+      ctx.roundRect(x, y, w, h, r);
+      if (fill) {
+        ctx.fillStyle = fill;
+        ctx.fill();
+      }
+      if (stroke && lw > 0) {
+        ctx.lineWidth = lw;
+        ctx.strokeStyle = stroke;
+        ctx.stroke();
+      }
+    }
+
+    const visitorRenderCanvas = document.createElement('canvas');
+    visitorRenderCanvas.width = 220;
+    visitorRenderCanvas.height = 220;
+
+    function renderParkFrame(now) {
+      const canvas = document.getElementById('park-canvas');
+      if (!canvas) return;
+      const dt = Math.min(0.05, (now - lastFrameTime) / 1000);
+      lastFrameTime = now;
+
+      if (lastTouchPoint.activeTimer > 0) {
+        lastTouchPoint.activeTimer = Math.max(0, lastTouchPoint.activeTimer - dt);
+      }
+
+      const rect = canvas.getBoundingClientRect();
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const targetW = Math.max(300, Math.floor(rect.width * dpr));
+      const targetH = Math.max(300, Math.floor(rect.height * dpr));
+      if (canvas.width !== targetW || canvas.height !== targetH) {
+        canvas.width = targetW;
+        canvas.height = targetH;
+      }
+
+      const ctx = canvas.getContext('2d');
+      const W = canvas.width;
+      const H = canvas.height;
+      const skyH = H * 0.32;
+
+      ctx.save();
+
+      // 1. 空のグラデーション描画
+      const sky = getSkyPalette();
+      const skyGrad = ctx.createLinearGradient(0, 0, 0, skyH);
+      skyGrad.addColorStop(0, sky.top);
+      skyGrad.addColorStop(1, sky.bottom);
+      ctx.fillStyle = skyGrad;
+      ctx.fillRect(0, 0, W, skyH);
+
+      // 太陽・月・星
+      if (sky.isNight) {
+        ctx.fillStyle = '#FFF9DB';
+        for (let i = 0; i < 18; i++) {
+          const sx = ((i * 197) % 100) / 100 * W;
+          const sy = ((i * 83) % 100) / 100 * (skyH * 0.72);
+          const twinkle = 1.5 + Math.sin(now * 0.004 + i) * 0.8;
+          ctx.beginPath();
+          ctx.arc(sx, sy, twinkle * dpr, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.fillStyle = '#FFE066';
+        ctx.beginPath();
+        ctx.arc(W * 0.82, skyH * 0.28, 18 * dpr, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.lineWidth = 3 * dpr;
+        ctx.strokeStyle = '#4A321F';
+        ctx.stroke();
+      } else if (weatherState.type !== 'rain') {
+        ctx.fillStyle = '#FFD43B';
+        ctx.beginPath();
+        ctx.arc(W * 0.82, skyH * 0.28, 20 * dpr, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.lineWidth = 3 * dpr;
+        ctx.strokeStyle = '#4A321F';
+        ctx.stroke();
+      }
+
+      // 流れる雲
+      const cloudOffset = (now * 0.008) % (W + 200 * dpr);
+      const drawCloud = (cx, cy, scale) => {
+        ctx.fillStyle = weatherState.type === 'rain' ? '#B0BEC5' : '#FFFFFF';
+        ctx.strokeStyle = '#4A321F';
+        ctx.lineWidth = 2.5 * dpr;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 16 * scale * dpr, 0, Math.PI * 2);
+        ctx.arc(cx + 15 * scale * dpr, cy - 5 * scale * dpr, 20 * scale * dpr, 0, Math.PI * 2);
+        ctx.arc(cx + 32 * scale * dpr, cy, 15 * scale * dpr, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      };
+      drawCloud((cloudOffset - 100 * dpr) % (W + 140 * dpr), skyH * 0.25, 0.9);
+      drawCloud(((cloudOffset * 0.7) + W * 0.45) % (W + 140 * dpr), skyH * 0.42, 0.75);
+
+      // 2. 遠くの可愛いおうち・レンガ塀
+      const wallTop = skyH - 12 * dpr;
+      const lawnTop = H * 0.40;
+
+      drawRoundedRectStroke(ctx, W * 0.42, skyH - 58 * dpr, 90 * dpr, 55 * dpr, 6 * dpr, '#F3D5B5', '#4A321F', 3 * dpr);
+      ctx.beginPath();
+      ctx.moveTo(W * 0.40, skyH - 55 * dpr);
+      ctx.lineTo(W * 0.42 + 45 * dpr, skyH - 84 * dpr);
+      ctx.lineTo(W * 0.42 + 96 * dpr, skyH - 55 * dpr);
+      ctx.closePath();
+      ctx.fillStyle = '#E05A47';
+      ctx.fill();
+      ctx.lineWidth = 3 * dpr;
+      ctx.strokeStyle = '#4A321F';
+      ctx.stroke();
+
+      ctx.fillStyle = '#E6CCB2';
+      ctx.fillRect(0, wallTop, W, lawnTop - wallTop);
+      ctx.strokeStyle = '#4A321F';
+      ctx.lineWidth = 3 * dpr;
+      ctx.beginPath();
+      ctx.moveTo(0, wallTop);
+      ctx.lineTo(W, wallTop);
+      ctx.stroke();
+
+      const brickY = lawnTop - 22 * dpr;
+      ctx.fillStyle = '#D48C5E';
+      ctx.fillRect(0, brickY, W, 22 * dpr);
+      ctx.beginPath();
+      ctx.moveTo(0, brickY);
+      ctx.lineTo(W, brickY);
+      ctx.stroke();
+
+      const drawBush = (bx, by, r) => {
+        ctx.fillStyle = '#6BCB77';
+        ctx.beginPath();
+        ctx.arc(bx, by, r, Math.PI, 0);
+        ctx.fill();
+        ctx.lineWidth = 3 * dpr;
+        ctx.strokeStyle = '#4A321F';
+        ctx.stroke();
+      };
+      drawBush(W * 0.34, lawnTop, 26 * dpr);
+      drawBush(W * 0.72, lawnTop, 30 * dpr);
+      drawBush(W * 0.92, lawnTop, 24 * dpr);
+
+      // 3. 芝生エリア全体
+      ctx.fillStyle = '#A8E070';
+      ctx.fillRect(0, lawnTop, W, H - lawnTop);
+      ctx.beginPath();
+      ctx.moveTo(0, lawnTop);
+      ctx.lineTo(W, lawnTop);
+      ctx.lineWidth = 3.5 * dpr;
+      ctx.strokeStyle = '#4A321F';
+      ctx.stroke();
+
+      // 芝生の草模様
+      ctx.strokeStyle = '#6EA843';
+      ctx.lineWidth = 2 * dpr;
+      [[0.42, 0.56], [0.55, 0.45], [0.75, 0.58], [0.50, 0.85], [0.22, 0.88]].forEach(([gx, gy]) => {
+        const x = W * gx, y = H * gy;
+        ctx.beginPath();
+        ctx.moveTo(x - 4 * dpr, y);
+        ctx.lineTo(x - 6 * dpr, y - 6 * dpr);
+        ctx.moveTo(x, y);
+        ctx.lineTo(x, y - 8 * dpr);
+        ctx.moveTo(x + 4 * dpr, y);
+        ctx.lineTo(x + 6 * dpr, y - 6 * dpr);
+        ctx.stroke();
+      });
+
+      // 飛び石の小道
+      [[0.33, 0.68], [0.43, 0.73], [0.53, 0.78]].forEach(([sx, sy]) => {
+        drawRoundedRectStroke(ctx, W * sx - 22 * dpr, H * sy - 9 * dpr, 44 * dpr, 18 * dpr, 8 * dpr, '#D8D4CE', '#4A321F', 2.5 * dpr);
+      });
+
+      // 右下の池
+      ctx.beginPath();
+      ctx.ellipse(W * 0.85, H * 0.82, W * 0.14, H * 0.11, -0.15, 0, Math.PI * 2);
+      ctx.fillStyle = '#74C0FC';
+      ctx.fill();
+      ctx.lineWidth = 3.5 * dpr;
+      ctx.strokeStyle = '#4A321F';
+      ctx.stroke();
+
+      // 4. 左側のウッドデッキ
+      ctx.beginPath();
+      ctx.moveTo(0, H * 0.36);
+      ctx.lineTo(W * 0.30, H * 0.42);
+      ctx.lineTo(W * 0.30, H * 0.66);
+      ctx.lineTo(0, H * 0.80);
+      ctx.closePath();
+      ctx.fillStyle = '#C98A54';
+      ctx.fill();
+      ctx.lineWidth = 3.5 * dpr;
+      ctx.strokeStyle = '#4A321F';
+      ctx.stroke();
+
+      ctx.lineWidth = 2 * dpr;
+      ctx.strokeStyle = '#8C582C';
+      for (let i = 1; i <= 4; i++) {
+        const t = i / 5;
+        ctx.beginPath();
+        ctx.moveTo(0, H * (0.36 + t * 0.44));
+        ctx.lineTo(W * 0.30, H * (0.42 + t * 0.24));
+        ctx.stroke();
+      }
+
+      // 街灯
+      const lampX = W * 0.68;
+      const lampY = H * 0.41;
+      ctx.fillStyle = '#4A321F';
+      ctx.fillRect(lampX - 2.5 * dpr, lampY - 34 * dpr, 5 * dpr, 34 * dpr);
+      ctx.beginPath();
+      ctx.arc(lampX, lampY - 38 * dpr, 8 * dpr, 0, Math.PI * 2);
+      ctx.fillStyle = sky.isNight ? '#FFE066' : '#FFF9DB';
+      ctx.fill();
+      ctx.lineWidth = 2.5 * dpr;
+      ctx.strokeStyle = '#4A321F';
+      ctx.stroke();
+      if (sky.isNight) {
+        const glow = ctx.createRadialGradient(lampX, lampY - 38 * dpr, 2 * dpr, lampX, lampY - 38 * dpr, 54 * dpr);
+        glow.addColorStop(0, 'rgba(255, 230, 102, 0.58)');
+        glow.addColorStop(1, 'rgba(255, 230, 102, 0)');
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(lampX, lampY - 38 * dpr, 54 * dpr, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // 5. 配置スポット ＆ 配置済みアイテムの描画
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      PARK_SPOTS.forEach((spot) => {
+        const sx = W * spot.x;
+        const sy = H * spot.y;
+        const placed = gameState.spots[spot.id];
+
+        if (!placed) {
+          ctx.save();
+          ctx.beginPath();
+          ctx.ellipse(sx, sy, 22 * dpr, 13 * dpr, 0, 0, Math.PI * 2);
+          ctx.fillStyle = spot.type === 'water' ? 'rgba(255,255,255,0.35)' : 'rgba(255,253,248,0.45)';
+          ctx.fill();
+          ctx.setLineDash([4 * dpr, 4 * dpr]);
+          ctx.lineWidth = 2 * dpr;
+          ctx.strokeStyle = '#4A321F';
+          ctx.stroke();
+          ctx.font = `900 ${12 * dpr}px "Zen Maru Gothic", sans-serif`;
+          ctx.fillStyle = '#4A321F';
+          ctx.fillText('＋', sx, sy);
+          ctx.restore();
+        } else {
+          const item = PARK_ITEMS.find(it => it.id === placed.itemId);
+          if (item) {
+            ctx.fillStyle = 'rgba(74, 50, 31, 0.22)';
+            ctx.beginPath();
+            ctx.ellipse(sx, sy + 12 * dpr, 24 * dpr, 10 * dpr, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            drawRoundedRectStroke(ctx, sx - 25 * dpr, sy - 24 * dpr, 50 * dpr, 44 * dpr, 14 * dpr, '#FFFDF8', '#4A321F', 3 * dpr);
+
+            ctx.font = `${28 * dpr}px system-ui, sans-serif`;
+            ctx.fillText(item.emoji, sx, sy - 2 * dpr);
+
+            if (item.cat === 'food') {
+              ctx.font = `900 ${9 * dpr}px "Zen Maru Gothic", sans-serif`;
+              ctx.fillStyle = '#4A321F';
+              ctx.fillText(`残${placed.usesLeft}`, sx, sy + 15 * dpr);
             }
+          }
+        }
+      });
 
-            renderBoard();
-            updateStatus();
+      // 6. ゆっくり跳ねるボールたちの更新 ＆ 視線追従 ＆ 夜の睡眠描画
+      spawnAccumulator += dt;
+      if (spawnAccumulator >= 8.0) {
+        spawnAccumulator = 0;
+        if (parkVisitors.length < 7 && Math.random() < 0.7) {
+          spawnVisitorAtPark(false);
+        }
+      }
+
+      const toRemove = [];
+      parkVisitors.forEach((v) => {
+        v.stayTimer -= dt;
+        if (v.bubbleTimer > 0) v.bubbleTimer -= dt;
+        if (v.nameTagTimer > 0) v.nameTagTimer -= dt;
+
+        // 夜になったら起きている子も自然と眠くなって寝ることがある
+        if (sky.isNight && !v.isSleeping && !v.isLeavingAngry && !v.isJumping && Math.random() < dt * 0.06) {
+          v.isSleeping = true;
+          v.expr = 'smile';
+        }
+        // 朝になったら自然と目を覚ます
+        if (!sky.isNight && v.isSleeping) {
+          v.isSleeping = false;
+          v.expr = 'normal';
         }
 
-        function endGame() {
-            renderBoard();
-            updateStatus();
-            const score = getScore();
-            if (score.black > score.white) {
-                winnerText.innerText = "BLACKの勝利！";
-            } else if (score.white > score.black) {
-                winnerText.innerText = "WHITEの勝利！";
+        // 目の動き（eye.png が本体を中心に少し動く・タッチした方をみる感じ）
+        if (v.isSleeping) {
+          v.eyeOffsetX += (0 - v.eyeOffsetX) * Math.min(1, dt * 5);
+          v.eyeOffsetY += (Math.sin(now * 0.002) * 1.5 - v.eyeOffsetY) * Math.min(1, dt * 5);
+        } else if (lastTouchPoint.activeTimer > 0) {
+          const dx = lastTouchPoint.x - v.x;
+          const dy = lastTouchPoint.y - v.y;
+          const dist = Math.hypot(dx, dy) || 1;
+          const clamped = Math.min(1, dist * 3.2);
+          const targetOx = (dx / dist) * 8.5 * clamped;
+          const targetOy = (dy / dist) * 6.5 * clamped;
+          v.eyeOffsetX += (targetOx - v.eyeOffsetX) * Math.min(1, dt * 8);
+          v.eyeOffsetY += (targetOy - v.eyeOffsetY) * Math.min(1, dt * 8);
+        } else {
+          v.idleLookTimer -= dt;
+          if (v.idleLookTimer <= 0) {
+            v.idleLookTimer = 2.0 + Math.random() * 3.5;
+            v.idleLookX = (Math.random() - 0.5) * 9;
+            v.idleLookY = (Math.random() - 0.5) * 6;
+          }
+          v.eyeOffsetX += (v.idleLookX - v.eyeOffsetX) * Math.min(1, dt * 3);
+          v.eyeOffsetY += (v.idleLookY - v.eyeOffsetY) * Math.min(1, dt * 3);
+        }
+
+        // 移動アニメーション（ゆっくり跳ねる感じ）
+        if (v.isSleeping) {
+          const breath = Math.sin(now * 0.0025 + v.x * 10) * 0.025;
+          v.scaleX = 1 + breath;
+          v.scaleY = 1 - breath;
+        } else if (v.isJumping) {
+          const jumpSpeed = v.isLeavingAngry ? 1.45 : 0.85;
+          v.jumpProgress += dt * jumpSpeed;
+          if (v.jumpProgress >= 1) {
+            v.jumpProgress = 0;
+            v.isJumping = false;
+            v.x = v.targetX;
+            v.y = v.targetY;
+            v.scaleX = 1.13;
+            v.scaleY = 0.88;
+            v.waitTimer = v.isLeavingAngry ? 0.25 : (2.2 + Math.random() * 3.2);
+
+            if (v.isLeavingAngry && (v.x <= 0.04 || v.x >= 0.96)) {
+              toRemove.push(v.uid);
+            }
+          } else {
+            const t = v.jumpProgress;
+            v.x = v.startX + (v.targetX - v.startX) * t;
+            v.y = v.startY + (v.targetY - v.startY) * t;
+            v.scaleX = 0.94;
+            v.scaleY = 1.07;
+          }
+        } else {
+          v.scaleX += (1 - v.scaleX) * Math.min(1, dt * 7);
+          v.scaleY += (1 - v.scaleY) * Math.min(1, dt * 7);
+
+          v.waitTimer -= dt;
+          if (v.waitTimer <= 0) {
+            if (v.isLeavingAngry) {
+              const exitX = v.x < 0.5 ? 0.02 : 0.98;
+              v.startX = v.x;
+              v.startY = v.y;
+              v.targetX = v.x + (exitX - v.x) * 0.55;
+              v.targetY = v.y;
+              v.jumpProgress = 0;
+              v.isJumping = true;
             } else {
-                winnerText.innerText = "引き分け！";
+              const spot = v.targetSpotId !== null ? PARK_SPOTS[v.targetSpotId] : null;
+              const anchorX = spot ? spot.x : 0.52;
+              const anchorY = spot ? spot.y + 0.04 : 0.65;
+              v.startX = v.x;
+              v.startY = v.y;
+              v.targetX = Math.min(0.90, Math.max(0.10, anchorX + (Math.random() - 0.5) * 0.16));
+              v.targetY = Math.min(0.88, Math.max(0.45, anchorY + (Math.random() - 0.5) * 0.12));
+              v.jumpProgress = 0;
+              v.isJumping = true;
             }
-            finalScoreText.innerText = `BLACK: ${score.black} - WHITE: ${score.white}`;
-            messageBox.style.display = 'block';
-            overlay.style.display = 'block';
+          }
         }
 
-        function closeModal() {
-            messageBox.style.display = 'none';
-            overlay.style.display = 'none';
-            if (getValidMoves(currentPlayer).length === 0 && getValidMoves(currentPlayer === BLACK ? WHITE : BLACK).length === 0) {
-                initGame();
+        if (!v.isLeavingAngry && v.stayTimer <= 0) {
+          createGiftFromVisitor(v);
+          toRemove.push(v.uid);
+        }
+      });
+
+      if (toRemove.length > 0) {
+        parkVisitors = parkVisitors.filter(v => !toRemove.includes(v.uid));
+        updateVisitorBadgeUI();
+      }
+
+      // Y座標ソート描画（ボールは大きめサイズ！）
+      const sortedVisitors = [...parkVisitors].sort((a, b) => a.y - b.y);
+      const ballDrawSize = Math.min(92 * dpr, Math.max(66 * dpr, W * 0.122));
+
+      sortedVisitors.forEach((v) => {
+        const bx = W * v.x;
+        const baseY = H * v.y;
+        const jumpHeight = v.isJumping ? Math.sin(v.jumpProgress * Math.PI) * 32 * dpr : 0;
+        const by = baseY - jumpHeight;
+
+        // 地面の影
+        const shadowScale = 1 - (jumpHeight / (75 * dpr));
+        ctx.fillStyle = 'rgba(74, 50, 31, 0.25)';
+        ctx.beginPath();
+        ctx.ellipse(bx, baseY + ballDrawSize * 0.37, ballDrawSize * 0.39 * shadowScale, ballDrawSize * 0.14 * shadowScale, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // ボール本体描画（目のオフセット ＆ 夜のsmile上下反転対応）
+        paintBallToCanvas(
+          visitorRenderCanvas,
+          v.country,
+          v.isSleeping ? 'smile' : v.expr,
+          flagImageCache.get(v.country.id) || null,
+          {
+            eyeOffsetX: v.eyeOffsetX,
+            eyeOffsetY: v.eyeOffsetY,
+            flipEyeY: v.isSleeping
+          }
+        );
+
+        ctx.save();
+        ctx.translate(bx, by);
+        ctx.scale(v.scaleX, v.scaleY);
+        ctx.drawImage(visitorRenderCanvas, -ballDrawSize / 2, -ballDrawSize / 2, ballDrawSize, ballDrawSize);
+        ctx.restore();
+
+        // ボールの下に国名は出さない！タップした時だけ頭上に表示する
+        if (v.nameTagTimer > 0) {
+          const rec = gameState.dex[v.country.id];
+          const trustVal = rec ? (rec.trust || 15) : 15;
+          const labelText = `${v.country.name} ❤️${trustVal}`;
+          ctx.font = `900 ${12 * dpr}px "Zen Maru Gothic", sans-serif`;
+          const textW = ctx.measureText(labelText).width + 18 * dpr;
+          const tagY = by - ballDrawSize * 0.64;
+          drawRoundedRectStroke(ctx, bx - textW / 2, tagY - 14 * dpr, textW, 24 * dpr, 12 * dpr, '#FFFDF8', '#4A321F', 2.5 * dpr);
+          ctx.fillStyle = '#3D2817';
+          ctx.fillText(labelText, bx, tagY - 2 * dpr);
+        } else if (v.isSleeping) {
+          const zzzFloat = Math.sin(now * 0.003 + v.x * 5) * 4 * dpr;
+          const zzzY = by - ballDrawSize * 0.56 + zzzFloat;
+          ctx.font = `900 ${13 * dpr}px "Zen Maru Gothic", sans-serif`;
+          ctx.fillStyle = '#FFE066';
+          ctx.strokeStyle = '#4A321F';
+          ctx.lineWidth = 3 * dpr;
+          ctx.strokeText('💤 Zzz', bx + ballDrawSize * 0.25, zzzY);
+          ctx.fillText('💤 Zzz', bx + ballDrawSize * 0.25, zzzY);
+        } else if (v.bubbleTimer > 0 && v.bubble) {
+          const bubY = by - ballDrawSize * 0.60;
+          drawRoundedRectStroke(ctx, bx - 16 * dpr, bubY - 14 * dpr, 32 * dpr, 24 * dpr, 10 * dpr, '#FFFDF8', '#4A321F', 2.2 * dpr);
+          ctx.font = `${14 * dpr}px system-ui, sans-serif`;
+          ctx.fillText(v.bubble, bx, bubY - 2 * dpr);
+        }
+      });
+
+      // 7. お礼のゲーム内コイン袋の描画
+      gameState.pendingGifts.forEach((g, idx) => {
+        const gx = W * g.x;
+        const gy = H * g.y + Math.sin(now * 0.006 + idx) * 3 * dpr;
+        drawRoundedRectStroke(ctx, gx - 21 * dpr, gy - 19 * dpr, 42 * dpr, 38 * dpr, 12 * dpr, '#FFE66D', '#4A321F', 3 * dpr);
+        ctx.font = `${21 * dpr}px system-ui, sans-serif`;
+        ctx.fillText('🪙', gx, gy - 1 * dpr);
+      });
+
+      // 8. 天気エフェクト（雨・雪）
+      if (weatherState.type === 'rain' || weatherState.type === 'snow') {
+        weatherParticles.forEach((pt) => {
+          pt.y += dt * pt.speed * (weatherState.type === 'rain' ? 1.4 : 0.35);
+          if (weatherState.type === 'snow') {
+            pt.x += Math.sin(now * 0.002 + pt.y * 10) * dt * 0.05;
+          }
+          if (pt.y > 1) {
+            pt.y = 0;
+            pt.x = Math.random();
+          }
+          const px = pt.x * W;
+          const py = pt.y * H;
+          if (weatherState.type === 'rain') {
+            ctx.strokeStyle = 'rgba(116, 192, 252, 0.7)';
+            ctx.lineWidth = 2 * dpr;
+            ctx.beginPath();
+            ctx.moveTo(px, py);
+            ctx.lineTo(px - 3 * dpr, py + 11 * dpr);
+            ctx.stroke();
+          } else {
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            ctx.beginPath();
+            ctx.arc(px, py, pt.size * dpr, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        });
+      }
+
+      // 9. 時間帯オーバーレイ
+      if (sky.ambient && sky.ambient !== 'rgba(255, 255, 255, 0)') {
+        ctx.fillStyle = sky.ambient;
+        ctx.fillRect(0, 0, W, H);
+      }
+
+      ctx.restore();
+      requestAnimationFrame(renderParkFrame);
+    }
+
+    /**
+     * 公園キャンバス上のタッチ／クリック処理
+     */
+    function handleParkCanvasInteract(clientX, clientY, isTap = true) {
+      const canvas = document.getElementById('park-canvas');
+      const rect = canvas.getBoundingClientRect();
+      const nx = (clientX - rect.left) / rect.width;
+      const ny = (clientY - rect.top) / rect.height;
+
+      // タッチした方向へすべてのボールの目線を向ける
+      lastTouchPoint.x = nx;
+      lastTouchPoint.y = ny;
+      lastTouchPoint.activeTimer = 3.2;
+
+      if (!isTap) return;
+
+      // 1. お礼コイン袋のタップ判定
+      for (let i = gameState.pendingGifts.length - 1; i >= 0; i--) {
+        const g = gameState.pendingGifts[i];
+        if (Math.hypot(nx - g.x, ny - g.y) < 0.075) {
+          claimSingleGift(g);
+          return;
+        }
+      }
+
+      // 2. ボールのタップ判定
+      for (const v of parkVisitors) {
+        if (Math.hypot(nx - v.x, ny - v.y) < 0.095) {
+          const rec = gameState.dex[v.country.id] || { visits: 1, trust: 15, firstMet: Date.now(), lastMet: Date.now(), favItem: 'おさんぽ' };
+          gameState.dex[v.country.id] = rec;
+
+          if (v.isSleeping) {
+            // 寝ているボールを起こしてしまった！
+            v.isSleeping = false;
+            v.nameTagTimer = 3.5;
+
+            const currentTrust = rec.trust || 15;
+            if (currentTrust >= 65) {
+              // 信頼度が高いと下がりにくく、許してくれる
+              rec.trust = Math.max(0, currentTrust - 1);
+              v.expr = 'sad';
+              v.isJumping = true;
+              v.jumpProgress = 0;
+              v.startX = v.x;
+              v.startY = v.y;
+              v.targetX = v.x;
+              v.targetY = v.y;
+              v.waitTimer = 2.5;
+              saveGameState();
+              showToast(`💤 ${v.country.name}「むにゃ…${gameState.profile.name}さんかぁ…（信頼度 -1）」`);
+            } else {
+              // 信頼度が低い〜普通だと大きく下がり、帰ってしまう！
+              const drop = currentTrust >= 35 ? 5 : 9;
+              rec.trust = Math.max(0, currentTrust - drop);
+              v.expr = 'anger';
+              v.isLeavingAngry = true;
+              v.isJumping = true;
+              v.jumpProgress = 0;
+              v.startX = v.x;
+              v.startY = v.y;
+              v.targetX = v.x + (v.x < 0.5 ? -0.14 : 0.14);
+              v.targetY = v.y;
+              saveGameState();
+              showToast(`💢 寝ていた ${v.country.name} を起こしてしまった！信頼度が下がり帰ってしまいます…（-${drop}）`);
             }
+          } else {
+            // 起きている時にタッチすると嬉しそうに高く跳ねて国名＆信頼度を表示！
+            rec.trust = Math.min(100, (rec.trust || 15) + 1);
+            v.expr = v.expr === 'lol' ? 'smile' : 'lol';
+            v.isJumping = true;
+            v.jumpProgress = 0;
+            v.startX = v.x;
+            v.startY = v.y;
+            v.targetX = v.x;
+            v.targetY = v.y;
+            v.nameTagTimer = 3.5;
+            saveGameState();
+            showToast(`${v.country.flagEmoji} ${v.country.name} が嬉しそうに跳ねた！（信頼度 ❤️${rec.trust}）`);
+          }
+          return;
+        }
+      }
+
+      // 3. 配置スポットのタップ判定
+      for (const spot of PARK_SPOTS) {
+        if (Math.hypot(nx - spot.x, ny - spot.y) < 0.08) {
+          selectedSpotId = spot.id;
+          openBagModal();
+          return;
+        }
+      }
+    }
+
+    /**
+     * ============================================================================
+     * 9. ゲーム内コイン＆ショップ購入＆PBポイント交換・超難関チャレンジ
+     * ============================================================================
+     */
+    function updateCoinsUI() {
+      const el = document.getElementById('game-coins-value');
+      if (el) el.textContent = Number(gameState.coins).toLocaleString();
+    }
+
+    function claimSingleGift(gift) {
+      gameState.coins += gift.coins;
+      gameState.pendingGifts = gameState.pendingGifts.filter(item => item.id !== gift.id);
+      updateCoinsUI();
+      updateGiftsBadgeUI();
+      saveGameState();
+      showToast(`🪙 ${gift.countryName} からのお礼 +${gift.coins} コイン を受け取りました！`);
+    }
+
+    function claimAllGifts() {
+      if (gameState.pendingGifts.length === 0) return;
+      const total = gameState.pendingGifts.reduce((sum, g) => sum + g.coins, 0);
+      gameState.coins += total;
+      gameState.pendingGifts = [];
+      updateCoinsUI();
+      updateGiftsBadgeUI();
+      saveGameState();
+      showToast(`✨ まとめて +${total} コイン を受け取りました！`);
+    }
+
+    function buyShopItemWithCoins(item) {
+      if (gameState.coins < item.cost) {
+        showToast(`🪙 ゲーム内コインが足りません（必要: ${item.cost} コイン）`);
+        return;
+      }
+      gameState.coins -= item.cost;
+      gameState.inventory[item.id] = (gameState.inventory[item.id] || 0) + 1;
+      updateCoinsUI();
+      saveGameState();
+      renderShopItems();
+      showToast(`🛍️「${item.emoji} ${item.name}」を ${item.cost} コインで手に入れました！`);
+    }
+
+    /**
+     * PBポイント 10 PB ＝ ゲーム内コイン 20 コイン の交換処理
+     */
+    async function exchangePBToCoins() {
+      if (pbState.error || !pbState.connected) {
+        showToast('⚠️ PBPointエラーのため両替できません');
+        return;
+      }
+      try {
+        const currentPB = await pbGet();
+        if (currentPB < 10) {
+          showToast('💎 PBポイントが足りません（10 PB 必要です）');
+          return;
+        }
+        await pbAdd(-10, 'かんとりーぱーく コイン両替(10PB→20コイン)');
+        gameState.coins += 20;
+        updateCoinsUI();
+        saveGameState();
+        refreshPBHubUI();
+        showToast('💱 10 PB を 🪙 20 コイン に両替しました！');
+      } catch (e) {
+        console.error(e);
+        showPBError();
+      }
+    }
+
+    /**
+     * PBポイントをもらう機能（めちゃくちゃ難しい超難関試練のみ！）
+     */
+    const PB_HARD_CHALLENGES = [
+      {
+        id: 'trust_max_1',
+        title: '【試練I】魂の親友（1ヶ国の信頼度100到達）',
+        desc: 'いずれか1ヶ国の信頼度を最大（100）まで高める。長い日々が必要です。',
+        rewardPB: 5,
+        check: () => Object.values(gameState.dex).some(r => (r.trust || 0) >= 100)
+      },
+      {
+        id: 'trust_max_5',
+        title: '【試練II】五大陸の絆（5ヶ国の信頼度100到達）',
+        desc: '5ヶ国の信頼度をすべて最大（100）まで高める。',
+        rewardPB: 15,
+        check: () => Object.values(gameState.dex).filter(r => (r.trust || 0) >= 100).length >= 5
+      },
+      {
+        id: 'dex_50',
+        title: '【試練III】半年以上の歩み（50ヶ国と出会う）',
+        desc: '50ヶ国以上のボールと公園で出会う。',
+        rewardPB: 20,
+        check: () => Object.keys(gameState.dex).length >= 50
+      },
+      {
+        id: 'dex_all',
+        title: '【最終試練】世界平和の公園（全国家コンプリート）',
+        desc: '2年以上の歳月をかけ、すべての国々と公園で出会う奇跡の偉業。',
+        rewardPB: 100,
+        check: () => Object.keys(gameState.dex).length >= COUNTRIES.length
+      }
+    ];
+
+    function refreshPBHubUI() {
+      const exBtn = document.getElementById('btn-exchange-pb-to-coin');
+      if (exBtn) {
+        if (pbState.error || !pbState.connected) {
+          exBtn.disabled = true;
+          exBtn.textContent = '⚠️ PBPointエラー（両替不可）';
+        } else {
+          exBtn.disabled = pbState.points < 10;
+          exBtn.textContent = `💎 10 PB を 🪙 20 コイン に交換する（所持: ${pbState.points.toLocaleString()} PB）`;
+        }
+      }
+
+      const listEl = document.getElementById('pb-challenges-list');
+      if (!listEl) return;
+      listEl.replaceChildren();
+
+      PB_HARD_CHALLENGES.forEach((ch) => {
+        const isClaimed = gameState.claimedPBChallenges.includes(ch.id);
+        const isCleared = ch.check();
+
+        const box = document.createElement('div');
+        box.className = 'warm-box p-3 bg-white flex flex-col gap-1.5';
+        box.innerHTML = `
+          <div class="flex justify-between items-center gap-2">
+            <span class="font-black text-xs sm:text-sm">${ch.title}</span>
+            <span class="px-2 py-0.5 rounded-full bg-[#F3F0FF] border-2 border-[#4A321F] text-xs font-black text-[#5F3DC4] shrink-0">+${ch.rewardPB} PB</span>
+          </div>
+          <p class="text-[11px] font-bold text-[#7A5C43]">${ch.desc}</p>
+        `;
+
+        const btn = document.createElement('button');
+        btn.className = 'warm-btn warm-btn-purple w-full py-1.5 text-xs mt-1';
+        if (isClaimed) {
+          btn.disabled = true;
+          btn.textContent = '✅ 達成報酬 受取済み';
+        } else if (pbState.error || !pbState.connected) {
+          btn.disabled = true;
+          btn.textContent = '⚠️ PBPointエラー（受取不可）';
+        } else if (!isCleared) {
+          btn.disabled = true;
+          btn.textContent = '🔒 条件未達成（まだまだ時間がかかります）';
+        } else {
+          btn.textContent = `🎉 試練達成！ +${ch.rewardPB} PB を受け取る`;
+          btn.onclick = async () => {
+            try {
+              await pbAdd(ch.rewardPB, `かんとりーぱーく ${ch.title}`);
+              gameState.claimedPBChallenges.push(ch.id);
+              saveGameState();
+              refreshPBHubUI();
+              showToast(`🏆 難関試練達成！ +${ch.rewardPB} PB を獲得しました！`);
+            } catch (e) {
+              console.error(e);
+              showPBError();
+            }
+          };
         }
 
-        // 初回起動
-        window.onload = initGame;
-    </script>
+        box.appendChild(btn);
+        listEl.appendChild(box);
+      });
+    }
+
+    /**
+     * ============================================================================
+     * 10. UI描画（タイトル上下5体ふわふわ浮遊・もちもの・おみせ・図鑑・友達シェア）
+     * ============================================================================
+     */
+    function renderTitleRandomBalls() {
+      const topContainer = document.getElementById('title-balls-top');
+      const bottomContainer = document.getElementById('title-balls-bottom');
+      topContainer.replaceChildren();
+      bottomContainer.replaceChildren();
+
+      const shuffled = [...COUNTRIES].sort(() => Math.random() - 0.5).slice(0, 10);
+      const top5 = shuffled.slice(0, 5);
+      const bottom5 = shuffled.slice(5, 10);
+
+      const createTitleBallNode = (country, idx) => {
+        const wrap = document.createElement('div');
+        wrap.className = 'flex items-center justify-center cursor-pointer title-ball-float';
+
+        // それぞれ向き（傾き）も大きさも少しずつ違うように設定！
+        const baseRot = (Math.random() - 0.5) * 34;
+        const rotA = `${(baseRot - 5).toFixed(1)}deg`;
+        const rotB = `${(baseRot + 5).toFixed(1)}deg`;
+        const scale = (0.86 + Math.random() * 0.34).toFixed(2);
+        const dur = (2.8 + Math.random() * 1.4).toFixed(2) + 's';
+
+        wrap.style.setProperty('--rot-a', rotA);
+        wrap.style.setProperty('--rot-b', rotB);
+        wrap.style.setProperty('--ball-scale', scale);
+        wrap.style.setProperty('--float-dur', dur);
+        wrap.style.animationDelay = `${(idx * 0.23).toFixed(2)}s`;
+
+        const cv = document.createElement('canvas');
+        // タイトルのボールも大きく表示（ラベルは不要なので付けない）
+        cv.className = 'w-16 h-16 sm:w-28 sm:h-28 md:w-32 md:h-32 drop-shadow-lg';
+        const exprs = ['normal', 'smile', 'lol'];
+        let curCountry = country;
+        let curExpr = exprs[idx % exprs.length];
+        paintBallToCanvas(cv, curCountry, curExpr, flagImageCache.get(curCountry.id) || null, {
+          eyeOffsetX: (Math.random() - 0.5) * 8,
+          eyeOffsetY: (Math.random() - 0.5) * 6
+        });
+
+        wrap.addEventListener('click', () => {
+          const next = COUNTRIES[Math.floor(Math.random() * COUNTRIES.length)];
+          curCountry = next;
+          curExpr = exprs[Math.floor(Math.random() * exprs.length)];
+          paintBallToCanvas(cv, curCountry, curExpr, flagImageCache.get(curCountry.id) || null, {
+            eyeOffsetX: (Math.random() - 0.5) * 8,
+            eyeOffsetY: (Math.random() - 0.5) * 6
+          });
+        });
+
+        wrap.appendChild(cv);
+        return wrap;
+      };
+
+      top5.forEach((c, i) => topContainer.appendChild(createTitleBallNode(c, i)));
+      bottom5.forEach((c, i) => bottomContainer.appendChild(createTitleBallNode(c, i + 5)));
+    }
+
+    let selectedSpotId = 0;
+    let currentBagCategory = 'all';
+    let currentShopCategory = 'all';
+
+    function openBagModal() {
+      renderSpotSelector();
+      renderBagItems();
+      document.getElementById('modal-bag').classList.remove('hidden');
+    }
+
+    function renderSpotSelector() {
+      const container = document.getElementById('spot-selector-list');
+      container.replaceChildren();
+      PARK_SPOTS.forEach((spot) => {
+        const placed = gameState.spots[spot.id];
+        const placedItem = placed ? PARK_ITEMS.find(it => it.id === placed.itemId) : null;
+        const isSelected = selectedSpotId === spot.id;
+
+        const btn = document.createElement('button');
+        btn.className = `warm-btn px-2 py-2 text-xs flex-col ${isSelected ? 'warm-btn-yellow ring-2 ring-[#4A321F]' : 'bg-white'}`;
+        btn.innerHTML = `
+          <span class="font-black truncate w-full">${spot.name}</span>
+          <span class="text-sm mt-0.5">${placedItem ? placedItem.emoji + ' ' + placedItem.name : '（あき地）'}</span>
+        `;
+        btn.onclick = () => {
+          selectedSpotId = spot.id;
+          renderSpotSelector();
+          renderBagItems();
+        };
+        container.appendChild(btn);
+      });
+    }
+
+    function renderBagItems() {
+      const grid = document.getElementById('bag-items-grid');
+      grid.replaceChildren();
+
+      const spot = PARK_SPOTS[selectedSpotId];
+      const currentPlaced = gameState.spots[selectedSpotId];
+
+      if (currentPlaced) {
+        const pItem = PARK_ITEMS.find(it => it.id === currentPlaced.itemId);
+        if (pItem) {
+          const card = document.createElement('div');
+          card.className = 'warm-box p-3 bg-[#FFF3BF] flex items-center justify-between gap-2';
+          card.innerHTML = `
+            <div class="flex items-center gap-2.5">
+              <span class="text-3xl">${pItem.emoji}</span>
+              <div>
+                <div class="text-xs font-black text-[#D9480F]">配置中：${spot.name}</div>
+                <div class="text-sm font-black">${pItem.name}</div>
+              </div>
+            </div>
+          `;
+          const removeBtn = document.createElement('button');
+          removeBtn.className = 'warm-btn warm-btn-pink px-3 py-1.5 text-xs shrink-0';
+          removeBtn.textContent = 'かたづける';
+          removeBtn.onclick = () => {
+            if (pItem.cat !== 'food') {
+              gameState.inventory[pItem.id] = (gameState.inventory[pItem.id] || 0) + 1;
+            }
+            delete gameState.spots[selectedSpotId];
+            saveGameState();
+            renderSpotSelector();
+            renderBagItems();
+            showToast(`📦 ${pItem.name} をかたづけました`);
+          };
+          card.appendChild(removeBtn);
+          grid.appendChild(card);
+        }
+      }
+
+      const ownedList = PARK_ITEMS.filter(it => {
+        const count = gameState.inventory[it.id] || 0;
+        if (count <= 0) return false;
+        if (currentBagCategory !== 'all' && it.cat !== currentBagCategory) return false;
+        return true;
+      });
+
+      if (ownedList.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'col-span-full text-center py-6 text-sm font-bold text-[#7A5C43]';
+        empty.textContent = 'このカテゴリの所持アイテムはありません。「コインおみせ」で手に入れよう！';
+        grid.appendChild(empty);
+        return;
+      }
+
+      ownedList.forEach((item) => {
+        const count = gameState.inventory[item.id] || 0;
+        const card = document.createElement('div');
+        card.className = 'warm-box p-3 bg-white flex flex-col justify-between gap-2';
+        card.innerHTML = `
+          <div class="flex items-start gap-2.5">
+            <span class="text-3xl shrink-0">${item.emoji}</span>
+            <div class="flex-1 min-w-0">
+              <div class="flex justify-between items-center gap-1">
+                <span class="font-black text-sm truncate">${item.name}</span>
+                <span class="px-2 py-0.5 rounded-full bg-[#FFE8CC] border-2 border-[#4A321F] text-xs font-black shrink-0">所持 ${count}</span>
+              </div>
+              <p class="text-xs font-bold text-[#7A5C43] mt-0.5">${item.desc}</p>
+            </div>
+          </div>
+        `;
+
+        const placeBtn = document.createElement('button');
+        placeBtn.className = 'warm-btn warm-btn-green w-full py-2 text-xs';
+        const isWaterMismatch = item.waterOnly && spot.type !== 'water';
+        if (isWaterMismatch) {
+          placeBtn.disabled = true;
+          placeBtn.textContent = '🏝️「いけのしまスポット」専用です';
+        } else {
+          placeBtn.textContent = `📍「${spot.name}」に置く`;
+          placeBtn.onclick = () => {
+            const prev = gameState.spots[selectedSpotId];
+            if (prev) {
+              const prevItem = PARK_ITEMS.find(it => it.id === prev.itemId);
+              if (prevItem && prevItem.cat !== 'food') {
+                gameState.inventory[prevItem.id] = (gameState.inventory[prevItem.id] || 0) + 1;
+              }
+            }
+            gameState.inventory[item.id] -= 1;
+            gameState.spots[selectedSpotId] = {
+              itemId: item.id,
+              usesLeft: item.cat === 'food' ? 8 : 99
+            };
+            saveGameState();
+            renderSpotSelector();
+            renderBagItems();
+            showToast(`✨「${spot.name}」に ${item.emoji} ${item.name} を置きました！`);
+            if (parkVisitors.length < 7) {
+              setTimeout(() => spawnVisitorAtPark(false), 1500);
+            }
+          };
+        }
+
+        card.appendChild(placeBtn);
+        grid.appendChild(card);
+      });
+    }
+
+    function renderShopItems() {
+      const grid = document.getElementById('shop-items-grid');
+      grid.replaceChildren();
+
+      const filtered = PARK_ITEMS.filter(it => currentShopCategory === 'all' || it.cat === currentShopCategory);
+
+      filtered.forEach((item) => {
+        const owned = gameState.inventory[item.id] || 0;
+        const card = document.createElement('div');
+        card.className = 'warm-box p-3 bg-white flex flex-col justify-between gap-2.5';
+        card.innerHTML = `
+          <div class="flex items-start gap-3">
+            <div class="w-12 h-12 rounded-2xl bg-[#FFF6E5] border-2 border-[#4A321F] flex items-center justify-center text-3xl shrink-0">
+              ${item.emoji}
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex justify-between items-center gap-1">
+                <span class="font-black text-sm truncate">${item.name}</span>
+                <span class="text-[11px] font-black text-[#7A5C43] shrink-0">所持: ${owned}</span>
+              </div>
+              <p class="text-xs font-bold text-[#7A5C43] mt-0.5 leading-snug">${item.desc}</p>
+            </div>
+          </div>
+        `;
+
+        const buyBtn = document.createElement('button');
+        buyBtn.className = 'warm-btn warm-btn-orange w-full py-2 text-xs sm:text-sm';
+        buyBtn.disabled = gameState.coins < item.cost;
+        buyBtn.textContent = `🪙 ${item.cost} コイン で交換する`;
+        buyBtn.onclick = () => buyShopItemWithCoins(item);
+
+        card.appendChild(buyBtn);
+        grid.appendChild(card);
+      });
+    }
+
+    function renderDexList() {
+      const q = document.getElementById('dex-search-input').value.trim().toLowerCase();
+      const reg = document.getElementById('dex-region-select').value;
+      const metFilter = document.getElementById('dex-met-select').value;
+
+      const metCount = Object.keys(gameState.dex).length;
+      document.getElementById('dex-progress-label').textContent = `であった数: ${metCount} / ${COUNTRIES.length} か国（全コンプリートへの長い旅）`;
+
+      const filtered = COUNTRIES.filter((c) => {
+        const isMet = Boolean(gameState.dex[c.id]);
+        if (reg !== 'all' && c.region !== reg) return false;
+        if (metFilter === 'met' && !isMet) return false;
+        if (metFilter === 'unmet' && isMet) return false;
+        if (q && !c.name.toLowerCase().includes(q) && !c.id.includes(q)) return false;
+        return true;
+      });
+
+      const grid = document.getElementById('dex-grid');
+      grid.replaceChildren();
+
+      filtered.forEach((c) => {
+        const record = gameState.dex[c.id];
+        const card = document.createElement('div');
+        card.className = `warm-box p-2.5 flex flex-col items-center text-center transition-transform ${record ? 'bg-white cursor-pointer hover:scale-[1.03]' : 'bg-[#F1F3F5] opacity-75'}`;
+
+        const cv = document.createElement('canvas');
+        cv.className = 'w-16 h-16 sm:w-20 sm:h-20';
+        if (record) {
+          paintBallToCanvas(cv, c, 'smile', flagImageCache.get(c.id) || null);
+        } else {
+          paintBallToCanvas(cv, { id: 'unknown', name: '?' }, 'normal', null);
+          cv.style.filter = 'brightness(0.82)';
+        }
+
+        const nameEl = document.createElement('div');
+        nameEl.className = 'text-xs font-black mt-1 w-full truncate';
+        nameEl.textContent = record ? `${c.flagEmoji} ${c.name}` : `？？？ (${c.id.toUpperCase()})`;
+
+        const subEl = document.createElement('div');
+        subEl.className = 'text-[10px] font-bold text-[#7A5C43] mt-0.5';
+        subEl.textContent = record ? `訪問 ${record.visits}回 · ❤️${record.trust || 15}/100` : 'まだ出会っていません';
+
+        card.append(cv, nameEl, subEl);
+
+        if (record) {
+          const shareBadge = document.createElement('span');
+          shareBadge.className = 'mt-1.5 px-2 py-0.5 rounded-full bg-[#FFDEEB] border-2 border-[#4A321F] text-[10px] font-black';
+          shareBadge.textContent = '💌 画像を贈る';
+          card.appendChild(shareBadge);
+          card.onclick = () => openShareCardModal(c, record);
+        }
+
+        grid.appendChild(card);
+      });
+    }
+
+    let currentShareCountry = null;
+
+    function openShareCardModal(country, record) {
+      currentShareCountry = country;
+      document.getElementById('share-modal-title').textContent = `💌 ${country.name} の思い出カード`;
+      document.getElementById('share-country-info').textContent =
+        `訪問回数: ${record.visits}回 ／ 信頼度: ❤️${record.trust || 15}/100 ／ お気に入り: ${record.favItem || 'こうえんのおさんぽ'}`;
+
+      const canvas = document.getElementById('share-card-canvas');
+      const ctx = canvas.getContext('2d');
+      const W = canvas.width;
+      const H = canvas.height;
+
+      const sky = getSkyPalette();
+      const grad = ctx.createLinearGradient(0, 0, 0, H * 0.58);
+      grad.addColorStop(0, sky.top);
+      grad.addColorStop(1, sky.bottom);
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, W, H * 0.58);
+
+      ctx.fillStyle = '#A8E070';
+      ctx.fillRect(0, H * 0.58, W, H * 0.42);
+      ctx.lineWidth = 5;
+      ctx.strokeStyle = '#4A321F';
+      ctx.beginPath();
+      ctx.moveTo(0, H * 0.58);
+      ctx.lineTo(W, H * 0.58);
+      ctx.stroke();
+
+      ctx.lineWidth = 14;
+      ctx.strokeStyle = '#4A321F';
+      ctx.strokeRect(7, 7, W - 14, H - 14);
+
+      const ballCv = document.createElement('canvas');
+      paintBallToCanvas(ballCv, country, 'lol', flagImageCache.get(country.id) || null);
+      const bSize = 270;
+      ctx.fillStyle = 'rgba(74, 50, 31, 0.22)';
+      ctx.beginPath();
+      ctx.ellipse(W / 2, H * 0.58 + 75, 110, 28, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.drawImage(ballCv, (W - bSize) / 2, H * 0.58 - bSize * 0.68, bSize, bSize);
+
+      ctx.font = '44px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('🕊️', W * 0.20, H * 0.30);
+      ctx.fillText('🌻', W * 0.18, H * 0.68);
+      ctx.fillText('✨', W * 0.80, H * 0.32);
+      ctx.fillText('🍀', W * 0.82, H * 0.68);
+
+      drawRoundedRectStroke(ctx, 46, H - 155, W - 92, 115, 26, '#FFFDF8', '#4A321F', 5);
+
+      const avatarImg = document.getElementById('header-avatar');
+      if (avatarImg && avatarImg.complete && avatarImg.naturalWidth > 0) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(112, H - 98, 38, 0, Math.PI * 2);
+        ctx.clip();
+        ctx.drawImage(avatarImg, 74, H - 136, 76, 76);
+        ctx.restore();
+        ctx.beginPath();
+        ctx.arc(112, H - 98, 38, 0, Math.PI * 2);
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = '#4A321F';
+        ctx.stroke();
+      }
+
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#3D2817';
+      ctx.font = '900 25px "Zen Maru Gothic", sans-serif';
+      ctx.fillText(`${gameState.profile.name} の かんとりーぱーく に`, 168, H - 108);
+      ctx.fillStyle = '#E67700';
+      ctx.font = '900 31px "Zen Maru Gothic", sans-serif';
+      ctx.fillText(`「${country.name}」があそびにきたよ！`, 168, H - 68);
+
+      drawRoundedRectStroke(ctx, W - 260, 26, 232, 46, 16, '#FFE66D', '#4A321F', 4);
+      ctx.fillStyle = '#3D2817';
+      ctx.textAlign = 'center';
+      ctx.font = '900 20px "Zen Maru Gothic", sans-serif';
+      ctx.fillText('かんとりーぱーく Ver 1.1.0', W - 144, 56);
+
+      document.getElementById('modal-share').classList.remove('hidden');
+    }
+
+    async function shareGeneratedCard() {
+      const canvas = document.getElementById('share-card-canvas');
+      canvas.toBlob(async (blob) => {
+        if (!blob) return;
+        const fileName = `countrypark_${currentShareCountry?.id || 'card'}.png`;
+        const file = new File([blob], fileName, { type: 'image/png' });
+
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({
+              title: 'かんとりーぱーく',
+              text: `${gameState.profile.name}の公園に「${currentShareCountry?.name}」が遊びに来たよ！`,
+              files: [file]
+            });
+            showToast('💌 友達に画像をシェアしました！');
+            return;
+          } catch (e) {
+            if (e.name === 'AbortError') return;
+          }
+        }
+        downloadGeneratedCard();
+      }, 'image/png');
+    }
+
+    function downloadGeneratedCard() {
+      const canvas = document.getElementById('share-card-canvas');
+      const link = document.createElement('a');
+      link.download = `countrypark_${currentShareCountry?.id || 'card'}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      showToast('💾 思い出画像を保存しました！友達に送ってね！');
+    }
+
+    /**
+     * ============================================================================
+     * 11. ユーティリティ
+     * ============================================================================
+     */
+    function handleAvatarFileSelect(file, targetImgElement, onComplete) {
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const img = new Image();
+        img.onload = () => {
+          const cv = document.createElement('canvas');
+          cv.width = cv.height = 160;
+          const ctx = cv.getContext('2d');
+          const minSide = Math.min(img.width, img.height);
+          const sx = (img.width - minSide) / 2;
+          const sy = (img.height - minSide) / 2;
+          ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, 160, 160);
+          const dataUrl = cv.toDataURL('image/png');
+          targetImgElement.src = dataUrl;
+          if (onComplete) onComplete(dataUrl);
+        };
+        img.src = ev.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function updateProfileUI() {
+      document.getElementById('header-username').textContent = gameState.profile.name;
+      document.getElementById('header-avatar').src = gameState.profile.avatar;
+      updateDexCounterUI();
+      updateCoinsUI();
+    }
+
+    function updateDexCounterUI() {
+      const count = Object.keys(gameState.dex).length;
+      document.getElementById('header-dex-mini').textContent = `図鑑 ${count}/${COUNTRIES.length}`;
+    }
+
+    function updateVisitorBadgeUI() {
+      document.getElementById('park-visitor-count').textContent = parkVisitors.length;
+    }
+
+    function updateGiftsBadgeUI() {
+      const badge = document.getElementById('pending-gifts-badge');
+      const countEl = document.getElementById('pending-gifts-count');
+      const count = gameState.pendingGifts.length;
+      countEl.textContent = count;
+      if (count > 0) {
+        badge.classList.remove('hidden');
+      } else {
+        badge.classList.add('hidden');
+      }
+    }
+
+    function showToast(message) {
+      const container = document.getElementById('toast-container');
+      const el = document.createElement('div');
+      el.className = 'toast-anim bg-[#FFFDF8] border-3 border-[#4A321F] rounded-2xl px-4 py-2 text-xs sm:text-sm font-black shadow-lg max-w-[92vw] text-center';
+      el.style.borderWidth = '3px';
+      el.textContent = message;
+      container.appendChild(el);
+      setTimeout(() => el.remove(), 2850);
+    }
+
+    /**
+     * ============================================================================
+     * 12. アプリ起動シーケンス ＆ イベントリスナー登録
+     * ============================================================================
+     */
+    window.addEventListener('DOMContentLoaded', async () => {
+      loadGameState();
+      initWeatherParticles();
+
+      const regionSel = document.getElementById('dex-region-select');
+      REGION_DATA.forEach(r => {
+        const opt = document.createElement('option');
+        opt.value = r.id;
+        opt.textContent = r.name;
+        regionSel.appendChild(opt);
+      });
+
+      document.querySelectorAll('[data-close-modal]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.getElementById(btn.getAttribute('data-close-modal')).classList.add('hidden');
+        });
+      });
+
+      initPBPoints();
+      syncOpenMeteoWeather();
+      setInterval(updateTimeOfDay, 30000);
+      setInterval(syncOpenMeteoWeather, 10 * 60 * 1000);
+
+      try {
+        await initBallAssets();
+      } catch (e) {
+        document.getElementById('setup-screen').classList.remove('hidden');
+        document.getElementById('download-status-text').textContent = '⚠️ ' + e.message;
+        return;
+      }
+
+      if (!gameState.initialized) {
+        const setupScreen = document.getElementById('setup-screen');
+        const avatarPreview = document.getElementById('setup-avatar-preview');
+        const nameInput = document.getElementById('setup-name-input');
+        const completeBtn = document.getElementById('setup-complete-btn');
+        let tempAvatar = gameState.profile.avatar;
+        let flagsReady = false;
+
+        avatarPreview.src = tempAvatar;
+        setupScreen.classList.remove('hidden');
+
+        document.getElementById('setup-avatar-input').addEventListener('change', (e) => {
+          handleAvatarFileSelect(e.target.files[0], avatarPreview, (url) => {
+            tempAvatar = url;
+          });
+        });
+
+        await syncAllFlagsWithIndexedDB((done, total) => {
+          const pct = Math.round((done / total) * 100);
+          document.getElementById('download-count-text').textContent = `${done} / ${total}`;
+          document.getElementById('download-progress-bar').style.width = `${pct}%`;
+          if (done >= total) {
+            document.getElementById('download-status-text').textContent = '✅ 全国家の国旗をIndexedDBに保存しました！';
+            flagsReady = true;
+            completeBtn.disabled = false;
+          }
+        });
+
+        completeBtn.addEventListener('click', () => {
+          if (!flagsReady) return;
+          const enteredName = nameInput.value.trim();
+          gameState.profile.name = enteredName || 'えんちょう';
+          gameState.profile.avatar = tempAvatar;
+          gameState.initialized = true;
+          saveGameState();
+
+          setupScreen.classList.add('hidden');
+          enterTitleScreen();
+        });
+      } else {
+        await syncAllFlagsWithIndexedDB();
+        enterTitleScreen();
+      }
+
+      document.getElementById('start-game-btn').addEventListener('click', () => {
+        document.getElementById('title-screen').classList.add('hidden');
+        document.getElementById('main-app').classList.remove('hidden');
+        updateProfileUI();
+        if (parkVisitors.length === 0) {
+          processOfflineProgress();
+        }
+        lastFrameTime = performance.now();
+        requestAnimationFrame(renderParkFrame);
+      });
+
+      document.getElementById('back-to-title-btn').addEventListener('click', () => {
+        document.getElementById('main-app').classList.add('hidden');
+        enterTitleScreen();
+      });
+
+      // 公園キャンバスのタップ＆ポインター移動（視線追従）
+      const parkCanvas = document.getElementById('park-canvas');
+      parkCanvas.addEventListener('click', (e) => handleParkCanvasInteract(e.clientX, e.clientY, true));
+      parkCanvas.addEventListener('pointermove', (e) => {
+        if (e.buttons > 0 || e.pointerType === 'mouse') {
+          handleParkCanvasInteract(e.clientX, e.clientY, false);
+        }
+      });
+
+      document.getElementById('pending-gifts-badge').addEventListener('click', claimAllGifts);
+
+      // 下部メニューボタン群
+      document.getElementById('btn-open-bag').addEventListener('click', openBagModal);
+      document.getElementById('btn-open-shop').addEventListener('click', () => {
+        renderShopItems();
+        document.getElementById('modal-shop').classList.remove('hidden');
+      });
+      document.getElementById('btn-open-dex').addEventListener('click', () => {
+        renderDexList();
+        document.getElementById('modal-dex').classList.remove('hidden');
+      });
+
+      // PB両替・難関試練モーダル
+      const openPBHub = () => {
+        refreshPBHubUI();
+        document.getElementById('modal-pb-hub').classList.remove('hidden');
+      };
+      document.getElementById('btn-open-pb-hub').addEventListener('click', openPBHub);
+      document.getElementById('pb-status-btn').addEventListener('click', openPBHub);
+      document.getElementById('btn-exchange-pb-to-coin').addEventListener('click', exchangePBToCoins);
+
+      // カテゴリ切替
+      document.querySelectorAll('.bag-cat-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.bag-cat-btn').forEach(b => b.classList.remove('warm-btn-yellow'));
+          btn.classList.add('warm-btn-yellow');
+          currentBagCategory = btn.dataset.cat;
+          renderBagItems();
+        });
+      });
+
+      document.querySelectorAll('.shop-cat-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.shop-cat-btn').forEach(b => b.classList.remove('warm-btn-orange'));
+          btn.classList.add('warm-btn-orange');
+          currentShopCategory = btn.dataset.cat;
+          renderShopItems();
+        });
+      });
+
+      // 図鑑フィルター
+      document.getElementById('dex-search-input').addEventListener('input', renderDexList);
+      document.getElementById('dex-region-select').addEventListener('change', renderDexList);
+      document.getElementById('dex-met-select').addEventListener('change', renderDexList);
+
+      // 友達シェア
+      document.getElementById('btn-share-native').addEventListener('click', shareGeneratedCard);
+      document.getElementById('btn-share-download').addEventListener('click', downloadGeneratedCard);
+
+      // プロフィール編集
+      let editingTempAvatar = null;
+      document.getElementById('open-profile-btn').addEventListener('click', () => {
+        editingTempAvatar = gameState.profile.avatar;
+        document.getElementById('edit-avatar-preview').src = editingTempAvatar;
+        document.getElementById('edit-name-input').value = gameState.profile.name;
+        document.getElementById('modal-profile').classList.remove('hidden');
+      });
+      document.getElementById('edit-avatar-input').addEventListener('change', (e) => {
+        handleAvatarFileSelect(e.target.files[0], document.getElementById('edit-avatar-preview'), (url) => {
+          editingTempAvatar = url;
+        });
+      });
+      document.getElementById('save-profile-btn').addEventListener('click', () => {
+        const newName = document.getElementById('edit-name-input').value.trim();
+        if (newName) gameState.profile.name = newName;
+        if (editingTempAvatar) gameState.profile.avatar = editingTempAvatar;
+        saveGameState();
+        updateProfileUI();
+        document.getElementById('modal-profile').classList.add('hidden');
+        showToast('✅ プロフィールを更新しました！');
+      });
+
+      // 天気詳細
+      document.getElementById('weather-status-btn').addEventListener('click', () => {
+        document.getElementById('modal-weather').classList.remove('hidden');
+      });
+      document.getElementById('refresh-weather-btn').addEventListener('click', async () => {
+        await syncOpenMeteoWeather();
+        showToast('🌤️ 最新の天気と同期しました！');
+      });
+    });
+
+    function enterTitleScreen() {
+      const titleScreen = document.getElementById('title-screen');
+      titleScreen.classList.remove('hidden');
+      renderTitleRandomBalls();
+    }
+  </script>
 </body>
 </html>
-
