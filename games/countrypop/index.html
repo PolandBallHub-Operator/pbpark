@@ -730,8 +730,9 @@ function addXp(n){const a=appState,b=rankInfo().r;a.xp+=n;const nr=rankInfo().r,
 var PENDING_APOLOGY=0;
 function oldRankInfo(xp){let r=1,x=xp;while(r<RMAX&&x>=oldNeedXp(r)){x-=oldNeedXp(r);r++}return{r,cur:r>=RMAX?0:x,need:r>=RMAX?0:oldNeedXp(r)}}
 function migrateV2(){const a=appState;
- if(a.xv!==2){const o=oldRankInfo(a.xp||0);a.xp=Math.floor((o.r-1)*RANK_XP+(o.need?o.cur/o.need:0)*RANK_XP);a.xv=2}
+ if(!(a.xv>=2)){const o=oldRankInfo(a.xp||0);a.xp=Math.floor((o.r-1)*RANK_XP+(o.need?o.cur/o.need:0)*RANK_XP);a.xv=2}
  if(a.xv===2){let r=1+Math.floor((a.xp|0)/RANK_XP),f=((a.xp|0)%RANK_XP)/RANK_XP,cum=0;r=Math.min(r,RMAX);for(let i=1;i<r;i++)cum+=needXp(i);a.xp=Math.floor(cum+(r>=RMAX?0:f*needXp(r)));a.xv=3}
+ if(a.xv>=3&&(a.plays|0)<3000){let cum=0;for(let i=1;i<RMAX;i++)cum+=needXp(i);if((a.xp|0)>=cum)a.xp=Math.min(cum-1,(a.plays|0)*5000)}
  if(!a.lvm){a.lvm=1;COUNTRY_BALLS.forEach(b=>{if(b.owned&&b.lv<=6){b.lv=Math.round(1+(b.lv-1)*49/5);b.xp=0}})}
  COUNTRY_BALLS.forEach(b=>{b.score=b.base+lvScore(b.lv)});
  if(!a.m5k){a.m5k=1;if(!HAD_SAVE&&!a.mdone.includes(4))a.mdone.push(4)}
