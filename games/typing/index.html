@@ -1,0 +1,1836 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>WORLD BUFFET TYPING - PBポイント対応タイピング</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;800;900&family=M+PLUS+Rounded+1c:wght@700;800;900&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'M PLUS Rounded 1c', 'Inter', sans-serif;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      overflow-x: hidden;
+    }
+
+    /* ソシャゲ風の光沢ボタン・カード演出 */
+    .game-btn {
+      transition: transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.12s ease;
+    }
+    .game-btn:active {
+      transform: scale(0.95) translateY(3px);
+    }
+
+    /* ふわふわ浮遊アニメーション */
+    @keyframes floatSlow {
+      0%, 100% { transform: translateY(0px) rotate(-1deg); }
+      50% { transform: translateY(-8px) rotate(1deg); }
+    }
+    .animate-float {
+      animation: floatSlow 3.2s ease-in-out infinite;
+    }
+    .animate-float-delay {
+      animation: floatSlow 3.5s ease-in-out 1.2s infinite;
+    }
+
+    /* 吹き出しポップアニメーション */
+    @keyframes popBubble {
+      0% { transform: scale(0.4) translateY(12px); opacity: 0; }
+      70% { transform: scale(1.06) translateY(-2px); opacity: 1; }
+      100% { transform: scale(1) translateY(0); opacity: 1; }
+    }
+    .bubble-pop {
+      animation: popBubble 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
+    /* コンベアの縞模様アニメーション */
+    @keyframes beltMove {
+      0% { background-position: 0 0; }
+      100% { background-position: -64px 0; }
+    }
+    .conveyor-belt {
+      background: repeating-linear-gradient(
+        -45deg,
+        #334155,
+        #334155 16px,
+        #1e293b 16px,
+        #1e293b 32px
+      );
+      animation: beltMove 1.2s linear infinite;
+    }
+
+    /* タイトルロゴのグラデーションと立体縁取り */
+    .title-typo {
+      background: linear-gradient(180deg, #ffffff 0%, #fef08a 52%, #f59e0b 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 5px 0 #78350f) drop-shadow(0 10px 20px rgba(0,0,0,0.45));
+    }
+
+    /* カスタムスクロールバー */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.3); border-radius: 99px; }
+    ::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.5); border-radius: 99px; }
+  
+    html, body { height: 100%; touch-action: manipulation; overscroll-behavior: none; }
+    html { scrollbar-gutter: stable; overflow-x: hidden; -webkit-text-size-adjust: 100%; }
+    body { width: 100%; overflow-x: hidden; }
+    .app { width: 100%; overflow-x: clip; max-width: 480px; margin: 0 auto; min-height: 100dvh; position: relative; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
+    .screen { width: 100%; min-height: 100dvh; overflow-x: clip; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.25} }
+    .blink { animation: blink 1.4s ease-in-out infinite; }
+    @keyframes drift { 0%{transform:translateY(0) rotate(0)} 100%{transform:translateY(-110vh) rotate(40deg)} }
+    .drift { position:absolute; bottom:-10vh; animation: drift linear infinite; opacity:.55; }
+    @keyframes rays { to { transform: rotate(360deg); } }
+    .rays { position:absolute; left:50%; top:34%; width:170vmax; height:170vmax; margin:-85vmax 0 0 -85vmax; background: repeating-conic-gradient(rgba(255,255,255,.10) 0 8deg, transparent 8deg 22deg); animation: rays 90s linear infinite; }
+    #romaji-display { font-size: clamp(1.5rem, 8vw, 2.6rem); }
+    input, select { font-size: 16px !important; }
+    @media (prefers-reduced-motion: reduce) { .drift, .rays, .animate-float, .animate-float-delay, .blink { animation: none; } }
+  </style>
+<script src="/pbpark/points/points.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-50 min-h-screen flex flex-col">
+<body class="bg-slate-950 text-slate-50">
+<div class="app">
+
+  <!-- 1. タイトル -->
+  <section id="screen-title" class="screen relative flex flex-col items-center overflow-hidden bg-gradient-to-b from-sky-400 via-indigo-600 to-slate-900 px-4 pt-3 pb-5">
+    <div class="rays pointer-events-none"></div>
+    <div class="pointer-events-none absolute inset-0 overflow-hidden text-3xl" id="drift-layer"></div>
+
+    <header class="w-full flex justify-between items-center z-10">
+      <div class="flex items-center gap-1.5 bg-slate-900/60 border border-white/20 px-3 py-1 rounded-full">
+        <span id="pb-dot" class="w-2.5 h-2.5 rounded-full bg-slate-400"></span>
+        <span id="pb-status" class="text-xs font-extrabold text-amber-200">接続中…</span>
+      </div>
+      <div class="bg-slate-900/60 border border-white/20 px-3 py-1 rounded-full text-xs font-bold text-sky-100">
+        PB <span id="title-pb-points" class="text-amber-300 font-black text-base">-</span> pt
+      </div>
+    </header>
+
+    <main class="flex flex-col items-center text-center z-10 mt-6">
+      <div class="flex gap-2 text-4xl animate-float"><span>🍣</span><span>🍜</span><span>🍔</span></div>
+      <h1 class="title-typo text-6xl font-black leading-[0.95] mt-2">WORLD<br>BUFFET</h1>
+      <div class="mt-3 bg-rose-500 text-white font-black text-sm px-5 py-1 rounded-full shadow-[0_3px_0_#9f1239]">世界の料理タイピング</div>
+    </main>
+
+    <div class="flex-1 w-full flex justify-around items-end z-10 mt-4">
+      <div id="char-cn" class="relative flex flex-col items-center cursor-pointer p-1">
+        <div id="bubble-cn" class="hidden bubble-pop absolute -top-14 whitespace-nowrap bg-white text-slate-900 font-black text-sm px-3 py-2 rounded-2xl shadow-xl border-2 border-amber-400 z-20">「プログラマーになろう」<div class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-3 h-3 bg-white border-r-2 border-b-2 border-amber-400 rotate-45"></div></div>
+        <canvas id="canvas-title-cn" class="w-32 h-32 animate-float drop-shadow-[0_10px_12px_rgba(0,0,0,0.45)]"></canvas>
+        <span class="bg-slate-900/70 text-xs font-extrabold px-3 py-0.5 rounded-full">🇨🇳 🍜 中国ボール</span>
+      </div>
+      <div id="char-us" class="relative flex flex-col items-center cursor-pointer p-1">
+        <div id="bubble-us" class="hidden bubble-pop absolute -top-14 whitespace-nowrap bg-white text-slate-900 font-black text-sm px-3 py-2 rounded-2xl shadow-xl border-2 border-sky-400 z-20">「プログラマーになろう」<div class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-3 h-3 bg-white border-r-2 border-b-2 border-sky-400 rotate-45"></div></div>
+        <canvas id="canvas-title-us" class="w-32 h-32 animate-float-delay drop-shadow-[0_10px_12px_rgba(0,0,0,0.45)]"></canvas>
+        <span class="bg-slate-900/70 text-xs font-extrabold px-3 py-0.5 rounded-full">🇺🇸 アメリカボール</span>
+      </div>
+    </div>
+
+    <div class="w-full z-10 mt-5 flex flex-col items-center">
+      <button id="btn-start-play" class="game-btn w-full max-w-xs py-4 rounded-full bg-gradient-to-b from-amber-300 via-amber-400 to-orange-500 text-slate-950 font-black text-2xl shadow-[0_7px_0_#9a3412,0_14px_24px_rgba(0,0,0,0.4)] border-2 border-amber-100">▶ ゲームスタート</button>
+      <p class="blink mt-4 text-xs font-bold text-sky-100">ボールをタッチすると話すよ！</p>
+    </div>
+  </section>
+
+  <!-- 2. ロビー -->
+  <section id="screen-lobby" class="screen hidden flex flex-col bg-gradient-to-b from-slate-900 via-indigo-950 to-slate-900">
+    <header class="bg-slate-900/90 border-b border-indigo-500/30 px-3 py-2.5 sticky top-0 z-20">
+      <div class="flex items-center justify-between gap-2">
+        <button id="btn-back-title" class="game-btn bg-slate-800 text-xs font-extrabold w-10 h-10 rounded-xl border border-slate-600">◀</button>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-1.5"><span class="bg-gradient-to-r from-amber-400 to-orange-500 text-slate-950 text-[11px] font-black px-2 rounded-md">RANK <span id="lobby-rank">1</span></span><span class="font-extrabold text-xs truncate">見習いプログラマー</span></div>
+          <div class="h-1.5 bg-slate-800 rounded-full overflow-hidden mt-1"><div id="lobby-exp-bar" class="h-full bg-gradient-to-r from-cyan-400 to-emerald-400" style="width:25%"></div></div>
+        </div>
+        <div class="flex items-center gap-1.5 bg-slate-950 border border-amber-400/50 pl-1.5 pr-3 py-1 rounded-full">
+          <span class="w-6 h-6 rounded-full bg-gradient-to-br from-amber-300 to-orange-500 text-slate-950 font-black text-[10px] flex items-center justify-center">PB</span>
+          <span id="lobby-pb-points" class="text-base font-black text-amber-300 tabular-nums">-</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="flex-1 p-3 flex flex-col gap-3">
+      <div class="relative flex items-center gap-3 bg-gradient-to-r from-indigo-900/60 to-slate-900/80 border border-indigo-400/30 rounded-3xl p-3">
+        <canvas id="canvas-lobby-partner" class="w-24 h-24 shrink-0 animate-float drop-shadow-[0_10px_12px_rgba(0,0,0,0.5)] cursor-pointer"></canvas>
+        <div class="min-w-0 flex-1">
+          <div id="lobby-partner-speech" class="bg-white text-slate-900 font-extrabold text-xs px-3 py-2 rounded-2xl border-2 border-amber-400">「バイキングモードで世界の料理を味わおう！」</div>
+          <div class="flex items-center justify-between mt-2">
+            <span id="lobby-partner-name" class="text-sm font-black">🇯🇵 日本ボール</span>
+            <button id="btn-switch-partner" class="game-btn bg-slate-800 text-xs font-bold px-3 py-1.5 rounded-full border border-slate-500">🔄 交代</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between px-1">
+        <h2 class="text-base font-black"><span class="inline-block w-1.5 h-5 bg-amber-400 rounded-full align-middle mr-2"></span>モード選択</h2>
+        <span class="text-xs font-bold text-indigo-300">🏆 <span id="lobby-high-score">0</span> / <span id="lobby-word-count">0</span>語</span>
+      </div>
+
+      <button id="btn-mode-viking" class="game-btn w-full text-left rounded-3xl bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-500 p-4 text-slate-950 shadow-[0_7px_0_#9a3412,0_12px_20px_rgba(0,0,0,0.4)] border-2 border-amber-200">
+        <div class="flex items-center justify-between gap-3">
+          <div>
+            <div class="inline-block bg-slate-950 text-amber-300 text-xs font-black px-3 py-0.5 rounded-full mb-1">入場料 <span class="viking-fee">2</span>pt</div>
+            <h3 class="text-2xl font-black">🍽️ バイキング</h3>
+            <p class="text-xs font-extrabold mt-1">流れてくる料理を打て！ブーストにPBを使おう</p>
+          </div>
+          <div class="text-3xl bg-white/40 p-2 rounded-2xl leading-tight text-center">🍣<br>🍜</div>
+        </div>
+      </button>
+
+      <button id="btn-mode-practice" class="game-btn w-full text-left rounded-3xl bg-gradient-to-r from-cyan-600 to-blue-600 p-4 shadow-[0_6px_0_#1e3a8a,0_10px_18px_rgba(0,0,0,0.35)] border border-cyan-300/50">
+        <div class="flex items-center justify-between gap-3">
+          <div><div class="inline-block bg-cyan-950/70 text-cyan-200 text-xs font-black px-3 py-0.5 rounded-full mb-1">無料・ポイントなし</div><h3 class="text-xl font-black">🎯 練習モード</h3><p class="text-xs font-bold text-cyan-100 mt-1">時間制限なしでじっくり練習</p></div>
+          <div class="text-3xl">⌨️</div>
+        </div>
+      </button>
+
+      <button id="btn-mode-dict" class="game-btn w-full text-left rounded-3xl bg-gradient-to-r from-emerald-600 to-teal-600 p-4 shadow-[0_6px_0_#064e3b,0_10px_18px_rgba(0,0,0,0.35)] border border-emerald-300/50">
+        <div class="flex items-center justify-between gap-3">
+          <div><h3 class="text-xl font-black">📖 じしょ！</h3><p class="text-xs font-bold text-emerald-100 mt-1">好きな単語を追加してゲームに登場させよう</p></div>
+          <div class="text-3xl">✍️</div>
+        </div>
+      </button>
+    </main>
+  </section>
+
+  <!-- 3. ゲーム（1画面固定・画面内キーボード） -->
+  <section id="screen-game" class="screen hidden flex flex-col bg-slate-900" style="height:100dvh">
+    <header class="bg-slate-950 border-b border-slate-800 px-3 py-2 flex items-center justify-between gap-2">
+      <button id="btn-game-quit" class="game-btn bg-slate-800 text-xs font-extrabold w-10 h-10 rounded-xl border border-slate-600">✕</button>
+      <span id="game-mode-badge" class="hidden"></span>
+      <div class="flex items-center gap-4">
+        <div class="text-center"><div class="text-[10px] text-slate-400 font-bold">TIME</div><div id="hud-timer" class="text-xl font-black text-amber-400 tabular-nums">60.0s</div></div>
+        <div class="text-center"><div class="text-[10px] text-slate-400 font-bold">SCORE</div><div id="hud-score" class="text-xl font-black text-cyan-300 tabular-nums">0</div></div>
+        <div class="text-center"><div class="text-[10px] text-slate-400 font-bold">COMBO</div><div id="hud-combo" class="text-xl font-black text-emerald-400 tabular-nums">0</div></div>
+      </div>
+    </header>
+
+    <main class="flex-1 flex flex-col min-h-0 p-3 gap-3">
+      <div id="lane" class="relative w-full h-44 shrink-0 bg-gradient-to-b from-indigo-950 via-slate-900 to-slate-800 rounded-3xl border-2 border-slate-700 overflow-hidden flex flex-col justify-end">
+        <span id="boost-tags" class="absolute top-2 left-3 text-xs font-bold text-amber-300"></span>
+        <div id="time-bonus-popup" class="hidden absolute top-2 right-3 bg-emerald-500 text-slate-950 font-black text-xs px-3 py-1 rounded-full">+3.0秒！</div>
+        <div class="relative w-full h-32">
+          <div id="active-plate" class="absolute top-2 flex flex-col items-center" style="left:50%;transform:translateX(-50%)">
+            <div class="bg-white text-slate-900 rounded-2xl px-4 py-2 shadow-xl border-4 border-amber-400 flex flex-col items-center min-w-[150px]">
+              <div class="flex items-center gap-1.5">
+                <canvas id="canvas-dish-country" class="w-6 h-6 rounded-full"></canvas>
+                <span id="dish-country-name" class="text-xs font-extrabold text-slate-500">日本</span>
+                <span id="dish-pts-badge" class="bg-amber-100 text-amber-800 text-[10px] font-black px-2 rounded-full">+100</span>
+              </div>
+              <div id="dish-emoji" class="text-4xl leading-none my-1">🍣</div>
+              <div id="dish-title" class="text-base font-black text-center leading-tight">おすし</div>
+            </div>
+            <div class="w-36 h-3 bg-gradient-to-r from-slate-300 via-white to-slate-300 rounded-b-full -mt-0.5"></div>
+          </div>
+        </div>
+        <div class="w-full h-6 conveyor-belt border-t-4 border-slate-600"></div>
+      </div>
+
+      <div class="flex-1 min-h-0 bg-slate-950 border-2 border-indigo-500/40 rounded-3xl px-3 py-2 flex flex-col items-center justify-center text-center">
+        <div id="romaji-display" class="font-black tracking-widest font-mono break-all"></div>
+        <div class="text-[11px] text-slate-400 mt-1">ミス <strong id="hud-miss-count" class="text-rose-400">0</strong> ・ 報酬予定 <strong id="hud-est-pb" class="text-amber-300">0</strong>pt <span id="guard-tag" class="text-sky-300"></span></div>
+      </div>
+    </main>
+
+    <input id="rb-input" data-ringoboard readonly inputmode="none" aria-hidden="true" tabindex="-1" style="position:fixed;left:-100px;top:0;width:1px;height:1px;opacity:0;pointer-events:none">
+  </section>
+
+  <!-- 出発前ブースト画面 -->
+  <div id="sheet-boost" class="hidden fixed inset-0 z-40 bg-slate-950/80 flex items-end justify-center">
+    <div class="app bubble-pop w-full bg-gradient-to-b from-slate-800 to-slate-900 border-t-2 border-amber-400/70 rounded-t-3xl p-5 !min-h-0">
+      <div class="w-12 h-1.5 bg-slate-600 rounded-full mx-auto mb-3"></div>
+      <h2 class="text-xl font-black text-center">🍽️ バイキングの準備</h2>
+      <p class="text-center text-xs text-slate-400 mb-3">PBポイントでブーストを選ぼう（入場料 <span class="viking-fee">2</span>pt）</p>
+      <div id="boost-list" class="flex flex-col gap-2"></div>
+      <div class="flex justify-between items-center mt-3 text-sm font-bold"><span>所持 <span id="sheet-have" class="text-amber-300">-</span>pt</span><span>合計 <span id="sheet-total" class="text-rose-300 text-lg font-black">2</span>pt</span></div>
+      <div class="flex gap-3 mt-3">
+        <button id="btn-sheet-cancel" class="game-btn flex-1 bg-slate-700 font-black py-3.5 rounded-2xl border border-slate-500">戻る</button>
+        <button id="btn-sheet-go" class="game-btn flex-[2] bg-gradient-to-b from-amber-300 to-orange-500 text-slate-950 font-black py-3.5 rounded-2xl shadow-lg disabled:opacity-40">スタート！</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- リザルト -->
+  <div id="modal-result" class="hidden fixed inset-0 bg-slate-950/85 z-50 flex items-end justify-center">
+    <div class="app bubble-pop w-full bg-gradient-to-b from-slate-800 to-slate-900 border-t-2 border-amber-400/70 rounded-t-3xl p-5 text-center !min-h-0">
+      <h2 id="result-title" class="text-2xl font-black">バイキング終了！</h2>
+      <div class="my-4 bg-slate-950/80 rounded-2xl p-4 border border-slate-700 space-y-2 text-sm">
+        <div class="flex justify-between"><span class="text-slate-400 font-bold">スコア</span><span id="res-score" class="text-xl font-black text-cyan-300">0</span></div>
+        <div class="flex justify-between"><span class="text-slate-400 font-bold">完食</span><span id="res-dishes" class="font-black">0 皿</span></div>
+        <div class="flex justify-between"><span class="text-slate-400 font-bold">最大コンボ / ミス</span><span class="font-black text-emerald-400"><span id="res-combo">0</span> / <span id="res-miss" class="text-rose-400">0</span></span></div>
+        <div class="flex justify-between border-t border-slate-800 pt-2"><span class="font-black text-amber-300">獲得PB</span><span class="text-xl font-black text-amber-400">+<span id="res-pb">0</span> pt</span></div>
+      </div>
+      <div class="flex gap-3">
+        <button id="btn-res-lobby" class="game-btn flex-1 bg-slate-700 font-black py-3.5 rounded-2xl border border-slate-500">ロビーへ</button>
+        <button id="btn-res-retry" class="game-btn flex-1 bg-gradient-to-b from-amber-300 to-orange-500 text-slate-950 font-black py-3.5 rounded-2xl shadow-lg">もう一回！</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       5. じしょ！画面（自分で新しい単語を追加・管理）
+       ========================================================= -->
+  <section id="screen-dict" class="hidden flex-1 flex flex-col  bg-slate-900">
+    <header class="bg-slate-950 border-b border-emerald-500/30 px-4 py-3 sticky top-0 z-20">
+      <div class="w-full flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <button id="btn-dict-back" class="game-btn bg-slate-800 hover:bg-slate-700 text-white text-xs font-extrabold px-3.5 py-2 rounded-xl border border-slate-600 cursor-pointer">
+            ◀ ロビーへ戻る
+          </button>
+          <h2 class="text-lg sm:text-xl font-black text-emerald-400">📖 じしょ！</h2>
+        </div>
+        
+      </div>
+    </header>
+
+    <main class="flex-1 w-full p-4 sm:p-6 space-y-6">
+      <!-- 新規単語追加フォーム -->
+      <form id="form-add-word" class="bg-slate-800/90 border border-emerald-500/40 rounded-3xl p-5 sm:p-6 shadow-xl space-y-4">
+        <h3 class="text-base sm:text-lg font-black text-white flex items-center gap-2">
+          <span>✨</span> 新しい単語をじしょに追加する
+        </h3>
+        <div class="grid grid-cols-1 sm:grid-cols-1 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-300 mb-1">表示される言葉（料理・用語など）</label>
+            <input id="input-word-label" type="text" required maxlength="24" placeholder="例：プログラマーになろう"
+              class="w-full bg-slate-950 border border-slate-600 focus:border-emerald-400 rounded-xl px-3.5 py-2.5 text-sm text-white outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-300 mb-1">入力するローマ字（半角英字）</label>
+            <input id="input-word-romaji" type="text" required maxlength="36" placeholder="例：PUROGURAMA-NINAROU"
+              class="w-full bg-slate-950 border border-slate-600 focus:border-emerald-400 rounded-xl px-3.5 py-2.5 text-sm font-mono uppercase text-white outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-300 mb-1">アイコン（絵文字）＆国</label>
+            <div class="flex gap-2">
+              <input id="input-word-emoji" type="text" maxlength="4" value="💻"
+                class="w-16 text-center bg-slate-950 border border-slate-600 focus:border-emerald-400 rounded-xl px-2 py-2.5 text-lg outline-none">
+              <select id="input-word-country" class="flex-1 bg-slate-950 border border-slate-600 focus:border-emerald-400 rounded-xl px-3 py-2.5 text-sm text-white outline-none">
+                <option value="jp">🇯🇵 日本</option>
+                <option value="cn">🇨🇳 中国</option>
+                <option value="us">🇺🇸 アメリカ</option>
+                <option value="it">🇮🇹 イタリア</option>
+                <option value="fr">🇫🇷 フランス</option>
+                <option value="kr">🇰🇷 韓国</option>
+                <option value="th">🇹🇭 タイ</option>
+                <option value="mx">🇲🇽 メキシコ</option>
+                <option value="in">🇮🇳 インド</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="flex items-center justify-between pt-2">
+          <span id="dict-feedback" class="text-xs font-bold text-emerald-300"></span>
+          <button type="submit" class="game-btn bg-gradient-to-r from-emerald-400 to-teal-500 text-slate-950 font-black px-6 py-2.5 rounded-xl shadow-lg cursor-pointer">
+            ＋ じしょに追加する
+          </button>
+        </div>
+      </form>
+
+      <!-- 登録済み単語リスト -->
+      <div class="bg-slate-800/60 border border-slate-700 rounded-3xl p-5 sm:p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-base sm:text-lg font-black text-white">📚 登録されている単語一覧</h3>
+          <span id="dict-total-badge" class="bg-slate-950 text-emerald-300 text-xs font-black px-3 py-1 rounded-full border border-emerald-500/30">
+            0 単語
+          </span>
+        </div>
+        <div id="dict-word-list" class="grid grid-cols-1 sm:grid-cols-2 gap-3 ">
+          <!-- JSで単語カードを生成 -->
+        </div>
+      </div>
+    </main>
+  </section>
+  <!-- トースト通知（alert()の代わり） -->
+  <div id="toast-box" class="pointer-events-none fixed top-16 left-1/2 -translate-x-1/2 z-50 transition-all duration-300 opacity-0 translate-y-4">
+    <div id="toast-msg" class="bg-slate-900/95 text-white font-extrabold text-sm px-5 py-3 rounded-2xl border border-amber-400 shadow-2xl">
+      通知メッセージ
+    </div>
+  </div>
+  <script>
+(function(global) {
+            'use strict';
+
+            /**
+             * RingoBoard - サイト内埋め込み型ガラスモーフィズム英語キーボード
+             * Shadow DOM を使用し、ホストサイトのCSSと完全に隔離されています。
+             */
+            class RingoBoardController {
+                constructor(options = {}) {
+                    this.options = Object.assign({
+                        selector: '[data-ringoboard]',
+                        preventNativeKeyboard: true,
+                        sound: false,
+                        theme: 'auto', // 'auto' | 'light' | 'dark'
+                        persistent: false, // true: 外側タップで閉じない（ゲーム用）
+                        onToggle: null
+                    }, options);
+
+                    this.activeInput = null;
+                    this.hintChar = null;
+                    this.isVisible = false;
+                    this.layoutMode = 'letters'; // 'letters' | 'numbers' | 'symbols'
+                    this.shiftState = 'lower';   // 'lower' | 'upper' | 'caps'
+                    this.lastShiftTime = 0;
+                    this.backspaceTimer = null;
+                    this.backspaceInterval = null;
+
+                    this._initDOM();
+                    this._bindGlobalEvents();
+                }
+
+                /**
+                 * Shadow DOM とキーボードUIの構築
+                 */
+                _initDOM() {
+                    // すでに存在する場合は再利用
+                    if (document.getElementById('ringoboard-host')) return;
+
+                    this.host = document.createElement('div');
+                    this.host.id = 'ringoboard-host';
+                    this.host.style.cssText = 'position: fixed; bottom: 0; left: 0; width: 100%; z-index: 2147483647; pointer-events: none;';
+                    document.body.appendChild(this.host);
+
+                    this.shadow = this.host.attachShadow({ mode: 'open' });
+
+                    // キーボード専用スタイル (Tailwind不使用・完全自己完結)
+                    const style = document.createElement('style');
+                    style.textContent = `
+                        :host {
+                            --rb-bg: rgba(210, 213, 219, 0.72);
+                            --rb-border: rgba(255, 255, 255, 0.55);
+                            --rb-key-bg: rgba(255, 255, 255, 0.92);
+                            --rb-key-active: rgba(225, 228, 232, 0.95);
+                            --rb-func-bg: rgba(174, 179, 190, 0.78);
+                            --rb-func-active: rgba(255, 255, 255, 0.95);
+                            --rb-text: #000000;
+                            --rb-subtext: rgba(0, 0, 0, 0.45);
+                            --rb-shadow: 0 1px 1.5px rgba(0, 0, 0, 0.28);
+                            --rb-popup-bg: #ffffff;
+                            --rb-accent: #007aff;
+                            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+                            user-select: none;
+                            -webkit-user-select: none;
+                            -webkit-touch-callout: none;
+                        }
+
+                        @media (prefers-color-scheme: dark) {
+                            :host([data-theme="auto"]) {
+                                --rb-bg: rgba(34, 34, 38, 0.78);
+                                --rb-border: rgba(255, 255, 255, 0.14);
+                                --rb-key-bg: rgba(92, 92, 96, 0.85);
+                                --rb-key-active: rgba(130, 130, 135, 0.95);
+                                --rb-func-bg: rgba(58, 58, 62, 0.85);
+                                --rb-func-active: rgba(110, 110, 115, 0.95);
+                                --rb-text: #ffffff;
+                                --rb-subtext: rgba(255, 255, 255, 0.45);
+                                --rb-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
+                                --rb-popup-bg: #48484c;
+                            }
+                        }
+
+                        :host([data-theme="dark"]) {
+                            --rb-bg: rgba(34, 34, 38, 0.78);
+                            --rb-border: rgba(255, 255, 255, 0.14);
+                            --rb-key-bg: rgba(92, 92, 96, 0.85);
+                            --rb-key-active: rgba(130, 130, 135, 0.95);
+                            --rb-func-bg: rgba(58, 58, 62, 0.85);
+                            --rb-func-active: rgba(110, 110, 115, 0.95);
+                            --rb-text: #ffffff;
+                            --rb-subtext: rgba(255, 255, 255, 0.45);
+                            --rb-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
+                            --rb-popup-bg: #48484c;
+                        }
+
+                        /* メインコンテナ：すりガラス背景とスライドアニメーション */
+                        .rb-wrapper {
+                            pointer-events: auto;
+                            width: 100%;
+                            background: var(--rb-bg);
+                            backdrop-filter: blur(26px) saturate(180%);
+                            -webkit-backdrop-filter: blur(26px) saturate(180%);
+                            border-top: 1px solid var(--rb-border);
+                            border-top-left-radius: 22px;
+                            border-top-right-radius: 22px;
+                            box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.12);
+                            padding: 6px 4px calc(12px + env(safe-area-inset-bottom, 0px));
+                            transform: translateY(105%);
+                            opacity: 0;
+                            transition: transform 0.36s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.25s ease;
+                            display: flex;
+                            flex-direction: column;
+                            align-items: center;
+                        }
+
+                        .rb-wrapper.visible {
+                            transform: translateY(0);
+                            opacity: 1;
+                        }
+
+                        /* 上部アクセサリーバー（iOS風の丸みを帯びた閉じる/完了バー） */
+                        .rb-toolbar {
+                            width: 100%;
+                            max-width: 720px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: space-between;
+                            padding: 2px 10px 6px;
+                        }
+
+                        .rb-brand-pill {
+                            font-size: 11px;
+                            font-weight: 600;
+                            letter-spacing: 0.3px;
+                            color: var(--rb-subtext);
+                            padding: 4px 10px;
+                            border-radius: 99px;
+                            background: rgba(128, 128, 128, 0.12);
+                        }
+
+                        .rb-done-btn {
+                            background: var(--rb-key-bg);
+                            border: none;
+                            border-radius: 99px;
+                            width: 32px;
+                            height: 28px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            color: var(--rb-text);
+                            box-shadow: var(--rb-shadow);
+                            cursor: pointer;
+                            transition: transform 0.12s ease, background 0.12s ease;
+                        }
+
+                        .rb-done-btn:active {
+                            transform: scale(0.92);
+                        }
+
+                        /* キーボードグリッド領域 */
+                        .rb-board {
+                            width: 100%;
+                            max-width: 720px;
+                            display: flex;
+                            flex-direction: column;
+                            gap: 10px;
+                            padding: 2px 2px 0;
+                        }
+
+                        .rb-row {
+                            display: flex;
+                            justify-content: center;
+                            gap: 6px;
+                            width: 100%;
+                        }
+
+                        /* 2段目(ASDF...)の左右インセット */
+                        .rb-row.row-offset {
+                            padding: 0 4.5%;
+                        }
+
+                        /* 個別キーのスタイル */
+                        .rb-key {
+                            position: relative;
+                            flex: 1;
+                            height: 44px;
+                            border: none;
+                            border-radius: 8.5px;
+                            background: var(--rb-key-bg);
+                            color: var(--rb-text);
+                            font-size: 22px;
+                            font-weight: 400;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            box-shadow: var(--rb-shadow);
+                            cursor: pointer;
+                            padding: 0;
+                            touch-action: manipulation;
+                            transition: transform 0.08s cubic-bezier(0.2, 0, 0, 1), background-color 0.08s ease;
+                            -webkit-tap-highlight-color: transparent;
+                        }
+
+                        @media (min-width: 600px) {
+                            .rb-key {
+                                height: 48px;
+                                border-radius: 10px;
+                                font-size: 23px;
+                            }
+                            .rb-row {
+                                gap: 8px;
+                            }
+                        }
+
+                        /* 機能キー (Shift, Backspace, 123, Return) */
+                        .rb-key.func {
+                            background: var(--rb-func-bg);
+                            font-size: 15px;
+                            font-weight: 500;
+                        }
+
+                        .rb-key.shift,
+                        .rb-key.backspace {
+                            flex: 1.38;
+                        }
+
+                        .rb-key.mode {
+                            flex: 1.35;
+                            font-size: 15px;
+                            font-weight: 500;
+                        }
+
+                        .rb-key.emoji {
+                            flex: 1.15;
+                        }
+
+                        .rb-key.space {
+                            flex: 4.5;
+                            font-size: 15px;
+                            position: relative;
+                        }
+
+                        .rb-space-lang {
+                            position: absolute;
+                            right: 10px;
+                            bottom: 5px;
+                            font-size: 10px;
+                            font-weight: 600;
+                            color: var(--rb-subtext);
+                            letter-spacing: 0.4px;
+                        }
+
+                        .rb-key.return {
+                            flex: 2.1;
+                            font-size: 15px;
+                        }
+
+                        /* Shift 有効時のハイライト */
+                        .rb-key.shift.active {
+                            background: var(--rb-func-active);
+                            color: #000000;
+                        }
+                        :host([data-theme="dark"]) .rb-key.shift.active {
+                            background: #ffffff;
+                            color: #000000;
+                        }
+                        @media (prefers-color-scheme: dark) {
+                            :host([data-theme="auto"]) .rb-key.shift.active {
+                                background: #ffffff;
+                                color: #000000;
+                            }
+                        }
+
+                        /* キー押下時のアニメーション */
+                        .rb-key.pressed {
+                            transform: scale(0.93);
+                            background: var(--rb-key-active);
+                        }
+                        .rb-key.func.pressed {
+                            background: var(--rb-func-active);
+                        }
+
+                        /* iOS風 キーポップアップ吹き出し */
+                        .rb-popup {
+                            position: absolute;
+                            bottom: calc(100% + 6px);
+                            left: 50%;
+                            transform: translateX(-50%) scale(0.85);
+                            min-width: 48px;
+                            height: 54px;
+                            padding: 0 10px;
+                            background: var(--rb-popup-bg);
+                            color: var(--rb-text);
+                            border-radius: 12px;
+                            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22), 0 0 0 0.5px rgba(0, 0, 0, 0.08);
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            font-size: 30px;
+                            font-weight: 400;
+                            pointer-events: none;
+                            opacity: 0;
+                            z-index: 10;
+                            transition: opacity 0.06s ease, transform 0.08s cubic-bezier(0.34, 1.56, 0.64, 1);
+                        }
+
+                        .rb-popup.show {
+                            opacity: 1;
+                            transform: translateX(-50%) scale(1);
+                        }
+
+                        .rb-key.hint { background: #f59e0b; color: #111; }
+                        /* SVGアイコン調整 */
+                        .rb-icon {
+                            width: 21px;
+                            height: 21px;
+                            fill: none;
+                            stroke: currentColor;
+                            stroke-width: 1.9;
+                            stroke-linecap: round;
+                            stroke-linejoin: round;
+                        }
+                        .rb-icon.filled {
+                            fill: currentColor;
+                        }
+                    `;
+
+                    this.shadow.appendChild(style);
+                    this.host.setAttribute('data-theme', this.options.theme);
+
+                    // ラッパー要素
+                    this.wrapper = document.createElement('div');
+                    this.wrapper.className = 'rb-wrapper';
+
+                    // 上部ツールバー（ブランド表示 & 閉じるボタン）
+                    const toolbar = document.createElement('div');
+                    toolbar.className = 'rb-toolbar';
+                    toolbar.innerHTML = `
+                        <span class="rb-brand-pill">RingoBoard</span>
+                        <button type="button" class="rb-done-btn" aria-label="Close Keyboard" title="Hide Keyboard">
+                            <svg class="rb-icon" viewBox="0 0 24 24">
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                        </button>
+                    `;
+
+                    const closeBtn = toolbar.querySelector('.rb-done-btn');
+                    if (this.options.persistent) closeBtn.style.visibility = 'hidden';
+                    closeBtn.addEventListener('pointerdown', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        this.hide();
+                    });
+
+                    // キーボード配列コンテナ
+                    this.board = document.createElement('div');
+                    this.board.className = 'rb-board';
+
+                    this.wrapper.appendChild(toolbar);
+                    this.wrapper.appendChild(this.board);
+                    this.shadow.appendChild(this.wrapper);
+
+                    // キーボード内部のタップでフォーカスが外れないようにする
+                    this.wrapper.addEventListener('pointerdown', (e) => {
+                        e.preventDefault();
+                    });
+
+                    this._renderKeys();
+                }
+
+                /**
+                 * 現在のモード・Shift状態に応じてキーを描画
+                 */
+                _renderKeys() {
+                    this.board.innerHTML = '';
+
+                    const isUpper = this.shiftState !== 'lower';
+
+                    let rows = [];
+                    if (this.layoutMode === 'letters') {
+                        const r1 = ['q','w','e','r','t','y','u','i','o','p'].map(c => isUpper ? c.toUpperCase() : c);
+                        const r2 = ['a','s','d','f','g','h','j','k','l'].map(c => isUpper ? c.toUpperCase() : c);
+                        const r3 = ['z','x','c','v','b','n','m'].map(c => isUpper ? c.toUpperCase() : c);
+
+                        rows = [
+                            { keys: r1, offset: false },
+                            { keys: r2, offset: true },
+                            { keys: [{ type: 'shift' }, ...r3, { type: 'backspace' }], offset: false },
+                            { keys: [
+                                { type: 'mode', label: '123', target: 'numbers' },
+                                { type: 'emoji' },
+                                { type: 'space' },
+                                { type: 'return' }
+                            ], offset: false }
+                        ];
+                    } else if (this.layoutMode === 'numbers') {
+                        rows = [
+                            { keys: ['1','2','3','4','5','6','7','8','9','0'], offset: false },
+                            { keys: ['-','/',':',';','(',')','$','&','@','"'], offset: false },
+                            { keys: [
+                                { type: 'mode', label: '#+=', target: 'symbols', flex: 1.38 },
+                                '.',',','?','!',"'",
+                                { type: 'backspace' }
+                            ], offset: false },
+                            { keys: [
+                                { type: 'mode', label: 'ABC', target: 'letters' },
+                                { type: 'emoji' },
+                                { type: 'space' },
+                                { type: 'return' }
+                            ], offset: false }
+                        ];
+                    } else if (this.layoutMode === 'symbols') {
+                        rows = [
+                            { keys: ['[',']','{','}','#','%','^','*','+','='], offset: false },
+                            { keys: ['_','\\','|','~','<','>','€','£','¥','•'], offset: false },
+                            { keys: [
+                                { type: 'mode', label: '123', target: 'numbers', flex: 1.38 },
+                                '.',',','?','!',"'",
+                                { type: 'backspace' }
+                            ], offset: false },
+                            { keys: [
+                                { type: 'mode', label: 'ABC', target: 'letters' },
+                                { type: 'emoji' },
+                                { type: 'space' },
+                                { type: 'return' }
+                            ], offset: false }
+                        ];
+                    }
+
+                    rows.forEach(rowDef => {
+                        const rowEl = document.createElement('div');
+                        rowEl.className = 'rb-row' + (rowDef.offset ? ' row-offset' : '');
+
+                        rowDef.keys.forEach(item => {
+                            const keyEl = this._createKeyElement(item);
+                            rowEl.appendChild(keyEl);
+                        });
+
+                        this.board.appendChild(rowEl);
+                    });
+                }
+
+                /**
+                 * 各キーボタンの生成とイベントバインド
+                 */
+                _createKeyElement(item) {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'rb-key';
+
+                    if (typeof item === 'string') {
+                        btn.textContent = item;
+                        btn.dataset.k = item;
+                        if (this.hintChar && item.toLowerCase() === this.hintChar) btn.classList.add('hint');
+                        // 文字キー用ポップアップ要素
+                        const popup = document.createElement('div');
+                        popup.className = 'rb-popup';
+                        popup.textContent = item;
+                        btn.appendChild(popup);
+
+                        this._attachKeyEvents(btn, () => {
+                            this._insertText(item);
+                            // 1文字入力後、大文字（CapsLock以外）なら小文字へ戻す
+                            if (this.layoutMode === 'letters' && this.shiftState === 'upper') {
+                                this.shiftState = 'lower';
+                                this._renderKeys();
+                            }
+                        }, popup);
+
+                    } else if (item.type === 'shift') {
+                        btn.classList.add('func', 'shift');
+                        if (this.shiftState !== 'lower') btn.classList.add('active');
+                        btn.innerHTML = this._getShiftSVG();
+
+                        this._attachKeyEvents(btn, () => {
+                            const now = Date.now();
+                            if (now - this.lastShiftTime < 320 && this.shiftState === 'upper') {
+                                // ダブルタップでCaps Lock
+                                this.shiftState = 'caps';
+                            } else if (this.shiftState === 'lower') {
+                                this.shiftState = 'upper';
+                            } else {
+                                this.shiftState = 'lower';
+                            }
+                            this.lastShiftTime = now;
+                            this._renderKeys();
+                        });
+
+                    } else if (item.type === 'backspace') {
+                        btn.classList.add('func', 'backspace');
+                        btn.innerHTML = `
+                            <svg class="rb-icon" viewBox="0 0 24 24">
+                                <path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path>
+                                <line x1="18" y1="9" x2="12" y2="15"></line>
+                                <line x1="12" y1="9" x2="18" y2="15"></line>
+                            </svg>
+                        `;
+
+                        // 長押し連続削除対応
+                        btn.addEventListener('pointerdown', (e) => {
+                            e.preventDefault();
+                            btn.classList.add('pressed');
+                            this._deleteBackward();
+
+                            this.backspaceTimer = setTimeout(() => {
+                                this.backspaceInterval = setInterval(() => {
+                                    this._deleteBackward();
+                                }, 65);
+                            }, 420);
+                        });
+
+                        const clearRepeat = () => {
+                            btn.classList.remove('pressed');
+                            clearTimeout(this.backspaceTimer);
+                            clearInterval(this.backspaceInterval);
+                        };
+                        btn.addEventListener('pointerup', clearRepeat);
+                        btn.addEventListener('pointerleave', clearRepeat);
+                        btn.addEventListener('pointercancel', clearRepeat);
+
+                    } else if (item.type === 'mode') {
+                        btn.classList.add('func', 'mode');
+                        if (item.flex) btn.style.flex = item.flex;
+                        btn.textContent = item.label;
+
+                        this._attachKeyEvents(btn, () => {
+                            this.layoutMode = item.target;
+                            this._renderKeys();
+                        });
+
+                    } else if (item.type === 'emoji') {
+                        btn.classList.add('func', 'emoji');
+                        btn.innerHTML = `
+                            <svg class="rb-icon" viewBox="0 0 24 24">
+                                <circle cx="12" cy="12" r="9.5"></circle>
+                                <path d="M8.5 14.5s1.3 2 3.5 2 3.5-2 3.5-2"></path>
+                                <circle cx="9" cy="9.5" r="1" fill="currentColor" stroke="none"></circle>
+                                <circle cx="15" cy="9.5" r="1" fill="currentColor" stroke="none"></circle>
+                            </svg>
+                        `;
+                        // 英語専用・シンプル設計のため、ワンタップで代表的なスマイル絵文字を挿入
+                        const quickEmojis = ['😊', '👍', '❤️', '😂', '🎉', '✨'];
+                        let emojiIdx = 0;
+                        this._attachKeyEvents(btn, () => {
+                            this._insertText(quickEmojis[emojiIdx % quickEmojis.length]);
+                            emojiIdx++;
+                        });
+
+                    } else if (item.type === 'space') {
+                        btn.classList.add('space');
+                        btn.innerHTML = `<span class="rb-space-lang">EN</span>`;
+                        this._attachKeyEvents(btn, () => {
+                            this._insertText(' ');
+                        });
+
+                    } else if (item.type === 'return') {
+                        btn.classList.add('func', 'return');
+                        btn.innerHTML = `
+                            <svg class="rb-icon" viewBox="0 0 24 24">
+                                <polyline points="9 10 4 15 9 20"></polyline>
+                                <path d="M20 4v7a4 4 0 0 1-4 4H4"></path>
+                            </svg>
+                        `;
+                        this._attachKeyEvents(btn, () => {
+                            this._handleReturn();
+                        });
+                    }
+
+                    return btn;
+                }
+
+                /**
+                 * ポインターイベントとアニメーションのバインド
+                 */
+                _attachKeyEvents(btn, action, popup = null) {
+                    btn.addEventListener('pointerdown', (e) => {
+                        e.preventDefault();
+                        btn.classList.add('pressed');
+                        if (popup) popup.classList.add('show');
+                    });
+
+                    const release = (triggerAction) => {
+                        btn.classList.remove('pressed');
+                        if (popup) {
+                            setTimeout(() => popup.classList.remove('show'), 50);
+                        }
+                        if (triggerAction) action();
+                    };
+
+                    btn.addEventListener('pointerup', (e) => {
+                        e.preventDefault();
+                        release(true);
+                    });
+
+                    btn.addEventListener('pointerleave', () => release(false));
+                    btn.addEventListener('pointercancel', () => release(false));
+                }
+
+                _getShiftSVG() {
+                    if (this.shiftState === 'caps') {
+                        return `
+                            <svg class="rb-icon filled" viewBox="0 0 24 24">
+                                <path d="M12 3l8 8h-5v6H9v-6H4l8-8z"></path>
+                                <line x1="9" y1="20" x2="15" y2="20" stroke-width="2.2"></line>
+                            </svg>
+                        `;
+                    } else if (this.shiftState === 'upper') {
+                        return `
+                            <svg class="rb-icon filled" viewBox="0 0 24 24">
+                                <path d="M12 4l8 8h-5v7H9v-7H4l8-8z"></path>
+                            </svg>
+                        `;
+                    }
+                    return `
+                        <svg class="rb-icon" viewBox="0 0 24 24">
+                            <path d="M12 4l8 8h-5v7H9v-7H4l8-8z"></path>
+                        </svg>
+                    `;
+                }
+
+                /**
+                 * テキスト挿入ロジック（React/Vue等のフレームワークにも対応するイベント発火付き）
+                 */
+                _insertText(char) {
+                    const el = this.activeInput;
+                    if (!el) return;
+
+                    const start = el.selectionStart ?? el.value.length;
+                    const end = el.selectionEnd ?? el.value.length;
+                    const val = el.value;
+
+                    const nextValue = val.slice(0, start) + char + val.slice(end);
+                    this._setNativeValue(el, nextValue);
+
+                    const nextPos = start + char.length;
+                    if (typeof el.setSelectionRange === 'function') {
+                        el.setSelectionRange(nextPos, nextPos);
+                    }
+                }
+
+                /**
+                 * 1文字削除 (Backspace)
+                 */
+                _deleteBackward() {
+                    const el = this.activeInput;
+                    if (!el) return;
+
+                    const start = el.selectionStart ?? el.value.length;
+                    const end = el.selectionEnd ?? el.value.length;
+                    const val = el.value;
+
+                    if (start === 0 && end === 0) return;
+
+                    let nextValue, nextPos;
+                    if (start !== end) {
+                        nextValue = val.slice(0, start) + val.slice(end);
+                        nextPos = start;
+                    } else {
+                        // サロゲートペア（絵文字等）を考慮して1文字削除
+                        const before = Array.from(val.slice(0, start));
+                        before.pop();
+                        const newBefore = before.join('');
+                        nextValue = newBefore + val.slice(end);
+                        nextPos = newBefore.length;
+                    }
+
+                    this._setNativeValue(el, nextValue);
+                    if (typeof el.setSelectionRange === 'function') {
+                        el.setSelectionRange(nextPos, nextPos);
+                    }
+                }
+
+                /**
+                 * Enter / Return キーの処理
+                 */
+                _handleReturn() {
+                    const el = this.activeInput;
+                    if (!el) return;
+
+                    if (el.tagName === 'TEXTAREA') {
+                        this._insertText('\n');
+                    } else {
+                        // カスタムイベントとキーボードイベントを発火
+                        el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, bubbles: true }));
+                        el.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter', code: 'Enter', keyCode: 13, bubbles: true }));
+                        el.dispatchEvent(new CustomEvent('ringoboard:enter', { detail: { value: el.value }, bubbles: true }));
+
+                        if (el.form) {
+                            el.form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+                        }
+                    }
+                }
+
+                /**
+                 * DOM要素の値を安全に更新し input / change イベントを発火
+                 */
+                _setNativeValue(el, value) {
+                    const prototype = Object.getPrototypeOf(el);
+                    const valueSetter = Object.getOwnPropertyDescriptor(prototype, 'value')?.set;
+                    if (valueSetter) {
+                        valueSetter.call(el, value);
+                    } else {
+                        el.value = value;
+                    }
+                    el.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+
+                /**
+                 * ページ内の対象入力欄へのイベント監視
+                 */
+                _bindGlobalEvents() {
+                    document.addEventListener('focusin', (e) => {
+                        const target = e.target;
+                        if (target && target.matches && target.matches(this.options.selector)) {
+                            this.show(target);
+                        }
+                    });
+
+                    document.addEventListener('pointerdown', (e) => {
+                        const target = e.target;
+                        // キーボード本体へのタップは無視
+                        if (target === this.host || this.host.contains(target)) return;
+
+                        // 対象inputをタップした場合
+                        if (target && target.matches && target.matches(this.options.selector)) {
+                            this.show(target);
+                            return;
+                        }
+
+                        // 関係ない領域をタップしたら閉じる
+                        if (this.isVisible && !this.options.persistent) {
+                            this.hide();
+                        }
+                    });
+                }
+
+                /** 次に打つ文字を光らせ、必要なら数字/記号面へ自動で切り替える */
+                setHint(ch) {
+                    this.hintChar = ch ? String(ch).toLowerCase() : null;
+                    if (this.hintChar) this.layoutMode = /[a-z]/.test(this.hintChar) ? 'letters' : 'numbers';
+                    this._renderKeys();
+                }
+
+                /**
+                 * キーボードを表示
+                 */
+                show(inputElement) {
+                    if (inputElement) {
+                        this.activeInput = inputElement;
+                        if (this.options.preventNativeKeyboard) {
+                            inputElement.setAttribute('inputmode', 'none');
+                        }
+                    }
+                    if (!this.isVisible) {
+                        this.isVisible = true;
+                        requestAnimationFrame(() => {
+                            this.wrapper.classList.add('visible');
+                            if (this.options.onToggle) this.options.onToggle(true, this.wrapper.offsetHeight);
+                        });
+                    }
+                }
+
+                /**
+                 * キーボードを非表示
+                 */
+                hide() {
+                    if (this.isVisible) {
+                        this.isVisible = false;
+                        this.wrapper.classList.remove('visible');
+                        if (this.options.onToggle) this.options.onToggle(false, 0);
+                        if (this.activeInput) {
+                            this.activeInput.blur();
+                            this.activeInput = null;
+                        }
+                    }
+                }
+            }
+
+            // グローバルAPIとして公開
+            global.RingoBoard = {
+                _instance: null,
+                init(options) {
+                    if (!this._instance) {
+                        this._instance = new RingoBoardController(options);
+                    }
+                    return this._instance;
+                },
+                show(el) {
+                    if (this._instance) this._instance.show(el);
+                },
+                hide() {
+                    if (this._instance) this._instance.hide();
+                }
+            };
+
+        })(window);
+  </script>
+  <script>
+    /**
+     * =========================================================================
+     * 1. Countryball アセット読み込み・描画エンジン（提示コードを統合）
+     * =========================================================================
+     */
+    const BASE = 'https://raw.githubusercontent.com/PolandBallHub-Operator/pbpark/refs/heads/main/AI/historyai/';
+    const eyeFiles = { normal: 'eye.png', anger: 'anger.png', lol: 'lol.png', sad: 'sad.png', smile: 'smile.png' };
+    const CANTON_ALIGN = { cn: 'left', us: 'left' };
+
+    const COUNTRY_META = {
+      jp: { id: 'jp', name: '日本', flag: '🇯🇵' },
+      cn: { id: 'cn', name: '中国', flag: '🇨🇳' },
+      us: { id: 'us', name: 'アメリカ', flag: '🇺🇸' },
+      it: { id: 'it', name: 'イタリア', flag: '🇮🇹' },
+      fr: { id: 'fr', name: 'フランス', flag: '🇫🇷' },
+      kr: { id: 'kr', name: '韓国', flag: '🇰🇷' },
+      th: { id: 'th', name: 'タイ', flag: '🇹🇭' },
+      mx: { id: 'mx', name: 'メキシコ', flag: '🇲🇽' },
+      in: { id: 'in', name: 'インド', flag: '🇮🇳' },
+      de: { id: 'de', name: 'ドイツ', flag: '🇩🇪' },
+      vn: { id: 'vn', name: 'ベトナム', flag: '🇻🇳' },
+      es: { id: 'es', name: 'スペイン', flag: '🇪🇸' }
+    };
+
+    function loadImage(url, cors = true) {
+      return new Promise(resolve => {
+        const img = new Image();
+        if (cors) img.crossOrigin = 'anonymous';
+        img.onload = () => resolve(img);
+        img.onerror = () => resolve(null);
+        img.src = url;
+      });
+    }
+
+    function components(img, S) {
+      const c = document.createElement('canvas');
+      c.width = c.height = S;
+      const x = c.getContext('2d');
+      x.drawImage(img, 0, 0, S, S);
+      const d = x.getImageData(0, 0, S, S).data, N = S * S, label = new Int32Array(N).fill(-1), comps = [];
+      for (let p = 0; p < N; p++) {
+        if (label[p] >= 0 || d[p * 4 + 3] >= 40) continue;
+        const id = comps.length, stack = [p];
+        label[p] = id;
+        let area = 0, edge = false;
+        while (stack.length) {
+          const q = stack.pop(), px = q % S, py = (q / S) | 0;
+          area++;
+          if (!px || !py || px === S - 1 || py === S - 1) edge = true;
+          for (const n of [q - 1, q + 1, q - S, q + S]) {
+            if (n < 0 || n >= N || (n === q - 1 && px === 0) || (n === q + 1 && px === S - 1)) continue;
+            if (label[n] < 0 && d[n * 4 + 3] < 40) { label[n] = id; stack.push(n); }
+          }
+        }
+        comps.push({ id, area, edge });
+      }
+      return { label, comps };
+    }
+
+    let CB_ASSETS = null;
+    async function initBallAssets() {
+      try {
+        const [frame, ...eyes] = await Promise.all([
+          loadImage(BASE + 'frame.png'),
+          ...Object.values(eyeFiles).map(f => loadImage(BASE + f))
+        ]);
+        if (!frame || !eyes[0]) throw Error('fallback');
+        const S = 220, fc = components(frame, S);
+        const outside = new Set(fc.comps.filter(c => c.edge).map(c => c.id));
+        const mask = document.createElement('canvas');
+        mask.width = mask.height = S;
+        const mx = mask.getContext('2d'), md = mx.createImageData(S, S);
+        let x0 = S, y0 = S, x1 = 0, y1 = 0;
+        for (let p = 0; p < S * S; p++) {
+          if (!outside.has(fc.label[p])) {
+            md.data[p * 4 + 3] = 255;
+            const x = p % S, y = (p / S) | 0;
+            x0 = Math.min(x0, x); x1 = Math.max(x1, x);
+            y0 = Math.min(y0, y); y1 = Math.max(y1, y);
+          }
+        }
+        mx.putImageData(md, 0, 0);
+        const eyeCanvases = {};
+        Object.keys(eyeFiles).forEach((k, j) => {
+          if (!eyes[j]) return;
+          const ec = components(eyes[j], S);
+          const holes = ec.comps.filter(c => !c.edge && c.area > 80).sort((a, b) => a.area - b.area).slice(-2);
+          const ids = new Set(holes.map(c => c.id));
+          const cv = document.createElement('canvas');
+          cv.width = cv.height = S;
+          const cx = cv.getContext('2d'), im = cx.createImageData(S, S);
+          for (let p = 0; p < S * S; p++) {
+            if (ids.has(ec.label[p])) {
+              im.data[p * 4] = im.data[p * 4 + 1] = im.data[p * 4 + 2] = 255;
+              im.data[p * 4 + 3] = 255;
+            }
+          }
+          cx.putImageData(im, 0, 0);
+          cx.drawImage(eyes[j], 0, 0, S, S);
+          eyeCanvases[k] = cv;
+        });
+        CB_ASSETS = { frame, mask, eyes: eyeCanvases, body: { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 } };
+      } catch {
+        CB_ASSETS = 'fallback';
+      }
+    }
+
+    const flagCache = new Map();
+    async function getFlag(countryId) {
+      if (flagCache.has(countryId)) return flagCache.get(countryId);
+      const img = await loadImage(`https://flagcdn.com/w320/${countryId}.png`);
+      flagCache.set(countryId, img);
+      return img;
+    }
+
+    async function paintCountryBall(canvas, countryId, expr = 'normal') {
+      if (!canvas) return;
+      const S = 220, ctx = canvas.getContext('2d');
+      canvas.width = canvas.height = S;
+      ctx.clearRect(0, 0, S, S);
+      const flag = await getFlag(countryId);
+
+      if (CB_ASSETS && CB_ASSETS !== 'fallback') {
+        const tmp = document.createElement('canvas');
+        tmp.width = tmp.height = S;
+        const t = tmp.getContext('2d'), b = CB_ASSETS.body;
+        if (flag) {
+          const fw = b.w + 24;
+          const sc = Math.max(fw / flag.width, b.h / flag.height);
+          const w = flag.width * sc, h = flag.height * sc;
+          const align = CANTON_ALIGN[countryId] || 'center';
+          const dx = align === 'left' ? 0 : (fw - w) / 2;
+          t.drawImage(flag, b.x - 12 + dx, b.y + (b.h - h) / 2, w, h);
+        } else {
+          t.fillStyle = '#64748b';
+          t.fillRect(b.x - 12, b.y, b.w + 24, b.h);
+        }
+        t.globalCompositeOperation = 'destination-in';
+        t.drawImage(CB_ASSETS.mask, 0, 0);
+        ctx.drawImage(tmp, 0, 0);
+        ctx.drawImage(CB_ASSETS.frame, 0, 0, S, S);
+        ctx.drawImage(CB_ASSETS.eyes[expr] || CB_ASSETS.eyes.normal, 0, 0);
+      } else {
+        // ネットワーク制限時のベクターフォールバック描画
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(110, 110, 96, 0, Math.PI * 2);
+        ctx.clip();
+        if (flag) {
+          ctx.drawImage(flag, 10, 14, 200, 192);
+        } else {
+          ctx.fillStyle = countryId === 'cn' ? '#de2910' : countryId === 'us' ? '#3c3b6e' : '#f8fafc';
+          ctx.fillRect(0, 0, S, S);
+        }
+        ctx.restore();
+        ctx.lineWidth = 8;
+        ctx.strokeStyle = '#0f172a';
+        ctx.beginPath();
+        ctx.arc(110, 110, 96, 0, Math.PI * 2);
+        ctx.stroke();
+        // 目
+        ctx.fillStyle = '#ffffff';
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 5;
+        ctx.beginPath(); ctx.ellipse(82, 95, 18, 22, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        ctx.beginPath(); ctx.ellipse(138, 95, 18, 22, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      }
+    }
+
+    /**
+     * =========================================================================
+     * 2. サウンド効果（Web Audio API による軽量シンセ効果音）
+     * =========================================================================
+     */
+    const AudioFX = (() => {
+      let ctx = null;
+      function ensure() {
+        if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+        if (ctx.state === 'suspended') ctx.resume();
+      }
+      function playTone(freq, type = 'sine', duration = 0.08, vol = 0.12) {
+        try {
+          ensure();
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, ctx.currentTime);
+          gain.gain.setValueAtTime(vol, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start();
+          osc.stop(ctx.currentTime + duration);
+        } catch {}
+      }
+      return {
+        typeOk: () => playTone(660, 'triangle', 0.06, 0.1),
+        typeMiss: () => playTone(160, 'sawtooth', 0.12, 0.12),
+        plateClear: () => {
+          playTone(587.33, 'sine', 0.1, 0.14);
+          setTimeout(() => playTone(880, 'sine', 0.18, 0.16), 70);
+        },
+        popVoice: () => {
+          playTone(523.25, 'triangle', 0.09, 0.14);
+          setTimeout(() => playTone(783.99, 'triangle', 0.14, 0.14), 65);
+        }
+      };
+    })();
+
+    /**
+     * =========================================================================
+     * 3. 世界の料理デフォルトデータ ＆ ユーザー「じしょ！」データ管理
+     * =========================================================================
+     */
+
+    /**
+     * 3. 料理データ（🍣=日本 / 🍜=中国）
+     */
+    const COUNTRY_ICON = { jp: '🍣', cn: '🍜' };
+    const DEFAULT_WORDS = [
+      { id: 'd1', label: 'おすし', romaji: 'OSUSHI', emoji: '🍣', country: 'jp' },
+      { id: 'd1b', label: 'にぎりずし', romaji: 'NIGIRIZUSHI', emoji: '🍣', country: 'jp' },
+      { id: 'd1c', label: 'ちらしずし', romaji: 'CHIRASHIZUSHI', emoji: '🍣', country: 'jp' },
+      { id: 'd1d', label: 'いなりずし', romaji: 'INARIZUSHI', emoji: '🍣', country: 'jp' },
+      { id: 'd2', label: 'ラーメン', romaji: 'RA-MEN', emoji: '🍜', country: 'cn' },
+      { id: 'd2b', label: 'タンタンメン', romaji: 'TANTANMEN', emoji: '🍜', country: 'cn' },
+      { id: 'd3', label: 'ハンバーガー', romaji: 'HANBA-GA-', emoji: '🍔', country: 'us' },
+      { id: 'd4', label: 'ギョーザ', romaji: 'GYO-ZA', emoji: '🥟', country: 'cn' },
+      { id: 'd5', label: 'ペキンダック', romaji: 'PEKINDAKKU', emoji: '🍗', country: 'cn' },
+      { id: 'd6', label: 'マルゲリータピザ', romaji: 'MARUGERI-TAPIZA', emoji: '🍕', country: 'it' },
+      { id: 'd7', label: 'クロワッサン', romaji: 'KUROWASSAN', emoji: '🥐', country: 'fr' },
+      { id: 'd8', label: 'ビビンバ', romaji: 'BIBINBA', emoji: '🥘', country: 'kr' },
+      { id: 'd9', label: 'トムヤムクン', romaji: 'TOMUYAMUKUN', emoji: '🍲', country: 'th' },
+      { id: 'd10', label: 'タコス', romaji: 'TAKOSU', emoji: '🌮', country: 'mx' },
+      { id: 'd11', label: 'ナンカレー', romaji: 'NANKARE-', emoji: '🍛', country: 'in' },
+      { id: 'd12', label: 'ソーセージ', romaji: 'SO-SE-JI', emoji: '🌭', country: 'de' },
+      { id: 'd13', label: 'パエリア', romaji: 'PAERIA', emoji: '🥘', country: 'es' },
+      { id: 'd14', label: 'フォー', romaji: 'FO-', emoji: '🥣', country: 'vn' },
+      { id: 'd15', label: 'プログラマーになろう', romaji: 'PUROGURAMA-NINAROU', emoji: '💻', country: 'us' }
+    ];
+
+    /**
+     * 4. PBポイントAPI（pbpoint-api.md準拠：フォールバックなし）
+     */
+    const PB = window.PBPoints || window.PointsSystem || null;
+    let pbOk = false;
+    async function pbGet() {
+      if (!PB) throw new Error('PBPoint API not found');
+      const v = Number(await PB.get());
+      if (!Number.isFinite(v)) throw new Error('invalid points');
+      return v;
+    }
+    async function pbAdd(amount, reason) {
+      if (!PB) throw new Error('PBPoint API not found');
+      await PB.add(Math.trunc(amount), reason);
+    }
+    let pbValue = null;
+    function showPB(v) {
+      pbValue = v;
+      const t = v === null ? 'エラー' : Number(v).toLocaleString();
+      document.getElementById('title-pb-points').textContent = t;
+      document.getElementById('lobby-pb-points').textContent = t;
+      document.getElementById('sheet-have').textContent = t;
+      document.getElementById('pb-dot').className = 'w-2.5 h-2.5 rounded-full ' + (v === null ? 'bg-rose-500' : 'bg-emerald-400 animate-pulse');
+      document.getElementById('pb-status').textContent = v === null ? 'PB接続エラー' : 'PB接続OK';
+      const vk = document.getElementById('btn-mode-viking');
+      vk.disabled = v === null;
+      vk.classList.toggle('opacity-40', v === null);
+    }
+    function showPBError() { pbOk = false; showPB(null); }
+    async function initPB() {
+      try {
+        showPB(await pbGet());
+        pbOk = true;
+        if (PB.onChange) PB.onChange(p => { showPB(Number(p)); });
+      } catch (e) { console.error(e); showPBError(); }
+    }
+
+    const VIKING_FEE = 2;
+    const REWARD_BASE = 1, REWARD_HIGH = 3;
+    const BOOSTS = [
+      { id: 'time', icon: '⏱️', name: 'ロングタイム', desc: '制限時間 +15秒', cost: 15 },
+      { id: 'slow', icon: '🐢', name: 'スローベルト', desc: 'お皿が30%ゆっくり', cost: 15 },
+      { id: 'guard', icon: '🛡️', name: 'コンボガード', desc: 'ミス3回までコンボ維持', cost: 10 },
+      { id: 'x2', icon: '✨', name: 'スコア×1.5', desc: 'スコアが1.5倍', cost: 25 }
+    ];
+    document.querySelectorAll('.viking-fee').forEach(e => e.textContent = VIKING_FEE);
+    let picked = new Set();
+
+    const STORAGE_KEY = 'world_buffet_typing_save_v2';
+    let saveState = { highScore: 0, exp: 25, rank: 1, partnerId: 'jp', customWords: [] };
+    function loadSave() {
+      try { const raw = localStorage.getItem(STORAGE_KEY); if (raw) saveState = { ...saveState, ...JSON.parse(raw) }; } catch {}
+    }
+    function persistSave() {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(saveState)); } catch {}
+      syncUIStats();
+    }
+    function getAllWords() { return [...saveState.customWords, ...DEFAULT_WORDS]; }
+    function showToast(msg) {
+      const box = document.getElementById('toast-box');
+      document.getElementById('toast-msg').textContent = msg;
+      box.classList.remove('opacity-0', 'translate-y-4');
+      clearTimeout(box._timer);
+      box._timer = setTimeout(() => box.classList.add('opacity-0', 'translate-y-4'), 2400);
+    }
+
+    /**
+     * 5. 画面遷移・タイトル／ロビー
+     */
+    const screens = {
+      title: document.getElementById('screen-title'), lobby: document.getElementById('screen-lobby'),
+      game: document.getElementById('screen-game'), dict: document.getElementById('screen-dict')
+    };
+    function switchScreen(name) {
+      Object.entries(screens).forEach(([k, el]) => el.classList.toggle('hidden', k !== name));
+      window.scrollTo(0, 0);
+      syncUIStats();
+    }
+    function syncUIStats() {
+      document.getElementById('lobby-high-score').textContent = saveState.highScore.toLocaleString();
+      document.getElementById('lobby-rank').textContent = saveState.rank;
+      document.getElementById('lobby-exp-bar').style.width = `${saveState.exp % 100}%`;
+      document.getElementById('lobby-word-count').textContent = getAllWords().length;
+    }
+    // タイトルの浮遊する料理
+    (() => {
+      const layer = document.getElementById('drift-layer');
+      ['🍣', '🍜', '🍔', '🍕', '🌮', '🥟', '🥐', '🍛'].forEach((e, i) => {
+        const s = document.createElement('span');
+        s.className = 'drift'; s.textContent = e;
+        s.style.left = (6 + i * 12) + '%'; s.style.animationDuration = (9 + (i % 4) * 3) + 's'; s.style.animationDelay = (-i * 2.3) + 's';
+        layer.appendChild(s);
+      });
+    })();
+
+    function triggerTitleCharSpeech(code) {
+      AudioFX.popVoice();
+      const bubble = document.getElementById(`bubble-${code}`);
+      const canvas = document.getElementById(`canvas-title-${code}`);
+      bubble.classList.remove('hidden');
+      bubble.style.animation = 'none'; bubble.offsetHeight; bubble.style.animation = '';
+      paintCountryBall(canvas, code, 'smile');
+      clearTimeout(bubble._hideTimer);
+      bubble._hideTimer = setTimeout(() => { bubble.classList.add('hidden'); paintCountryBall(canvas, code, 'normal'); }, 2600);
+    }
+    document.getElementById('char-cn').addEventListener('click', () => triggerTitleCharSpeech('cn'));
+    document.getElementById('char-us').addEventListener('click', () => triggerTitleCharSpeech('us'));
+    document.getElementById('btn-start-play').addEventListener('click', () => { AudioFX.plateClear(); switchScreen('lobby'); renderLobbyPartner(); });
+    document.getElementById('btn-back-title').addEventListener('click', () => switchScreen('title'));
+
+    const PARTNER_IDS = ['jp', 'cn', 'us', 'it', 'fr', 'kr'];
+    const PARTNER_LINES = [
+      '「バイキングで世界の料理を味わおう！」', '「プログラマーになろう！」',
+      '「ブーストでPBを使うと有利になるよ！」', '「練習モードは無料だよ！」'
+    ];
+    function renderLobbyPartner() {
+      const meta = COUNTRY_META[saveState.partnerId] || COUNTRY_META.jp;
+      const ic = COUNTRY_ICON[meta.id] ? COUNTRY_ICON[meta.id] + ' ' : '';
+      document.getElementById('lobby-partner-name').textContent = `${meta.flag} ${ic}${meta.name}ボール`;
+      paintCountryBall(document.getElementById('canvas-lobby-partner'), meta.id, 'smile');
+    }
+    document.getElementById('btn-switch-partner').addEventListener('click', () => {
+      AudioFX.typeOk();
+      saveState.partnerId = PARTNER_IDS[(PARTNER_IDS.indexOf(saveState.partnerId) + 1) % PARTNER_IDS.length];
+      persistSave(); renderLobbyPartner();
+    });
+    document.getElementById('canvas-lobby-partner').addEventListener('click', () => {
+      AudioFX.popVoice();
+      document.getElementById('lobby-partner-speech').textContent = PARTNER_LINES[Math.floor(Math.random() * PARTNER_LINES.length)];
+      paintCountryBall(document.getElementById('canvas-lobby-partner'), saveState.partnerId, 'lol');
+      setTimeout(() => paintCountryBall(document.getElementById('canvas-lobby-partner'), saveState.partnerId, 'smile'), 1200);
+    });
+
+    // RinGOボード（スマホ等のタッチ端末のみ表示。PCは物理キーボード）
+    const useRB = !matchMedia('(hover:hover) and (pointer:fine)').matches;
+    function hintNextKey() {
+      const rb = window.RingoBoard && RingoBoard._instance, w = gameState.currentWord;
+      if (rb && rb.isVisible && w) rb.setHint(w.romaji[gameState.charIndex]);
+    }
+    function rbShow() {
+      if (!useRB || !window.RingoBoard._instance) return;
+      RingoBoard._instance.show(document.getElementById('rb-input'));
+      hintNextKey();
+    }
+    function rbHide() { if (window.RingoBoard && RingoBoard._instance) RingoBoard.hide(); }
+
+    /**
+     * 6. ゲームエンジン（消費メイン：入場料＋ブースト／報酬は少なめ）
+     */
+    let gameState = {
+      active: false, mode: 'viking', timeLeft: 60, score: 0, combo: 0, maxCombo: 0, dishesCleared: 0,
+      typedChars: 0, missCount: 0, currentWord: null, charIndex: 0, plateX: 90, plateSpeed: 10,
+      minX: 20, maxX: 80, boosts: new Set(), guard: 0, spent: 0, lastFrameTime: 0, rafId: null
+    };
+    // 報酬：バイキング完走で1pt、最高スコア更新なら3pt（練習は0）
+    const calcReward = () => gameState.mode !== 'viking' ? 0 : (gameState.score > saveState.highScore ? REWARD_HIGH : REWARD_BASE);
+
+    function renderBoostSheet() {
+      const list = document.getElementById('boost-list');
+      list.replaceChildren();
+      BOOSTS.forEach(b => {
+        const on = picked.has(b.id);
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'game-btn flex items-center gap-3 text-left rounded-2xl px-3 py-2.5 border-2 ' + (on ? 'bg-amber-400/20 border-amber-400' : 'bg-slate-900 border-slate-700');
+        btn.innerHTML = `<span class="text-2xl">${b.icon}</span><span class="flex-1"><span class="block font-black text-sm">${b.name}</span><span class="block text-xs text-slate-400">${b.desc}</span></span><span class="font-black text-amber-300">${on ? '✔ ' : ''}${b.cost}pt</span>`;
+        btn.onclick = () => { picked.has(b.id) ? picked.delete(b.id) : picked.add(b.id); AudioFX.typeOk(); renderBoostSheet(); };
+        list.appendChild(btn);
+      });
+      const total = VIKING_FEE + BOOSTS.filter(b => picked.has(b.id)).reduce((s, b) => s + b.cost, 0);
+      document.getElementById('sheet-total').textContent = total;
+      document.getElementById('btn-sheet-go').disabled = pbValue === null || pbValue < total;
+      document.getElementById('btn-sheet-go').textContent = pbValue !== null && pbValue < total ? 'ポイント不足' : `スタート！ -${total}pt`;
+    }
+    document.getElementById('btn-mode-viking').addEventListener('click', async () => {
+      if (!pbOk) return showPBError();
+      try { showPB(await pbGet()); } catch (e) { console.error(e); return showPBError(); }
+      picked = new Set(); renderBoostSheet();
+      document.getElementById('sheet-boost').classList.remove('hidden');
+    });
+    document.getElementById('btn-sheet-cancel').addEventListener('click', () => document.getElementById('sheet-boost').classList.add('hidden'));
+    document.getElementById('btn-sheet-go').addEventListener('click', async () => {
+      const total = VIKING_FEE + BOOSTS.filter(b => picked.has(b.id)).reduce((s, b) => s + b.cost, 0);
+      try {
+        const now = await pbGet();
+        if (now < total) { showToast('ポイントが足りません'); showPB(now); return renderBoostSheet(); }
+        await pbAdd(-total, 'WORLD BUFFET 入場料・ブースト');
+      } catch (e) { console.error(e); return showPBError(); }
+      document.getElementById('sheet-boost').classList.add('hidden');
+      startGame('viking', new Set(picked), total);
+    });
+    document.getElementById('btn-mode-practice').addEventListener('click', () => startGame('practice', new Set(), 0));
+
+    function startGame(mode, boosts, spent) {
+      AudioFX.plateClear();
+      Object.assign(gameState, {
+        active: true, mode, boosts, spent, score: 0, combo: 0, maxCombo: 0, dishesCleared: 0, typedChars: 0, missCount: 0,
+        timeLeft: 60 + (boosts.has('time') ? 15 : 0), guard: boosts.has('guard') ? 3 : 0
+      });
+      const names = BOOSTS.filter(b => boosts.has(b.id)).map(b => b.icon).join(' ');
+      document.getElementById('boost-tags').textContent = mode === 'viking' ? names : '🎯 練習（無料）';
+      document.getElementById('hud-timer').textContent = mode === 'viking' ? '' : '∞';
+      document.getElementById('modal-result').classList.add('hidden');
+      switchScreen('game');
+      spawnNextDish(); updateGameHUD(); rbShow();
+      gameState.lastFrameTime = performance.now();
+      cancelAnimationFrame(gameState.rafId);
+      gameState.rafId = requestAnimationFrame(gameLoop);
+    }
+
+    function spawnNextDish() {
+      const custom = saveState.customWords;
+      const pool = getAllWords();
+      const chosen = (custom.length > 0 && Math.random() < 0.4) ? custom[Math.floor(Math.random() * custom.length)] : pool[Math.floor(Math.random() * pool.length)];
+      gameState.currentWord = chosen; gameState.charIndex = 0;
+
+      const cMeta = COUNTRY_META[chosen.country] || COUNTRY_META.jp;
+      document.getElementById('dish-emoji').textContent = chosen.emoji || '🍽️';
+      document.getElementById('dish-title').textContent = chosen.label;
+      document.getElementById('dish-country-name').textContent = cMeta.name;
+      document.getElementById('dish-pts-badge').textContent = `+${chosen.romaji.length * 25}`;
+      paintCountryBall(document.getElementById('canvas-dish-country'), cMeta.id, 'smile');
+
+      // レーン幅に応じて移動範囲を算出（端末サイズに依存しない）
+      const lane = document.getElementById('lane'), plate = document.getElementById('active-plate');
+      const half = (plate.offsetWidth / 2) / lane.clientWidth * 100;
+      gameState.maxX = 100 - half - 1; gameState.minX = half + 1;
+      const base = Math.max(4, 6.5 - gameState.dishesCleared * 0.15) + chosen.romaji.length * 0.25;
+      const cross = base * (gameState.boosts.has('slow') ? 1.43 : 1);
+      gameState.plateX = gameState.mode === 'viking' ? gameState.maxX : 50;
+      gameState.plateSpeed = (gameState.maxX - gameState.minX) / cross;
+      renderRomajiProgress(); updatePlatePosition();
+    }
+
+    function renderRomajiProgress() {
+      const str = gameState.currentWord.romaji, i = gameState.charIndex;
+      document.getElementById('romaji-display').innerHTML =
+        `<span class="text-emerald-400">${str.slice(0, i)}</span><span class="text-amber-300 underline decoration-4">${str.slice(i, i + 1)}</span><span class="text-slate-300">${str.slice(i + 1)}</span>`;
+      hintNextKey();
+    }
+    function updatePlatePosition() { document.getElementById('active-plate').style.left = `${gameState.plateX}%`; }
+
+    function updateGameHUD() {
+      if (gameState.mode === 'viking') {
+        const t = document.getElementById('hud-timer');
+        t.textContent = `${Math.max(0, gameState.timeLeft).toFixed(1)}s`;
+        t.className = 'text-xl font-black tabular-nums ' + (gameState.timeLeft <= 10 ? 'text-rose-400 animate-pulse' : 'text-amber-400');
+      }
+      document.getElementById('hud-score').textContent = gameState.score.toLocaleString();
+      document.getElementById('hud-combo').textContent = gameState.combo;
+      document.getElementById('hud-miss-count').textContent = gameState.missCount;
+      document.getElementById('hud-est-pb').textContent = calcReward();
+      document.getElementById('guard-tag').textContent = gameState.guard > 0 ? `🛡️×${gameState.guard}` : '';
+    }
+
+    function gameLoop(now) {
+      if (!gameState.active) return;
+      const dt = Math.min(0.1, (now - gameState.lastFrameTime) / 1000);
+      gameState.lastFrameTime = now;
+      if (gameState.mode === 'viking') {
+        gameState.timeLeft -= dt;
+        gameState.plateX -= gameState.plateSpeed * dt;
+        if (gameState.plateX <= gameState.minX) {
+          AudioFX.typeMiss(); gameState.combo = 0; showToast('お皿が流れてしまった！');
+          spawnNextDish();
+        } else updatePlatePosition();
+        if (gameState.timeLeft <= 0) { endGame(); return; }
+      }
+      updateGameHUD();
+      gameState.rafId = requestAnimationFrame(gameLoop);
+    }
+
+    function handleKeyInput(rawChar) {
+      if (!gameState.active || !gameState.currentWord) return;
+      const key = rawChar.toUpperCase();
+      if (!/^[A-Z0-9\-]$/.test(key)) return;
+      const target = gameState.currentWord.romaji;
+      if (key === target[gameState.charIndex]) {
+        AudioFX.typeOk();
+        gameState.charIndex++; gameState.typedChars++; gameState.combo++;
+        gameState.maxCombo = Math.max(gameState.maxCombo, gameState.combo);
+        const mul = gameState.boosts.has('x2') ? 1.5 : 1;
+        gameState.score += Math.round((15 + Math.min(30, gameState.combo)) * mul);
+        if (gameState.charIndex >= target.length) {
+          AudioFX.plateClear();
+          gameState.dishesCleared++;
+          gameState.score += Math.round(target.length * 25 * mul);
+          if (gameState.mode === 'viking' && gameState.dishesCleared % 4 === 0) {
+            gameState.timeLeft += 3;
+            const b = document.getElementById('time-bonus-popup');
+            b.classList.remove('hidden'); setTimeout(() => b.classList.add('hidden'), 1300);
+          }
+          spawnNextDish();
+        } else renderRomajiProgress();
+      } else {
+        AudioFX.typeMiss();
+        gameState.missCount++;
+        if (gameState.guard > 0) gameState.guard--; else gameState.combo = 0;
+        const d = document.getElementById('romaji-display');
+        d.classList.add('translate-x-1'); setTimeout(() => d.classList.remove('translate-x-1'), 90);
+      }
+      updateGameHUD();
+    }
+    document.getElementById('rb-input').addEventListener('input', e => {
+      const v = e.target.value;
+      if (v) handleKeyInput(v[v.length - 1]);
+      e.target.value = '';
+    });
+    window.addEventListener('keydown', e => {
+      if (!gameState.active || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key.length === 1) { e.preventDefault(); handleKeyInput(e.key); }
+    });
+
+    async function endGame() {
+      gameState.active = false; rbHide();
+      cancelAnimationFrame(gameState.rafId);
+      const earned = calcReward();
+      if (gameState.score > saveState.highScore) saveState.highScore = gameState.score;
+      saveState.exp += Math.max(15, gameState.dishesCleared * 12);
+      saveState.rank = 1 + Math.floor(saveState.exp / 100);
+      persistSave();
+      if (earned > 0) {
+        try { await pbAdd(earned, 'WORLD BUFFET 報酬'); }
+        catch (e) { console.error(e); showPBError(); }
+      }
+      document.getElementById('result-title').textContent = gameState.mode === 'viking' ? '🍽️ バイキング終了！' : '🎯 練習おつかれさま！';
+      document.getElementById('res-score').textContent = gameState.score.toLocaleString();
+      document.getElementById('res-dishes').textContent = `${gameState.dishesCleared} 皿`;
+      document.getElementById('res-combo').textContent = gameState.maxCombo;
+      document.getElementById('res-miss').textContent = gameState.missCount;
+      document.getElementById('res-pb').textContent = earned;
+      document.getElementById('btn-res-retry').textContent = gameState.mode === 'viking' ? 'もう一回！（準備へ）' : 'もう一回！';
+      document.getElementById('modal-result').classList.remove('hidden');
+    }
+    document.getElementById('btn-game-quit').addEventListener('click', () => {
+      if (gameState.mode === 'viking' && gameState.dishesCleared > 0) endGame();
+      else { gameState.active = false; rbHide(); cancelAnimationFrame(gameState.rafId); switchScreen('lobby'); }
+    });
+    document.getElementById('btn-res-lobby').addEventListener('click', () => { document.getElementById('modal-result').classList.add('hidden'); switchScreen('lobby'); });
+    document.getElementById('btn-res-retry').addEventListener('click', () => {
+      document.getElementById('modal-result').classList.add('hidden');
+      if (gameState.mode === 'viking') { switchScreen('lobby'); document.getElementById('btn-mode-viking').click(); }
+      else startGame('practice', new Set(), 0);
+    });
+
+    /**
+     * =========================================================================
+     * 6. 「じしょ！」機能（自分で新しい単語を追加・削除）
+     * =========================================================================
+     */
+    function renderDictionaryList() {
+      const listEl = document.getElementById('dict-word-list');
+      const all = getAllWords();
+      document.getElementById('dict-total-badge').textContent = `${all.length} 単語`;
+      listEl.replaceChildren();
+
+      for (const item of all) {
+        const cMeta = COUNTRY_META[item.country] || COUNTRY_META.jp;
+        const card = document.createElement('div');
+        card.className = 'flex items-center justify-between bg-slate-900 border border-slate-700 rounded-2xl px-4 py-3 gap-3';
+
+        const left = document.createElement('div');
+        left.className = 'flex items-center gap-3 min-w-0';
+        left.innerHTML = `
+          <span class="text-2xl">${item.emoji || '🍽️'}</span>
+          <div class="min-w-0">
+            <div class="flex items-center gap-1.5">
+              <span class="font-black text-sm text-white truncate">${item.label}</span>
+              ${item.custom ? '<span class="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-black px-1.5 py-0.2 rounded">MY単語</span>' : ''}
+            </div>
+            <div class="text-xs font-mono text-amber-300 truncate">${cMeta.flag} ${item.romaji}</div>
+          </div>
+        `;
+        card.appendChild(left);
+
+        if (item.custom) {
+          const delBtn = document.createElement('button');
+          delBtn.type = 'button';
+          delBtn.className = 'text-xs font-bold text-rose-400 hover:text-rose-300 bg-rose-950/50 border border-rose-500/30 px-2.5 py-1.5 rounded-xl cursor-pointer shrink-0';
+          delBtn.textContent = '削除';
+          delBtn.onclick = () => {
+            saveState.customWords = saveState.customWords.filter(w => w.id !== item.id);
+            persistSave();
+            renderDictionaryList();
+            showToast('単語を削除しました');
+          };
+          card.appendChild(delBtn);
+        }
+
+        listEl.appendChild(card);
+      }
+    }
+
+    document.getElementById('btn-mode-dict').addEventListener('click', () => {
+      AudioFX.typeOk();
+      renderDictionaryList();
+      switchScreen('dict');
+    });
+
+    document.getElementById('btn-dict-back').addEventListener('click', () => switchScreen('lobby'));
+
+    document.getElementById('form-add-word').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const label = document.getElementById('input-word-label').value.trim();
+      const rawRomaji = document.getElementById('input-word-romaji').value.trim().toUpperCase();
+      const emoji = document.getElementById('input-word-emoji').value.trim() || '🍽️';
+      const country = document.getElementById('input-word-country').value;
+
+      // ローマ字バリデーション（英数字とハイフンのみ許可）
+      const cleanRomaji = rawRomaji.replace(/[^A-Z0-9\-]/g, '');
+      if (!label || cleanRomaji.length < 2) {
+        showToast('ローマ字は2文字以上の半角英字で入力してね！');
+        return;
+      }
+
+      saveState.customWords.unshift({
+        id: 'custom_' + Date.now(),
+        label,
+        romaji: cleanRomaji,
+        emoji,
+        country,
+        custom: true
+      });
+      persistSave();
+      renderDictionaryList();
+
+      document.getElementById('input-word-label').value = '';
+      document.getElementById('input-word-romaji').value = '';
+      AudioFX.plateClear();
+      showToast(`「${label}」をじしょに追加しました！`);
+    });
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      loadSave(); syncUIStats();
+      initPB();
+      RingoBoard.init({
+        selector: '[data-ringoboard]', theme: 'dark', persistent: true,
+        onToggle: (vis, h) => { document.getElementById('screen-game').style.paddingBottom = vis ? h + 'px' : '0'; }
+      });
+      await initBallAssets();
+      paintCountryBall(document.getElementById('canvas-title-cn'), 'cn', 'normal');
+      paintCountryBall(document.getElementById('canvas-title-us'), 'us', 'normal');
+    });
+  </script>
+</div>
+</body>
+</html>
