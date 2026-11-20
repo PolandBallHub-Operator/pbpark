@@ -1,0 +1,2117 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#F6F1FA">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>PBPark ランチャー — MateUI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,400..600,0..1,0" rel="stylesheet" />
+<style>
+    /* ==========================================================================
+       MateUI Design Tokens — Purple Monet Palette & Expressive Motion Curves
+       ========================================================================== */
+    :root {
+      /* Purple Monet Core Surfaces */
+      --mate-bg-outer: #E8E1F2;
+      --mate-surface-bg: #F6F1FA;
+      --mate-surface-card: #FFFFFF;
+      --mate-surface-container: #EFE9F6;
+      --mate-surface-container-high: #E8E0F2;
+      --mate-surface-nav: #F3EDF7;
+
+      /* Primary & Secondary Purple Tones */
+      --mate-primary: #65558F;
+      --mate-on-primary: #FFFFFF;
+      --mate-primary-container: #E8DEF8;
+      --mate-on-primary-container: #21005D;
+      --mate-secondary-container: #E5DDF4;
+      --mate-tertiary-pink: #F6ADFF;
+      --mate-on-tertiary-pink: #36003E;
+      --mate-floating-purple: #CBB7FF;
+      --mate-on-floating-purple: #2B175A;
+
+      /* Text & Icon Colors */
+      --mate-text-primary: #1D1B20;
+      --mate-text-secondary: #49454F;
+      --mate-text-muted: #79747E;
+      --mate-outline: #79747E;
+      --mate-outline-variant: #CAC4D0;
+
+      /* Shadows (Strictly only for floating elements, back button, menus, FABs) */
+      --mate-shadow-back: 0 2px 6px rgba(45, 29, 82, 0.12);
+      --mate-shadow-floating: 0 6px 18px rgba(45, 29, 82, 0.18), 0 2px 6px rgba(45, 29, 82, 0.10);
+      --mate-shadow-menu: 0 8px 24px rgba(33, 0, 93, 0.16), 0 2px 8px rgba(33, 0, 93, 0.08);
+      --mate-shadow-dialog: 0 16px 36px rgba(29, 27, 32, 0.22);
+
+      /* Expressive Motion Curves */
+      --mate-spring-fast: cubic-bezier(0.34, 1.56, 0.64, 1);
+      --mate-spring-spatial: cubic-bezier(0.28, 1.35, 0.48, 1);
+      --mate-ease-decel: cubic-bezier(0.05, 0.7, 0.1, 1.0);
+      --mate-ease-accel: cubic-bezier(0.3, 0.0, 0.8, 0.15);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--mate-bg-outer);
+      color: var(--mate-text-primary);
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* Material Symbols Base */
+    .material-symbols-rounded {
+      font-family: 'Material Symbols Rounded';
+      font-weight: normal;
+      font-style: normal;
+      font-size: 22px;
+      line-height: 1;
+      letter-spacing: normal;
+      text-transform: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      white-space: nowrap;
+      word-wrap: normal;
+      direction: ltr;
+      -webkit-font-smoothing: antialiased;
+      font-variation-settings: 'FILL' 0, 'wght' 450, 'GRAD' 0, 'opsz' 24;
+      transition: font-variation-settings 0.25s var(--mate-spring-fast), transform 0.3s var(--mate-spring-fast);
+    }
+
+    .icon-filled {
+      font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+    }
+
+    /* ==========================================================================
+       App Shell & Responsive Device Frame
+       ========================================================================== */
+    .mate-app-shell {
+      position: relative;
+      width: 100%;
+      max-width: 440px;
+      height: 100dvh;
+      max-height: 920px;
+      background-color: var(--mate-surface-bg);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    @media (min-width: 500px) {
+      .mate-app-shell {
+        height: 94dvh;
+        border-radius: 36px;
+        border: 8px solid #D8CEE6;
+        box-shadow: 0 24px 60px rgba(45, 29, 82, 0.18);
+      }
+    }
+
+    /* Status Bar (Matches image 1 & 9 clean top status) */
+    .mate-status-bar {
+      height: 36px;
+      padding: 10px 24px 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--mate-text-primary);
+      flex-shrink: 0;
+      z-index: 20;
+    }
+
+    .mate-status-icons {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .mate-status-icons .material-symbols-rounded {
+      font-size: 16px;
+    }
+
+    .mate-battery-pill {
+      background: var(--mate-text-primary);
+      color: #FFFFFF;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 4px;
+      line-height: 1.2;
+    }
+
+    /* ==========================================================================
+       Unified Top Bar (Circular Back Button with Shadow + Left-Aligned Title)
+       ========================================================================== */
+    .mate-top-bar {
+      height: 64px;
+      padding: 8px 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-shrink: 0;
+      z-index: 15;
+    }
+
+    .mate-back-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 20px;
+      border: none;
+      background-color: var(--mate-surface-container-high);
+      color: var(--mate-text-primary);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: var(--mate-shadow-back);
+      transition:
+        transform 0.35s var(--mate-spring-fast),
+        border-radius 0.3s var(--mate-spring-fast),
+        background-color 0.2s ease;
+      position: relative;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .mate-back-btn.is-hold {
+      transform: scale(0.9) translateX(-2px);
+      border-radius: 14px;
+      background-color: var(--mate-primary-container);
+    }
+
+    .mate-top-title {
+      font-size: 21px;
+      font-weight: 500;
+      color: var(--mate-text-primary);
+      letter-spacing: -0.01em;
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-align: left;
+    }
+
+    .mate-top-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* ==========================================================================
+       Activity Stack & Page Transitions (Open & Back Expressive Animations)
+       ========================================================================== */
+    .mate-viewport {
+      position: relative;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .mate-activity {
+      position: absolute;
+      inset: 0;
+      background-color: var(--mate-surface-bg);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      will-change: transform, opacity;
+      transition:
+        transform 0.42s var(--mate-ease-decel),
+        opacity 0.35s var(--mate-ease-decel);
+    }
+
+    /* Base tab activities */
+    .mate-activity.tab-hidden {
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(10px);
+    }
+
+    .mate-activity.tab-active {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0);
+    }
+
+    /* Sub-activity push/pop transitions */
+    .mate-activity.sub-enter {
+      transform: translateX(100%);
+      opacity: 0.4;
+      pointer-events: none;
+      z-index: 30;
+    }
+
+    .mate-activity.sub-active {
+      transform: translateX(0);
+      opacity: 1;
+      pointer-events: auto;
+      z-index: 30;
+    }
+
+    .mate-activity.pushed-under {
+      transform: translateX(-24%);
+      opacity: 0.55;
+      pointer-events: none;
+    }
+
+    .mate-scroll-area {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 4px 16px 32px;
+      scroll-behavior: smooth;
+    }
+
+    .mate-scroll-area::-webkit-scrollbar {
+      width: 0px;
+      background: transparent;
+    }
+
+    /* Staggered entry animation for cards inside an opened activity */
+    .mate-activity.sub-active .mate-animate-item,
+    .mate-activity.tab-active .mate-animate-item {
+      animation: mateItemReveal 0.45s var(--mate-spring-spatial) backwards;
+    }
+
+    .mate-animate-item:nth-child(1) { animation-delay: 0.02s; }
+    .mate-animate-item:nth-child(2) { animation-delay: 0.05s; }
+    .mate-animate-item:nth-child(3) { animation-delay: 0.08s; }
+    .mate-animate-item:nth-child(4) { animation-delay: 0.11s; }
+    .mate-animate-item:nth-child(5) { animation-delay: 0.14s; }
+    .mate-animate-item:nth-child(6) { animation-delay: 0.17s; }
+
+    @keyframes mateItemReveal {
+      from {
+        opacity: 0;
+        transform: translateY(14px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* ==========================================================================
+       Image 1: Grouped Cards & Settings List (NO SHADOWS on cards!)
+       ========================================================================== */
+    .mate-section-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--mate-primary);
+      padding: 16px 8px 8px;
+      letter-spacing: 0.01em;
+    }
+
+    .mate-card-group {
+      display: flex;
+      flex-direction: column;
+      gap: 2px; /* Exact 2px gap between grouped items */
+      margin-bottom: 8px;
+    }
+
+    .mate-card {
+      background-color: var(--mate-surface-card);
+      box-shadow: none !important; /* Strictly NO shadow on cards */
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition:
+        border-radius 0.35s var(--mate-spring-fast),
+        background-color 0.2s ease;
+    }
+
+    /* Corner Radii matching Image 1 */
+    .mate-card-single {
+      border-radius: 22px;
+      margin-bottom: 10px;
+    }
+
+    .mate-card-top {
+      border-radius: 22px 22px 4px 4px;
+    }
+
+    .mate-card-mid {
+      border-radius: 4px;
+    }
+
+    .mate-card-bot {
+      border-radius: 4px 4px 22px 22px;
+    }
+
+    /* Expressive press morphing on cards (corner radius morph, not cheesy scale) */
+    .mate-card:active {
+      background-color: var(--mate-surface-container);
+    }
+    .mate-card-single:active { border-radius: 14px; }
+    .mate-card-top:active { border-radius: 14px 14px 8px 8px; }
+    .mate-card-mid:active { border-radius: 10px; }
+    .mate-card-bot:active { border-radius: 8px 8px 14px 14px; }
+
+    .mate-card-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 20px;
+    }
+
+    .avatar-purple {
+      background-color: #E2C6FF;
+      color: #4A1D7A;
+    }
+
+    .avatar-soft {
+      background-color: #EFE8F8;
+      color: #49454F;
+    }
+
+    .avatar-lavender {
+      background-color: #E8DEF8;
+      color: #65558F;
+    }
+
+    .avatar-pink {
+      background-color: #FAD8FF;
+      color: #5C1B68;
+    }
+
+    .mate-card-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .mate-card-title {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--mate-text-primary);
+      line-height: 1.3;
+    }
+
+    .mate-card-subtitle {
+      font-size: 13px;
+      font-weight: 400;
+      color: var(--mate-text-secondary);
+      margin-top: 2px;
+      line-height: 1.3;
+    }
+
+    .mate-card-trailing {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--mate-text-secondary);
+      flex-shrink: 0;
+    }
+
+    .mate-vertical-divider {
+      width: 1px;
+      height: 24px;
+      background-color: var(--mate-outline-variant);
+    }
+
+    .mate-icon-action {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      border: none;
+      background: transparent;
+      color: var(--mate-primary);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background-color 0.2s ease, transform 0.3s var(--mate-spring-fast);
+    }
+
+    .mate-icon-action:active {
+      background-color: var(--mate-primary-container);
+      transform: rotate(35deg);
+    }
+
+    /* ==========================================================================
+       Image 1 Right: Rearrangeable Display Preview Box
+       ========================================================================== */
+    .mate-display-stage {
+      background-color: var(--mate-surface-container);
+      border-radius: 24px;
+      padding: 16px;
+      margin-bottom: 12px;
+      height: 216px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      box-shadow: none !important;
+      overflow: hidden;
+    }
+
+    .mate-display-hint {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--mate-text-secondary);
+      margin-bottom: 12px;
+    }
+
+    .mate-display-canvas {
+      position: relative;
+      width: 100%;
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .mate-screen-tile {
+      position: absolute;
+      border-radius: 8px;
+      overflow: hidden;
+      cursor: grab;
+      border: 2px solid rgba(101, 85, 143, 0.35);
+      transition: box-shadow 0.25s ease, transform 0.25s var(--mate-spring-fast);
+    }
+
+    .mate-screen-tile:active {
+      cursor: grabbing;
+      border-color: var(--mate-primary);
+      z-index: 5;
+    }
+
+    .mate-screen-phone {
+      width: 38px;
+      height: 92px;
+      left: calc(50% - 86px);
+      top: 18px;
+    }
+
+    .mate-screen-monitor {
+      width: 120px;
+      height: 66px;
+      left: calc(50% - 42px);
+      top: 18px;
+    }
+
+    /* ==========================================================================
+       Image 1 & Image 8: Exact Expressive Horizontal Pill Toggle Switch
+       ========================================================================== */
+    .mate-switch {
+      position: relative;
+      width: 52px;
+      height: 32px;
+      border-radius: 999px;
+      background-color: #E6E0E9;
+      border: 2px solid #79747E;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      flex-shrink: 0;
+      box-shadow: none !important; /* Strictly NO shadow on toggle */
+      transition:
+        background-color 0.28s ease,
+        border-color 0.28s ease;
+    }
+
+    .mate-switch-thumb {
+      position: absolute;
+      left: 6px;
+      width: 16px;
+      height: 16px;
+      border-radius: 999px;
+      background-color: #79747E;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #E6E0E9;
+      box-shadow: none !important;
+      transition:
+        left 0.36s var(--mate-spring-fast),
+        width 0.3s var(--mate-spring-fast),
+        height 0.3s var(--mate-spring-fast),
+        background-color 0.25s ease,
+        color 0.25s ease;
+    }
+
+    .mate-switch-thumb .material-symbols-rounded {
+      font-size: 14px;
+      font-variation-settings: 'FILL' 0, 'wght' 650, 'GRAD' 0, 'opsz' 20;
+    }
+
+    /* Expressive press morphing: thumb expands into a wide pill when pressed! */
+    .mate-switch:active .mate-switch-thumb,
+    .mate-switch.is-pressing .mate-switch-thumb {
+      width: 28px;
+      height: 24px;
+      left: 3px;
+    }
+
+    /* Checked (ON) state matching Image 8 right */
+    .mate-switch.is-checked {
+      background-color: var(--mate-primary);
+      border-color: var(--mate-primary);
+    }
+
+    .mate-switch.is-checked .mate-switch-thumb {
+      left: 24px;
+      width: 24px;
+      height: 24px;
+      background-color: #FFFFFF;
+      color: var(--mate-primary);
+    }
+
+    .mate-switch.is-checked:active .mate-switch-thumb,
+    .mate-switch.is-checked.is-pressing .mate-switch-thumb {
+      width: 30px;
+      height: 24px;
+      left: 18px;
+    }
+
+    /* ==========================================================================
+       Image 7: Thick Bar Expressive Sliders with Detached Vertical Pill Thumb
+       ========================================================================== */
+    .mate-vol-slider-block {
+      padding: 12px 4px 16px;
+    }
+
+    .mate-vol-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .mate-vol-header .material-symbols-rounded {
+      font-size: 22px;
+      color: var(--mate-text-primary);
+    }
+
+    .mate-vol-title {
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--mate-text-primary);
+    }
+
+    .mate-expressive-slider {
+      position: relative;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      touch-action: none;
+      box-shadow: none !important;
+    }
+
+    .mate-slider-active-track {
+      height: 16px;
+      background-color: var(--mate-primary);
+      border-radius: 8px 2px 2px 8px;
+      position: relative;
+      overflow: hidden;
+      transition: height 0.25s var(--mate-spring-fast), border-radius 0.25s var(--mate-spring-fast);
+    }
+
+    .mate-slider-handle {
+      width: 4px;
+      height: 32px;
+      background-color: var(--mate-primary);
+      border-radius: 2px;
+      flex-shrink: 0;
+      transition:
+        width 0.28s var(--mate-spring-fast),
+        height 0.28s var(--mate-spring-fast),
+        border-radius 0.28s var(--mate-spring-fast);
+    }
+
+    /* Expressive press animation on slider handle */
+    .mate-expressive-slider:active .mate-slider-handle,
+    .mate-expressive-slider.is-dragging .mate-slider-handle {
+      width: 6px;
+      height: 36px;
+      border-radius: 3px;
+    }
+
+    .mate-expressive-slider:active,
+    .mate-expressive-slider.is-dragging {
+      gap: 6px;
+    }
+
+    .mate-slider-inactive-track {
+      flex: 1;
+      height: 16px;
+      background-color: var(--mate-primary-container);
+      border-radius: 2px 8px 8px 2px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .mate-slider-end-dot {
+      position: absolute;
+      right: 6px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background-color: var(--mate-text-secondary);
+    }
+
+    /* Discrete ticks overlay for Alarm Volume (Image 7) */
+    .mate-slider-ticks {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 7px;
+      pointer-events: none;
+    }
+
+    .mate-tick-dot {
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      transition: background-color 0.15s ease;
+    }
+
+    .mate-tick-dot.is-passed {
+      background-color: #FFFFFF;
+    }
+
+    .mate-tick-dot.is-unpassed {
+      background-color: #1D192B;
+    }
+
+    /* Classic thin step slider inside External Display card (Image 1 right) */
+    .mate-thin-slider-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .mate-thin-step-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: none;
+      background: transparent;
+      color: var(--mate-text-primary);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .mate-thin-track {
+      flex: 1;
+      height: 2px;
+      background-color: var(--mate-outline-variant);
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+    }
+
+    .mate-thin-fill {
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      background-color: var(--mate-primary);
+      transition: width 0.25s var(--mate-spring-fast);
+    }
+
+    .mate-thin-dot {
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background-color: var(--mate-outline);
+      z-index: 1;
+    }
+
+    .mate-thin-thumb {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background-color: var(--mate-primary);
+      transform: translateX(-50%);
+      z-index: 2;
+      transition: left 0.25s var(--mate-spring-fast), width 0.2s var(--mate-spring-fast), height 0.2s var(--mate-spring-fast);
+    }
+
+    .mate-thin-track:active .mate-thin-thumb {
+      width: 18px;
+      height: 18px;
+    }
+
+    /* ==========================================================================
+       Image 2: Navigation Bars (Vertical Compact & Horizontal Wide, NO SHADOW)
+       ========================================================================== */
+    .mate-navbar {
+      background-color: var(--mate-surface-nav);
+      box-shadow: none !important; /* Strictly NO shadow on standard navbar */
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      padding: 10px 8px 14px;
+      flex-shrink: 0;
+      z-index: 20;
+    }
+
+    .mate-nav-item {
+      border: none;
+      background: transparent;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      cursor: pointer;
+      color: var(--mate-text-secondary);
+      padding: 2px 6px;
+      min-width: 68px;
+    }
+
+    .mate-nav-pill {
+      height: 32px;
+      width: 64px;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      background-color: transparent;
+      transition:
+        background-color 0.25s ease,
+        width 0.36s var(--mate-spring-fast),
+        padding 0.36s var(--mate-spring-fast);
+    }
+
+    .mate-nav-item.is-active .mate-nav-pill {
+      background-color: var(--mate-primary-container);
+      color: var(--mate-on-primary-container);
+    }
+
+    .mate-nav-item.is-active .material-symbols-rounded {
+      font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 0, 'opsz' 24;
+    }
+
+    .mate-nav-item:active .mate-nav-pill {
+      width: 54px;
+    }
+
+    .mate-nav-label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--mate-text-secondary);
+      transition: color 0.2s ease, font-weight 0.2s ease;
+    }
+
+    .mate-nav-item.is-active .mate-nav-label {
+      color: var(--mate-text-primary);
+      font-weight: 600;
+    }
+
+    /* Horizontal Wide Mode (Image 2 Bottom) */
+    .mate-navbar.is-horizontal {
+      padding: 12px 10px 16px;
+    }
+
+    .mate-navbar.is-horizontal .mate-nav-item {
+      flex-direction: row;
+      min-width: auto;
+    }
+
+    .mate-navbar.is-horizontal .mate-nav-pill {
+      width: auto;
+      height: 40px;
+      padding: 0 12px;
+    }
+
+    .mate-navbar.is-horizontal .mate-nav-item.is-active .mate-nav-pill {
+      padding: 0 18px;
+      background-color: var(--mate-primary-container);
+    }
+
+    /* ==========================================================================
+       Image 3: Social Feed Card + Floating Pill Toolbar & Pink FAB (WITH SHADOW)
+       ========================================================================== */
+    .mate-post-card {
+      background-color: var(--mate-surface-card);
+      border-radius: 26px;
+      padding: 18px;
+      margin-bottom: 16px;
+      box-shadow: none !important; /* Card has no shadow */
+    }
+
+    .mate-post-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .mate-post-avatar {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .mate-post-author {
+      flex: 1;
+    }
+
+    .mate-post-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--mate-text-primary);
+    }
+
+    .mate-post-time {
+      font-size: 12px;
+      color: var(--mate-text-muted);
+      margin-top: 1px;
+    }
+
+    .mate-post-star-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: none;
+      background-color: var(--mate-surface-container);
+      color: var(--mate-text-secondary);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 0.35s var(--mate-spring-fast), background-color 0.2s ease, color 0.2s ease;
+    }
+
+    .mate-post-star-btn.is-starred {
+      background-color: var(--mate-primary-container);
+      color: var(--mate-primary);
+    }
+
+    .mate-post-star-btn:active {
+      transform: rotate(24deg) scale(0.9);
+    }
+
+    .mate-post-body {
+      font-size: 15px;
+      line-height: 1.5;
+      color: var(--mate-text-primary);
+      margin-bottom: 14px;
+    }
+
+    .mate-post-body p + p {
+      margin-top: 10px;
+      color: var(--mate-text-secondary);
+    }
+
+    .mate-post-media {
+      width: 100%;
+      height: 132px;
+      border-radius: 18px;
+      overflow: hidden;
+    }
+
+    /* Floating Toolbar + Separate Rounded-Square Pink FAB (Image 3 Bottom) */
+    .mate-floating-dock {
+      position: sticky;
+      bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 6px 0;
+      z-index: 18;
+    }
+
+    .mate-floating-bar {
+      background-color: var(--mate-floating-purple);
+      color: var(--mate-on-floating-purple);
+      height: 64px;
+      padding: 0 12px;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: var(--mate-shadow-floating); /* Shadow on floating bar */
+    }
+
+    .mate-floating-bar-btn {
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      border: none;
+      background: transparent;
+      color: var(--mate-on-floating-purple);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background-color 0.2s ease, border-radius 0.3s var(--mate-spring-fast), transform 0.3s var(--mate-spring-fast);
+    }
+
+    .mate-floating-bar-btn:active {
+      background-color: rgba(43, 23, 90, 0.14);
+      border-radius: 14px;
+    }
+
+    .mate-floating-pink-fab {
+      width: 64px;
+      height: 64px;
+      border-radius: 20px;
+      border: none;
+      background-color: var(--mate-tertiary-pink);
+      color: var(--mate-on-tertiary-pink);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: var(--mate-shadow-floating); /* Shadow on FAB */
+      transition: border-radius 0.35s var(--mate-spring-fast), transform 0.35s var(--mate-spring-fast);
+    }
+
+    .mate-floating-pink-fab:active {
+      border-radius: 32px;
+      transform: rotate(90deg);
+    }
+
+    /* ==========================================================================
+       Image 4: Swipeable Recipes List with 3 Vertical Capsule Actions
+       ========================================================================== */
+    .mate-swipe-row {
+      position: relative;
+      display: flex;
+      align-items: center;
+      margin-bottom: 10px;
+      overflow: hidden;
+      border-radius: 20px;
+    }
+
+    .mate-swipe-main {
+      flex: 1;
+      background-color: var(--mate-surface-card);
+      padding: 12px 14px;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      transition: transform 0.38s var(--mate-spring-spatial);
+      z-index: 2;
+      cursor: grab;
+      box-shadow: none !important;
+    }
+
+    .mate-swipe-thumb {
+      width: 56px;
+      height: 56px;
+      border-radius: 14px;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .mate-swipe-label {
+      flex: 1;
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--mate-text-primary);
+    }
+
+    .mate-swipe-actions {
+      position: absolute;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding-left: 8px;
+      z-index: 1;
+    }
+
+    .mate-capsule-action {
+      width: 50px;
+      height: 76px;
+      border-radius: 999px;
+      border: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transform: scale(0.6);
+      opacity: 0;
+      transition:
+        transform 0.38s var(--mate-spring-fast),
+        opacity 0.25s ease,
+        border-radius 0.25s var(--mate-spring-fast);
+    }
+
+    .mate-swipe-row.is-open .mate-capsule-action {
+      transform: scale(1);
+      opacity: 1;
+    }
+
+    .mate-swipe-row.is-open .mate-capsule-action:nth-child(1) { transition-delay: 0.02s; }
+    .mate-swipe-row.is-open .mate-capsule-action:nth-child(2) { transition-delay: 0.05s; }
+    .mate-swipe-row.is-open .mate-capsule-action:nth-child(3) { transition-delay: 0.08s; }
+
+    .mate-capsule-action:active {
+      border-radius: 16px;
+    }
+
+    .capsule-tonal {
+      background-color: var(--mate-primary-container);
+      color: var(--mate-on-primary-container);
+    }
+
+    .capsule-primary {
+      background-color: var(--mate-primary);
+      color: #FFFFFF;
+    }
+
+    /* ==========================================================================
+       Image 5: Pink Popup Menu & Multi-Level Cascade Menu (WITH SHADOW)
+       ========================================================================== */
+    .mate-menu-wrapper {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .mate-popup-pink {
+      position: absolute;
+      top: 48px;
+      right: 0;
+      width: 210px;
+      background-color: #F6AEFF;
+      color: #2B0033;
+      border-radius: 20px;
+      padding: 8px 0;
+      box-shadow: var(--mate-shadow-menu);
+      z-index: 40;
+      transform-origin: top right;
+      transform: scale(0.82) translateY(-8px);
+      opacity: 0;
+      pointer-events: none;
+      transition: transform 0.32s var(--mate-spring-fast), opacity 0.2s ease;
+    }
+
+    .mate-popup-pink.is-open {
+      transform: scale(1) translateY(0);
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .mate-popup-pink-item {
+      width: 100%;
+      border: none;
+      background: transparent;
+      color: #2B0033;
+      padding: 12px 18px;
+      font-size: 14px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      transition: background-color 0.18s ease;
+    }
+
+    .mate-popup-pink-item:hover,
+    .mate-popup-pink-item:active {
+      background-color: rgba(43, 0, 51, 0.08);
+    }
+
+    /* Cascade Menu (Image 5 Right) */
+    .mate-cascade-stage {
+      position: relative;
+      min-height: 290px;
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+      padding: 8px 0;
+    }
+
+    .mate-cascade-card {
+      background-color: var(--mate-surface-card);
+      border-radius: 20px;
+      padding: 8px;
+      width: 196px;
+      box-shadow: var(--mate-shadow-menu);
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .mate-cascade-item {
+      border: none;
+      background: transparent;
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--mate-text-primary);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      text-align: left;
+      transition: background-color 0.2s ease, color 0.2s ease;
+    }
+
+    .mate-cascade-item:hover {
+      background-color: var(--mate-surface-container-high);
+    }
+
+    .mate-cascade-item.is-hovered {
+      background-color: #E6E0EC;
+    }
+
+    .mate-cascade-item.is-pink-selected {
+      background-color: #F6AEFF;
+      color: #2B0033;
+    }
+
+    .mate-cascade-item .trailing-arrow {
+      margin-left: auto;
+      font-size: 16px;
+    }
+
+    .mate-cascade-divider {
+      height: 1px;
+      background-color: var(--mate-outline-variant);
+      margin: 4px 8px;
+    }
+
+    .mate-cascade-sub {
+      width: 158px;
+      margin-top: 76px;
+      transform-origin: top left;
+      transition: transform 0.3s var(--mate-spring-fast), opacity 0.2s ease;
+    }
+
+    .mate-cascade-sub.is-hidden {
+      opacity: 0;
+      transform: scale(0.85) translateX(-10px);
+      pointer-events: none;
+    }
+
+    /* ==========================================================================
+       Image 6: Wavy & Straight Progress Indicators (Linear & Circular)
+       ========================================================================== */
+    .mate-progress-showcase {
+      background-color: var(--mate-surface-card);
+      border-radius: 24px;
+      padding: 20px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+      box-shadow: none !important;
+    }
+
+    .mate-progress-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+    }
+
+    .mate-progress-linear-svg {
+      flex: 1;
+      height: 20px;
+      overflow: visible;
+    }
+
+    .mate-progress-circular-svg {
+      width: 48px;
+      height: 48px;
+      flex-shrink: 0;
+      overflow: visible;
+    }
+
+    /* ==========================================================================
+       Image 10: 10 Expressive Buttons & FAB Variants
+       ========================================================================== */
+    .mate-btn-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .mate-btn-cell {
+      background-color: var(--mate-surface-card);
+      border-radius: 20px;
+      padding: 16px 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      min-height: 104px;
+      box-shadow: none !important;
+    }
+
+    .mate-btn-cell.is-wide {
+      grid-column: span 2;
+    }
+
+    .mate-cell-tag {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--mate-text-muted);
+    }
+
+    /* 1. Default Filled Pill Button */
+    .mate-btn-filled {
+      height: 40px;
+      padding: 0 20px;
+      border-radius: 20px;
+      border: none;
+      background-color: var(--mate-primary);
+      color: #FFFFFF;
+      font-size: 14px;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: border-radius 0.3s var(--mate-spring-fast), background-color 0.2s ease;
+    }
+
+    .mate-btn-filled.is-hold {
+      border-radius: 12px;
+    }
+
+    /* 2. Morphing Toggle Pill (Unselected Pill <-> Selected Rounded Rect) */
+    .mate-morph-toggle-pair {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .mate-morph-choice {
+      height: 40px;
+      padding: 0 18px;
+      border: none;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      background-color: var(--mate-surface-container);
+      color: var(--mate-text-primary);
+      border-radius: 20px;
+      transition:
+        border-radius 0.35s var(--mate-spring-fast),
+        background-color 0.25s ease,
+        color 0.25s ease;
+    }
+
+    .mate-morph-choice.is-selected {
+      background-color: var(--mate-primary);
+      color: #FFFFFF;
+      border-radius: 12px; /* Morphs from pill to rounded-square when selected! */
+    }
+
+    /* 3 & 4. Icon Buttons (Circle <-> Rounded Square Morph) */
+    .mate-icon-morph {
+      width: 40px;
+      height: 40px;
+      border: none;
+      border-radius: 20px;
+      background-color: var(--mate-surface-container);
+      color: var(--mate-text-primary);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition:
+        border-radius 0.35s var(--mate-spring-fast),
+        background-color 0.25s ease,
+        color 0.25s ease;
+    }
+
+    .mate-icon-morph.is-tonal {
+      background-color: var(--mate-primary-container);
+      color: var(--mate-on-primary-container);
+    }
+
+    .mate-icon-morph.is-selected {
+      background-color: var(--mate-primary-container);
+      color: var(--mate-on-primary-container);
+      border-radius: 12px;
+    }
+
+    /* 5. Split Button */
+    .mate-split-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .mate-split-main {
+      height: 40px;
+      padding: 0 16px 0 18px;
+      border: none;
+      border-radius: 20px 4px 4px 20px;
+      background-color: var(--mate-primary);
+      color: #FFFFFF;
+      font-size: 14px;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: border-radius 0.25s var(--mate-spring-fast);
+    }
+
+    .mate-split-main.is-hold {
+      border-radius: 12px 4px 4px 12px;
+    }
+
+    .mate-split-arrow {
+      height: 40px;
+      width: 38px;
+      border: none;
+      border-radius: 4px 20px 20px 4px;
+      background-color: var(--mate-primary);
+      color: #FFFFFF;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: border-radius 0.25s var(--mate-spring-fast);
+    }
+
+    .mate-split-arrow .material-symbols-rounded {
+      transition: transform 0.35s var(--mate-spring-fast);
+    }
+
+    .mate-split-arrow.is-open .material-symbols-rounded {
+      transform: rotate(180deg);
+    }
+
+    /* 6. Connected Expressive Button Group */
+    .mate-connected-group {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .mate-group-circle {
+      width: 40px;
+      height: 40px;
+      border-radius: 20px;
+      border: none;
+      background-color: var(--mate-floating-purple);
+      color: var(--mate-on-floating-purple);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: width 0.3s var(--mate-spring-fast), border-radius 0.3s var(--mate-spring-fast);
+    }
+
+    .mate-group-circle.is-hold {
+      width: 50px;
+      border-radius: 16px;
+    }
+
+    .mate-group-pill {
+      height: 40px;
+      padding: 0 18px;
+      border-radius: 20px;
+      border: none;
+      background-color: var(--mate-primary);
+      color: #FFFFFF;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: padding 0.3s var(--mate-spring-fast), border-radius 0.3s var(--mate-spring-fast);
+    }
+
+    .mate-group-pill.is-hold {
+      padding: 0 24px;
+      border-radius: 14px;
+    }
+
+    /* 7. Segmented Star Group */
+    .mate-segmented-trio {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .mate-seg-btn {
+      height: 40px;
+      padding: 0 14px;
+      border: none;
+      background-color: var(--mate-primary-container);
+      color: var(--mate-text-primary);
+      font-size: 13px;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: border-radius 0.3s var(--mate-spring-fast), background-color 0.2s ease, color 0.2s ease;
+    }
+
+    .mate-seg-btn:first-child { border-radius: 20px 6px 6px 20px; }
+    .mate-seg-btn:nth-child(2) { border-radius: 6px; }
+    .mate-seg-btn:last-child { border-radius: 6px 20px 20px 6px; }
+
+    .mate-seg-btn.is-active {
+      background-color: #5A5366;
+      color: #FFFFFF;
+      border-radius: 20px;
+    }
+
+    /* 8, 9, 10. FABs & Expandable FAB Menu (WITH SHADOW) */
+    .mate-fab-square {
+      width: 56px;
+      height: 56px;
+      border-radius: 16px;
+      border: none;
+      background-color: var(--mate-floating-purple);
+      color: var(--mate-on-floating-purple);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: var(--mate-shadow-floating);
+      transition: border-radius 0.3s var(--mate-spring-fast);
+    }
+
+    .mate-fab-square.is-hold {
+      border-radius: 28px;
+    }
+
+    .mate-fab-extended {
+      height: 56px;
+      padding: 0 20px;
+      border-radius: 16px;
+      border: none;
+      background-color: var(--mate-floating-purple);
+      color: var(--mate-on-floating-purple);
+      font-size: 14px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      box-shadow: var(--mate-shadow-floating);
+      transition: border-radius 0.3s var(--mate-spring-fast);
+    }
+
+    .mate-fab-extended.is-hold {
+      border-radius: 28px;
+    }
+
+    /* 10. Speed-Dial FAB Menu */
+    .mate-fab-menu-container {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 8px;
+      width: 100%;
+      padding: 4px 12px;
+    }
+
+    .mate-fab-menu-items {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 8px;
+    }
+
+    .mate-fab-menu-pill {
+      height: 46px;
+      padding: 0 18px;
+      border-radius: 23px;
+      border: none;
+      background-color: var(--mate-floating-purple);
+      color: var(--mate-on-floating-purple);
+      font-size: 14px;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      box-shadow: none;
+      transform-origin: bottom right;
+      transition:
+        transform 0.36s var(--mate-spring-fast),
+        opacity 0.22s ease;
+    }
+
+    .mate-fab-menu-container.is-collapsed .mate-fab-menu-pill {
+      opacity: 0;
+      transform: scale(0.5) translateY(16px);
+      pointer-events: none;
+    }
+
+    .mate-fab-menu-container:not(.is-collapsed) .mate-fab-menu-pill:nth-child(3) { transition-delay: 0.02s; }
+    .mate-fab-menu-container:not(.is-collapsed) .mate-fab-menu-pill:nth-child(2) { transition-delay: 0.06s; }
+    .mate-fab-menu-container:not(.is-collapsed) .mate-fab-menu-pill:nth-child(1) { transition-delay: 0.10s; }
+
+    .mate-fab-close-circle {
+      width: 52px;
+      height: 52px;
+      border-radius: 26px;
+      border: none;
+      background-color: var(--mate-primary);
+      color: #FFFFFF;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: var(--mate-shadow-floating);
+      transition: transform 0.35s var(--mate-spring-fast), border-radius 0.3s var(--mate-spring-fast);
+    }
+
+    .mate-fab-menu-container.is-collapsed .mate-fab-close-circle {
+      border-radius: 16px;
+    }
+
+    /* ==========================================================================
+       Image 9: Basic Modal Dialog & Full-Screen Dialog with Outlined Fields
+       ========================================================================== */
+    .mate-scrim {
+      position: absolute;
+      inset: 0;
+      background-color: rgba(29, 27, 32, 0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      z-index: 60;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+
+    .mate-scrim.is-open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .mate-basic-dialog {
+      background-color: #ECE6F0;
+      border-radius: 28px;
+      padding: 24px;
+      width: 100%;
+      max-width: 330px;
+      box-shadow: var(--mate-shadow-dialog);
+      transform: scale(0.88) translateY(12px);
+      transition: transform 0.35s var(--mate-spring-fast);
+    }
+
+    .mate-scrim.is-open .mate-basic-dialog {
+      transform: scale(1) translateY(0);
+    }
+
+    .mate-dialog-title {
+      font-size: 22px;
+      font-weight: 500;
+      color: var(--mate-text-primary);
+      margin-bottom: 14px;
+    }
+
+    .mate-dialog-desc {
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--mate-text-secondary);
+      margin-bottom: 24px;
+    }
+
+    .mate-dialog-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+    }
+
+    .mate-text-btn {
+      border: none;
+      background: transparent;
+      color: var(--mate-primary);
+      font-size: 14px;
+      font-weight: 600;
+      padding: 10px 14px;
+      border-radius: 999px;
+      cursor: pointer;
+    }
+
+    .mate-text-btn:active {
+      background-color: var(--mate-primary-container);
+    }
+
+    /* Full-screen Dialog (Image 9 Right) */
+    .mate-fullscreen-dialog {
+      position: absolute;
+      inset: 0;
+      background-color: var(--mate-surface-bg);
+      z-index: 65;
+      display: flex;
+      flex-direction: column;
+      transform: translateY(100%);
+      transition: transform 0.4s var(--mate-ease-decel);
+    }
+
+    .mate-fullscreen-dialog.is-open {
+      transform: translateY(0);
+    }
+
+    .mate-outlined-field {
+      position: relative;
+      border: 1px solid var(--mate-outline);
+      border-radius: 6px;
+      padding: 14px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      background-color: transparent;
+    }
+
+    .mate-outlined-label {
+      position: absolute;
+      top: -8px;
+      left: 10px;
+      background-color: var(--mate-surface-bg);
+      padding: 0 4px;
+      font-size: 11px;
+      color: var(--mate-text-secondary);
+    }
+
+    .mate-outlined-input {
+      border: none;
+      background: transparent;
+      font-size: 15px;
+      color: var(--mate-text-primary);
+      width: 100%;
+      outline: none;
+      font-family: inherit;
+    }
+
+    .mate-field-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    /* Custom Snackbar (No alert() ever!) */
+    .mate-snackbar {
+      position: absolute;
+      bottom: 84px;
+      left: 16px;
+      right: 16px;
+      background-color: #322F35;
+      color: #F5EFF7;
+      padding: 12px 16px;
+      border-radius: 14px;
+      font-size: 13px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: var(--mate-shadow-floating);
+      z-index: 80;
+      transform: translateY(20px);
+      opacity: 0;
+      pointer-events: none;
+      transition: transform 0.3s var(--mate-spring-fast), opacity 0.22s ease;
+    }
+
+    .mate-snackbar.is-visible {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  
+/* ===== v2 overrides ===== */
+.mate-app-shell,.mate-app-shell{max-width:none;max-height:none;height:100dvh;border:none;border-radius:0;box-shadow:none;padding-top:env(safe-area-inset-top,0px)}
+@media (min-width:500px){.mate-app-shell{max-width:none;height:100dvh;border:none;border-radius:0;box-shadow:none}}
+.mate-top-bar,.mate-scroll-area{padding-left:max(16px,calc((100% - 720px)/2));padding-right:max(16px,calc((100% - 720px)/2))}
+.mate-fab-close-circle{box-shadow:var(--mate-shadow-floating)}
+/* radius morph: no overshoot, exact px, press = morph, release = morph back */
+.mate-btn-filled,.mate-morph-choice,.mate-icon-morph,.mate-split-main,.mate-split-arrow,.mate-group-circle,.mate-group-pill,.mate-seg-btn,.mate-fab-square,.mate-fab-extended,.mate-fab-menu-pill,.mate-fab-close-circle,.mate-back-btn,.mx{transition:border-radius .32s cubic-bezier(.2,0,0,1),background-color .25s,color .25s,width .38s var(--mate-spring-fast),padding .38s var(--mate-spring-fast),transform .3s var(--mate-ease-decel)}
+.mate-icon-morph.is-hold{border-radius:12px}
+.mate-icon-morph.is-selected.is-hold,.mate-morph-choice.is-selected.is-hold{border-radius:20px}
+.mate-morph-choice.is-hold{border-radius:12px}
+.mate-split-arrow.is-hold{border-radius:4px 12px 12px 4px}
+.mate-fab-close-circle.is-hold{border-radius:16px}
+.mate-fab-menu-container.is-collapsed .mate-fab-close-circle.is-hold{border-radius:26px}
+.mate-fab-menu-pill.is-hold{border-radius:14px}
+.mate-seg-btn{padding:0 10px}.mate-seg-btn.is-active{padding:0 24px}.mate-seg-btn.is-hold{border-radius:12px}
+.mate-group-circle.is-sel{width:34px}.mate-group-pill{padding:0 14px}.mate-group-pill.is-sel{padding:0 28px}
+.mate-group-circle.is-hold,.mate-group-pill.is-hold{border-radius:12px}
+.mx{border-radius:var(--p,20px)}.mx.is-hold{border-radius:var(--s,12px)}
+/* kit */
+.x-card{background:#fff;border-radius:20px;padding:16px;margin-bottom:12px;display:flex;flex-direction:column;gap:12px;align-items:flex-start}
+.x-tag{font-size:11px;font-weight:600;color:var(--mate-text-muted)}
+.x-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.x-tipw{position:relative;width:100%;min-height:140px;display:flex}
+.x-tipb{width:48px;height:48px;border:0;background:var(--mate-surface-container);color:var(--mate-text-primary);display:flex;align-items:center;justify-content:center;cursor:pointer;--p:24px;--s:14px}
+.x-tip{position:absolute;left:56px;top:0;width:min(260px,calc(100% - 64px));background:var(--mate-surface-container);border-radius:16px;padding:16px;box-shadow:var(--mate-shadow-menu);transform-origin:left top;transform:scale(.6);opacity:0;pointer-events:none;transition:transform .38s var(--mate-spring-fast),opacity .2s;z-index:2}
+.x-tip.is-open{transform:none;opacity:1;pointer-events:auto}
+.x-tip h4{font:500 14px Inter;margin-bottom:6px}.x-tip p{font-size:13px;line-height:1.5;color:var(--mate-text-secondary)}
+.x-tip a{display:inline-block;margin-top:12px;font:500 13px Inter;color:var(--mate-primary);cursor:pointer}
+.x-tabs{display:flex;width:100%;background:#FDF7FF;border-bottom:1px solid var(--mate-outline-variant)}
+.x-tab{flex:1;position:relative;border:0;background:none;padding:12px 4px 14px;display:flex;flex-direction:column;align-items:center;gap:2px;font:500 13px Inter;color:var(--mate-text-secondary);cursor:pointer}
+.x-tabs.sec .x-tab{padding:16px 4px;font-size:14px}
+.x-tab::after{content:"";position:absolute;bottom:-1px;left:50%;height:3px;width:0;border-radius:3px 3px 0 0;background:var(--mate-primary);transform:translateX(-50%);transition:width .35s var(--mate-ease-decel)}
+.x-tab.is-active{color:var(--mate-primary)}.x-tabs.sec .x-tab.is-active{color:var(--mate-text-primary)}
+.x-tab.is-active::after{width:36px}.x-tabs.sec .x-tab.is-active::after{width:100%;border-radius:0}
+.x-tab.is-active .material-symbols-rounded{font-variation-settings:'FILL' 1,'wght' 500,'GRAD' 0,'opsz' 24}
+.x-drawer{position:absolute;inset:0;z-index:70;pointer-events:none}
+.x-dscrim{position:absolute;inset:0;background:rgba(29,27,32,.4);opacity:0;transition:opacity .3s}
+.x-dpanel{position:absolute;left:0;top:0;bottom:0;width:min(320px,85%);background:var(--mate-surface-nav);border-radius:0 28px 28px 0;padding:24px 12px;overflow:auto;transform:translateX(-102%);transition:transform .42s var(--mate-ease-decel)}
+.x-drawer.is-open{pointer-events:auto}.x-drawer.is-open .x-dscrim{opacity:1}.x-drawer.is-open .x-dpanel{transform:none}
+.x-dprev{width:100%;max-width:320px;background:var(--mate-surface-nav);border-radius:0 28px 28px 0;padding:16px 12px;border:1px solid var(--mate-outline-variant)}
+.x-dh{font:500 14px Inter;color:var(--mate-text-secondary);padding:16px 16px 8px}
+.x-di{--p:28px;--s:14px;height:56px;display:flex;align-items:center;gap:12px;padding:0 16px;font:500 14px Inter;color:var(--mate-text-secondary);cursor:pointer}
+.x-di.is-active{background:var(--mate-secondary-container);color:var(--mate-on-primary-container);font-weight:700}
+.x-di b{margin-left:auto}.x-div{height:1px;background:var(--mate-outline-variant);margin:8px 16px}
+.x-chip{--p:8px;--s:16px;height:32px;padding:0 12px;border:1px solid var(--mate-outline-variant);background:transparent;display:inline-flex;align-items:center;font:500 14px Inter;color:var(--mate-text-secondary);cursor:pointer}
+.x-chip .material-symbols-rounded{font-size:18px;width:18px;margin-right:8px}
+.x-chip.assist .material-symbols-rounded{color:var(--mate-primary)}
+.x-chip.filter .material-symbols-rounded{width:0;margin-right:0;overflow:hidden;transition:width .3s var(--mate-spring-fast),margin .3s}
+.x-chip.filter.is-on{background:var(--mate-secondary-container);border-color:transparent;color:var(--mate-on-primary-container)}
+.x-chip.filter.is-on .material-symbols-rounded{width:18px;margin-right:8px}
+.x-chip.input .material-symbols-rounded{margin:0 -4px 0 8px}
+.x-bar{width:100%;background:#FDF7FF;border-radius:12px;padding:8px 12px;display:flex;flex-direction:column;gap:4px}
+.x-bar .r{display:flex;align-items:center;gap:8px;min-height:48px}.x-bar .sp{flex:1}
+.x-bar .t{font-weight:400;letter-spacing:-.01em;line-height:1.15}.x-bar .st{font-size:14px;font-weight:600;color:var(--mate-text-secondary)}
+.x-search{flex:1;height:48px;border:0;border-radius:24px;background:var(--mate-surface-container);text-align:center;font:400 16px Inter;color:var(--mate-text-secondary);outline:none}
+.x-ib{width:40px;height:40px;border:0;background:transparent;color:var(--mate-text-secondary);display:flex;align-items:center;justify-content:center;cursor:pointer;--p:20px;--s:12px}
+.x-ib:hover{background:var(--mate-surface-container)}
+.x-ava{width:40px;height:40px;border-radius:50%;background:var(--mate-primary);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:500}
+.cbg{display:inline-flex;gap:2px;align-items:center}
+.cb{height:40px;min-width:36px;padding:0 8px;border:0;background:var(--mate-surface-container);color:var(--mate-text-primary);display:inline-flex;align-items:center;justify-content:center;font:500 13px Inter;border-radius:6px;overflow:hidden;cursor:pointer;transition:padding .38s var(--mate-spring-fast),background-color .25s,color .25s,border-radius .32s cubic-bezier(.2,0,0,1)}
+.cb:first-child{border-radius:20px 6px 6px 20px}.cb:last-child{border-radius:6px 20px 20px 6px}
+.cb .lbl{max-width:0;opacity:0;white-space:nowrap;overflow:hidden;transition:max-width .38s var(--mate-spring-fast),opacity .2s,margin .3s}
+.cb.is-sel{background:var(--mate-primary);color:#fff;padding:0 20px;border-radius:20px}
+.cb.is-sel .lbl,.cbg.txt .lbl{max-width:90px;opacity:1;margin-left:8px}
+.cbg.txt .cb{padding:0 12px}.cbg.txt .cb.is-sel{padding:0 22px}
+.cb.is-hold{border-radius:12px!important}
+.x-tb{display:flex;align-items:center;gap:8px}.x-tbp{display:flex;gap:4px;padding:6px;background:var(--mate-surface-container-high);border-radius:30px}
+.x-pfab{width:56px;height:56px;border:0;background:#FF9B9B;color:#5B0000;display:flex;align-items:center;justify-content:center;cursor:pointer;--p:16px;--s:28px}
+.x-ld{width:56px;height:56px;border-radius:50%;background:var(--mate-floating-purple);display:flex;align-items:center;justify-content:center}
+@media (prefers-reduced-motion:reduce){.x-ld path{}}
+
+/* ===== Launcher additions (MateUIトークン/クラスを再利用) ===== */
+:root{--icon:64px;--tile:86px}
+input{-webkit-user-select:text;user-select:text}
+.mate-app-shell{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right)}
+.mate-navbar{padding-bottom:calc(14px + env(safe-area-inset-bottom))}
+.av5{background:#DCCBFF;color:#3B1F7A}.av6{background:#F5DDFF;color:#6B2A7A}
+.app-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--tile),1fr));gap:16px 6px;padding:8px 0 4px}
+.app-tile{display:flex;flex-direction:column;align-items:center;gap:7px;cursor:pointer;-webkit-touch-callout:none;touch-action:manipulation}
+.app-ico{position:relative;width:var(--icon);height:var(--icon);display:flex;align-items:center;justify-content:center;flex-shrink:0;--p:calc(var(--icon)*.32);--s:calc(var(--icon)*.5)}
+.app-ico img,.mate-card-avatar img{width:80%;height:80%;object-fit:contain;pointer-events:none;-webkit-user-drag:none}
+.ltr{font-weight:600;font-size:calc(var(--icon)*.4)}.mate-card-avatar .ltr{font-size:18px}
+.fav-dot{position:absolute;right:-4px;top:-4px;width:22px;height:22px;border-radius:50%;background:var(--mate-tertiary-pink);color:var(--mate-on-tertiary-pink);display:flex;align-items:center;justify-content:center;z-index:2}
+.fav-dot .material-symbols-rounded{font-size:14px}
+.app-name{font-size:12px;line-height:1.25;text-align:center;max-width:100%;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.ellip{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mate-icon-action.heart-btn:active{transform:scale(1.25)}.hearton{color:#B3278F}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:12px 0 6px;scrollbar-width:none}.chips::-webkit-scrollbar{display:none}.x-chip{flex-shrink:0}
+.searchrow{position:relative;margin-top:4px}
+.searchrow>.material-symbols-rounded{position:absolute;left:16px;top:13px;color:var(--mate-text-secondary)}
+.searchrow .x-search{width:100%;text-align:left;padding:0 48px}
+.searchrow .clr{position:absolute;right:6px;top:7px;visibility:hidden}
+.sec{display:flex;align-items:center;gap:8px;cursor:pointer}.sec .cnt{margin-left:auto;font-weight:500;color:var(--mate-text-muted)}
+.empty{text-align:center;padding:36px 20px;color:var(--mate-text-secondary);font-size:14px;line-height:1.5}
+.empty img{width:104px;margin-bottom:8px}.empty b{display:block;color:var(--mate-text-primary);font-size:16px;margin-bottom:3px}
+.wrapcard{flex-wrap:wrap}.segwrap{flex-basis:100%}.segwrap .mate-segmented-trio{width:100%}
+.mate-seg-btn .material-symbols-rounded{font-size:18px}
+.fab-last{position:absolute;right:16px;bottom:calc(88px + env(safe-area-inset-bottom));z-index:22;max-width:72%}
+.fab-last[hidden]{display:none}.fab-last img{width:26px;height:26px;object-fit:contain}
+#fabTxt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#popScrim{position:absolute;inset:0;z-index:39;display:none}#popScrim.is-open{display:block}
+.phead{padding:6px 18px 8px;font-size:12px;font-weight:600;opacity:.75;max-width:210px}
+.psep{height:1px;background:rgba(43,0,51,.14);margin:6px 0}
+.mate-popup-pink-item .material-symbols-rounded{font-size:20px}
+#webView iframe{flex:1;border:0;width:100%;background:#fff}
+.mate-card-trailing .rd{font-size:12px;color:var(--mate-text-muted)}
+</style>
+</head>
+<body>
+
+<div class="mate-app-shell" id="appShell">
+  <div class="mate-viewport" id="viewport">
+
+    <section class="mate-activity tab-active" id="tab-home">
+      <header class="mate-top-bar">
+        <button class="mate-back-btn" id="reloadBtn" aria-label="更新"><span class="material-symbols-rounded">refresh</span></button>
+        <h1 class="mate-top-title">PBPark</h1>
+        <div class="mate-top-actions">
+          <button class="mate-icon-action" id="viewToggle" aria-label="表示切替"><span class="material-symbols-rounded">view_list</span></button>
+          <button class="mate-icon-action" id="moreBtn" aria-label="その他"><span class="material-symbols-rounded">more_vert</span></button>
+        </div>
+      </header>
+      <div class="mate-scroll-area">
+        <div class="mate-card mate-card-single mate-animate-item" style="cursor:default">
+          <div class="mate-card-avatar avatar-purple"><img id="heroImg" alt="" draggable="false"></div>
+          <div class="mate-card-content"><div class="mate-card-title">PBPark ランチャー</div><div class="mate-card-subtitle" id="heroSub">読み込み中…</div></div>
+        </div>
+        <div class="searchrow mate-animate-item">
+          <span class="material-symbols-rounded">search</span>
+          <input class="x-search" id="searchInput" type="search" placeholder="アプリを検索" enterkeyhint="search" autocomplete="off">
+          <button class="mate-icon-action clr" id="searchClear" aria-label="クリア"><span class="material-symbols-rounded">close</span></button>
+        </div>
+        <div class="chips" id="chips"></div>
+        <div id="homeList"></div>
+      </div>
+    </section>
+
+    <section class="mate-activity tab-hidden" id="tab-favs">
+      <header class="mate-top-bar"><h1 class="mate-top-title" style="padding-left:8px">お気に入り</h1></header>
+      <div class="mate-scroll-area"><div id="favList"></div></div>
+    </section>
+
+    <section class="mate-activity tab-hidden" id="tab-recent">
+      <header class="mate-top-bar"><h1 class="mate-top-title" style="padding-left:8px">最近</h1>
+        <div class="mate-top-actions"><button class="mate-icon-action" id="clearHist" aria-label="履歴を消去"><span class="material-symbols-rounded">delete_sweep</span></button></div></header>
+      <div class="mate-scroll-area"><div id="recentList"></div></div>
+    </section>
+
+    <section class="mate-activity tab-hidden" id="tab-settings">
+      <header class="mate-top-bar"><h1 class="mate-top-title" style="padding-left:8px">設定</h1></header>
+      <div class="mate-scroll-area"><div id="settingsBox"></div></div>
+    </section>
+  </div>
+
+  <nav class="mate-navbar" id="mainNavbar" aria-label="Primary Navigation">
+    <button class="mate-nav-item is-active" data-tab="home"><span class="mate-nav-pill"><span class="material-symbols-rounded">home</span></span><span class="mate-nav-label">ホーム</span></button>
+    <button class="mate-nav-item" data-tab="favs"><span class="mate-nav-pill"><span class="material-symbols-rounded">favorite</span></span><span class="mate-nav-label">お気に入り</span></button>
+    <button class="mate-nav-item" data-tab="recent"><span class="mate-nav-pill"><span class="material-symbols-rounded">history</span></span><span class="mate-nav-label">最近</span></button>
+    <button class="mate-nav-item" data-tab="settings"><span class="mate-nav-pill"><span class="material-symbols-rounded">settings</span></span><span class="mate-nav-label">設定</span></button>
+  </nav>
+
+  <button class="mate-fab-extended fab-last" id="fabLast" hidden><img src="" alt="" id="fabImg"><span id="fabTxt"></span><span class="material-symbols-rounded icon-filled">play_arrow</span></button>
+
+  <div id="popScrim"></div>
+  <div class="mate-popup-pink" id="pop" role="menu"></div>
+
+  <div class="mate-scrim" id="dlg"><div class="mate-basic-dialog" role="dialog" aria-modal="true"><h2 class="mate-dialog-title" id="dlgT"></h2><div class="mate-dialog-desc" id="dlgD"></div><div class="mate-dialog-actions" id="dlgA"></div></div></div>
+
+  <div class="mate-fullscreen-dialog" id="webView" role="dialog" aria-modal="true">
+    <header class="mate-top-bar">
+      <button class="mate-icon-action" id="wvClose" aria-label="閉じる"><span class="material-symbols-rounded">close</span></button>
+      <h2 class="mate-top-title" id="wvTitle" style="font-size:20px"></h2>
+      <div class="mate-top-actions">
+        <button class="mate-icon-action heart-btn" id="wvHeart" aria-label="お気に入り"><span class="material-symbols-rounded">favorite</span></button>
+        <button class="mate-icon-action" id="wvReload" aria-label="再読み込み"><span class="material-symbols-rounded">refresh</span></button>
+        <button class="mate-icon-action" id="wvExt" aria-label="新しいタブで開く"><span class="material-symbols-rounded">open_in_new</span></button>
+      </div>
+    </header>
+    <iframe id="appFrame" title="app" allow="camera; microphone; geolocation; fullscreen; autoplay; clipboard-read; clipboard-write; accelerometer; gyroscope; web-share" allowfullscreen></iframe>
+  </div>
+
+  <div class="mate-snackbar" id="mateSnackbar"><span id="mateSnackbarText"></span></div>
+</div>
+
+<script>
+(()=>{
+const $=s=>document.querySelector(s);
+const LIST_URL='https://raw.githubusercontent.com/PolandBallHub-Operator/pbpark/refs/heads/main/applist/applist.json';
+const MASCOT='https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/newballs/germany/fronthaha.png';
+const KEY='pbpark-launcher-mate.v1';
+const DEF={view:'icon',sort:'default',iconSize:50,showChar:true,showDesc:true,openMode:'overlay',press:500,haptic:true,mini:true};
+const VIEW={icon:'アイコン',list:'リスト'},SORT={default:'カテゴリ順',name:'名前順',used:'よく使う順'},OPEN={overlay:'アプリ内',tab:'新しいタブ',self:'このタブ'};
+const AV=['avatar-purple','avatar-lavender','avatar-pink','avatar-soft','av5','av6'],PR=[300,400,500,600,700,800,900,1000];
+let S={favs:[],hist:{},recent:[],cfg:{},collapsed:{},cache:null,last:null};
+try{Object.assign(S,JSON.parse(localStorage.getItem(KEY)||'{}'))}catch(e){}
+S.cfg=Object.assign({},DEF,S.cfg);if(!PR.includes(S.cfg.press))S.cfg.press=500;
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+let cats=[],apps=[],byUrl=new Map(),q='',catF=null,loadMsg='アプリリストを読み込み中…',statusTxt='—';
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const isFav=u=>S.favs.includes(u);
+const hue=s=>{let h=0;for(const c of s)h=(h*31+c.charCodeAt(0))%360;return h};
+const letter=a=>Array.from(a.appname.replace(/^[#※β\s]+/,'')||'?')[0];
+const ago=t=>{const m=(Date.now()-t)/6e4|0;return m<1?'たった今':m<60?m+'分前':m<1440?(m/60|0)+'時間前':(m/1440|0)+'日前'};
+const mi=(n,f)=>`<span class="material-symbols-rounded${f?' icon-filled':''}">${n}</span>`;
+addEventListener('error',e=>{const t=e.target;if(t.tagName==='IMG'&&t.dataset.l){const s=document.createElement('span');s.className='ltr';s.textContent=t.dataset.l;t.replaceWith(s)}},true);
+$('#heroImg').src=MASCOT;$('#fabImg').src=MASCOT;
+
+/* snackbar (MateUI) */
+let tt;function showToast(m){$('#mateSnackbarText').textContent=m;const b=$('#mateSnackbar');b.classList.add('is-visible');clearTimeout(tt);tt=setTimeout(()=>b.classList.remove('is-visible'),2100)}
+const haptic=()=>{if(S.cfg.haptic&&navigator.vibrate)navigator.vibrate(12)};
+/* press morph (MateUIの規約: クラス駆動) */
+const HOLD='.mate-back-btn,.mate-icon-action,.mate-seg-btn,.mate-fab-extended,.mx,.mate-text-btn';
+document.addEventListener('pointerdown',e=>{const b=e.target.closest(HOLD);if(b)b.classList.add('is-hold')});
+const rel=()=>document.querySelectorAll('.is-hold').forEach(b=>setTimeout(()=>b.classList.remove('is-hold'),70));
+['pointerup','pointercancel','dragstart'].forEach(t=>addEventListener(t,rel));
+
+/* ---------- parts ---------- */
+const av=a=>AV[hue(a.appname)%AV.length];
+const face=a=>S.cfg.showChar?`<img src="${MASCOT}" alt="" draggable="false" data-l="${esc(letter(a))}">`:`<span class="ltr">${esc(letter(a))}</span>`;
+const tile=a=>`<div class="app-tile" data-u="${esc(a.appurl)}"><span class="app-ico mx ${av(a)}">${face(a)}${isFav(a.appurl)?`<span class="fav-dot">${mi('favorite',1)}</span>`:''}</span><span class="app-name">${esc(a.appname)}</span></div>`;
+function group(l,dt){return `<div class="mate-card-group">${l.map((a,i)=>{const pos=l.length===1?'single':i===0?'top':i===l.length-1?'bot':'mid',f=isFav(a.appurl);
+ return `<div class="mate-card mate-card-${pos}" data-u="${esc(a.appurl)}"><div class="mate-card-avatar ${av(a)}">${face(a)}</div><div class="mate-card-content"><div class="mate-card-title ellip">${esc(a.appname)}</div>${S.cfg.showDesc?`<div class="mate-card-subtitle ellip">${esc(a.appinfo)}</div>`:''}</div><div class="mate-card-trailing">${dt?`<span class="rd">${dt(a)}</span>`:''}<button class="mate-icon-action heart-btn${f?' hearton':''}" data-heart aria-label="お気に入り">${mi('favorite',f)}</button></div></div>`}).join('')}</div>`}
+const wrap=l=>S.cfg.view==='list'?group(l):`<div class="app-grid">${l.map(tile).join('')}</div>`;
+const empty=(t,s)=>`<div class="empty"><img src="${MASCOT}" alt=""><b>${t}</b>${s}</div>`;
+function sorted(l){const s=S.cfg.sort;if(s==='name')return[...l].sort((a,b)=>a.appname.localeCompare(b.appname,'ja'));if(s==='used')return[...l].sort((a,b)=>(S.hist[b.appurl]?.n||0)-(S.hist[a.appurl]?.n||0));return l}
+const lab=(t,x)=>`<div class="mate-section-label">${t}${x||''}</div>`;
+
+/* ---------- render ---------- */
+function renderChips(){$('#chips').innerHTML=cats.length?['すべて',...cats.map(c=>c.name)].map((n,i)=>{const on=(catF===null&&i===0)||catF===i-1;return `<button class="x-chip filter mx${on?' is-on':''}" data-chip="${i-1}">${mi('check')}${esc(n)}</button>`}).join(''):''}
+function renderHome(){const box=$('#homeList');if(!apps.length){box.innerHTML=empty(loadMsg,'');return}
+ const pool=catF===null?apps:apps.filter(a=>a.cat===cats[catF].name);
+ if(q){const t=q.toLowerCase(),r=sorted(pool.filter(a=>(a.appname+a.appinfo+a.cat).toLowerCase().includes(t)));
+  box.innerHTML=r.length?lab('検索結果 ・ '+r.length+'件')+wrap(r):empty('見つかりませんでした','別のキーワードを試してみてね');return}
+ box.innerHTML=(catF===null?cats:[cats[catF]]).map(c=>{const off=catF===null&&S.collapsed[c.name];
+  return `<div class="mate-section-label sec" data-collapse="${esc(c.name)}"><span>${esc(c.name)}</span><span class="cnt">${c.apps.length}</span>${mi(off?'expand_more':'expand_less')}</div>`+(off?'':wrap(sorted(c.apps)))}).join('')}
+function renderFavs(){const l=S.favs.map(u=>byUrl.get(u)).filter(Boolean);$('#favList').innerHTML=l.length?lab('お気に入り ・ '+l.length+'個')+wrap(l):empty('お気に入りはまだありません','アプリを長押しして「お気に入りに追加」、<br>またはリストの ♡ をタップ')}
+function renderRecent(){const r=S.recent.map(u=>byUrl.get(u)).filter(Boolean),top=apps.filter(a=>S.hist[a.appurl]).sort((a,b)=>S.hist[b.appurl].n-S.hist[a.appurl].n).slice(0,8);
+ $('#recentList').innerHTML=r.length?lab('最近開いた')+group(r,a=>ago(S.hist[a.appurl].t))+lab('よく使う')+`<div class="app-grid">${top.map(tile).join('')}</div>`:empty('まだ履歴がありません','アプリを開くとここに表示されます')}
+function renderFab(){const a=byUrl.get(S.last),f=$('#fabLast');f.hidden=!(a&&S.cfg.mini);if(a)$('#fabTxt').textContent=a.appname}
+function renderAll(){renderChips();renderHome();renderFavs();renderRecent();renderFab();$('#heroSub').textContent=apps.length?`${apps.length}個のアプリ ・ ♡ ${S.favs.filter(u=>byUrl.has(u)).length}`:loadMsg;
+ $('#viewToggle').innerHTML=mi(S.cfg.view==='icon'?'view_list':'grid_view')}
+
+/* ---------- data ---------- */
+function parseList(t){const a=t.indexOf('['),b=t.lastIndexOf(']');return JSON.parse((a>=0&&b>a?t.slice(a,b+1):t).replace(/,\s*([}\]])/g,'$1'))}
+function setData(d){cats=d.filter(c=>c&&Array.isArray(c.apps)).map(c=>({name:String(c.category||'その他'),apps:c.apps.filter(a=>a&&a.appurl).map(a=>({appname:String(a.appname||'名称未設定'),appinfo:String(a.appinfo||''),appurl:String(a.appurl),cat:String(c.category||'その他')}))}));
+ apps=cats.flatMap(c=>c.apps);byUrl=new Map(apps.map(a=>[a.appurl,a]));if(catF!==null&&!cats[catF])catF=null;renderAll()}
+function setStatus(t){statusTxt=t;const e=$('#status');if(e)e.textContent=t}
+async function load(manual){setStatus('更新中…');
+ try{const r=await fetch(LIST_URL,{cache:'no-cache'});if(!r.ok)throw new Error(r.status);const d=parseList(await r.text());S.cache={t:Date.now(),d};save();setData(d);setStatus('最新 ('+new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'})+')');if(manual)showToast('アプリリストを更新しました')}
+ catch(e){if(S.cache){setData(S.cache.d);setStatus('オフライン(保存済み '+ago(S.cache.t)+')');if(manual)showToast('更新できませんでした')}
+  else{loadMsg='読み込めませんでした<br>通信状況を確認して、左上の更新ボタンを押してください';setStatus('エラー');renderAll()}}}
+
+/* ---------- navigation ---------- */
+let curTab='home';
+function switchTab(t){document.querySelectorAll('.mate-activity').forEach(s=>{const on=s.id==='tab-'+t;s.classList.toggle('tab-active',on);s.classList.toggle('tab-hidden',!on)});document.querySelectorAll('.mate-nav-item').forEach(b=>b.classList.toggle('is-active',b.dataset.tab===t));curTab=t}
+document.querySelectorAll('.mate-nav-item').forEach(b=>b.addEventListener('click',()=>switchTab(b.dataset.tab)));
+const si=$('#searchInput');si.addEventListener('input',()=>{q=si.value.trim();$('#searchClear').style.visibility=q?'visible':'hidden';renderHome()});
+$('#searchClear').addEventListener('click',()=>{si.value='';q='';$('#searchClear').style.visibility='hidden';renderHome();si.focus()});
+$('#reloadBtn').addEventListener('click',()=>{const i=$('#reloadBtn .material-symbols-rounded');i.style.transform='rotate(360deg)';setTimeout(()=>{i.style.transition='none';i.style.transform='';void i.offsetWidth;i.style.transition=''},500);load(true)});
+$('#viewToggle').addEventListener('click',()=>{S.cfg.view=S.cfg.view==='icon'?'list':'icon';save();applyCfg()});
+$('#chips').addEventListener('click',e=>{const c=e.target.closest('[data-chip]');if(!c)return;catF=+c.dataset.chip<0?null:+c.dataset.chip;renderChips();renderHome()});
+
+/* ---------- launch ---------- */
+const wv=$('#webView'),fr=$('#appFrame');let cur=null,pushed=false;
+function openApp(u,mode){const a=byUrl.get(u);if(!a)return;if(!/^https?:\/\//i.test(u)){showToast('開けないURLです');return}
+ const h=S.hist[u]||{n:0};h.n++;h.t=Date.now();S.hist[u]=h;S.recent=[u,...S.recent.filter(x=>x!==u)].slice(0,20);S.last=u;save();renderAll();
+ mode=mode||S.cfg.openMode;if(mode==='tab')window.open(u,'_blank','noopener');else if(mode==='self')location.href=u;else openFrame(a)}
+function wvHeart(){const on=cur&&isFav(cur.appurl),b=$('#wvHeart');b.innerHTML=mi('favorite',on);b.classList.toggle('hearton',!!on)}
+function openFrame(a){cur=a;$('#wvTitle').textContent=a.appname;wvHeart();fr.src=a.appurl;wv.classList.add('is-open');try{history.pushState({f:1},'');pushed=true}catch(e){}}
+function closeFrame(pop){wv.classList.remove('is-open');setTimeout(()=>{if(!wv.classList.contains('is-open'))fr.src='about:blank'},500);if(!pop&&pushed){pushed=false;try{history.back()}catch(e){}}if(pop)pushed=false}
+addEventListener('popstate',()=>{if(wv.classList.contains('is-open'))closeFrame(true)});
+$('#wvClose').addEventListener('click',()=>closeFrame());$('#wvReload').addEventListener('click',()=>{fr.src=cur.appurl});
+$('#wvExt').addEventListener('click',()=>window.open(cur.appurl,'_blank','noopener'));$('#wvHeart').addEventListener('click',()=>{toggleFav(cur.appurl);wvHeart()});
+$('#fabLast').addEventListener('click',()=>openApp(S.last));
+function toggleFav(u){const i=S.favs.indexOf(u);i>=0?S.favs.splice(i,1):S.favs.push(u);save();showToast(i>=0?'お気に入りから削除しました':'お気に入りに追加しました');renderAll()}
+
+/* ---------- dialogs ---------- */
+const dlg=$('#dlg'),dA=$('#dlgA');let dActs=[];
+function dialog(t,html,acts){$('#dlgT').textContent=t;$('#dlgD').innerHTML=html;dActs=acts;dA.innerHTML=acts.map((x,i)=>`<button class="mate-text-btn" data-i="${i}">${x[0]}</button>`).join('');dlg.classList.add('is-open')}
+dA.addEventListener('click',e=>{const b=e.target.closest('[data-i]');if(!b)return;dlg.classList.remove('is-open');const f=dActs[b.dataset.i][1];if(f)f()});
+dlg.addEventListener('click',e=>{if(e.target===dlg)dlg.classList.remove('is-open')});
+const confirmBox=(t,b,ok,cb)=>dialog(t,b,[['キャンセル'],[ok,cb]]);
+function showInfo(a){const h=S.hist[a.appurl];dialog(a.appname,`<div>${esc(a.appinfo)||'説明はありません'}</div><div style="margin-top:12px;font-size:12px;color:var(--mate-text-muted);word-break:break-all">${esc(a.cat)}<br>${esc(a.appurl)}<br>開いた回数: ${h?h.n+'回(最後 '+ago(h.t)+')':'まだありません'}</div>`,[['閉じる'],[isFav(a.appurl)?'解除':'お気に入り',()=>toggleFav(a.appurl)],['開く',()=>openApp(a.appurl)]])}
+$('#clearHist').addEventListener('click',()=>confirmBox('履歴を消去しますか?','最近開いたアプリと使用回数が削除されます。','消去',()=>{S.hist={};S.recent=[];S.last=null;save();renderAll();showToast('履歴を消去しました')}));
+
+/* ---------- popup menu (MateUI pink popup) ---------- */
+const pop=$('#pop'),popScrim=$('#popScrim');let popFn=null,menuAt=0;
+const closePop=()=>{pop.classList.remove('is-open');popScrim.classList.remove('is-open')};
+function showPop(head,items,x,y,right,fn){popFn=fn;menuAt=Date.now();
+ pop.innerHTML=(head||'')+items.map(i=>i==='-'?'<div class="psep"></div>':`<button class="mate-popup-pink-item" data-k="${i.k}"><span>${i.l}</span>${i.ic?mi(i.ic):'<span style="width:20px"></span>'}</button>`).join('');
+ popScrim.classList.add('is-open');pop.classList.add('is-open');const W=innerWidth,H=innerHeight,w=210,h=pop.offsetHeight;
+ let l=right?x-w:x-w/2;l=Math.max(12,Math.min(W-w-12,l));let t=y+(right?0:14);if(t+h>H-12)t=right?H-h-12:y-h-14;t=Math.max(12,t);
+ Object.assign(pop.style,{left:l+'px',top:t+'px',right:'auto',transformOrigin:`${x-l}px ${y-t}px`})}
+popScrim.addEventListener('click',()=>{if(Date.now()-menuAt>300)closePop()});
+pop.addEventListener('click',e=>{const b=e.target.closest('[data-k]');if(!b)return;const k=b.dataset.k;closePop();if(popFn)popFn(k)});
+$('#moreBtn').addEventListener('click',()=>{const r=$('#moreBtn').getBoundingClientRect(),ck=(g,k)=>S.cfg[g]===k?'check':'';
+ showPop('',[{k:'v:icon',l:'アイコン表示',ic:ck('view','icon')},{k:'v:list',l:'リスト表示',ic:ck('view','list')},'-',...Object.entries(SORT).map(([k,l])=>({k:'s:'+k,l,ic:ck('sort',k)})),'-',{k:'reload',l:'アプリリストを更新',ic:'refresh'}],r.right,r.bottom+4,true,k=>{
+  if(k==='reload')load(true);else{const[g,v]=k.split(':');S.cfg[g==='v'?'view':'sort']=v;save();applyCfg()}})});
+
+/* ---------- long press (card / tile) ---------- */
+const vp=$('#viewport');let lp,fired=false,sx=0,sy=0,pEl=null;
+const stopLp=()=>{clearTimeout(lp);pEl=null};
+function appMenu(el,x,y){const a=byUrl.get(el.dataset.u);if(!a)return;cur=a;const f=isFav(a.appurl);
+ showPop(`<div class="phead ellip">${esc(a.appname)}</div>`,[{k:'open',l:'開く',ic:'play_arrow'},{k:'tab',l:'新しいタブで開く',ic:'open_in_new'},'-',{k:'fav',l:f?'お気に入りから削除':'お気に入りに追加',ic:'favorite'},{k:'copy',l:'URLをコピー',ic:'content_copy'},...(navigator.share?[{k:'share',l:'共有',ic:'share'}]:[]),'-',{k:'info',l:'詳細',ic:'info'}],x,y,false,k=>{
+  if(k==='open')openApp(a.appurl);else if(k==='tab')openApp(a.appurl,'tab');else if(k==='fav')toggleFav(a.appurl);
+  else if(k==='copy'){(navigator.clipboard?navigator.clipboard.writeText(a.appurl):Promise.reject()).then(()=>showToast('URLをコピーしました'),()=>showToast('コピーできませんでした'))}
+  else if(k==='share')navigator.share({title:a.appname,text:a.appinfo,url:a.appurl}).catch(()=>{});else if(k==='info')showInfo(a)})}
+vp.addEventListener('pointerdown',e=>{const el=e.target.closest('[data-u]');if(!el||e.target.closest('[data-heart]')||e.button>0)return;fired=false;sx=e.clientX;sy=e.clientY;pEl=el;
+ const ic=el.querySelector('.app-ico');if(ic)ic.classList.add('is-hold');
+ lp=setTimeout(()=>{fired=true;haptic();appMenu(el,sx,sy);pEl=null},S.cfg.press)});
+vp.addEventListener('pointermove',e=>{if(pEl&&Math.hypot(e.clientX-sx,e.clientY-sy)>10){stopLp();rel()}});
+['pointerup','pointercancel'].forEach(t=>addEventListener(t,stopLp));
+vp.addEventListener('scroll',()=>{stopLp();rel()},true);
+vp.addEventListener('contextmenu',e=>{const el=e.target.closest('[data-u]');if(!el)return;e.preventDefault();if(!pop.classList.contains('is-open')&&Date.now()-menuAt>600)appMenu(el,e.clientX,e.clientY)});
+vp.addEventListener('click',e=>{
+ const cb=e.target.closest('[data-collapse]');if(cb){const n=cb.dataset.collapse;S.collapsed[n]=!S.collapsed[n];save();renderHome();return}
+ const el=e.target.closest('[data-u]');if(!el)return;
+ if(e.target.closest('[data-heart]')){toggleFav(el.dataset.u);return}
+ if(fired){fired=false;return}openApp(el.dataset.u)});
+
+/* ---------- settings (MateUI card group / switch / slider / seg buttons) ---------- */
+const seg=(key,o,cur)=>`<div class="segwrap"><div class="mate-segmented-trio" data-seg="${key}">${Object.entries(o).map(([k,l])=>`<button class="mate-seg-btn${cur===k?' is-active':''}" data-k="${k}" style="flex:1;justify-content:center">${cur===k?mi('check'):''}${l}</button>`).join('')}</div></div>`;
+const segCard=(pos,t,key,o)=>`<div class="mate-card mate-card-${pos} wrapcard" style="cursor:default"><div class="mate-card-content"><div class="mate-card-title">${t}</div></div>${seg(key,o,S.cfg[key])}</div>`;
+const swCard=(pos,k,t)=>{const on=!!S.cfg[k];return `<div class="mate-card mate-card-${pos}" data-sw="${k}"><div class="mate-card-content"><div class="mate-card-title">${t}</div></div><div class="mate-switch${on?' is-checked':''}" role="switch" aria-checked="${on}"><span class="mate-switch-thumb">${mi(on?'check':'close')}</span></div></div>`};
+const act=(pos,id,ic,t,sub)=>`<div class="mate-card mate-card-${pos}" data-act="${id}"><div class="mate-card-avatar avatar-lavender">${mi(ic)}</div><div class="mate-card-content"><div class="mate-card-title">${t}</div>${sub!==undefined?`<div class="mate-card-subtitle" id="status">${esc(sub)}</div>`:''}</div></div>`;
+function buildSettings(){const pi=PR.indexOf(S.cfg.press),pct=4+S.cfg.iconSize*.92;
+ $('#settingsBox').innerHTML=lab('表示')+`<div class="mate-card-group">${segCard('top','表示形式','view',VIEW)}${segCard('mid','並び順','sort',SORT)}${swCard('mid','showChar','キャラ画像をアイコンに使う')}${swCard('mid','showDesc','説明を表示(リスト)')}${swCard('bot','mini','前回のアプリのボタンを表示')}</div>
+ <div class="mate-vol-slider-block"><div class="mate-vol-header">${mi('photo_size_select_large')}<span class="mate-vol-title">アイコンの大きさ</span></div><div class="mate-expressive-slider" id="sizeSlider" data-slider="continuous"><div class="mate-slider-active-track" style="width:${pct}%"></div><div class="mate-slider-handle"></div><div class="mate-slider-inactive-track"><span class="mate-slider-end-dot"></span></div></div></div>`
+ +lab('動作')+`<div class="mate-card-group">${segCard('top','アプリの開き方','openMode',OPEN)}
+ <div class="mate-card mate-card-mid wrapcard" style="cursor:default"><div class="mate-card-content"><div class="mate-card-title">長押しの長さ</div><div class="mate-card-subtitle" id="pressV">${S.cfg.press}ms</div></div><div class="segwrap"><div class="mate-thin-slider-row" id="pressRow" style="margin-top:0"><button class="mate-thin-step-btn" data-step="-1" aria-label="短く">${mi('remove')}</button><div class="mate-thin-track" id="pressTrack"><div class="mate-thin-fill" id="pressFill" style="width:${pi/7*100}%"></div>${'<span class="mate-thin-dot"></span>'.repeat(8)}<div class="mate-thin-thumb" id="pressThumb" style="left:${pi/7*100}%"></div></div><button class="mate-thin-step-btn" data-step="1" aria-label="長く">${mi('add')}</button></div></div></div>
+ ${swCard('bot','haptic','長押しの振動')}</div>`
+ +lab('データ')+`<div class="mate-card-group">${act('top','reload','refresh','アプリリストを更新',statusTxt)}${act('mid','resetFav','heart_broken','お気に入りをすべて削除')}${act('bot','resetAll','restart_alt','設定を初期化')}</div><div class="mate-section-label" style="text-align:center;font-weight:500;color:var(--mate-text-muted)">PBPark ランチャー ・ MateUI</div>`}
+const sizeApply=()=>{const px=Math.round(48+S.cfg.iconSize*.32),r=document.documentElement.style;r.setProperty('--icon',px+'px');r.setProperty('--tile',(px+22)+'px')};
+function applyCfg(){sizeApply();renderAll();buildSettings()}
+const sb=$('#settingsBox');
+sb.addEventListener('click',e=>{
+ const sw=e.target.closest('[data-sw]');if(sw){const k=sw.dataset.sw;S.cfg[k]=!S.cfg[k];const s=sw.querySelector('.mate-switch');s.classList.toggle('is-checked',S.cfg[k]);s.setAttribute('aria-checked',S.cfg[k]);s.querySelector('.material-symbols-rounded').textContent=S.cfg[k]?'check':'close';save();renderAll();return}
+ const sg=e.target.closest('[data-seg] [data-k]');if(sg){S.cfg[sg.parentElement.dataset.seg]=sg.dataset.k;save();applyCfg();return}
+ const st=e.target.closest('[data-step]');if(st){setPress(PR.indexOf(S.cfg.press)+ +st.dataset.step);return}
+ const tr=e.target.closest('#pressTrack');if(tr){const r=tr.getBoundingClientRect();setPress(Math.round((e.clientX-r.left)/r.width*7));return}
+ const a=e.target.closest('[data-act]');if(!a)return;const k=a.dataset.act;
+ if(k==='reload')load(true);
+ else if(k==='resetFav')confirmBox('お気に入りを削除しますか?','♡をつけたアプリがすべて外れます。','削除',()=>{S.favs=[];save();renderAll();showToast('お気に入りを削除しました')});
+ else if(k==='resetAll')confirmBox('設定を初期化しますか?','表示や動作の設定が初期値に戻ります。お気に入りと履歴はそのままです。','初期化',()=>{S.cfg=Object.assign({},DEF);save();applyCfg();showToast('設定を初期化しました')})});
+function setPress(i){i=Math.max(0,Math.min(7,i));S.cfg.press=PR[i];save();$('#pressV').textContent=PR[i]+'ms';$('#pressFill').style.width=$('#pressThumb').style.left=i/7*100+'%'}
+/* expressive slider (MateUI実装そのまま) */
+sb.addEventListener('pointerdown',e=>{const s=e.target.closest('.mate-expressive-slider');if(!s)return;s.setPointerCapture(e.pointerId);s.classList.add('is-dragging');slideTo(s,e.clientX)});
+sb.addEventListener('pointermove',e=>{const s=e.target.closest('.mate-expressive-slider');if(s&&s.classList.contains('is-dragging'))slideTo(s,e.clientX)});
+['pointerup','pointercancel'].forEach(t=>sb.addEventListener(t,e=>{const s=e.target.closest('.mate-expressive-slider');if(s){s.classList.remove('is-dragging');save();renderAll()}}));
+function slideTo(s,x){const r=s.getBoundingClientRect(),c=Math.max(4,Math.min(96,(x-r.left)/r.width*100));s.querySelector('.mate-slider-active-track').style.width=c+'%';S.cfg.iconSize=Math.round((c-4)/92*100);sizeApply()}
+
+/* ---------- init ---------- */
+sizeApply();buildSettings();
+if(S.cache)setData(S.cache.d);else renderAll();
+load();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,1883 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#F2F2F7">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>PBPark ランチャー</title>
+<style>
+  /* --------------------------------------------------------------------------
+     Design Tokens & Reset (Strictly no brand-specific naming)
+  -------------------------------------------------------------------------- */
+  :root {
+    --canvas-bg: #F2F2F7;
+    --surface-card: #FFFFFF;
+    --surface-subtle: #E9E9EB;
+    --text-primary: #000000;
+    --text-secondary: #8E8E93;
+    --accent-blue: #007AFF;
+    --accent-green: #34C759;
+    --accent-purple: #5856D6;
+    --accent-red: #FF3B30;
+    --divider-line: rgba(60, 60, 67, 0.12);
+
+    /* Liquid Glass Surface & Elevation */
+    --glass-fill: rgba(255, 255, 255, 0.68);
+    --glass-fill-heavy: rgba(255, 255, 255, 0.82);
+    --glass-fill-tinted: rgba(245, 245, 247, 0.72);
+    --glass-stroke: rgba(255, 255, 255, 0.85);
+    --glass-inner-rim: inset 0 1px 1px rgba(255, 255, 255, 0.95), inset 0 -1px 2px rgba(0, 0, 0, 0.04);
+    --floating-shadow: 0 10px 30px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
+    --dialog-shadow: 0 24px 60px rgba(0, 0, 0, 0.14), 0 4px 16px rgba(0, 0, 0, 0.05);
+
+    /* Fluid Spring Curves */
+    --spring-fluid: cubic-bezier(0.22, 1.18, 0.36, 1);
+    --spring-tactile: cubic-bezier(0.2, 1.35, 0.4, 1);
+    --ease-sheet: cubic-bezier(0.28, 1.08, 0.38, 1);
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+    background-color: var(--canvas-bg);
+    color: var(--text-primary);
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* --------------------------------------------------------------------------
+     App Frame (Solid Single-Color Background)
+  -------------------------------------------------------------------------- */
+  .ling-viewport {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    margin: 0 auto;
+    background-color: var(--canvas-bg);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+
+  /* --------------------------------------------------------------------------
+     Top Floating Navigation Bar (Circular Back Button + Center Title)
+  -------------------------------------------------------------------------- */
+  .top-floating-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 40;
+    padding: 16px 16px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    pointer-events: none;
+  }
+
+  .top-floating-bar > * {
+    pointer-events: auto;
+  }
+
+  .top-bar-center-title {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    color: var(--text-primary);
+    pointer-events: none;
+    white-space: nowrap;
+  }
+
+  /* Liquid Glass Circular / Pill Button (Has Shadow per reference) */
+  .glass-circle-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 999px;
+    border: 1px solid var(--glass-stroke);
+    background: var(--glass-fill-heavy);
+    backdrop-filter: blur(22px) saturate(180%);
+    -webkit-backdrop-filter: blur(22px) saturate(180%);
+    box-shadow: var(--floating-shadow), var(--glass-inner-rim);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-primary);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: transform 0.42s var(--spring-tactile), background-color 0.25s ease, opacity 0.35s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .glass-circle-btn.is-hidden {
+    opacity: 0;
+    transform: scale(0.65) translateX(-12px);
+    pointer-events: none;
+  }
+
+  .glass-circle-btn:active,
+  .glass-pill-btn:active {
+    transform: scale(1.12);
+    background: rgba(255, 255, 255, 0.94);
+  }
+
+  /* Browser Bar Component (Placed inside Browser UI Test View) */
+  .browser-bar-showcase {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 8px 0 18px;
+  }
+
+  .glass-address-pill {
+    flex: 1;
+    height: 46px;
+    border-radius: 999px;
+    border: 1px solid var(--glass-stroke);
+    background: var(--glass-fill-heavy);
+    backdrop-filter: blur(22px) saturate(180%);
+    -webkit-backdrop-filter: blur(22px) saturate(180%);
+    box-shadow: var(--floating-shadow), var(--glass-inner-rim);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 14px;
+    transition: transform 0.4s var(--spring-tactile), box-shadow 0.3s ease;
+  }
+
+  .glass-address-pill:active {
+    transform: scale(1.03);
+  }
+
+  .address-domain {
+    font-size: 16px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .pill-icon-action {
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: transform 0.35s var(--spring-tactile), background 0.2s ease;
+  }
+
+  .pill-icon-action:active {
+    transform: scale(1.22);
+    background: rgba(0, 0, 0, 0.06);
+  }
+
+  /* Top Right Multi-Action Glass Capsule (Image 6) */
+  .glass-action-cluster {
+    height: 44px;
+    border-radius: 999px;
+    border: 1px solid var(--glass-stroke);
+    background: var(--glass-fill-heavy);
+    backdrop-filter: blur(22px) saturate(180%);
+    -webkit-backdrop-filter: blur(22px) saturate(180%);
+    box-shadow: var(--floating-shadow), var(--glass-inner-rim);
+    display: flex;
+    align-items: center;
+    padding: 0 6px;
+    gap: 2px;
+  }
+
+  .cluster-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 999px;
+    border: none;
+    background: transparent;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.38s var(--spring-tactile), background 0.2s ease;
+  }
+
+  .cluster-btn:active {
+    transform: scale(1.18);
+    background: rgba(0, 0, 0, 0.06);
+  }
+
+  /* --------------------------------------------------------------------------
+     Activity Views & Fluid Screen Transitions (Open & Back Animations)
+  -------------------------------------------------------------------------- */
+  .activity-stage {
+    position: relative;
+    flex: 1;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    overflow: hidden;
+  }
+
+  .activity-view {
+    position: absolute;
+    inset: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 74px 16px 145px;
+    scrollbar-width: none;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(32px) scale(0.97);
+    transition:
+      transform 0.52s var(--spring-fluid),
+      opacity 0.36s ease;
+    will-change: transform, opacity;
+  }
+
+  .activity-view::-webkit-scrollbar {
+    display: none;
+  }
+
+  .activity-view.is-active {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(0) scale(1);
+    z-index: 5;
+  }
+
+  .activity-view.is-exit-left {
+    opacity: 0;
+    transform: translateX(-28px) scale(0.97);
+    z-index: 2;
+  }
+
+  .activity-view.is-exit-right {
+    opacity: 0;
+    transform: translateX(38px) scale(0.97);
+    z-index: 2;
+  }
+
+  /* --------------------------------------------------------------------------
+     Typography & Section Headers (Strictly matching Images 3, 8, 9, 10)
+  -------------------------------------------------------------------------- */
+  .large-page-title {
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    color: var(--text-primary);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .section-header-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 0 12px 7px;
+    margin-top: 18px;
+  }
+
+  .section-header-row:first-child {
+    margin-top: 4px;
+  }
+
+  .section-header-bold {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text-primary);
+  }
+
+  .section-header-sub {
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--text-secondary);
+    letter-spacing: -0.005em;
+  }
+
+  .section-header-action {
+    font-size: 15px;
+    font-weight: 400;
+    color: var(--accent-blue);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 2px 4px;
+    transition: transform 0.3s var(--spring-tactile), opacity 0.2s ease;
+  }
+
+  .section-header-action:active {
+    transform: scale(1.1);
+    opacity: 0.7;
+  }
+
+  .section-footer-text {
+    font-size: 12.5px;
+    line-height: 1.38;
+    color: var(--text-secondary);
+    padding: 7px 14px 4px;
+    letter-spacing: -0.005em;
+  }
+
+  /* --------------------------------------------------------------------------
+     Grouped Inset Cards (NO SHADOWS on cards/toggles per strict rule)
+  -------------------------------------------------------------------------- */
+  .ling-card {
+    background-color: var(--surface-card);
+    border-radius: 26px;
+    overflow: hidden;
+    box-shadow: none !important;
+    border: none;
+  }
+
+  .ling-row {
+    position: relative;
+    min-height: 52px;
+    padding: 11px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: transparent;
+    transition: background-color 0.2s ease;
+  }
+
+  .ling-row.is-tappable {
+    cursor: pointer;
+  }
+
+  .ling-row.is-tappable:active {
+    background-color: rgba(0, 0, 0, 0.04);
+  }
+
+  .ling-row + .ling-row::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 16px;
+    right: 0;
+    height: 0.5px;
+    background-color: var(--divider-line);
+  }
+
+  .row-title {
+    font-size: 16.5px;
+    font-weight: 400;
+    letter-spacing: -0.015em;
+    color: var(--text-primary);
+  }
+
+  .row-detail-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-secondary);
+    font-size: 16px;
+  }
+
+  .row-chevron {
+    color: #C7C7CC;
+    display: flex;
+    align-items: center;
+  }
+
+  /* Destructive Row & Standalone Destructive Pill (Image 3) */
+  .row-destructive {
+    justify-content: center;
+    color: var(--accent-red);
+    font-size: 16.5px;
+    font-weight: 400;
+    cursor: pointer;
+  }
+
+  .ling-standalone-pill {
+    background-color: var(--surface-card);
+    border-radius: 999px;
+    min-height: 52px;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent-red);
+    font-size: 16.5px;
+    font-weight: 400;
+    cursor: pointer;
+    box-shadow: none !important;
+    margin-top: 14px;
+    transition: transform 0.38s var(--spring-tactile), background-color 0.2s ease;
+  }
+
+  .ling-standalone-pill:active {
+    transform: scale(0.98);
+    background-color: #F9F9FB;
+  }
+
+  /* --------------------------------------------------------------------------
+     Stepper Control [- | +] (Exact match to Image 3)
+  -------------------------------------------------------------------------- */
+  .ling-stepper {
+    display: inline-flex;
+    align-items: center;
+    background-color: #EEEEF0;
+    border-radius: 999px;
+    height: 32px;
+    padding: 2px;
+    position: relative;
+  }
+
+  .stepper-btn {
+    width: 44px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    color: var(--text-primary);
+    font-size: 20px;
+    font-weight: 400;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border-radius: 999px;
+    transition: transform 0.35s var(--spring-tactile), background-color 0.2s ease;
+  }
+
+  .stepper-btn:active {
+    transform: scale(1.16);
+    background-color: rgba(255, 255, 255, 0.85);
+  }
+
+  .stepper-divider {
+    width: 1px;
+    height: 16px;
+    background-color: rgba(60, 60, 67, 0.18);
+  }
+
+  /* --------------------------------------------------------------------------
+     Elongated Oval Toggle Switch with Liquid Glass Press Expansion
+     (Fixed geometry, clean travel, NO static shadow)
+  -------------------------------------------------------------------------- */
+  .ling-toggle {
+    position: relative;
+    width: 62px;
+    height: 30px;
+    border-radius: 999px;
+    background-color: #E2E2E6;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    display: inline-block;
+    flex-shrink: 0;
+    box-shadow: none !important;
+    transition: background-color 0.36s var(--spring-fluid);
+    outline: none;
+    overflow: visible;
+  }
+
+  .ling-toggle.is-on {
+    background-color: var(--accent-green);
+  }
+
+  /* Elongated Pill Knob (35px wide x 25px tall inside 62x30 track) */
+  .ling-toggle-knob {
+    position: absolute;
+    top: 2.5px;
+    left: 2.5px;
+    width: 35px;
+    height: 25px;
+    border-radius: 999px;
+    background: #FFFFFF;
+    box-shadow: none !important;
+    pointer-events: none;
+    transform: translateX(0) scale(1);
+    transition:
+      transform 0.42s var(--spring-fluid),
+      width 0.32s var(--spring-fluid),
+      background 0.22s ease,
+      border-color 0.22s ease;
+    border: 1px solid rgba(255, 255, 255, 0.9);
+    will-change: transform, width;
+  }
+
+  .ling-toggle.is-on .ling-toggle-knob {
+    transform: translateX(22px) scale(1);
+  }
+
+  /* Liquid Glass Refraction Lens State while Pressed */
+  .ling-toggle:active .ling-toggle-knob,
+  .ling-toggle.is-pressing .ling-toggle-knob {
+    width: 41px;
+    transform: translateX(0) scale(1.16);
+    background: rgba(255, 255, 255, 0.56);
+    backdrop-filter: blur(10px) saturate(210%);
+    -webkit-backdrop-filter: blur(10px) saturate(210%);
+    border: 1px solid rgba(255, 255, 255, 0.96);
+  }
+
+  .ling-toggle.is-on:active .ling-toggle-knob,
+  .ling-toggle.is-on.is-pressing .ling-toggle-knob {
+    transform: translateX(16px) scale(1.16);
+  }
+
+  /* --------------------------------------------------------------------------
+     Liquid Glass Slider with Tick Marks & Expanding Refraction Lens Thumb
+     (Exact match to Images 3 & 4)
+  -------------------------------------------------------------------------- */
+  .ling-slider-row {
+    padding: 14px 16px 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .slider-end-icon {
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .ling-slider-wrap {
+    position: relative;
+    flex: 1;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    touch-action: none;
+    user-select: none;
+  }
+
+  .ling-slider-track {
+    position: relative;
+    width: 100%;
+    height: 5px;
+    border-radius: 999px;
+    background-color: #E2E2E7;
+    overflow: visible;
+  }
+
+  .ling-slider-fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 50%;
+    border-radius: 999px;
+    background-color: var(--accent-blue);
+    transition: width 0.08s linear;
+  }
+
+  .ling-slider-ticks {
+    position: absolute;
+    top: 11px;
+    left: 6px;
+    right: 6px;
+    display: flex;
+    justify-content: space-between;
+    pointer-events: none;
+  }
+
+  .ling-slider-ticks span {
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background-color: #D1D1D6;
+  }
+
+  /* Elongated Oval Glass Lens Thumb */
+  .ling-slider-thumb {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 36px;
+    height: 24px;
+    border-radius: 999px;
+    background: #FFFFFF;
+    border: 1px solid rgba(255, 255, 255, 0.95);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.14), inset 0 1px 1px #FFFFFF;
+    transform: translate(-50%, -50%) scale(1);
+    transition:
+      transform 0.38s var(--spring-tactile),
+      width 0.34s var(--spring-fluid),
+      height 0.34s var(--spring-fluid),
+      background 0.25s ease;
+    pointer-events: none;
+    z-index: 3;
+  }
+
+  /* Liquid Glass Magnifying Pill State on Press / Drag (Image 4 bottom) */
+  .ling-slider-wrap.is-dragging .ling-slider-thumb,
+  .ling-slider-wrap:active .ling-slider-thumb {
+    width: 48px;
+    height: 32px;
+    transform: translate(-50%, -50%) scale(1.14);
+    background: rgba(255, 255, 255, 0.38);
+    backdrop-filter: blur(8px) saturate(210%) contrast(115%);
+    -webkit-backdrop-filter: blur(8px) saturate(210%) contrast(115%);
+    border: 1.2px solid rgba(255, 255, 255, 0.95);
+    box-shadow:
+      0 6px 18px rgba(0, 0, 0, 0.14),
+      inset 0 1.5px 2px rgba(255, 255, 255, 0.95),
+      inset 0 -1.5px 3px rgba(0, 122, 255, 0.15);
+  }
+
+  /* --------------------------------------------------------------------------
+     Bottom Floating Navigation Bar & Stacked Mini-Player
+     (Larger icons & slightly wider elongated selection capsule)
+  -------------------------------------------------------------------------- */
+  .bottom-floating-dock {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 45;
+    padding: 8px 14px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none;
+    background: linear-gradient(to top, rgba(242, 242, 247, 0.9) 35%, rgba(242, 242, 247, 0) 100%);
+  }
+
+  .bottom-floating-dock > * {
+    pointer-events: auto;
+  }
+
+  /* Floating Media Glass Pill (Image 4 top bar) */
+  .glass-media-pill {
+    height: 54px;
+    border-radius: 999px;
+    border: 1px solid var(--glass-stroke);
+    background: var(--glass-fill);
+    backdrop-filter: blur(26px) saturate(190%);
+    -webkit-backdrop-filter: blur(26px) saturate(190%);
+    box-shadow: var(--floating-shadow), var(--glass-inner-rim);
+    padding: 6px 16px 6px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    transition: transform 0.4s var(--spring-tactile);
+  }
+
+  .glass-media-pill:active {
+    transform: scale(1.02);
+  }
+
+  .media-art-thumb {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #1E7E48 0%, #0D3B22 100%);
+    color: #FFFFFF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 800;
+    text-align: center;
+    line-height: 1.05;
+    flex-shrink: 0;
+    letter-spacing: -0.02em;
+  }
+
+  .media-meta {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .media-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .media-sub {
+    font-size: 12px;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 1px;
+  }
+
+  .media-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .media-ctrl-btn {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: transparent;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: transform 0.35s var(--spring-tactile);
+  }
+
+  .media-ctrl-btn:active {
+    transform: scale(1.25);
+  }
+
+  /* Main Floating Tab Bar Row (Slightly wider pill indicator & larger icons) */
+  .floating-nav-row {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+  }
+
+  .glass-tab-capsule {
+    position: relative;
+    flex: 1;
+    height: 66px;
+    border-radius: 999px;
+    border: 1px solid var(--glass-stroke);
+    background: var(--glass-fill);
+    backdrop-filter: blur(28px) saturate(195%);
+    -webkit-backdrop-filter: blur(28px) saturate(195%);
+    box-shadow: var(--floating-shadow), var(--glass-inner-rim);
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    padding: 5px;
+    align-items: center;
+  }
+
+  /* Slightly wider oval Liquid Glass Lens Indicator inside Tab Bar */
+  .tab-liquid-indicator {
+    position: absolute;
+    top: 5px;
+    bottom: 5px;
+    left: 4px;
+    width: calc(20% + 4px);
+    border-radius: 999px;
+    background: rgba(225, 225, 232, 0.76);
+    border: 1px solid rgba(255, 255, 255, 0.92);
+    box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.95), 0 2px 8px rgba(0, 0, 0, 0.04);
+    transition: transform 0.52s var(--spring-fluid);
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .glass-tab-capsule.is-pressing .tab-liquid-indicator {
+    transform: translateX(var(--tab-offset, 0px)) scale(1.09, 1.06);
+    background: rgba(255, 255, 255, 0.88);
+  }
+
+  .nav-tab-item {
+    position: relative;
+    z-index: 2;
+    height: 100%;
+    border: none;
+    background: transparent;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: transform 0.36s var(--spring-tactile), color 0.25s ease;
+  }
+
+  .nav-tab-item svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  .nav-tab-item:active {
+    transform: scale(1.12);
+  }
+
+  .nav-tab-item.is-active {
+    color: var(--accent-blue);
+  }
+
+  .nav-tab-label {
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  /* Detached Circular Search / Action Pill on Right */
+  .glass-detached-action {
+    width: 66px;
+    height: 66px;
+    border-radius: 999px;
+    border: 1px solid var(--glass-stroke);
+    background: var(--glass-fill);
+    backdrop-filter: blur(28px) saturate(195%);
+    -webkit-backdrop-filter: blur(28px) saturate(195%);
+    box-shadow: var(--floating-shadow), var(--glass-inner-rim);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-primary);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: transform 0.4s var(--spring-tactile), background 0.25s ease;
+  }
+
+  .glass-detached-action:active {
+    transform: scale(1.14);
+    background: rgba(255, 255, 255, 0.92);
+  }
+
+  /* --------------------------------------------------------------------------
+     Pop-up Context Menu (Exact layout from Image 7)
+  -------------------------------------------------------------------------- */
+  .ling-popover-backdrop {
+    position: absolute;
+    inset: 0;
+    z-index: 60;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+  }
+
+  .ling-popover-backdrop.is-open {
+    pointer-events: auto;
+    opacity: 1;
+  }
+
+  .ling-popover-menu {
+    position: absolute;
+    top: 66px;
+    right: 16px;
+    width: 248px;
+    border-radius: 26px;
+    border: 1px solid var(--glass-stroke);
+    background: rgba(255, 255, 255, 0.86);
+    backdrop-filter: blur(30px) saturate(190%);
+    -webkit-backdrop-filter: blur(30px) saturate(190%);
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.14), var(--glass-inner-rim);
+    padding: 6px 0;
+    transform-origin: top right;
+    transform: scale(0.72) translateY(-12px);
+    opacity: 0;
+    transition: transform 0.44s var(--spring-fluid), opacity 0.24s ease;
+  }
+
+  .ling-popover-backdrop.is-open .ling-popover-menu {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+
+  .popover-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 16px;
+    gap: 12px;
+    font-size: 16px;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: background-color 0.18s ease, transform 0.3s var(--spring-tactile);
+  }
+
+  .popover-item:active {
+    background-color: rgba(0, 0, 0, 0.05);
+    transform: scale(0.98);
+  }
+
+  .popover-item.is-disabled {
+    color: #AEAEB2;
+    cursor: default;
+  }
+
+  .popover-check {
+    width: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .popover-icon {
+    width: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .popover-text-stack {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .popover-sub {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 1px;
+  }
+
+  .popover-sep {
+    height: 1px;
+    background-color: var(--divider-line);
+    margin: 5px 0;
+  }
+
+  /* --------------------------------------------------------------------------
+     Liquid Glass Alert Dialog (Exact match to Images 6 & 8)
+  -------------------------------------------------------------------------- */
+  .ling-modal-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 80;
+    background: rgba(0, 0, 0, 0.14);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.28s ease;
+  }
+
+  .ling-modal-overlay.is-open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .ling-alert-card {
+    width: 100%;
+    max-width: 300px;
+    border-radius: 32px;
+    border: 1px solid var(--glass-stroke);
+    background: rgba(255, 255, 255, 0.88);
+    backdrop-filter: blur(32px) saturate(190%);
+    -webkit-backdrop-filter: blur(32px) saturate(190%);
+    box-shadow: var(--dialog-shadow), var(--glass-inner-rim);
+    padding: 22px 18px 18px;
+    text-align: center;
+    transform: scale(0.84);
+    opacity: 0;
+    transition: transform 0.45s var(--spring-fluid), opacity 0.25s ease;
+  }
+
+  .ling-modal-overlay.is-open .ling-alert-card {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  .alert-title {
+    font-size: 17px;
+    font-weight: 700;
+    line-height: 1.28;
+    letter-spacing: -0.015em;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+  }
+
+  .alert-body {
+    font-size: 13.5px;
+    line-height: 1.38;
+    color: var(--text-secondary);
+    margin-bottom: 18px;
+    padding: 0 4px;
+  }
+
+  .alert-btn-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+  }
+
+  .alert-btn-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .alert-pill-btn {
+    height: 44px;
+    border-radius: 999px;
+    border: none;
+    background-color: #E5E5EA;
+    color: var(--text-primary);
+    font-size: 15.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.36s var(--spring-tactile), background-color 0.2s ease;
+  }
+
+  .alert-pill-btn:active {
+    transform: scale(1.06);
+    background-color: #D8D8DF;
+  }
+
+  /* --------------------------------------------------------------------------
+     Bottom Sheet Modal (Share Sheet Image 2 & What's New Sheet Image 5)
+  -------------------------------------------------------------------------- */
+  .ling-sheet-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 85;
+    background: rgba(0, 0, 0, 0.22);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
+
+  .ling-sheet-overlay.is-open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .ling-sheet-panel {
+    width: 100%;
+    max-height: 92%;
+    background: #F4F4F7;
+    border-top-left-radius: 34px;
+    border-top-right-radius: 34px;
+    padding: 18px 16px 28px;
+    overflow-y: auto;
+    transform: translateY(100%);
+    transition: transform 0.54s var(--ease-sheet);
+    scrollbar-width: none;
+  }
+
+  .ling-sheet-panel::-webkit-scrollbar {
+    display: none;
+  }
+
+  .ling-sheet-overlay.is-open .ling-sheet-panel {
+    transform: translateY(0);
+  }
+
+  /* Share Sheet Header (Image 2) */
+  .share-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding-bottom: 16px;
+    border-bottom: 0.5px solid var(--divider-line);
+  }
+
+  .share-doc-thumb {
+    width: 54px;
+    height: 54px;
+    border-radius: 14px;
+    background: linear-gradient(145deg, #B6D4CE 0%, #8EB3AC 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 11px;
+    color: #1C1C1E;
+    flex-shrink: 0;
+  }
+
+  .share-doc-info {
+    flex: 1;
+  }
+
+  .share-doc-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .share-doc-sub {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+  }
+
+  .sheet-close-circle {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid var(--glass-stroke);
+    background: var(--glass-fill-heavy);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.35s var(--spring-tactile);
+  }
+
+  .sheet-close-circle:active {
+    transform: scale(1.18);
+  }
+
+  .share-strip {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    padding: 16px 0;
+    border-bottom: 0.5px solid var(--divider-line);
+    text-align: center;
+  }
+
+  .share-strip.no-border {
+    border-bottom: none;
+  }
+
+  .share-node {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 7px;
+    cursor: pointer;
+    transition: transform 0.35s var(--spring-tactile);
+  }
+
+  .share-node:active {
+    transform: scale(1.1);
+  }
+
+  .avatar-circle {
+    position: relative;
+    width: 58px;
+    height: 58px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 17px;
+    color: #FFFFFF;
+  }
+
+  .avatar-badge {
+    position: absolute;
+    right: -2px;
+    bottom: -2px;
+    width: 20px;
+    height: 20px;
+    border-radius: 6px;
+    border: 2px solid #F4F4F7;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .app-sq-icon {
+    width: 58px;
+    height: 58px;
+    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #FFFFFF;
+  }
+
+  .action-gray-circle {
+    width: 58px;
+    height: 58px;
+    border-radius: 50%;
+    background-color: #E5E5EA;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-primary);
+  }
+
+  .share-node-label {
+    font-size: 11.5px;
+    line-height: 1.2;
+    color: var(--text-primary);
+  }
+
+  /* --------------------------------------------------------------------------
+     Collections / Gallery Grids (Images 8 & 9)
+  -------------------------------------------------------------------------- */
+  .photo-grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+    margin: 0 -16px 16px;
+  }
+
+  .photo-tile {
+    aspect-ratio: 1 / 1;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.35s var(--spring-fluid);
+  }
+
+  .photo-tile:active {
+    transform: scale(0.96);
+  }
+
+  .memories-carousel {
+    display: grid;
+    grid-template-columns: 1.45fr 1fr;
+    gap: 12px;
+    margin-bottom: 6px;
+  }
+
+  .memory-card {
+    height: 210px;
+    border-radius: 24px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 14px;
+    color: #FFFFFF;
+    cursor: pointer;
+    transition: transform 0.4s var(--spring-fluid);
+  }
+
+  .memory-card:active {
+    transform: scale(0.98);
+  }
+
+  .memory-glass-pill {
+    background: rgba(255, 255, 255, 0.34);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    border-radius: 999px;
+    padding: 8px 14px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #1C1C1E;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .mini-album-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+
+  .mini-album-card {
+    aspect-ratio: 1 / 1;
+    border-radius: 18px;
+    padding: 10px;
+    display: flex;
+    align-items: flex-end;
+    color: #FFFFFF;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.2;
+    cursor: pointer;
+    transition: transform 0.36s var(--spring-tactile);
+  }
+
+  .mini-album-card:active {
+    transform: scale(0.96);
+  }
+
+  /* --------------------------------------------------------------------------
+     Calendar Week Strip & Timeline (Image 6)
+  -------------------------------------------------------------------------- */
+  .week-strip {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    text-align: center;
+    padding: 4px 0 12px;
+    border-bottom: 0.5px solid var(--divider-line);
+  }
+
+  .day-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+  }
+
+  .day-letter {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+
+  .day-num {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 500;
+    transition: transform 0.35s var(--spring-tactile), background 0.25s ease;
+  }
+
+  .day-col.is-today .day-num {
+    background-color: var(--accent-red);
+    color: #FFFFFF;
+    font-weight: 600;
+  }
+
+  .day-col:active .day-num {
+    transform: scale(1.18);
+  }
+
+  .date-banner {
+    text-align: center;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 11px 0;
+    border-bottom: 0.5px solid var(--divider-line);
+  }
+
+  .timeline-slot {
+    display: flex;
+    align-items: center;
+    height: 44px;
+    gap: 10px;
+  }
+
+  .timeline-hour {
+    width: 46px;
+    text-align: right;
+    font-size: 11px;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+  }
+
+  .timeline-line {
+    flex: 1;
+    height: 0.5px;
+    background-color: var(--divider-line);
+  }
+
+  /* Toast Feedback Pill */
+  .ling-toast {
+    position: absolute;
+    top: 72px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-16px) scale(0.9);
+    z-index: 95;
+    padding: 9px 18px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.88);
+    border: 1px solid var(--glass-stroke);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: var(--floating-shadow);
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text-primary);
+    opacity: 0;
+    pointer-events: none;
+    transition: transform 0.42s var(--spring-fluid), opacity 0.25s ease;
+    white-space: nowrap;
+  }
+
+  .ling-toast.is-visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+
+  /* ==========================================================================
+     LIQUID GLASS v2  (iOS 26 style, lightweight)
+     - Only elements that previously used backdrop blur are touched.
+     - ONE small backdrop pass per element (blur 3px) on every browser;
+       the "lens" look comes from cheap gradients / inset shadows only.
+     - Clear tier : very transparent bars & buttons
+     - Frost tier : menus / alerts / toast (a bit more legible)
+  ========================================================================== */
+  :root {
+    --lg-rim: linear-gradient(135deg,
+      rgba(255,255,255,1) 0%, rgba(255,255,255,0.55) 18%,
+      rgba(255,255,255,0.05) 42%, rgba(255,255,255,0.05) 62%,
+      rgba(255,255,255,0.6) 84%, rgba(255,255,255,0.95) 100%);
+    --lg-clear-fill: linear-gradient(135deg, rgba(255,255,255,0.30) 0%, rgba(255,255,255,0.07) 42%, rgba(255,255,255,0.12) 100%);
+    --lg-clear-shadow:
+      0 8px 28px rgba(0,0,0,0.10), 0 1px 3px rgba(0,0,0,0.06),
+      inset 0 1px 1px rgba(255,255,255,0.85),
+      inset 0 -1px 1px rgba(255,255,255,0.35),
+      inset 0 0 14px 2px rgba(255,255,255,0.28);
+  }
+
+  /* ---- Clear tier ---- */
+  .glass-circle-btn,
+  .glass-address-pill,
+  .glass-action-cluster,
+  .glass-media-pill,
+  .glass-tab-capsule,
+  .glass-detached-action {
+    background: var(--lg-clear-fill);
+    border-color: transparent;
+    backdrop-filter: blur(3px) saturate(190%) brightness(1.05);
+    -webkit-backdrop-filter: blur(3px) saturate(190%) brightness(1.05);
+    box-shadow: var(--lg-clear-shadow);
+  }
+  .glass-address-pill,
+  .glass-action-cluster,
+  .glass-media-pill,
+  .glass-detached-action { position: relative; }
+
+  .glass-circle-btn:active,
+  .glass-pill-btn:active,
+  .glass-detached-action:active {
+    background: linear-gradient(135deg, rgba(255,255,255,0.42), rgba(255,255,255,0.14));
+  }
+
+  /* Specular rim (replaces the flat white stroke) */
+  .glass-circle-btn::before,
+  .glass-address-pill::before,
+  .glass-action-cluster::before,
+  .glass-media-pill::before,
+  .glass-tab-capsule::before,
+  .glass-detached-action::before,
+  .ling-popover-menu::before,
+  .ling-alert-card::before,
+  .ling-toast::before {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1.2px;
+    background: var(--lg-rim);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+            mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+            mask-composite: exclude;
+    pointer-events: none;
+    z-index: 3;
+  }
+  .ling-alert-card { position: relative; }
+
+  /* Let content show through the dock instead of a white wash */
+  .bottom-floating-dock {
+    background: linear-gradient(to top, rgba(242,242,247,0.5) 20%, rgba(242,242,247,0) 100%);
+  }
+
+  /* --------------------------------------------------------------------------
+     Tab bar (matches the iOS 26 references)
+     - capsule 56px high, each tab cell 82px wide, 3px inset around the lens
+     - 2-3 tabs hug their content (left, or centred when there is no action)
+     - 4+ tabs fill the row
+     - 0-3 detached circular buttons on the right
+  -------------------------------------------------------------------------- */
+  .floating-nav-row { gap: 9px; }
+  .floating-nav-row[data-layout="center"] { justify-content: center; }
+  .floating-nav-row[data-layout="split"] .glass-detached-action:first-of-type { margin-left: auto; }
+
+  .glass-tab-capsule {
+    height: 56px;
+    flex: 0 0 auto;
+    width: calc(var(--tab-count, 5) * 82px + 6px);   /* cells + 2px padding*2 + 1px border*2 */
+    padding: 2px;
+    grid-template-columns: repeat(var(--tab-count, 5), minmax(0, 1fr));
+  }
+  .floating-nav-row[data-layout="fill"] .glass-tab-capsule { flex: 1; width: auto; }
+
+  .glass-detached-action { width: 56px; height: 56px; }
+  .glass-detached-action.is-gone,
+  .nav-tab-item.is-gone { display: none; }
+
+  /* Selection lens: fills the whole cell, 3px from the capsule edge */
+  .tab-liquid-indicator {
+    top: 2px;
+    bottom: 2px;
+    left: 0;
+    width: 0;
+    border: 0.5px solid rgba(255,255,255,0.7);
+    background: linear-gradient(180deg, rgba(120,120,128,0.20), rgba(120,120,128,0.13));
+    box-shadow: inset 0 1px 1px rgba(255,255,255,0.5), 0 1px 3px rgba(0,0,0,0.05);
+    transition:
+      transform 0.52s var(--spring-fluid),
+      width 0.52s var(--spring-fluid),
+      background 0.25s ease,
+      opacity 0.25s ease;
+  }
+  .glass-tab-capsule.is-pressing .tab-liquid-indicator {
+    transform: translateX(var(--tab-offset, 0px)) scale(1.1, 1.08);
+    background: linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0.3));
+    box-shadow: inset 0 1px 2px rgba(255,255,255,0.9), 0 4px 14px rgba(0,0,0,0.12);
+  }
+
+  .nav-tab-item { gap: 2px; }
+  .nav-tab-label { font-size: 10px; font-weight: 600; letter-spacing: 0; }
+
+  /* Tab bar variant picker (catalog) */
+  .nav-preset-check { width: 16px; text-align: center; color: var(--accent-blue); font-weight: 600; }
+
+  /* ---- Frost tier (menus, alerts, toast, chips on photos) ---- */
+  .ling-popover-menu {
+    background: linear-gradient(135deg, rgba(255,255,255,0.58), rgba(255,255,255,0.40));
+    border-color: transparent;
+    backdrop-filter: blur(14px) saturate(190%);
+    -webkit-backdrop-filter: blur(14px) saturate(190%);
+    box-shadow: 0 18px 48px rgba(0,0,0,0.14), inset 0 1px 1px rgba(255,255,255,0.85), inset 0 0 18px rgba(255,255,255,0.2);
+  }
+  .ling-alert-card {
+    background: linear-gradient(135deg, rgba(255,255,255,0.62), rgba(255,255,255,0.44));
+    border-color: transparent;
+    backdrop-filter: blur(16px) saturate(190%);
+    -webkit-backdrop-filter: blur(16px) saturate(190%);
+    box-shadow: var(--dialog-shadow), inset 0 1px 1px rgba(255,255,255,0.85), inset 0 0 20px rgba(255,255,255,0.2);
+  }
+  .ling-toast {
+    background: linear-gradient(135deg, rgba(255,255,255,0.5), rgba(255,255,255,0.3));
+    border-color: transparent;
+    backdrop-filter: blur(8px) saturate(190%);
+    -webkit-backdrop-filter: blur(8px) saturate(190%);
+    box-shadow: var(--floating-shadow), inset 0 1px 1px rgba(255,255,255,0.85);
+  }
+  .memory-glass-pill {
+    background: linear-gradient(135deg, rgba(255,255,255,0.32), rgba(255,255,255,0.12));
+    border: 1px solid rgba(255,255,255,0.55);
+    backdrop-filter: blur(5px) saturate(190%);
+    -webkit-backdrop-filter: blur(5px) saturate(190%);
+    box-shadow: inset 0 1px 1px rgba(255,255,255,0.7), 0 4px 14px rgba(0,0,0,0.12);
+  }
+
+  /* ---- Pressed lenses (toggle knob / slider thumb) ---- */
+  .ling-toggle:active .ling-toggle-knob,
+  .ling-toggle.is-pressing .ling-toggle-knob {
+    background: rgba(255,255,255,0.14);
+    backdrop-filter: blur(0.5px) saturate(200%);
+    -webkit-backdrop-filter: blur(0.5px) saturate(200%);
+    border: 1px solid rgba(255,255,255,0.95);
+  }
+  .ling-slider-wrap.is-dragging .ling-slider-thumb,
+  .ling-slider-wrap:active .ling-slider-thumb {
+    background: rgba(255,255,255,0.10);
+    backdrop-filter: blur(0.5px) saturate(210%);
+    -webkit-backdrop-filter: blur(0.5px) saturate(210%);
+    box-shadow:
+      0 6px 18px rgba(0,0,0,0.14),
+      inset 0 1.5px 2px rgba(255,255,255,0.95),
+      inset 0 -1.5px 3px rgba(255,255,255,0.6),
+      inset 0 0 8px rgba(255,255,255,0.35);
+  }
+
+/* ===== Launcher additions (LingUIトークン/クラスを再利用) ===== */
+:root{--icon:66px;--tile:88px}
+html,body,.ling-viewport{height:100%;height:100dvh}
+.top-floating-bar{padding:calc(16px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) 12px calc(16px + env(safe-area-inset-left))}
+.activity-view{padding:calc(74px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) 150px calc(16px + env(safe-area-inset-left))}
+.bottom-floating-dock{padding-bottom:calc(20px + env(safe-area-inset-bottom))}
+.floating-nav-row,.glass-media-pill{width:100%;max-width:560px;margin:0 auto}
+.glass-media-pill[hidden]{display:none}
+#viewMenu{top:calc(66px + env(safe-area-inset-top))}
+.app-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--tile),1fr));gap:18px 6px;padding:6px 2px 2px}
+.app-tile{display:flex;flex-direction:column;align-items:center;gap:7px;cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:manipulation;transition:transform .38s var(--spring-tactile)}
+.app-tile.is-pressing{transform:scale(1.14)}
+.app-sq-icon.app-ico{position:relative;width:var(--icon);height:var(--icon);border-radius:calc(var(--icon)*.26);flex-shrink:0}
+.app-ico::after{content:"";position:absolute;inset:0;border-radius:inherit;box-shadow:inset 0 1px 1px rgba(255,255,255,.7),inset 0 -1px 2px rgba(0,0,0,.1);pointer-events:none}
+.app-ico img{width:86%;height:86%;object-fit:contain;pointer-events:none;-webkit-user-drag:none}
+.app-ico .ltr{font-weight:700;font-size:calc(var(--icon)*.42)}
+.fav-dot{position:absolute;right:-5px;top:-5px;width:21px;height:21px;border-radius:50%;background:rgba(255,255,255,.94);color:var(--accent-red);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.18);z-index:2}
+.app-name{font-size:11.5px;line-height:1.2;text-align:center;max-width:100%;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.app-row{-webkit-touch-callout:none;user-select:none;-webkit-user-select:none}
+.app-row.is-pressing{background:rgba(0,0,0,.05)}
+.row-icon{--icon:44px;display:flex;margin-right:2px}
+.row-text{flex:1;min-width:0}
+.row-sub{font-size:12.5px;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.heart-btn{border:none;background:transparent;color:#C7C7CC;width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:50%;cursor:pointer;flex-shrink:0;transition:transform .35s var(--spring-tactile)}
+.heart-btn.is-on{color:var(--accent-red)}
+.heart-btn:active{transform:scale(1.3)}
+.mascot{width:54px;height:54px;object-fit:contain;flex-shrink:0}
+.search-input{flex:1;min-width:0;border:none;background:transparent;font-size:16px;outline:none;padding:0 8px;color:var(--text-primary)}
+.glass-address-pill{margin:12px 0 4px}
+.empty{text-align:center;padding:36px 20px;color:var(--text-secondary);font-size:14px;line-height:1.5}
+.empty img{width:104px;margin-bottom:8px}
+.empty b{display:block;color:var(--text-primary);font-size:16px;margin-bottom:3px}
+.web-frame{position:absolute;inset:0;z-index:75;background:var(--canvas-bg);display:flex;flex-direction:column;transform:translateY(100%);transition:transform .54s var(--ease-sheet);visibility:hidden}
+.web-frame.is-open{transform:none;visibility:visible}
+.web-bar{display:flex;align-items:center;gap:10px;padding:calc(10px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) 8px calc(12px + env(safe-area-inset-left))}
+.web-bar .glass-address-pill{margin:0}
+.web-frame iframe{flex:1;border:0;width:100%;background:#fff}
+.media-art-thumb img{width:84%;height:84%;object-fit:contain}
+</style>
+</head>
+<body>
+
+<div class="ling-viewport" id="lingApp">
+  <div class="ling-toast" id="lingToast"></div>
+
+  <header class="top-floating-bar">
+    <button class="glass-circle-btn" id="reloadBtn" aria-label="更新"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><polyline points="21 3 21 8 16 8"/></svg></button>
+    <div class="top-bar-center-title" id="topCenterTitle">ランチャー</div>
+    <button class="glass-circle-btn" id="globalMoreBtn" aria-label="表示オプション"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>
+  </header>
+
+  <main class="activity-stage" id="stage">
+    <section class="activity-view is-active" id="view-home" data-title="ランチャー">
+      <div class="ling-card"><div class="ling-row">
+        <img class="mascot" id="heroImg" alt="" draggable="false">
+        <span class="row-text"><div class="row-title" style="font-weight:600">PBPark ランチャー</div><div class="row-sub" id="heroSub">読み込み中…</div></span>
+      </div></div>
+      <div class="glass-address-pill">
+        <span style="display:flex;color:var(--text-secondary)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="20" y1="20" x2="16.2" y2="16.2"/></svg></span>
+        <input class="search-input" id="searchInput" type="search" placeholder="アプリを検索" enterkeyhint="search" autocomplete="off">
+        <button class="pill-icon-action" id="searchClear" aria-label="クリア" style="visibility:hidden"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      </div>
+      <div id="homeList"></div>
+    </section>
+    <section class="activity-view" id="view-favs" data-title="お気に入り"><div id="favList"></div></section>
+    <section class="activity-view" id="view-recent" data-title="最近"><div id="recentList"></div></section>
+    <section class="activity-view" id="view-settings" data-title="設定"><div id="settingsBox"></div></section>
+  </main>
+
+  <footer class="bottom-floating-dock">
+    <div class="glass-media-pill" id="miniPill" hidden>
+      <div class="media-art-thumb" id="miniArt"></div>
+      <div class="media-meta"><div class="media-title" id="miniTitle"></div>
+        <div class="media-sub"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg><span>前回開いたアプリ</span></div></div>
+      <div class="media-controls">
+        <button class="media-ctrl-btn" id="miniOpen" aria-label="開く"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg></button>
+        <button class="media-ctrl-btn" id="miniClose" aria-label="閉じる"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      </div>
+    </div>
+    <div class="floating-nav-row" data-layout="fill">
+      <nav class="glass-tab-capsule" id="glassTabBar" style="--tab-count:4" aria-label="メイン">
+        <div class="tab-liquid-indicator" id="tabLiquidIndicator"></div>
+        <button class="nav-tab-item is-active" data-tab-index="0" data-target="view-home"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg><span class="nav-tab-label">ホーム</span></button>
+        <button class="nav-tab-item" data-tab-index="1" data-target="view-favs"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 20.5s-8-4.9-8-11A4.5 4.5 0 0 1 12 6.8 4.5 4.5 0 0 1 20 9.5c0 6.1-8 11-8 11z"/></svg><span class="nav-tab-label">お気に入り</span></button>
+        <button class="nav-tab-item" data-tab-index="2" data-target="view-recent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg><span class="nav-tab-label">最近</span></button>
+        <button class="nav-tab-item" data-tab-index="3" data-target="view-settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/><circle cx="9" cy="7" r="2.4" fill="currentColor"/><circle cx="15" cy="12" r="2.4" fill="currentColor"/><circle cx="8" cy="17" r="2.4" fill="currentColor"/></svg><span class="nav-tab-label">設定</span></button>
+      </nav>
+      <button class="glass-detached-action" id="detachedSearchBtn" aria-label="検索"><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="20" y1="20" x2="16.2" y2="16.2"/></svg></button>
+    </div>
+  </footer>
+
+  <div class="web-frame" id="webFrame">
+    <div class="web-bar">
+      <button class="glass-circle-btn" id="frameClose" aria-label="閉じる"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+      <div class="glass-address-pill">
+        <button class="pill-icon-action" id="frameHeart" aria-label="お気に入り"></button>
+        <div class="address-domain"><span id="frameTitle" style="max-width:40vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span></div>
+        <button class="pill-icon-action" id="frameReload" aria-label="再読み込み"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><polyline points="21 3 21 8 16 8"/></svg></button>
+      </div>
+      <button class="glass-circle-btn" id="frameExt" aria-label="新しいタブで開く"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg></button>
+    </div>
+    <iframe id="appFrame" title="app" allow="camera; microphone; geolocation; fullscreen; autoplay; clipboard-read; clipboard-write; accelerometer; gyroscope; web-share" allowfullscreen></iframe>
+  </div>
+
+  <div class="ling-popover-backdrop" id="viewBackdrop"><div class="ling-popover-menu" id="viewMenu" role="menu"></div></div>
+  <div class="ling-popover-backdrop" id="appBackdrop"><div class="ling-popover-menu" id="appMenu" role="menu"></div></div>
+  <div class="ling-modal-overlay" id="alertModalOverlay" role="dialog" aria-modal="true"><div class="ling-alert-card" id="alertCardContent"></div></div>
+  <div class="ling-sheet-overlay" id="sheetOverlay" role="dialog" aria-modal="true"><div class="ling-sheet-panel" id="sheetPanelContent"></div></div>
+</div>
+
+<script>
+(()=>{
+const $=s=>document.querySelector(s);
+const LIST_URL='https://raw.githubusercontent.com/PolandBallHub-Operator/pbpark/refs/heads/main/applist/applist.json';
+const MASCOT='https://raw.githubusercontent.com/PolandBallHub-Operator/pbimagesPublic/refs/heads/main/newballs/germany/fronthaha.png';
+const KEY='pbpark-launcher.v1';
+const DEF={view:'icon',sort:'default',iconSize:50,showChar:true,showDesc:true,openMode:'overlay',press:450,haptic:true,mini:true};
+const VIEW={icon:'アイコン',list:'リスト'},SORT={default:'カテゴリ順',name:'名前順',used:'よく使う順'},OPEN={overlay:'アプリ内',tab:'新しいタブ',self:'このタブ'};
+let S={favs:[],hist:{},recent:[],cfg:{},collapsed:{},cache:null,last:null};
+try{Object.assign(S,JSON.parse(localStorage.getItem(KEY)||'{}'))}catch(e){}
+S.cfg=Object.assign({},DEF,S.cfg);
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+let cats=[],apps=[],byUrl=new Map(),q='',loadMsg='アプリリストを読み込み中…',statusTxt='—';
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const isFav=u=>S.favs.includes(u);
+const hue=s=>{let h=0;for(const c of s)h=(h*31+c.charCodeAt(0))%360;return h};
+const letter=a=>Array.from(a.appname.replace(/^[#※β\s]+/,'')||'?')[0];
+const ago=t=>{const m=(Date.now()-t)/6e4|0;return m<1?'たった今':m<60?m+'分前':m<1440?(m/60|0)+'時間前':(m/1440|0)+'日前'};
+const heart=(on,s=20)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="${on?'currentColor':'none'}" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 20.5s-8-4.9-8-11A4.5 4.5 0 0 1 12 6.8 4.5 4.5 0 0 1 20 9.5c0 6.1-8 11-8 11z"/></svg>`;
+const chev='<span class="row-chevron"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>';
+addEventListener('error',e=>{const t=e.target;if(t.tagName==='IMG'&&t.dataset.l){const s=document.createElement('span');s.className='ltr';s.textContent=t.dataset.l;t.replaceWith(s)}},true);
+$('#heroImg').src=MASCOT;
+
+/* toast */
+const toastEl=$('#lingToast');let tt;
+function toast(m){toastEl.textContent=m;toastEl.classList.add('is-visible');clearTimeout(tt);tt=setTimeout(()=>toastEl.classList.remove('is-visible'),1700)}
+const haptic=()=>{if(S.cfg.haptic&&navigator.vibrate)navigator.vibrate(12)};
+
+/* ---------- parts ---------- */
+const ico=(a,nb)=>{const h=hue(a.appname);const c=S.cfg.showChar?`<img src="${MASCOT}" alt="" draggable="false" data-l="${esc(letter(a))}">`:`<span class="ltr">${esc(letter(a))}</span>`;
+ return `<span class="app-sq-icon app-ico" style="background:linear-gradient(160deg,hsl(${h} 82% 70%),hsl(${(h+35)%360} 74% 52%))">${c}${!nb&&isFav(a.appurl)?`<span class="fav-dot">${heart(1,12)}</span>`:''}</span>`};
+const tile=a=>`<div class="app-tile" data-u="${esc(a.appurl)}">${ico(a)}<span class="app-name">${esc(a.appname)}</span></div>`;
+const row=(a,d)=>`<div class="ling-row is-tappable app-row" data-u="${esc(a.appurl)}"><span class="row-icon">${ico(a,1)}</span><span class="row-text"><div class="row-title">${esc(a.appname)}</div>${S.cfg.showDesc?`<div class="row-sub">${esc(a.appinfo)}</div>`:''}</span>${d?`<span class="row-detail-group">${d}</span>`:''}<button class="heart-btn${isFav(a.appurl)?' is-on':''}" data-heart aria-label="お気に入り">${heart(isFav(a.appurl))}</button></div>`;
+const wrap=l=>S.cfg.view==='list'?`<div class="ling-card">${l.map(a=>row(a)).join('')}</div>`:`<div class="app-grid">${l.map(tile).join('')}</div>`;
+const empty=(t,s)=>`<div class="empty"><img src="${MASCOT}" alt=""><b>${t}</b>${s}</div>`;
+const head=(t,sub,act)=>`<div class="section-header-row"><h2 class="section-header-bold">${t}</h2><span class="section-header-sub">${sub}</span>${act||''}</div>`;
+function sorted(l){const s=S.cfg.sort;if(s==='name')return[...l].sort((a,b)=>a.appname.localeCompare(b.appname,'ja'));if(s==='used')return[...l].sort((a,b)=>(S.hist[b.appurl]?.n||0)-(S.hist[a.appurl]?.n||0));return l}
+
+/* ---------- render ---------- */
+function renderHome(){const box=$('#homeList');
+ if(!apps.length){box.innerHTML=empty(loadMsg,'');return}
+ if(q){const t=q.toLowerCase(),r=sorted(apps.filter(a=>(a.appname+a.appinfo+a.cat).toLowerCase().includes(t)));
+  box.innerHTML=r.length?head('検索結果',r.length+'件')+wrap(r):empty('見つかりませんでした','別のキーワードを試してみてね');return}
+ box.innerHTML=cats.map(c=>{const off=S.collapsed[c.name];
+  return head(esc(c.name),c.apps.length+'個',`<button class="section-header-action" data-collapse="${esc(c.name)}">${off?'開く':'閉じる'}</button>`)+(off?'':wrap(sorted(c.apps)))}).join('')}
+function renderFavs(){const l=S.favs.map(u=>byUrl.get(u)).filter(Boolean);$('#favList').innerHTML=l.length?head('お気に入り',l.length+'個')+wrap(l):empty('お気に入りはまだありません','アプリを長押しして「お気に入りに追加」、<br>またはリストの♡をタップ')}
+function renderRecent(){const r=S.recent.map(u=>byUrl.get(u)).filter(Boolean);
+ const top=apps.filter(a=>S.hist[a.appurl]).sort((a,b)=>S.hist[b.appurl].n-S.hist[a.appurl].n).slice(0,8);
+ $('#recentList').innerHTML=r.length?head('最近開いた',r.length+'件')+`<div class="ling-card">${r.map(a=>row(a,ago(S.hist[a.appurl].t))).join('')}</div>`+head('よく使う','')+`<div class="app-grid">${top.map(tile).join('')}</div><div class="ling-standalone-pill" id="clearHist">履歴を消去</div>`:empty('まだ履歴がありません','アプリを開くとここに表示されます')}
+function renderMini(){const a=byUrl.get(S.last),p=$('#miniPill');p.hidden=!(a&&S.cfg.mini);if(a){$('#miniTitle').textContent=a.appname;const h=hue(a.appname);$('#miniArt').style.background=`linear-gradient(160deg,hsl(${h} 82% 70%),hsl(${(h+35)%360} 74% 52%))`;$('#miniArt').innerHTML=`<img src="${MASCOT}" alt="">`}}
+function renderAll(){renderHome();renderFavs();renderRecent();renderMini();$('#heroSub').textContent=apps.length?`${apps.length}個のアプリ ・ ♡ ${S.favs.filter(u=>byUrl.has(u)).length}`:loadMsg}
+
+/* ---------- data ---------- */
+function parseList(t){const a=t.indexOf('['),b=t.lastIndexOf(']');let s=a>=0&&b>a?t.slice(a,b+1):t;return JSON.parse(s.replace(/,\s*([}\]])/g,'$1'))}
+function setData(d){cats=d.filter(c=>c&&Array.isArray(c.apps)).map(c=>({name:String(c.category||'その他'),apps:c.apps.filter(a=>a&&a.appurl).map(a=>({appname:String(a.appname||'名称未設定'),appinfo:String(a.appinfo||''),appurl:String(a.appurl),cat:String(c.category||'その他')}))}));
+ apps=cats.flatMap(c=>c.apps);byUrl=new Map(apps.map(a=>[a.appurl,a]));renderAll()}
+async function load(manual){setStatus('更新中…');
+ try{const r=await fetch(LIST_URL,{cache:'no-cache'});if(!r.ok)throw new Error(r.status);const d=parseList(await r.text());S.cache={t:Date.now(),d};save();setData(d);setStatus('最新 ('+new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'})+')');if(manual)toast('アプリリストを更新しました')}
+ catch(e){if(S.cache){setData(S.cache.d);setStatus('オフライン(保存済み '+ago(S.cache.t)+')');if(manual)toast('更新できませんでした')}
+  else{loadMsg='読み込めませんでした<br>通信状況を確認して、左上の更新ボタンを押してください';setStatus('エラー');renderAll()}}}
+function setStatus(t){statusTxt=t;const el=$('#status');if(el)el.textContent=t}
+
+/* ---------- navigation (LingUI tab capsule) ---------- */
+const views=[...document.querySelectorAll('.activity-view')],tabBar=$('#glassTabBar'),tabInd=$('#tabLiquidIndicator'),tabItems=[...document.querySelectorAll('.nav-tab-item')];
+let active='view-home';const tabMap={'view-home':0,'view-favs':1,'view-recent':2,'view-settings':3};
+function posInd(i){const t=tabItems[i],b=tabBar.getBoundingClientRect(),r=t.getBoundingClientRect(),x=r.left-b.left-tabBar.clientLeft;tabInd.style.width=r.width+'px';tabInd.style.setProperty('--tab-offset',x+'px');tabInd.style.transform=`translateX(${x}px)`}
+function navigateTo(id,dir){if(id===active)return;const cur=document.getElementById(active),nx=document.getElementById(id);
+ views.forEach(v=>{if(v!==cur&&v!==nx)v.classList.remove('is-active','is-exit-left','is-exit-right')});
+ nx.style.transition='none';nx.classList.remove('is-exit-left','is-exit-right');nx.style.transform=dir==='back'?'translateX(-34px) scale(0.97)':'translateX(34px) scale(0.97)';nx.style.opacity='0';void nx.offsetWidth;
+ nx.style.transition='';nx.style.transform='';nx.style.opacity='';cur.classList.remove('is-active');cur.classList.add(dir==='back'?'is-exit-right':'is-exit-left');nx.classList.add('is-active');active=id;
+ $('#topCenterTitle').textContent=nx.dataset.title;tabItems.forEach((b,i)=>b.classList.toggle('is-active',i===tabMap[id]));posInd(tabMap[id])}
+tabItems.forEach((b,i)=>{b.addEventListener('pointerdown',()=>tabBar.classList.add('is-pressing'));b.addEventListener('click',()=>navigateTo(b.dataset.target,i<tabMap[active]?'back':'forward'))});
+addEventListener('resize',()=>posInd(tabMap[active]));
+$('#detachedSearchBtn').addEventListener('click',()=>{navigateTo('view-home',tabMap[active]>0?'back':'forward');setTimeout(()=>{$('#view-home').scrollTop=0;$('#searchInput').focus()},120)});
+const si=$('#searchInput');si.addEventListener('input',()=>{q=si.value.trim();$('#searchClear').style.visibility=q?'visible':'hidden';renderHome()});
+$('#searchClear').addEventListener('click',()=>{si.value='';q='';$('#searchClear').style.visibility='hidden';renderHome();si.focus()});
+const rb=$('#reloadBtn');rb.addEventListener('click',()=>{rb.style.transition='transform .55s var(--spring-fluid)';rb.style.transform='rotate(360deg)';setTimeout(()=>{rb.style.transition='none';rb.style.transform=''},560);load(true)});
+
+/* ---------- launch ---------- */
+const frame=$('#webFrame'),fr=$('#appFrame');let cur=null,pushed=false;
+function openApp(u,mode){const a=byUrl.get(u);if(!a)return;if(!/^https?:\/\//i.test(u)){toast('開けないURLです');return}
+ const h=S.hist[u]||{n:0};h.n++;h.t=Date.now();S.hist[u]=h;S.recent=[u,...S.recent.filter(x=>x!==u)].slice(0,20);S.last=u;save();renderAll();
+ mode=mode||S.cfg.openMode;if(mode==='tab')window.open(u,'_blank','noopener');else if(mode==='self')location.href=u;else openFrame(a)}
+function frameHeart(){const on=cur&&isFav(cur.appurl);const b=$('#frameHeart');b.innerHTML=heart(on,18);b.style.color=on?'var(--accent-red)':''}
+function openFrame(a){cur=a;$('#frameTitle').textContent=a.appname;frameHeart();fr.src=a.appurl;frame.classList.add('is-open');try{history.pushState({f:1},'');pushed=true}catch(e){}}
+function closeFrame(pop){frame.classList.remove('is-open');setTimeout(()=>{if(!frame.classList.contains('is-open'))fr.src='about:blank'},600);if(!pop&&pushed){pushed=false;try{history.back()}catch(e){}}if(pop)pushed=false}
+addEventListener('popstate',()=>{if(frame.classList.contains('is-open'))closeFrame(true)});
+$('#frameClose').addEventListener('click',()=>closeFrame());
+$('#frameReload').addEventListener('click',()=>{fr.src=cur.appurl});
+$('#frameExt').addEventListener('click',()=>window.open(cur.appurl,'_blank','noopener'));
+$('#frameHeart').addEventListener('click',()=>{toggleFav(cur.appurl);frameHeart()});
+$('#miniOpen').addEventListener('click',()=>openApp(S.last));$('#miniArt').addEventListener('click',()=>openApp(S.last));
+$('#miniClose').addEventListener('click',()=>{S.last=null;save();renderMini()});
+
+function toggleFav(u){const i=S.favs.indexOf(u);i>=0?S.favs.splice(i,1):S.favs.push(u);save();toast(i>=0?'お気に入りから削除しました':'♡ お気に入りに追加しました');renderAll()}
+
+/* ---------- long-press menu (LingUI popover) ---------- */
+const appBd=$('#appBackdrop'),appMenu=$('#appMenu');let lp,fired=false,sx=0,sy=0,pEl=null,menuAt=0;
+const P={open:'<polygon points="6 4 20 12 6 20 6 4"/>',tab:'<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',fav:'<path d="M12 20.5s-8-4.9-8-11A4.5 4.5 0 0 1 12 6.8 4.5 4.5 0 0 1 20 9.5c0 6.1-8 11-8 11z"/>',copy:'<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',share:'<path d="M12 3v12M8 7l4-4 4 4M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/>',info:'<circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><circle cx="12" cy="8" r=".6"/>'};
+const pi=(k,l,i)=>`<div class="popover-item" data-act="${k}"><span class="popover-check"></span><span class="popover-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${P[i||k]}</svg></span><span>${l}</span></div>`;
+function showMenu(el,x,y){const a=byUrl.get(el.dataset.u);if(!a)return;cur=a;menuAt=Date.now();const f=isFav(a.appurl);
+ appMenu.innerHTML=`<div class="popover-item is-disabled" style="padding-bottom:4px"><span class="popover-text-stack"><span style="font-weight:600;color:var(--text-primary)">${esc(a.appname)}</span><span class="popover-sub">${esc(a.cat)}</span></span></div><div class="popover-sep"></div>`+pi('open','開く')+pi('tab','新しいタブで開く')+'<div class="popover-sep"></div>'+pi('fav',f?'お気に入りから削除':'お気に入りに追加')+pi('copy','URLをコピー')+(navigator.share?pi('share','共有…'):'')+'<div class="popover-sep"></div>'+pi('info','詳細');
+ appBd.classList.add('is-open');const W=innerWidth,H=innerHeight,w=248,h=appMenu.offsetHeight;
+ const l=Math.max(12,Math.min(W-w-12,x-w/2));let t=y+14;if(t+h>H-12)t=y-h-14;t=Math.max(56,t);
+ Object.assign(appMenu.style,{left:l+'px',top:t+'px',right:'auto',transformOrigin:`${x-l}px ${y-t}px`})}
+const stage=$('#stage'),stopLp=()=>{clearTimeout(lp);if(pEl){pEl.classList.remove('is-pressing');pEl=null}};
+stage.addEventListener('pointerdown',e=>{const el=e.target.closest('[data-u]');if(!el||e.target.closest('[data-heart]')||e.button>0)return;fired=false;sx=e.clientX;sy=e.clientY;pEl=el;el.classList.add('is-pressing');
+ lp=setTimeout(()=>{fired=true;haptic();showMenu(el,sx,sy);stopLp()},S.cfg.press)});
+stage.addEventListener('pointermove',e=>{if(pEl&&Math.hypot(e.clientX-sx,e.clientY-sy)>10)stopLp()});
+['pointerup','pointercancel'].forEach(t=>addEventListener(t,()=>{stopLp();document.querySelectorAll('.ling-toggle.is-pressing').forEach(x=>x.classList.remove('is-pressing'));tabBar.classList.remove('is-pressing')}));
+stage.addEventListener('scroll',stopLp,true);
+stage.addEventListener('contextmenu',e=>{const el=e.target.closest('[data-u]');if(!el)return;e.preventDefault();if(!appBd.classList.contains('is-open')&&Date.now()-menuAt>600)showMenu(el,e.clientX,e.clientY)});
+stage.addEventListener('click',e=>{
+ if(e.target.closest('#clearHist')){confirmBox('履歴を消去しますか?','最近開いたアプリと使用回数が削除されます。','消去',()=>{S.hist={};S.recent=[];S.last=null;save();renderAll();toast('履歴を消去しました')});return}
+ const cb=e.target.closest('[data-collapse]');if(cb){const n=cb.dataset.collapse;S.collapsed[n]=!S.collapsed[n];save();renderHome();return}
+ const el=e.target.closest('[data-u]');if(!el)return;
+ if(e.target.closest('[data-heart]')){toggleFav(el.dataset.u);return}
+ if(fired){fired=false;return}openApp(el.dataset.u)});
+const closeApp=()=>{if(Date.now()-menuAt>300)appBd.classList.remove('is-open')};appBd.addEventListener('click',closeApp);
+appMenu.addEventListener('click',e=>{const it=e.target.closest('[data-act]');if(!it)return;e.stopPropagation();appBd.classList.remove('is-open');const a=cur,k=it.dataset.act;
+ if(k==='open')openApp(a.appurl);else if(k==='tab')openApp(a.appurl,'tab');else if(k==='fav')toggleFav(a.appurl);
+ else if(k==='copy'){(navigator.clipboard?navigator.clipboard.writeText(a.appurl):Promise.reject()).then(()=>toast('URLをコピーしました'),()=>toast('コピーできませんでした'))}
+ else if(k==='share')navigator.share({title:a.appname,text:a.appinfo,url:a.appurl}).catch(()=>{});else if(k==='info')showInfo(a)});
+
+/* ---------- view options popover (top-right) ---------- */
+const viewBd=$('#viewBackdrop'),viewMenu=$('#viewMenu');
+const vi=(g,k,l,on)=>`<div class="popover-item" data-g="${g}" data-k="${k}"><span class="popover-check">${on?'✓':''}</span><span>${l}</span></div>`;
+$('#globalMoreBtn').addEventListener('click',e=>{e.stopPropagation();if(viewBd.classList.contains('is-open')){viewBd.classList.remove('is-open');return}
+ viewMenu.innerHTML=Object.entries(VIEW).map(([k,l])=>vi('view',k,l,S.cfg.view===k)).join('')+'<div class="popover-sep"></div>'+Object.entries(SORT).map(([k,l])=>vi('sort',k,l,S.cfg.sort===k)).join('')+'<div class="popover-sep"></div>'+vi('act','reload','アプリリストを更新');viewBd.classList.add('is-open')});
+viewBd.addEventListener('click',()=>viewBd.classList.remove('is-open'));
+viewMenu.addEventListener('click',e=>{const it=e.target.closest('[data-g]');if(!it)return;e.stopPropagation();viewBd.classList.remove('is-open');const g=it.dataset.g,k=it.dataset.k;if(g==='act')load(true);else{S.cfg[g]=k;save();applyCfg()}});
+
+/* ---------- dialogs & sheets (LingUI) ---------- */
+const al=$('#alertModalOverlay'),ac=$('#alertCardContent'),sheet=$('#sheetOverlay'),sp=$('#sheetPanelContent');
+function confirmBox(t,b,ok,cb){ac.innerHTML=`<div class="alert-title">${t}</div><div class="alert-body">${b}</div><div class="alert-btn-row"><button class="alert-pill-btn" id="alNo">キャンセル</button><button class="alert-pill-btn" id="alYes" style="color:var(--accent-red)">${ok}</button></div>`;al.classList.add('is-open');$('#alNo').onclick=()=>al.classList.remove('is-open');$('#alYes').onclick=()=>{al.classList.remove('is-open');cb()}}
+al.addEventListener('click',e=>{if(e.target===al)al.classList.remove('is-open')});
+const closeSheet=()=>sheet.classList.remove('is-open');sheet.addEventListener('click',e=>{if(e.target===sheet)closeSheet()});
+const X='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+function chooseSheet(title,opts,curV,cb){sp.innerHTML=`<div class="share-header"><div class="share-doc-info"><div class="share-doc-title">${title}</div></div><button class="sheet-close-circle" id="shX" aria-label="閉じる">${X}</button></div><div class="ling-card" style="margin-top:14px">${opts.map(([v,l])=>`<div class="ling-row is-tappable" data-v="${v}"><span class="row-title">${l}</span><span class="nav-preset-check">${v===curV?'✓':''}</span></div>`).join('')}</div>`;
+ $('#shX').onclick=closeSheet;sp.querySelectorAll('[data-v]').forEach(r=>r.onclick=()=>{closeSheet();cb(r.dataset.v)});sheet.classList.add('is-open')}
+function showInfo(a){const h=S.hist[a.appurl];
+ sp.innerHTML=`<div class="share-header"><span style="--icon:54px;display:flex">${ico(a,1)}</span><div class="share-doc-info"><div class="share-doc-title">${esc(a.appname)}</div><div class="share-doc-sub">${esc(a.cat)}</div></div><button class="sheet-close-circle" id="shX" aria-label="閉じる">${X}</button></div>
+ <p class="section-footer-text" style="padding:14px 6px 8px;font-size:14px">${esc(a.appinfo)||'説明はありません'}</p>
+ <div class="ling-card"><div class="ling-row"><span class="row-title">開いた回数</span><span class="row-detail-group">${h?h.n+'回':'—'}</span></div><div class="ling-row"><span class="row-title">最後に開いた</span><span class="row-detail-group">${h?ago(h.t):'—'}</span></div><div class="ling-row" style="display:block"><div class="row-sub" style="white-space:normal;word-break:break-all">${esc(a.appurl)}</div></div></div>
+ <div class="ling-card" style="margin-top:12px"><div class="ling-row is-tappable" id="shFav"><span class="row-title">お気に入り</span><span class="heart-btn${isFav(a.appurl)?' is-on':''}">${heart(isFav(a.appurl))}</span></div></div>
+ <button id="shOpen" style="width:100%;height:50px;border-radius:999px;border:none;background:var(--accent-blue);color:#fff;font-size:16.5px;font-weight:600;cursor:pointer;margin-top:16px">開く</button>`;
+ $('#shX').onclick=closeSheet;$('#shFav').onclick=()=>{toggleFav(a.appurl);showInfo(a)};$('#shOpen').onclick=()=>{closeSheet();openApp(a.appurl)};sheet.classList.add('is-open')}
+
+/* ---------- settings (LingUI rows / toggle / slider / stepper) ---------- */
+const T=(k,l)=>`<div class="ling-row"><span class="row-title">${l}</span><button type="button" class="ling-toggle${S.cfg[k]?' is-on':''}" role="switch" aria-checked="${!!S.cfg[k]}" data-k="${k}"><span class="ling-toggle-knob"></span></button></div>`;
+const N=(id,l)=>`<div class="ling-row is-tappable" id="${id}"><span class="row-title">${l}</span><span class="row-detail-group"><span id="${id}V"></span>${chev}</span></div>`;
+const SH=t=>`<div class="section-header-row" style="margin-top:22px"><span class="section-header-sub">${t}</span></div>`;
+function buildSettings(){$('#settingsBox').innerHTML=SH('表示').replace('margin-top:22px','margin-top:4px')+`<div class="ling-card">${N('setView','表示形式')}${N('setSort','並び順')}${T('showChar','キャラ画像をアイコンに使う')}${T('showDesc','説明を表示(リスト)')}${T('mini','前回のアプリを表示')}
+ <div class="ling-row" style="display:block;padding:0"><div class="ling-slider-row"><span class="slider-end-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12" rx="3"/></svg></span><div class="ling-slider-wrap" id="sizeSlider"><div class="ling-slider-track"><div class="ling-slider-fill" style="width:${S.cfg.iconSize}%"></div><div class="ling-slider-ticks"><span></span><span></span><span></span><span></span><span></span><span></span></div></div><div class="ling-slider-thumb" style="left:${S.cfg.iconSize}%"></div></div><span class="slider-end-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/></svg></span></div></div></div>
+ <p class="section-footer-text">スライダーでアイコンの大きさを変えられます。</p>`+SH('動作')+`<div class="ling-card">${N('setOpen','アプリの開き方')}
+ <div class="ling-row"><span class="row-title">長押しの長さ <span id="pressV" style="color:var(--text-secondary);font-size:14px;margin-left:4px"></span></span><div class="ling-stepper"><button class="stepper-btn" id="stepMinus" aria-label="短く">−</button><span class="stepper-divider"></span><button class="stepper-btn" id="stepPlus" aria-label="長く">+</button></div></div>${T('haptic','長押しの振動')}</div>
+ <p class="section-footer-text">アプリを長押し(PCは右クリック)すると、お気に入り・URLコピーなどのメニューが開きます。</p>`+SH('データ')+`<div class="ling-card"><div class="ling-row"><span class="row-title">アプリリスト</span><span class="row-detail-group" id="status">${esc(statusTxt)}</span></div><div class="ling-row is-tappable" id="setReload"><span class="row-title">今すぐ更新</span><span class="row-detail-group">${chev}</span></div><div class="ling-row row-destructive is-tappable" id="resetFav">お気に入りをすべて削除</div></div>
+ <div class="ling-standalone-pill" id="resetAll">設定を初期化</div><p class="section-footer-text" style="text-align:center;margin-top:10px">PBPark ランチャー ・ LingUI</p>`}
+function applyCfg(){const px=Math.round(48+S.cfg.iconSize*.36),r=document.documentElement.style;r.setProperty('--icon',px+'px');r.setProperty('--tile',(px+22)+'px');
+ const set=(id,v)=>{const e=$('#'+id);if(e)e.textContent=v};set('setViewV',VIEW[S.cfg.view]);set('setSortV',SORT[S.cfg.sort]);set('setOpenV',OPEN[S.cfg.openMode]);set('pressV','('+S.cfg.press+'ms)');renderAll()}
+const sv=$('#view-settings');
+sv.addEventListener('pointerdown',e=>{const t=e.target.closest('.ling-toggle');if(t)t.classList.add('is-pressing');const w=e.target.closest('.ling-slider-wrap');if(w){w.setPointerCapture(e.pointerId);w.classList.add('is-dragging');slide(w,e.clientX)}});
+sv.addEventListener('pointermove',e=>{const w=e.target.closest('.ling-slider-wrap');if(w&&w.classList.contains('is-dragging'))slide(w,e.clientX)});
+['pointerup','pointercancel'].forEach(t=>sv.addEventListener(t,e=>{const w=e.target.closest('.ling-slider-wrap');if(w){w.classList.remove('is-dragging');save();renderAll()}}));
+function slide(w,x){const r=w.getBoundingClientRect(),p=Math.max(0,Math.min(1,(x-r.left)/r.width));w.querySelector('.ling-slider-fill').style.width=p*100+'%';w.querySelector('.ling-slider-thumb').style.left=p*100+'%';S.cfg.iconSize=Math.round(p*100);const px=Math.round(48+S.cfg.iconSize*.36);document.documentElement.style.setProperty('--icon',px+'px');document.documentElement.style.setProperty('--tile',(px+22)+'px')}
+sv.addEventListener('click',e=>{const t=e.target.closest('.ling-toggle');
+ if(t){const k=t.dataset.k;S.cfg[k]=!S.cfg[k];t.classList.toggle('is-on',S.cfg[k]);t.setAttribute('aria-checked',S.cfg[k]);save();applyCfg();return}
+ const id=(e.target.closest('[id]')||{}).id,opts=o=>Object.entries(o);
+ if(id==='setView')chooseSheet('表示形式',opts(VIEW),S.cfg.view,v=>{S.cfg.view=v;save();applyCfg()});
+ else if(id==='setSort')chooseSheet('並び順',opts(SORT),S.cfg.sort,v=>{S.cfg.sort=v;save();applyCfg()});
+ else if(id==='setOpen')chooseSheet('アプリの開き方',[['overlay','アプリ内で開く'],['tab','新しいタブで開く'],['self','このタブで開く']],S.cfg.openMode,v=>{S.cfg.openMode=v;save();applyCfg()});
+ else if(id==='stepMinus'||id==='stepPlus'){S.cfg.press=Math.max(300,Math.min(1000,S.cfg.press+(id==='stepPlus'?100:-100)));save();applyCfg()}
+ else if(id==='setReload')load(true);
+ else if(id==='resetFav')confirmBox('お気に入りを削除しますか?','♡をつけたアプリがすべて外れます。','削除',()=>{S.favs=[];save();renderAll();toast('お気に入りを削除しました')});
+ else if(id==='resetAll')confirmBox('設定を初期化しますか?','表示や動作の設定が初期値に戻ります。お気に入りと履歴はそのままです。','初期化',()=>{S.cfg=Object.assign({},DEF);save();buildSettings();applyCfg();toast('設定を初期化しました')})});
+
+/* ---------- init ---------- */
+buildSettings();applyCfg();
+if(S.cache)setData(S.cache.d);
+requestAnimationFrame(()=>posInd(0));
+load();
+})();
+</script>
+</body>
+</html>
