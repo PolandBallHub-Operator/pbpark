@@ -757,6 +757,30 @@ function dayNum(){const d=new Date();return Math.floor((d.getTime()-d.getTimezon
 function curEvent(){const dn=dayNum(),p=Math.floor(dn/EV_DAYS);return{...EVENTS[Math.floor(rngFrom('event'+p)()*EVENTS.length)],left:(p+1)*EV_DAYS-dn}}
 const MAILS=[['フレンドからのプレゼント','旅行券 ×1',()=>addHeart()],['ようこそボーナス','金貨 ×2,000',()=>appState.coins+=2000],['世界地図のおくりもの','金貨 ×1,500',()=>appState.coins+=1500],['アカウント追加アップデート','金貨 ×1,000',()=>appState.coins+=1000],['アップデート記念プレゼント','金貨 ×5,000',()=>appState.coins+=5000]];
 function addHeart(){const a=appState;if(a.hearts<5)a.hearts++;else a.extraHearts++}
+/* ---------- 受信ボックス（PBData: イベントページ等から届くギフト） ---------- */
+const GAME_ID='countrypop';
+const GIFT_ITEMS={ /* PBData の items キー → ゲーム内の付与処理（未知のキーは無視） */
+ coins:['金貨',n=>appState.coins+=n],
+ gems:['ジェム',n=>appState.gems+=n],
+ oda:['ODAチケット',n=>appState.oda=Math.min(9999,(appState.oda|0)+n)],
+ eng:['技術者',n=>appState.eng=Math.min(9999,(appState.eng|0)+n)],
+ hearts:['旅行券',n=>{for(let i=0;i<n;i++)addHeart()}],
+ xp:['経験値',n=>{addXp(n)}],
+ pbpoints:['PBポイント',n=>{if(window.PBPoints)window.PBPoints.add(n)}]
+};
+const giftInbox=()=>window.PBData?window.PBData.inbox(GAME_ID):[];
+const giftLabel=g=>Object.keys(g.items||{}).filter(k=>GIFT_ITEMS[k]).map(k=>`${GIFT_ITEMS[k][0]} ×${g.items[k].toLocaleString()}`).join('、')||g.desc||'';
+function claimGift(id){
+ if(!window.PBData)return;
+ const g=window.PBData.consume(GAME_ID,id); /* 先に受信ボックスから取り除いてから反映（二重受け取り防止） */
+ if(!g)return showToast('このプレゼントはすでに受け取り済みです');
+ Object.keys(g.items||{}).forEach(k=>{if(GIFT_ITEMS[k])GIFT_ITEMS[k][1](g.items[k])});
+ save();closeModal();sfx('coin');updateAllUI();showToast('受け取りました！ '+giftLabel(g));
+}
+/* 受信ボックスの変化（別タブのイベントページから届いた時など）をすぐ反映 */
+function giftRefresh(){try{updateAllUI();if(!$('modal-overlay').classList.contains('hidden')&&$('modal-title').textContent=='メールボックス')openModal('mail')}catch(e){}}
+if(window.PBData)window.PBData.onInbox(GAME_ID,giftRefresh);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)giftRefresh()});
 function claimMail(i){appState.mdone.push(i);MAILS[i][2]();closeModal();sfx('coin');updateAllUI();showToast('受け取りました！')}
 function addCurrency(t){const a=appState;if(t=='coin'){if(a.gems<3)return showToast('ジェムが足りません（3個で金貨3,000）');a.gems-=3;a.coins+=3000;showToast('ジェム3個を金貨3,000に交換しました')}else openModal('pbx');updateAllUI()}
 function recoverHeart(){const a=appState;if(a.gems<3)return showToast('ジェムが足りません（3個で旅行券1回復）');a.gems-=3;addHeart();updateAllUI();showToast('旅行券を1回復しました！')}
@@ -768,7 +792,7 @@ function updateAllUI(){
  $('coin-display').textContent=a.coins.toLocaleString();$('gem-display').textContent=a.gems;
  $('heart-container').innerHTML=[0,1,2,3,4].map(i=>`<span class="text-base leading-none ${i<a.hearts?'drop-shadow':'opacity-25 grayscale'}">🎫</span>`).join('');
  $('extra-hearts').textContent='+'+a.extraHearts;
- const n=MAILS.length-a.mdone.length;$('mail-badge').textContent=n;$('mail-badge').classList.toggle('hidden',!n);
+ const n=MAILS.length-a.mdone.length+giftInbox().length;$('mail-badge').textContent=n;$('mail-badge').classList.toggle('hidden',!n);
  $('home-ball-name').textContent=E.name;$('home-ball-region').textContent=E.regionName;$('bottom-btn-lv').textContent='GDP '+E.lv;
  $('home-best').textContent=a.best.toLocaleString();$('home-found').textContent=foundN()+' / '+NCTY;
  sv('home-ball-svg',E.id);sv('mini-score-ball',E.id);sv('bottom-btn-ball',E.id);sv('puzzle-skill-ball',E.id);sv('col-preview-svg',S.id,'smile');
@@ -829,7 +853,7 @@ function openModal(t,x){
  else if(t=='mission'){T='今日の目標';const m=mp();B=`<p class="text-center font-black ${m.di==2?'text-red-800':''}">今日は『${DIFF[m.di][0]}』${m.di==2?'🔥':m.di==0?'🍀':''}</p>`+m.goals.map((g,i)=>card(`${i+1}. ${GT[g.k][0].replace('{n}',g.n.toLocaleString())}`,m.paid.includes(i)?'達成済み':`進行度 ${Math.min(m.p[g.k],g.n).toLocaleString()} / ${g.n.toLocaleString()}（報酬：${g.rt=='gems'?'ジェム':'金貨'} ${g.ra.toLocaleString()}・XP+5,000）`,`<span class="${m.paid.includes(i)?'text-amber-600':'opacity-30'} font-black text-base">★</span>`)).join('')+'<p class="text-[10px] text-amber-800">目標は毎日変わり、むずかしい日もあります。</p>'}
  else if(t=='rank'){const ri=rankInfo();T='ランク';B=`<p class="text-center"><span class="text-3xl font-cinzel font-black">Rank ${ri.r}</span><br><span class="font-bold">${ri.title}</span></p>`+row('経験値（XP）',ri.need?`${ri.cur.toLocaleString()} / ${ri.need.toLocaleString()}`:'MAX')+row('累計XP',a.xp.toLocaleString())+row('次の称号',ri.next?`${ri.next[1]}（Rank ${ri.next[0]}）`:'なし')+'<p class="text-[11px] text-amber-800 pt-1">XPはプレイのスコア（約200プレイで1ランク）と、今日の目標の達成で増えます。ランクアップごとに金貨（ランク×500）、10ランクごとにジェム1個がもらえます。</p>'}
  else if(t=='event'){const ev=curEvent();T='開催中のイベント';B=`<p class="text-center text-lg font-black">${ev.icon} ${ev.name}</p><p class="text-center">${ev.desc}</p>`+row('残り',`あと${ev.left}日`)+`<p class="text-[10px] text-amber-800 pt-1">イベントは${EV_DAYS}日ごとに入れ替わります。</p>`}
- else if(t=='mail'){T='メールボックス';B=MAILS.map((m,i)=>a.mdone.includes(i)?'':card(m[0],m[1],`<button onclick="claimMail(${i})" class="px-3 py-1 rounded-full btn-brass text-xs font-black">受取</button>`)).join('')||'<p class="text-center py-3">新しいメールはありません</p>'}
+ else if(t=='mail'){T='メールボックス';B=giftInbox().map(g=>card('🎁 '+esc(g.title),esc(giftLabel(g))+' ・ '+esc(g.from),`<button onclick="claimGift('${esc(g.id)}')" class="px-3 py-1 rounded-full btn-brass text-xs font-black">受取</button>`)).join('')+MAILS.map((m,i)=>a.mdone.includes(i)?'':card(m[0],m[1],`<button onclick="claimMail(${i})" class="px-3 py-1 rounded-full btn-brass text-xs font-black">受取</button>`)).join('')||'<p class="text-center py-3">新しいメールはありません</p>'}
  else if(t=='record'){T='きろく';B=row('ベストスコア',a.best.toLocaleString())+row('発見した国',foundN()+' / '+NCTY+' か国')+row('プレイ回数',a.plays+' 回')}
  else if(t=='settings'){T='せってい';B=`<div class="flex justify-between items-center py-1"><span>BGM</span><button onclick="toggleBGM()" class="px-3 py-0.5 ${a.bgm?'bg-amber-800':'bg-slate-500'} text-white rounded text-[11px]">${a.bgm?'ON':'OFF'}</button></div><div class="flex justify-between items-center py-1"><span>効果音（SE）</span><button onclick="toggleSE()" class="px-3 py-0.5 ${a.se?'bg-amber-800':'bg-slate-500'} text-white rounded text-[11px]">${a.se?'ON':'OFF'}</button></div><button onclick="openProfile()" class="w-full py-2 rounded-full btn-brass font-black text-xs mt-2">プロフィール設定</button><button onclick="openMig()" class="w-full py-2 rounded-full btn-royal font-black text-xs mt-2">データ移行</button><p class="text-[10px] text-amber-800 pt-1">※Backupファイルは改ざん事例があるため提供していません。</p><div class="text-[10px] text-amber-800 pt-2">PB Puzzle World Edition v1.0</div>`}
  else if(t=='gacha'){T='ガチャ';const gr=(k,nm,ds,c,cl)=>`<div class="p-2 rounded-xl bg-amber-900/10 border border-amber-800/30 flex items-center justify-between gap-2 text-left"><div><div class="font-bold text-[13px]">${nm}</div><div class="text-[10px] text-amber-800">${ds}</div></div><button onclick="doGacha('${k}')" class="shrink-0 px-2.5 py-1.5 rounded-lg ${cl} font-black text-[11px]">${c}</button></div>`;
