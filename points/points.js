@@ -1,3 +1,7 @@
+// points.js - PB Park 共通ポイント／データライブラリ
+// 公開API:
+//   window.PBPoints … PBポイント（PointsSystem は後方互換用の別名）
+//   window.PBData   … ゲームへポイント・アイテム・データを付与する汎用 data API（受信ボックス方式）
 (() => {
   const KEY = 'pb_user_points';
 
@@ -119,6 +123,16 @@
       return fallback;
     }
   };
+  // 形が想定外（古い版・手動編集・壊れたデータ）でも安全な値に正規化して返す
+  const readArray = (key) => {
+    const v = readJSON(key, []);
+    return Array.isArray(v) ? v : [];
+  };
+  const readObject = (key) => {
+    const v = readJSON(key, {});
+    return v && typeof v === 'object' && !Array.isArray(v) ? v : {};
+  };
+  const readSent = (g) => readArray(kSent(g)).filter((x) => typeof x === 'string');
   const writeJSON = (key, value) => {
     try {
       localStorage.setItem(key, JSON.stringify(value));
@@ -171,9 +185,19 @@
 
   const liveInbox = (g) => {
     const now = Date.now();
-    const list = readJSON(kInbox(g), []);
-    return (Array.isArray(list) ? list : [])
-      .filter((x) => x && typeof x.id === 'string' && ID_RE.test(x.id) && (!x.expiresAt || x.expiresAt > now));
+    return readArray(kInbox(g))
+      .filter((x) => x && typeof x === 'object' && typeof x.id === 'string' && ID_RE.test(x.id) &&
+        (!x.expiresAt || x.expiresAt > now))
+      .map((x) => ({
+        id: x.id,
+        title: String(x.title || 'プレゼント').slice(0, 40),
+        desc: String(x.desc || '').slice(0, 120),
+        from: String(x.from || 'PB Park').slice(0, 24),
+        items: cleanItems(x.items),
+        data: x.data == null ? null : x.data,
+        at: Number(x.at) || 0,
+        expiresAt: Number(x.expiresAt) || 0
+      }));
   };
 
   const emitInbox = (g) => {
@@ -181,16 +205,23 @@
   };
 
   const PBData = {
+    version: '2026-11-21.2',
     // ---- 送信側（イベントページ・管理ツールなど）----
 
     // ゲームの受信ボックスへギフトを送る。同じ gift.id は一度しか送れない
     // 戻り値: { ok:true, gift } | { ok:false, reason:'invalid'|'duplicate'|'full'|'storage' }
     send(gameId, gift) {
+      try { return PBData._send(gameId, gift); } catch (error) {
+        console.error('PBData.sendに失敗しました:', error);
+        return { ok: false, reason: 'storage' };
+      }
+    },
+    _send(gameId, gift) {
       if (!gameOk(gameId)) return { ok: false, reason: 'invalid' };
       const g = normalizeGift(gift);
       if (!g) return { ok: false, reason: 'invalid' };
 
-      const sent = readJSON(kSent(gameId), []);
+      const sent = readSent(gameId);
       if (sent.includes(g.id)) return { ok: false, reason: 'duplicate' };
 
       const inbox = liveInbox(gameId);
@@ -206,7 +237,7 @@
 
     // 送信済みか（受信ボックスから消えた後も true）
     wasSent(gameId, id) {
-      return gameOk(gameId) && readJSON(kSent(gameId), []).includes(id);
+      return gameOk(gameId) && readSent(gameId).includes(id);
     },
 
     // ---- 受信側（ゲーム）----
@@ -219,6 +250,12 @@
     // 受け取り完了。受信ボックスから取り除き、取り除いたギフトを返す（なければ null）
     // ※ 先に consume して、戻り値のギフトの中身をゲームへ反映すること（二重受け取り防止）
     consume(gameId, id) {
+      try { return PBData._consume(gameId, id); } catch (error) {
+        console.error('PBData.consumeに失敗しました:', error);
+        return null;
+      }
+    },
+    _consume(gameId, id) {
       if (!gameOk(gameId)) return null;
       const inbox = liveInbox(gameId);
       const idx = inbox.findIndex((x) => x.id === id);
@@ -250,7 +287,7 @@
 
     get(gameId, key, fallback = null) {
       if (!gameOk(gameId)) return fallback;
-      const store = readJSON(kStore(gameId), {});
+      const store = readObject(kStore(gameId));
       return Object.prototype.hasOwnProperty.call(store, key) ? store[key] : fallback;
     },
 
@@ -258,7 +295,7 @@
       if (!gameOk(gameId) || typeof key !== 'string' || !key || key.length > 64) return false;
       const safe = cleanData(value);
       if (safe == null && value != null) return false;
-      const store = readJSON(kStore(gameId), {});
+      const store = readObject(kStore(gameId));
       store[key] = safe;
       if (!writeJSON(kStore(gameId), store)) return false;
       window.dispatchEvent(new CustomEvent(EV_STORE, { detail: { gameId, key, value: safe } }));
@@ -267,7 +304,7 @@
 
     remove(gameId, key) {
       if (!gameOk(gameId)) return false;
-      const store = readJSON(kStore(gameId), {});
+      const store = readObject(kStore(gameId));
       delete store[key];
       return writeJSON(kStore(gameId), store);
     },
@@ -290,9 +327,10 @@
   };
 
   // launcher は PBPoints を利用するため、必ず window に公開する。
-  window.PBPoints = PBPoints;
+  // ※すでに存在する場合は上書きしない（再読み込みしてもPBポイントの実装・値は変わらない）
+  if (!window.PBPoints) window.PBPoints = PBPoints;
   // 旧実装/既存ツールとの互換性を維持する。
-  window.PointsSystem = PBPoints;
+  if (!window.PointsSystem) window.PointsSystem = window.PBPoints;
   // ゲームへの付与用の汎用 data API
   window.PBData = PBData;
 })();
