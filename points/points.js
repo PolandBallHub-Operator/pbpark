@@ -1,7 +1,3 @@
-// points.js - PB Park 共通ポイント／データライブラリ
-// 公開API:
-//   window.PBPoints … PBポイント（PointsSystem は後方互換用の別名）
-//   window.PBData   … ゲームへポイント・アイテム・データを付与する汎用 data API（受信ボックス方式）
 (() => {
   const KEY = 'pb_user_points';
 
