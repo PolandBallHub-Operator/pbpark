@@ -133,7 +133,7 @@ p{font-size:13.5px;line-height:1.6;margin:0 0 14px;color:var(--text-sub)}
       </div>
       <div class="balls" id="hero-balls"></div>
     </div>
-    <div class="ticker" aria-hidden="true"><div>★ こんなに集まる機会はもうない！ ★ 一度きりの大放出！ ★ 毎日遊んでポイントGET ★ 共有してさらにポイントGET ★ 2日目からは10pt/10pt ★ 1週間まるごとPBポイントづくし！ ★ こんなに集まる機会はもうない！ ★ 一度きりの大放出！ ★</div></div>
+    <div class="ticker" aria-hidden="true"><div>★ 【最終日！】ODAチケット×3＋技術者×3がもらえる！ ★ こんなに集まる機会はもうない！ ★ 一度きりの大放出！ ★ 毎日遊んでポイントGET ★ 共有してさらにポイントGET ★ 2日目からは10pt/10pt ★ 1週間まるごとPBポイントづくし！ ★ こんなに集まる機会はもうない！ ★ 一度きりの大放出！ ★</div></div>
 
     <div class="big-promo">
       <b>こんなに集まる機会は、もうない。<br>一度きりの大放出！</b>
@@ -148,6 +148,12 @@ p{font-size:13.5px;line-height:1.6;margin:0 0 14px;color:var(--text-sub)}
     <div class="glass-card" id="final-banner" style="display:none;background:#000;color:var(--gold)">
       <h2 style="margin-bottom:4px">🔥 最終日スペシャル！</h2>
       <p style="margin:0;color:#ddd">今日だけ、遊んで<b>80pt</b>＋共有で<b>20pt</b>！</p>
+    </div>
+    <div class="glass-card" id="gift-card" style="background:#000;color:var(--gold)">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px"><span class="pill">【最終日！】</span><span class="pill dark" style="background:var(--gold);color:#111">【ODAチケット×3 技術者×3もらえる】</span></div>
+      <h2 style="margin-bottom:4px">🎫 最終日スペシャルギフト</h2>
+      <p id="gift-desc" style="margin:0 0 12px;color:#ddd">最終日だけ、<b>ODAチケット×3</b>と<b>技術者×3</b>をプレゼント！ゲーム「カントリーポップ」のメールボックスに届きます。</p>
+      <button class="ai-btn" id="btn-gift" style="background:var(--gold);color:#111" onclick="claimFinalGift()"><span class="material-symbols-outlined">mail</span><span id="btn-gift-label">ゲームに送る</span></button>
     </div>
     <div class="glass-card" id="missions">
       <h2>今日のミッション</h2>
@@ -200,6 +206,7 @@ p{font-size:13.5px;line-height:1.6;margin:0 0 14px;color:var(--text-sub)}
         <li>初日：アプリで遊ぶと <b>5pt</b>、「polandball.s.gy」を共有すると <b>5pt</b></li>
         <li>2日目〜最終日の前日：遊ぶと <b>10pt</b>、共有すると <b>10pt</b></li>
         <li>最終日は、遊ぶと <b>80pt</b>・共有すると <b>20pt</b></li>
+        <li>【最終日！】ボタンから <b>ODAチケット×3＋技術者×3</b>（1回のみ）。ゲームのメールボックスに届きます</li>
         <li>遊ぶ・共有は1日1回ずつ。日付は日本時間0:00に切り替わります</li>
         <li>ポイントはPB Park共通のPBポイントとして貯まります</li>
       </ul>
@@ -241,6 +248,9 @@ const MAX_TOTAL = BONUS + Array.from({length:DAYS},(_,i)=>ptFor(i,'play')+ptFor(
 const SHARE_URL = 'https://polandball.s.gy';
 const SHARE_TEXT = 'CountryParkで「今日から1週間！PBポイントづくし！」開催中！毎日PBポイントがもらえるよ🎁';
 const PLAY_SECONDS = 15;
+const GAME_ID = 'countrypop';                      // 送り先ゲーム（PBData の受信ボックス）
+const GIFT_ID = 'pbevent-week-2026-final';         // 同じIDは二重に送れない
+const GIFT_ITEMS = {oda:3, eng:3};                 // ODAチケット×3 / 技術者×3
 const APPLIST_URLS = ['https://raw.githubusercontent.com/PolandBallHub-Operator/pbpark/refs/heads/main/applist/applist.json'];
 const DAILY_PICKS = 8;               // 1日に表示するアプリ数（日付ごとにランダム）
 const BALLS = [['de','ドイツ'],['jp','日本'],['pl','ポーランド'],['kr','韓国'],['cn','中国'],['ru','ロシア']];
@@ -291,6 +301,20 @@ async function doShare(){
     claim('share');
   }catch(e){ if(e&&e.name!=='AbortError')toast('共有できませんでした。もう一度試してね'); }
 }
+function claimFinalGift(){
+  const s=load();
+  if(s.gift){toast('すでにゲームへ送信済みです。メールボックスを見てね！');return}
+  if(phase()!=='live'||todayIdx()!==DAYS-1){toast(phase()==='after'?'イベントは終了しました':'最終日にもらえます！');return}
+  if(!window.PBData){toast('送信できませんでした。ページを再読み込みしてね');return}
+  const r=PBData.send(GAME_ID,{
+    id:GIFT_ID,title:'最終日スペシャルギフト',desc:'イベント「PBポイントづくし！」最終日のプレゼント',
+    from:'CountryPark',items:GIFT_ITEMS
+  });
+  if(r.ok||r.reason==='duplicate'){
+    s.gift=true;save(s);render();
+    showDialog(0,'ゲームのメールボックスに届きました！','ODA×3＋技術者×3');
+  }else toast('送信できませんでした。もう一度試してね');
+}
 function claimBonus(){
   const s=load();
   if(phase()!=='live'||s.bonus)return;
@@ -326,7 +350,10 @@ function render(){
   $('today-label').textContent=ph==='live'?`Day ${ti+1} / ${DAYS}`:ph==='before'?'開始前':'イベント終了';
   $('today-pt').textContent=`${gained} / ${dmax}pt`;
   $('today-fill').style.width=Math.max(gained?8:0,gained/dmax*100)+'%';
-  const live=ph==='live';
+  const live=ph==='live',gd=!!s.gift,fin=live&&ti===DAYS-1;
+  $('btn-gift').disabled=gd||!fin;
+  $('btn-gift-label').textContent=gd?'ゲームに送信済み':fin?'ゲームに送る':ph==='after'?'終了':'最終日にもらえます';
+  $('gift-desc').innerHTML=gd?'ゲーム「カントリーポップ」の<b>メールボックス</b>を開いて受け取ってね！':'最終日だけ、<b>ODAチケット×3</b>と<b>技術者×3</b>をプレゼント！ゲーム「カントリーポップ」のメールボックスに届きます。';
   [['play',$('btn-play'),'アプリへ'],['share',$('btn-share'),'共有する']].forEach(([k,b,label])=>{
     b.textContent=!live?(ph==='before'?'開始前':'終了'):td[k]?'受け取り済み':label;
     b.disabled=!live||!!td[k];
@@ -434,8 +461,8 @@ async function initBalls(){
   try{await loadAssets();box.querySelectorAll('canvas').forEach((cv,i)=>drawBall(cv,BALLS[i][0],'smile'))}
   catch{box.querySelectorAll('canvas').forEach((cv,i)=>{cv.outerHTML=`<div style="font-size:64px;line-height:1.3">${String.fromCodePoint(...[...BALLS[i][0].toUpperCase()].map(c=>0x1F1E6+c.charCodeAt(0)-65))}</div>`})}
 }
-function showDialog(pt,msg){
-  $('dlg-title').textContent='+'+pt+'pt';$('dlg-msg').textContent=msg;
+function showDialog(pt,msg,label){
+  $('dlg-title').textContent=label||('+'+pt+'pt');$('dlg-msg').textContent=msg;
   const [id]=BALLS[Math.random()*BALLS.length|0];drawBall($('dlg-ball'),id,'smile');
   $('dlg').classList.add('active');
 }
